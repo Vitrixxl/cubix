@@ -1,5 +1,5 @@
-# The API (go-api/): a static binary, musl with SQLite linked in. The mobile app is built on the developer
-# machine, never in this image.
+# The API (go-api/): a static binary, musl with SQLite linked in. The Android app is built on the developer
+# machine, never in this image; its web build (the phone app of the site) is part of the web app below.
 FROM golang:1.27-alpine AS backend
 RUN apk add --no-cache build-base
 WORKDIR /app/go-api
@@ -24,8 +24,16 @@ FROM oven/bun:1.4 AS web
 WORKDIR /app
 COPY package.json bun.lock tsconfig.json ./
 RUN bun install --frozen-lockfile --production --ignore-scripts
+# The phone app for the web (mobile/ through react-native-web, exported by desktop/web.ts): its own dependencies, then
+# the files its install scripts would generate (the scrambler and camera pages, the case diagrams).
+COPY mobile/package.json mobile/bun.lock ./mobile/
+COPY mobile/patches ./mobile/patches
+RUN cd mobile && bun install --frozen-lockfile --ignore-scripts
 COPY data ./data
 COPY src ./src
+COPY assets ./assets
+COPY mobile ./mobile
+RUN cd mobile && bun scripts/build-scrambler.ts && bun scripts/build-cases.ts && bun scripts/build-scan.ts
 COPY desktop ./desktop
 # The app's pages are written ahead of time by several processes (desktop/prerender.tsx), about 300 MB each: one core
 # stays for the API's compiler beside them on the 4 GiB Pi.

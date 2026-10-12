@@ -17,6 +17,7 @@ import { api } from "../api";
 import { pickTextFiles } from "../lib/files";
 import { IconTile, Numeric } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
+import { Sheet } from "./Sheet";
 import { localFormat, tr } from "../../../src/client/i18n";
 
 interface Loaded {
@@ -78,6 +79,13 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
     </Alert>}
     {error ? <Alert variant="destructive" title={error} /> : null}
   </View>;
+}
+
+/** The import in a tall sheet, as the account menu, the profile and the settings open it. */
+export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return <Sheet open={open} onClose={onClose} title={tr("Import times")} description={tr("From another timer, or a file exported from Qbix. The file is read on this device.")} scroll>
+    <ImportTimes />
+  </Sheet>;
 }
 
 /** One file: the timer it comes from, its solves per event and dates, what is left out; or why it cannot be read. */

@@ -79,6 +79,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: { ...config.android, versionCode: build || 1 },
     extra: { ...config.extra, build, commit: commitHash() },
+    // The web build lives under a path of the site (desktop/web.ts exports it to dist/web/phone).
+    ...process.env.CUBIX_WEB_BASE ? { experiments: { ...config.experiments, baseUrl: process.env.CUBIX_WEB_BASE } } : {},
     plugins: [...(config.plugins ?? []), "./plugins/withReleaseSigning", "./plugins/withHighRefreshRate"],
   };
 };

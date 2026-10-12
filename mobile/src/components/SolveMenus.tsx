@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Ban, Info, MessageSquare, Plus, Share2, Trash2 } from "lucide-react-native";
+import { Ban, Info, MessageSquare, Plus, Trash2 } from "lucide-react-native";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { Share, type PressableProps } from "react-native";
+import { Pressable, View, type PressableProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fmtSolve } from "../../../src/client/lib/format";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
@@ -12,15 +12,14 @@ import {
 } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { API_ORIGIN, api, local } from "../api";
-import { deletedSolveIdAtom, signedInAtom, statsVersionAtom, updatedSolveAtom } from "../state";
+import { api } from "../api";
+import { toastAtom } from "./Toast";
+import { deletedSolveIdAtom, routeAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { Confirmations, ask } from "./Confirm";
-import { Numeric, TouchAction, TouchBar } from "./layout";
-import { Sheet, SheetInput } from "./Sheet";
-import { SolveDetail, type ViewedSolve } from "./SolveDetail";
-import { tr } from "../../../src/client/i18n";
+import { Numeric, TouchAction, TouchBar, type Tone } from "./layout";
+import { TONE_TEXT } from "../../../src/client/lib/tone";
+import { said, tr } from "../../../src/client/i18n";
 
 /** Notes are capped like the server does; the field simply stops accepting text there. */
 const COMMENT_MAX = 500;
@@ -46,19 +45,14 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
   const bumpStats = useSetAtom(statsVersionAtom);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
-  const [error, setError] = useState("");
-  // The solve sheet opens its comment as a field, focused, from a Comment action.
-  const [commenting, setCommenting] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [detail, setDetail] = useState<ViewedSolve | null>(null);
-  const signedIn = useAtomValue(signedInAtom);
+  const toast = useSetAtom(toastAtom);
   // One mutation at a time: a double tap must not delete two solves or race two penalties. True once done.
   const run = useCallback(async (action: () => Promise<void>) => {
     if (pending.current) return false;
     pending.current = true;
-    setBusy(true); setError("");
+    setBusy(true);
     try { await action(); return true; }
-    catch (e) { setError((e as Error).message); return false; }
+    catch (e) { toast({ title: (e as Error).message }); return false; }
     finally { pending.current = false; setBusy(false); }
   }, []);
   // The expected result shows at once; it is dropped in the same render as the refreshed data, or on failure.
@@ -69,7 +63,7 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     if (!(await ask({ title: tr("Delete this solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") }))) return;
     await run(async () => {
       expect(id, null);
-      try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); setDetail(current => current?.id === id ? null : current); }
+      try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); }
       finally { settle(id); }
     });
   }, [run, notifyDeleted, bumpStats]);
@@ -79,57 +73,28 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     try {
       const updated = await api.setPenalty(solve.id, next);
       notifyUpdated(updated); bumpStats(v => v + 1);
-      setDetail(current => current?.id === solve.id ? { ...current, ...updated } : current);
     } finally { settle(solve.id); }
   }), [run, notifyUpdated, bumpStats]);
   const togglePenalty = useCallback((solve: SolveSummary, penalty: Penalty) => setPenalty(solve, solve.penalty === penalty ? "none" : penalty), [setPenalty]);
-  // Lists hold a few fields of a solve; the sheet reads the rest (its scramble, solution and puzzle) from the device.
-  const openSolve = useCallback((solve: SolveSummary, comment = false) => {
-    setError(""); setCommenting(comment); setDraft(solve.comment ?? "");
-    setDetail(current => current?.id === solve.id ? current : { ...solve, ...local.read.solve(solve.id) });
-  }, []);
+  // A solve opens its own screen (SolvePage): its replay, its steps, its comment and its actions.
+  const navigate = useSetAtom(routeAtom);
+  const openSolve = useCallback((solve: SolveSummary, comment = false) => navigate({ page: "solve", id: solve.id, ...(comment ? { comment: true } : {}) }), [navigate]);
   const editComment = useCallback((solve: SolveSummary) => openSolve(solve, true), [openSolve]);
-  // Leaving the field or its return key saves it; an empty one takes the comment off.
-  const saveComment = () => {
-    setCommenting(false);
-    if (!detail || draft.trim() === (detail.comment ?? "")) return;
-    void run(async () => {
-      const updated = await api.setComment(detail.id, draft.trim() || null);
-      notifyUpdated(updated); bumpStats(v => v + 1);
-      setDetail(current => current?.id === updated.id ? { ...current, ...updated } : current);
-    });
-  };
-  const saveSolution = (solution: string | null) => run(async () => {
-    if (!detail) return;
-    const updated = await api.setSolution(detail.id, solution);
-    notifyUpdated(updated);
-    setDetail(current => current?.id === updated.id ? { ...current, ...updated } : current);
-  });
-  const share = (solve: SolveSummary) => run(async () => {
-    const url = API_ORIGIN + "/solve/" + await api.shareSolve(solve.id);
-    await Share.share({ message: url, title: fmtSolve(solve.time_ms, solve.penalty) });
-  });
-  const shown = detail && { ...detail, ...optimistic.get(detail.id) };
   return <MenuContext.Provider value={{ togglePenalty, deleteTime, editComment, openSolve, busy, optimistic }}>
     {children}
-    <Sheet open={detail !== null} onClose={() => { if (commenting) saveComment(); setDetail(null); }} title={tr("Solve")} hideTitle scroll contentPanning={false}>
-      {shown && <SolveDetail key={shown.id} solve={shown} onSave={saveSolution} comment={commenting ? (
-        <SheetInput accessibilityLabel={tr("Solve comment")} placeholder={tr("What happened on this solve?")} value={draft} onChangeText={setDraft} multiline autoFocus maxLength={COMMENT_MAX}
-          submitBehavior="blurAndSubmit" onBlur={saveComment} className="min-h-24 py-2.5" textAlignVertical="top" />
-      ) : undefined}>
-        {/* The same actions as under the timer: the penalties, the comment, the link, then delete. */}
-        <TouchBar className="rounded-xl bg-muted/40 p-1">
-          <TouchAction icon={Plus} label="+2" pressed={shown.penalty === "+2"} tone="warning" disabled={busy} onPress={() => void togglePenalty(shown, "+2")} accessibilityLabel={tr("+2 penalty")} />
-          <TouchAction icon={Ban} label={tr("DNF")} pressed={shown.penalty === "dnf"} tone="bad" disabled={busy} onPress={() => void togglePenalty(shown, "dnf")} accessibilityLabel={tr("Did not finish")} />
-          <TouchAction icon={MessageSquare} label={tr("Comment")} pressed={!!shown.comment} tone="accent" disabled={busy} onPress={() => setCommenting(true)} />
-          {signedIn && <TouchAction icon={Share2} label={tr("Share")} disabled={busy} onPress={() => void share(shown)} accessibilityLabel={tr("Share a link to this solve")} />}
-          <TouchAction icon={Trash2} label={tr("Delete")} disabled={busy} onPress={() => void deleteTime(shown.id)} accessibilityLabel={tr("Delete solve")} />
-        </TouchBar>
-      </SolveDetail>}
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
-    </Sheet>
     <Confirmations />
   </MenuContext.Provider>;
+}
+
+/** One action of the solve sheet: a tile with its icon (tinted by `tone`; filled once `pressed`), its word under it. */
+function BigAction({ icon, label, tone = "", pressed, disabled, onPress, accessibilityLabel }: { icon: typeof Plus; label: string; tone?: Tone; pressed?: boolean; disabled?: boolean; onPress: () => void; accessibilityLabel?: string }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: pressed, disabled }} disabled={disabled} onPress={onPress}
+    className={cn("min-w-0 flex-1 items-center gap-1", disabled && "opacity-50")}>
+    <View className={cn("h-12 w-full items-center justify-center rounded-2xl", pressed ? "bg-accent" : "bg-muted")}>
+      <Icon as={icon} size={20} className={tone === "accent" && !pressed ? "text-foreground" : TONE_TEXT[tone] || "text-foreground"} />
+    </View>
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-xs font-bold", pressed ? TONE_TEXT[tone] || "text-foreground" : "text-muted-foreground")}>{said(label)}</Text>
+  </Pressable>;
 }
 
 /** The shared solve actions, for screens that draw their own buttons. */
@@ -165,11 +130,18 @@ export function SolveMenu({ solve, children, className, rootClassName, onPress, 
  * The last solve's actions under the time as the web phone's touch bar: +2, DNF, Comment and Delete, there before the
  * first solve too (disabled) so the timer never moves; `extra` (the next scramble or case) closes the row.
  */
-export function LastSolveBar({ solve, extra }: { solve: SolveSummary | null; extra?: ReactNode }) {
+export function LastSolveBar({ solve, extra, look = "touch" }: { solve: SolveSummary | null; extra?: ReactNode; /** `pills`: one row of small filled buttons (the timer). */ look?: "touch" | "pills" }) {
   const { togglePenalty, editComment, deleteTime, busy, optimistic } = useContext(MenuContext);
   const pending = solve ? optimistic.get(solve.id) : undefined;
   const last = solve && pending !== null ? { ...solve, ...pending } : null;
   const off = !last || busy;
+  if (look === "pills") return <View accessibilityLabel={tr("Last solve")} className="flex-row gap-1.5">
+    <PillAction label="+2" accessibilityLabel={tr("+2 penalty")} pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
+    <PillAction label={tr("DNF")} accessibilityLabel={tr("Did not finish")} pressed={last?.penalty === "dnf"} tone="bad" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
+    <PillAction icon={MessageSquare} label={tr("Note")} accessibilityLabel={last?.comment ? tr("Edit comment") : tr("Add comment")} pressed={!!last?.comment} tone="accent" disabled={off} onPress={() => last && editComment(last)} />
+    <PillAction icon={Trash2} label={tr("Delete")} accessibilityLabel={tr("Delete solve")} disabled={off} onPress={() => last && void deleteTime(last.id)} />
+    {extra}
+  </View>;
   return <TouchBar accessibilityLabel={tr("Last solve")}>
     <TouchAction icon={Plus} label="+2" accessibilityLabel={tr("+2 penalty")} pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
     <TouchAction icon={Ban} label={tr("DNF")} accessibilityLabel={tr("Did not finish")} pressed={last?.penalty === "dnf"} tone="bad" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
@@ -177,6 +149,16 @@ export function LastSolveBar({ solve, extra }: { solve: SolveSummary | null; ext
     <TouchAction icon={Trash2} label={tr("Delete")} accessibilityLabel={tr("Delete solve")} disabled={off} onPress={() => last && void deleteTime(last.id)} />
     {extra}
   </TouchBar>;
+}
+
+/** A small filled button of the timer's row of last-solve actions; `pressed` tints its word with `tone`. */
+function PillAction({ icon, label, pressed, tone = "", disabled, onPress, accessibilityLabel }: { icon?: typeof Plus; label: string; pressed?: boolean; tone?: Tone; disabled?: boolean; onPress: () => void; accessibilityLabel?: string }) {
+  const text = pressed ? TONE_TEXT[tone] || "text-foreground" : "text-foreground";
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: pressed, disabled }} disabled={disabled} onPress={onPress}
+    className={cn("h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-2", pressed ? "bg-accent" : "bg-muted active:bg-muted/70", disabled && "opacity-40")}>
+    {icon && <Icon as={icon} size={15} className={text} />}
+    <Text numberOfLines={1} className={cn("text-[13px] font-bold", text)}>{said(label)}</Text>
+  </Pressable>;
 }
 
 /** The `extra` target of `LastSolveBar` (the next scramble or case): one more target of its touch bar. */

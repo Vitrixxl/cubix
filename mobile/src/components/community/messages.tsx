@@ -1,68 +1,102 @@
-import { Check, MessagesSquare, PanelRight, SearchX, Swords, Trophy } from "lucide-react-native";
+import { ChevronRight, MessagesSquare, PanelRight, SearchX, Swords, Trophy, UserPlus, UserRoundPlus } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { AppState, Pressable, View } from "react-native";
+import { AppState, FlatList, Pressable, View } from "react-native";
 import { cardText, communityUrl, type Conversation, type Match, type Message } from "../../../../src/client/lib/community";
 import { plural } from "../../../../src/client/lib/format";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { cn } from "@/lib/utils";
 import { community } from "../../lib/social";
-import { Empty, HeadButton, ListSkeleton } from "../layout";
-import { Bubble, ChatClosed, ChatHeader, Composer, ConversationList, ConversationRow, Face, MessageList, relative } from "../chat/kit";
-import { BattleCard, MatchSheet, TournamentChatCard } from "./cards";
+import { Empty, ListSkeleton, SearchField, Segmented } from "../layout";
+import { Bubble, ChatClosed, ChatHeader, Composer, ConversationRow, Count, Face, MessageList, relative } from "../chat/kit";
+import { BattleCard, MatchSheet, TournamentChatCard, WaitingLine, waiting } from "./cards";
 import { BattleSheet, TournamentSheet } from "./launch";
-import { GroupMark, organiser, title } from "./marks";
+import { Caption, Dashed, GroupMark, Pill, TextLink, organiser, title } from "./marks";
 import { tr } from "../../../../src/client/i18n";
 
 /**
- * Conversations (the web's community/messages.tsx): the list, friends and groups together with the group invitations
- * on top, and one conversation with its messages, its battles and tournaments as cards, and the box to write. Its
- * header launches a battle (and, in a group its organisers run, a tournament) and opens the details.
+ * Conversations (the web's community/messages.tsx): the inbox (search, a friend to add, a new group, filters, the
+ * requests on one row, the group invitations, every conversation), and one conversation on a screen of its own: what
+ * waits for the account there under its head, its messages as a transcript with its battles and tournaments as cards,
+ * and the box to write. Its head launches a battle (and, in a group its organisers run, a tournament) and opens the
+ * details.
  */
 
 const open = (id: number) => community.host.navigate(communityUrl("messages/" + id));
+const me = () => community.host.account().id;
 
-/** Every conversation, the latest first, found by name; the groups the account is invited to come first. */
-export function Conversations({ onNewGroup }: { onNewGroup: () => void }) {
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "unread", label: "Unread" },
+  { id: "direct", label: "Friends" },
+  { id: "group", label: "Groups" },
+] as const;
+type Filter = (typeof FILTERS)[number]["id"];
+
+/** The inbox, the Messages tab: the search and its two actions, the filters, what waits for an answer, the conversations. */
+export function Inbox({ onAddFriend, onNewGroup, onRequests }: { onAddFriend: () => void; onNewGroup: () => void; onRequests: () => void }) {
   useEffect(() => { void community.load("conversations"); }, []);
-  const list = community.conversations, invitations = community.me?.invitations ?? [], [query, setQuery] = useState("");
+  const list = community.conversations, invitations = community.me?.invitations ?? [], [query, setQuery] = useState(""), [filter, setFilter] = useState<Filter>("all"),
+    unread = list?.filter(c => c.unread).length ?? 0;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? list?.filter(c => title(c).toLowerCase().includes(q)) : list;
-  }, [list, query]);
-  return <ConversationList query={query} onQuery={setQuery}>
-    {invitations.length && !query ? <View accessibilityLabel={tr("Invitations")} className="gap-0.5 pb-1">
-      {invitations.map(g => <View key={g.id} className="min-h-14 flex-row items-center gap-3 rounded-lg bg-primary/10 px-2.5 py-2">
-        <GroupMark />
-        <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-base font-medium">{g.name}</Text>
-          <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr("{0} invites you", { 0: g.invitedBy })}</Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("Join {0}", { 0: g.name })} onPress={() => void community.join(g.id)} className="size-10 items-center justify-center rounded-lg bg-primary active:bg-primary/85">
-          <Icon as={Check} size={17} className="text-primary-foreground" />
-        </Pressable>
-      </View>)}
-    </View> : null}
-    {!shown ? <ListSkeleton className="px-2" />
-      : !shown.length ? query ? <Empty icon={SearchX} title={tr("No conversation by that name.")} className="py-10" />
-        : <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10">{tr("Write to a friend, or make a group.")}<Button variant="outline" className="h-11 rounded-lg" onPress={onNewGroup}><Text>{tr("New group")}</Text></Button>
-        </Empty>
-        : shown.map(c => <Row key={c.id} c={c} />)}
-  </ConversationList>;
+    return list?.filter(c => (filter === "all" || (filter === "unread" ? c.unread > 0 : c.kind === filter)) && (!q || title(c).toLowerCase().includes(q)));
+  }, [list, query, filter]);
+  return <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3">
+    <View className="flex-row items-center gap-2">
+      <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search conversations")} className="min-w-0 flex-1" />
+      <Pill icon={UserPlus} label={tr("Add a friend")} onPress={onAddFriend} className="size-11" />
+      <Pill icon={MessagesSquare} label={tr("New group")} onPress={onNewGroup} className="size-11" />
+    </View>
+    <Segmented label={tr("Conversations")} value={filter} onChange={setFilter}
+      options={FILTERS.map(f => ({ id: f.id, label: tr(f.label), count: f.id === "unread" ? unread : undefined, accent: true }))} />
+    {!query ? <RequestsRow onPress={onRequests} /> : null}
+    {!query ? invitations.map(g => <Dashed key={g.id}>
+      <Text className="text-[13px] text-muted-foreground">{tr("{0} invites you to the group", { 0: g.invitedBy })} <Text className="text-[13px] font-bold text-foreground">{g.name}</Text> · {plural(g.members, "member")}</Text>
+      <View className="flex-row gap-4">
+        <TextLink accent label={tr("Join {0}", { 0: g.name })} onPress={() => void community.join(g.id)}>{tr("Join")}</TextLink>
+        <TextLink onPress={() => void community.remove(g.id, me())}>{tr("Decline")}</TextLink>
+      </View>
+    </Dashed>) : null}
+    {!shown ? <ListSkeleton />
+      : !shown.length ? query || filter !== "all" ? <Empty icon={SearchX} title={query ? tr("No conversation by that name.") : tr("Nothing new")} />
+        : <Empty icon={MessagesSquare} title={tr("No conversation yet.")}>{tr("Write to a friend, or make a group.")}<Button variant="outline" className="h-11 rounded-lg" onPress={onNewGroup}><Text>{tr("New group")}</Text></Button></Empty>
+        : <FlatList data={shown} keyExtractor={c => String(c.id)} className="-mx-1 min-h-0 flex-1" contentContainerClassName="gap-0.5 pb-2" keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => <Row c={item} />} />}
+  </View>;
+}
+
+/** The requests on one row, pinned over the conversations: who asked first and how many more; nothing when none waits. */
+function RequestsRow({ onPress }: { onPress: () => void }) {
+  const m = community.me;
+  if (!m || (!m.incoming.length && !m.outgoing.length)) return null;
+  const first = m.incoming[0], more = m.incoming.length - 1,
+    line = first ? tr("{0} wants to be your friend", { 0: first.username }) + (more > 0 ? " · " + tr("{0} more", { 0: more }) : "") : tr("Sent to {0}", { 0: m.outgoing.map(p => p.username).join(", ") });
+  return <Pressable accessibilityRole="button" accessibilityLabel={tr("Requests")} onPress={onPress} className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2 active:bg-muted/60">
+    <View className="size-9 items-center justify-center rounded-xl bg-primary/15"><Icon as={UserRoundPlus} size={18} className="text-primary" /></View>
+    <View className="min-w-0 flex-1">
+      <Text className="text-sm font-bold">{tr("Requests")}</Text>
+      <Text numberOfLines={1} className="text-xs text-muted-foreground">{line}</Text>
+    </View>
+    <Count n={m.incoming.length} />
+    <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
+  </Pressable>;
 }
 
 function Row({ c }: { c: Conversation }) {
-  const last = c.lastMessage, words = last ? (last.card ? cardText(last) : last.body) : tr("No message yet");
-  return <ConversationRow onPress={() => open(c.id)} name={title(c)} at={last?.at} unread={c.unread}
-    face={c.kind === "group" ? <GroupMark /> : <Face name={c.with!.username} src={c.with!.avatar} size={40} />}
+  const last = c.lastMessage, words = last ? (last.card ? cardText(last) : last.body) : tr("No message yet"),
+    members = c.kind === "group" ? community.me?.groups.find(g => g.id === c.group!.id)?.members : undefined;
+  return <ConversationRow onPress={() => open(c.id)} name={title(c)} at={last?.at} unread={c.unread} tag={members}
+    // A battle or a tournament not seen yet waits for the account.
+    act={!!last?.card && c.unread > 0}
+    face={c.kind === "group" ? <GroupMark size={44} /> : <Face name={c.with!.username} src={c.with!.avatar} size={44} />}
     icon={last?.card === "match" ? Swords : last?.card === "tournament" ? Trophy : null}
-    preview={last ? (last.mine ? `You: ${words}` : c.kind === "group" ? `${last.from}: ${words}` : words) : words} />;
+    preview={last ? (last.mine ? tr("You: {0}", { 0: words }) : c.kind === "group" ? `${last.from}: ${words}` : words) : words} />;
 }
 
 /**
- * One conversation: its header (who, what to launch, the details), its messages newest at the bottom split by day,
- * read while on screen, then the box to write.
+ * One conversation, a screen of its own: its head (who, a battle to launch, the details), what waits for the account
+ * there, its messages newest at the bottom split by day, read while on screen, then the box to write.
  */
 export function Chat({ conversation: c, onDetails, back }: { conversation: Conversation; onDetails: () => void; back: () => void }) {
   const messages = community.messages.get(c.id), [battle, setBattle] = useState(false), [tournament, setTournament] = useState(false), [shown, setShown] = useState<Match | null>(null);
@@ -79,21 +113,20 @@ export function Chat({ conversation: c, onDetails, back }: { conversation: Conve
   useEffect(() => { if (messages && c.unread) community.read(c.id); }, [messages, c.unread]);
   const group = c.kind === "group" ? community.groups.get(c.group!.id) : undefined,
     friend = c.kind === "direct" ? community.me?.friends.find(f => f.id === c.with!.id) : undefined,
-    members = group?.members.filter(m => m.role !== "invited").length,
-    me = community.host.account().id;
+    members = group?.members.filter(m => m.role !== "invited").length;
   return <View className="min-h-0 flex-1">
     <ChatHeader back={{ label: tr("Conversations"), onPress: back }} onOpen={onDetails} openLabel={tr("Details")}
       face={c.kind === "group" ? <GroupMark size={32} /> : <Face name={c.with!.username} src={c.with!.avatar} size={32} />}
       title={title(c)}
       sub={c.kind === "group" ? (members !== undefined ? plural(members, "member") : tr("Group")) : friend ? tr("Friends since {0}", { 0: relative(friend.since) }) : tr("No longer friends")}>
-      {c.open ? <HeadButton icon={Swords} label={tr("Battle")} onPress={() => setBattle(true)} /> : null}
-      {group && organiser(group.role) ? <HeadButton icon={Trophy} label={tr("Tournament")} onPress={() => setTournament(true)} /> : null}
-      <HeadButton icon={PanelRight} label={tr("Details")} onPress={onDetails} />
+      {c.open ? <Pill icon={Swords} text={tr("Battle")} tone="soft" onPress={() => setBattle(true)} /> : null}
+      {group && organiser(group.role) ? <Pill icon={Trophy} label={tr("Tournament")} onPress={() => setTournament(true)} /> : null}
+      <Pill icon={PanelRight} label={tr("Details")} onPress={onDetails} />
     </ChatHeader>
-    <MessageList<Message> key={c.id} messages={messages} me={me} group={c.kind === "group"}
-      event={m => m.match ? { icon: Swords, text: <Who m={m} did={tr("launched a battle")} />, body: <BattleCard match={m.match} onOpen={setShown} /> }
-        : m.tournament ? { icon: Trophy, text: <Who m={m} did={tr("organised a tournament")} />, body: <TournamentChatCard tournament={m.tournament} /> } : null}
-      bubble={(m, mine, last) => <Bubble mine={mine} last={last}>{m.body}</Bubble>}
+    <Agenda messages={messages} />
+    <MessageList<Message> key={c.id} messages={messages} me={me()}
+      event={m => m.match ? <BattleCard match={m.match} onOpen={setShown} /> : m.tournament ? <TournamentChatCard tournament={m.tournament} /> : null}
+      bubble={m => <Bubble>{m.body}</Bubble>}
       empty={<Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })}>{tr("Messages you write show here.")}</Empty>} />
     {c.open ? <Write c={c} /> : <ChatClosed>{tr("You are no longer friends with {0}", { 0: c.with?.username })}</ChatClosed>}
     <BattleSheet conversation={c} group={group} open={battle} onClose={() => setBattle(false)} />
@@ -102,9 +135,14 @@ export function Chat({ conversation: c, onDetails, back }: { conversation: Conve
   </View>;
 }
 
-/** Who launched a battle or a tournament, before what they did. */
-function Who({ m, did }: { m: Message; did: string }) {
-  return <Text className="text-xs text-muted-foreground"><Text className={cn("text-xs font-medium text-foreground")}>{m.senderId === community.host.account().id ? tr("You") : m.sender.username}</Text> {did}</Text>;
+/** What waits for the account here, under the head; nothing when nothing waits. */
+function Agenda({ messages }: { messages: Message[] | undefined }) {
+  const items = messages ? waiting(messages) : [];
+  if (!items.length) return null;
+  return <View accessibilityLabel={tr("Waiting for you here")} className="gap-0.5 border-y border-border px-4 pt-2 pb-1">
+    <Caption>{tr("Waiting for you here")}</Caption>
+    {items.slice(0, 3).map(w => <WaitingLine key={w.key} w={w} />)}
+  </View>;
 }
 
 function Write({ c }: { c: Conversation }) {

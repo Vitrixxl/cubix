@@ -1,0 +1,1152 @@
+<style>
+:is(#duel, #tournaments, #match, #daily) .rs { display: flex; gap: 4px; flex: 1; min-width: 0; align-items: center; }
+:is(#duel, #tournaments, #match, #daily) .rs > i { flex: 1; height: 8px; border-radius: 8px; background: var(--acc); }
+:is(#duel, #tournaments, #match, #daily) .rs > i.w { background: var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .rs > i.l { background: var(--lilac); }
+:is(#duel, #tournaments, #match, #daily) .rs > i.t { background: var(--faint); }
+:is(#duel, #tournaments, #match, #daily) .rs > i.c { background: transparent; box-shadow: inset 0 0 0 2px var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .rs.l > i { height: 12px; }
+:is(#duel, #tournaments, #match, #daily) .av3 { display: inline-flex; }
+:is(#duel, #tournaments, #match, #daily) .av3 > .avatar + .avatar { margin-left: -9px; }
+:is(#duel, #tournaments, #match, #daily) .av3 > .avatar { box-shadow: 0 0 0 2px var(--card); }
+:is(#duel, #tournaments, #match, #daily) .sel { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .menu { position: absolute; z-index: 7; background: var(--pop); border-radius: 18px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+:is(#duel, #tournaments, #match, #daily) .menu .li { padding: 9px 10px; border-radius: 12px; font-weight: 600; }
+:is(#duel, #tournaments, #match, #daily) .bf { display: grid; grid-template-columns: 50px 1fr 22px 1fr 50px; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+:is(#duel, #tournaments, #match, #daily) .bf > b:last-child { text-align: right; }
+:is(#duel, #tournaments, #match, #daily) .bf > span.n { text-align: center; font-size: 11px; font-weight: 700; color: var(--faint); }
+:is(#duel, #tournaments, #match, #daily) .bf .bar { height: 6px; }
+:is(#duel, #tournaments, #match, #daily) .bf .bar.r { transform: scaleX(-1); }
+:is(#duel, #tournaments, #match, #daily) .bf .bar.lil > i { background: var(--lilac); }
+:is(#duel, #tournaments, #match, #daily) .dim { opacity: .5; }
+:is(#duel, #tournaments, #match, #daily) .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); flex: none; display: inline-block; }
+:is(#duel, #tournaments, #match, #daily) .halo { box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px color-mix(in srgb, var(--pri) 60%, transparent); }
+:is(#duel, #tournaments, #match, #daily) .halo.off { box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--acc); }
+:is(#duel, #tournaments, #match, #daily) .hist { display: grid; grid-template-columns: 40px 1fr 28px; align-items: center; gap: 8px; font-size: 11px; color: var(--faint); font-weight: 600; font-variant-numeric: tabular-nums; }
+:is(#duel, #tournaments, #match, #daily) .hist .bar { height: 12px; border-radius: 5px; background: var(--muted); }
+:is(#duel, #tournaments, #match, #daily) .hist .bar > i { border-radius: 5px; background: color-mix(in srgb, var(--pri) 45%, var(--acc)); }
+:is(#duel, #tournaments, #match, #daily) .hist.me { color: var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .hist.me .bar > i { background: var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .vbars { display: flex; align-items: flex-end; gap: 4px; }
+:is(#duel, #tournaments, #match, #daily) .vbars > i { flex: 1; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--pri) 40%, var(--acc)); min-height: 3px; position: relative; }
+:is(#duel, #tournaments, #match, #daily) .vbars > i.me { background: var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .vbars > i.me::after { content: "You"; position: absolute; top: -17px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 800; font-style: normal; color: var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .rk { width: 22px; text-align: center; font-weight: 800; color: var(--faint); font-variant-numeric: tabular-nums; flex: none; }
+:is(#duel, #tournaments, #match, #daily) .mcard { background: var(--card); border-radius: 16px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+:is(#duel, #tournaments, #match, #daily) .mcard .pl { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; font-size: 13.5px; }
+:is(#duel, #tournaments, #match, #daily) .mcard .pl .avatar { width: 24px; height: 24px; font-size: 9.5px; }
+:is(#duel, #tournaments, #match, #daily) .mcard .pl b { margin-left: auto; font-variant-numeric: tabular-nums; }
+:is(#duel, #tournaments, #match, #daily) .mcard .pl.out { color: var(--faint); }
+:is(#duel, #tournaments, #match, #daily) .mcard.on { box-shadow: inset 0 0 0 2px var(--pri); }
+:is(#duel, #tournaments, #match, #daily) .fab { position: absolute; right: 16px; z-index: 4; height: 52px; border-radius: 18px; padding: 0 18px; background: var(--pri); color: var(--pri-fg); display: inline-flex; align-items: center; gap: 8px; font-weight: 800; box-shadow: var(--shadow); }
+:is(#duel, #tournaments, #match, #daily) .toggle { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--mfg); flex: 1; }
+:is(#duel, #tournaments, #match, #daily) .toggle svg.lucide { width: 20px; height: 20px; }
+:is(#duel, #tournaments, #match, #daily) .msg { background: var(--muted); border-radius: 14px 14px 14px 4px; padding: 7px 11px; font-size: 13.5px; align-self: flex-start; }
+:is(#duel, #tournaments, #match, #daily) .msg.me { background: color-mix(in srgb, var(--pri) 22%, var(--muted)); border-radius: 14px 14px 4px 14px; align-self: flex-end; }
+</style>
+
+<!-- =============================================================== 14 · Duel -->
+<section class="page" id="duel" data-short="Duel">
+  <div class="page-head">
+    <h2>14 · Duel <small>/duel</small></h2>
+    <p>Une course Ao5 contre un joueur de son niveau ou contre un ami, sur les cinq mêmes mélanges. Aujourd'hui le téléphone empile les trois panneaux du desktop et coupe les temps de l'adversaire ; ici le salon tient sur un écran (jouer, amis, courses jouées), et pendant la course le bas de l'écran appartient au chrono du pouce, l'adversaire en direct au-dessus.</p>
+    <div class="feats"><span>Play · an opponent at your level</span><span>Ao5 race · same five scrambles</span><span>Choix du puzzle</span><span>Your 3×3 level</span><span>Your matching range</span><span>Also searching</span><span>Looking near your level… + Cancel</span><span>Your friends + Find</span><span>Challenge {ami} · First to 3 solves · Send the challenge</span><span>Your link + Copy</span><span>Races played (bilan, courses)</span><span>Round N of 5 + mélange</span><span>Score et bande des manches</span><span>État de l'adversaire : Solving, Ready, Away, Finished</span><span>Hold, then release to start</span><span>+2 · DNF · Redo</span><span>Cube (afficher / masquer)</span><span>Leave</span><span>Rounds + Ao5 (papillon)</span><span>Chat · Well played · GG · Rematch?</span><span>Victory / Defeat / Draw</span><span>Rematch · New opponent · Accept rematch</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>L'onglet Duel range le desktop en trois cartes : jouer contre son niveau, défier un ami, les courses jouées. La course est un écran poussé : l'adversaire en direct en petit, son propre chrono en grand, les manches dessous.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Salon</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Challenges</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">DE</span>
+          </div>
+          <div class="utabs"><span class="on">Duel</span><span>Tournaments</span><span>Daily</span></div>
+          <div class="col g12 px16 grow" style="padding-top:14px;padding-bottom:12px">
+            <div class="card hi g12" style="padding:16px">
+              <div class="row g12">
+                <span class="icon-tile pri"><i data-lucide="swords"></i></span>
+                <div class="col g2 grow"><span class="h2">Ao5 race</span><span class="s">The same five 3×3 scrambles for both of you</span></div>
+                <button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button>
+              </div>
+              <div class="grid3">
+                <div class="stat"><span>Your level</span><b style="font-size:18px">12.41</b></div>
+                <div class="stat"><span>Matching</span><b style="font-size:18px">11.4–13.4</b></div>
+                <div class="stat"><span>Searching</span><b class="row g6" style="font-size:18px">3<span class="av3"><span class="avatar sm y" style="width:22px;height:22px;font-size:8px">KE</span><span class="avatar sm" style="width:22px;height:22px;font-size:8px">HU</span></span></b></div>
+              </div>
+              <button class="btn pri lg block"><i data-lucide="swords"></i>Play an opponent at your level</button>
+            </div>
+            <div class="card g10">
+              <div class="row between"><span class="h3">Your friends <span class="faint">4</span></span><span class="s">Pick one to challenge</span></div>
+              <div class="grid5" style="gap:4px">
+                <div class="col g4" style="align-items:center"><span class="avatar sel">AL</span><span class="xs b trunc" style="max-width:62px;color:var(--fg)">alex_cubes</span></div>
+                <div class="col g4" style="align-items:center"><span class="avatar y">CO</span><span class="xs b trunc" style="max-width:62px">coach</span></div>
+                <div class="col g4" style="align-items:center"><span class="avatar y">KE</span><span class="xs b trunc" style="max-width:62px">kenji_cfop</span></div>
+                <div class="col g4" style="align-items:center"><span class="avatar y">LE</span><span class="xs b trunc" style="max-width:62px">lena_speed</span></div>
+                <div class="col g4" style="align-items:center"><span class="avatar n"><i data-lucide="search"></i></span><span class="xs b">Find</span></div>
+              </div>
+              <div class="well" style="flex-direction:row;align-items:center;gap:10px">
+                <div class="col g2 grow"><b class="trunc">Challenge alex_cubes</b><span class="xs">3×3 · First to 3 solves</span></div>
+                <button class="btn sm pri"><i data-lucide="send"></i>Send</button>
+              </div>
+              <div class="row g6 s"><i data-lucide="link-2"></i>Your link<b class="trunc grow" style="color:var(--fg)">qbix.app/u/dev</b><button class="btn sm ghost"><i data-lucide="copy"></i>Copy</button></div>
+            </div>
+            <div class="card g8 grow" style="padding-bottom:4px">
+              <div class="row between"><span class="h3">Races played</span><span class="s"><b class="ok">7 won</b> · <b class="bad">4 lost</b> · 1 draw</span></div>
+              <div class="scroll g4">
+                <div class="row g10" style="min-height:44px"><span class="pill ok">W</span><span class="avatar sm y">LE</span><div class="col g0 grow"><b>lena_speed</b><span class="xs">3×3 · today 14:12 · 3–2</span></div><div class="col g0" style="text-align:right"><b class="num">12.31</b><span class="xs num">vs 12.62</span></div></div>
+                <div class="row g10" style="min-height:44px"><span class="pill bad">L</span><span class="avatar sm">HU</span><div class="col g0 grow"><b>hugo_sub10</b><span class="xs">3×3 · yesterday · 1–4</span></div><div class="col g0" style="text-align:right"><b class="num">12.88</b><span class="xs num">vs 11.47</span></div></div>
+                <div class="row g10" style="min-height:44px"><span class="pill ok">W</span><span class="avatar sm">BE</span><div class="col g0 grow"><b>ben_tps</b><span class="xs">3×3 · 9 Oct · 4–1</span></div><div class="col g0" style="text-align:right"><b class="num">12.54</b><span class="xs num">vs 13.40</span></div></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Course · écran poussé</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <div class="col g0 grow"><span class="h3 trunc">vs lena_speed</span><span class="xs">Ao5 race · 3×3</span></div>
+            <button class="btn icon ghost"><i data-lucide="box"></i></button>
+            <button class="btn icon ghost" style="position:relative"><i data-lucide="message-square"></i><span class="badge" style="position:absolute;top:2px;right:0">1</span></button>
+            <button class="btn sm ghost"><i data-lucide="x"></i>Leave</button>
+          </div>
+          <div class="col g12 px16 grow" style="padding-top:6px;padding-bottom:12px">
+            <span class="cap">Round 3 of 5</span>
+            <span class="alg sm">D2 B2 U' R2 F2 U L2 D' F2 R' B U' L' F D2 R' U2 B' R</span>
+            <div class="col g6">
+              <div class="row between">
+                <div class="row g6"><span class="avatar sm l">DE</span><div class="col g0"><b>You</b><span class="xs pri b">Your turn</span></div></div>
+                <div class="row g6"><div class="col g0" style="text-align:right"><b>lena_speed</b><span class="xs ok b row g4 end"><i class="live"></i>Solving</span></div><span class="avatar sm y">LE</span></div>
+              </div>
+              <div class="row g10"><b class="h2 pri num">1</b><span class="rs"><i class="w"></i><i class="l"></i><i class="c"></i><i></i><i></i></span><b class="h2 lilac num">1</b></div>
+            </div>
+            <div class="card tight" style="flex-direction:row;align-items:center;gap:10px">
+              <span class="live"></span>
+              <div class="col g0 grow"><b>lena_speed is solving</b><span class="xs">Round 3 · their timer, live</span></div>
+              <span class="timer s">8.<span class="ms">41</span></span>
+            </div>
+            <div class="card grow center" style="gap:14px">
+              <span class="grow"></span>
+              <div class="timer xl">0.<span class="ms">000</span></div>
+              <span class="s">Hold, then release to start</span>
+              <span class="grow"></span>
+              <div class="row" style="width:100%">
+                <span class="toggle"><i data-lucide="plus"></i>+2</span>
+                <span class="toggle"><i data-lucide="ban"></i>DNF</span>
+                <span class="toggle"><i data-lucide="undo-2"></i>Redo</span>
+              </div>
+            </div>
+            <div class="card tight g6">
+              <div class="row between"><b>Rounds <span class="faint">2 / 5</span></b><span class="xs">Ao5 after five rounds</span></div>
+              <div class="bf"><b>11.84</b><span class="bar r"><i style="width:100%"></i></span><span class="n">1</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">12.53</b></div>
+              <div class="bf"><b class="faint">13.02</b><span class="bar r"><i style="width:0"></i></span><span class="n">2</span><span class="bar lil"><i style="width:100%"></i></span><b>12.11</b></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>La recherche occupe le centre avec son compteur et Cancel à portée de pouce ; les amis et le lien sont dans une feuille qui dépasse. En fin de course, le verdict monte du bas avec Rematch, la demande de revanche et le chat, la course reste lisible au-dessus.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Salon · recherche</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Duel <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g16 px16" style="align-items:center;padding-top:10px">
+            <span class="s">Ao5 race · the same five 3×3 scrambles for both of you</span>
+            <div class="ring" style="--p:23;width:184px;height:184px;background:conic-gradient(var(--pri) 23%, var(--card) 0)">
+              <div class="col g2" style="align-items:center;font-size:inherit">
+                <span class="timer m">0:14</span>
+                <span class="s" style="max-width:120px;text-align:center">Looking near your level…</span>
+              </div>
+            </div>
+            <div class="grid3" style="width:100%;text-align:center">
+              <div class="col g2"><b class="h2 num">12.41</b><span class="xs">Your 3×3 level</span></div>
+              <div class="col g2"><b class="h2 num" style="font-size:18px">11.4–13.4</b><span class="xs">Matching range</span></div>
+              <div class="col g2" style="align-items:center"><span class="av3" style="height:24px"><span class="avatar sm y" style="width:24px;height:24px;font-size:9px;box-shadow:0 0 0 2px var(--bg)">KE</span><span class="avatar sm" style="width:24px;height:24px;font-size:9px;box-shadow:0 0 0 2px var(--bg)">HU</span><span class="avatar sm g" style="width:24px;height:24px;font-size:9px;box-shadow:0 0 0 2px var(--bg)">SO</span></span><span class="xs">Also searching</span></div>
+            </div>
+            <button class="btn lg" style="width:200px"><i data-lucide="x"></i>Cancel</button>
+            <div class="card tight" style="width:100%;flex-direction:row;align-items:center;gap:10px">
+              <i data-lucide="history" class="faint"></i>
+              <div class="col g4 grow"><b>Races played</b><span class="rs" style="flex:none"><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="l"></i><i class="l"></i><i class="l"></i><i class="l"></i><i class="t"></i></span></div>
+              <span class="s"><b class="ok">7</b>–<b class="bad">4</b>–1</span><i data-lucide="chevron-right" class="faint"></i>
+            </div>
+          </div>
+          <div class="sheet over-nav">
+            <div class="row between"><span class="h3">Your friends <span class="faint">4</span></span><span class="s">Tap one to challenge</span></div>
+            <div class="grid5" style="gap:4px">
+              <div class="col g4" style="align-items:center"><span class="avatar">AL</span><span class="xs b trunc" style="max-width:60px">alex_cubes</span></div>
+              <div class="col g4" style="align-items:center"><span class="avatar y">CO</span><span class="xs b trunc" style="max-width:60px">coach</span></div>
+              <div class="col g4" style="align-items:center"><span class="avatar y">KE</span><span class="xs b trunc" style="max-width:60px">kenji_cfop</span></div>
+              <div class="col g4" style="align-items:center"><span class="avatar y">LE</span><span class="xs b trunc" style="max-width:60px">lena_speed</span></div>
+              <div class="col g4" style="align-items:center"><span class="avatar n"><i data-lucide="search"></i></span><span class="xs b">Find</span></div>
+            </div>
+            <div class="well" style="flex-direction:row;align-items:center;gap:8px"><i data-lucide="link-2" class="faint"></i><span class="s">Your link</span><b class="trunc grow">qbix.app/u/dev</b><button class="btn sm"><i data-lucide="copy"></i>Copy</button></div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i>Challenges</span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Fin de course</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">vs lena_speed <small>3×3</small></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="box"></i></button>
+            <button class="btn sm ghost"><i data-lucide="x"></i>Leave</button>
+          </div>
+          <div class="col g10 px16" style="padding-top:4px">
+            <span class="cap">Five rounds raced · 3×3</span>
+            <div class="row between">
+              <div class="row g6"><span class="avatar sm l">DE</span><div class="col g0"><b>You</b><span class="xs">Finished</span></div></div>
+              <div class="row g6"><div class="col g0" style="text-align:right"><b>lena_speed</b><span class="xs">Finished</span></div><span class="avatar sm y">LE</span></div>
+            </div>
+            <div class="row g10"><b class="h2 pri num">3</b><span class="rs l"><i class="w"></i><i class="l"></i><i class="w"></i><i class="l"></i><i class="w"></i></span><b class="h2 lilac num">2</b></div>
+            <div class="col g6" style="margin-top:4px">
+              <div class="bf"><b>11.84</b><span class="bar r"><i style="width:100%"></i></span><span class="n">1</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">12.53</b></div>
+              <div class="bf"><b class="faint">13.02</b><span class="bar r"><i style="width:0"></i></span><span class="n">2</span><span class="bar lil"><i style="width:100%"></i></span><b>12.11</b></div>
+              <div class="bf"><b>12.07</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">12.94</b></div>
+              <div class="bf"><b class="bad">DNF</b><span class="bar r"><i style="width:0"></i></span><span class="n">4</span><span class="bar lil"><i style="width:100%"></i></span><b>13.36</b></div>
+              <div class="bf"><b>11.62</b><span class="bar r"><i style="width:100%"></i></span><span class="n">5</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">12.40</b></div>
+              <div class="hr"></div>
+              <div class="bf"><b class="pri">12.31</b><span class="bar r"><i style="width:100%"></i></span><span class="n">Ao5</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">12.62</b></div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="row between"><span class="display ok">Victory</span><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <span class="s" style="margin-top:-6px">Ao5 12.31 against 12.62 · rounds 3–2</span>
+            <div class="well" style="flex-direction:row;align-items:center;gap:10px"><span class="avatar sm y">LE</span><span class="t grow"><b>lena_speed</b> wants a rematch.</span><button class="btn sm pri">Accept rematch</button></div>
+            <div class="grid2"><button class="btn">New opponent</button><button class="btn soft"><i data-lucide="rotate-ccw"></i>Rematch</button></div>
+            <div class="hr"></div>
+            <div class="col g6">
+              <span class="msg">gg, next one is mine</span>
+              <span class="msg me">Well played!</span>
+            </div>
+            <div class="row g6"><span class="chip">Well played</span><span class="chip">GG</span><span class="chip">Rematch?</span></div>
+            <div class="field">Message<span class="grow"></span><i data-lucide="send-horizontal"></i></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Challenges s'ouvre sur un tableau : le duel en grande tuile (niveau, plage, la dernière course et sa revanche), les amis, le défi du jour et le match de tournoi prêt. La course est un outil plein écran : l'adversaire en haut, le mélange et le cube au milieu, son chrono en bas.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau Challenges</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Challenges</span><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow">
+            <div class="tile hero g10">
+              <div class="row between"><span class="cap">Duel · Ao5 race</span><span class="chip on" style="height:28px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</span></div>
+              <div class="grid3">
+                <div class="col g0"><b class="h2 num">12.41</b><span class="xs">Your level</span></div>
+                <div class="col g0"><b class="h2 num" style="font-size:18px">11.4–13.4</b><span class="xs">Matching range</span></div>
+                <div class="col g0"><b class="h2 num">3</b><span class="xs">Also searching</span></div>
+              </div>
+              <button class="btn pri lg block"><i data-lucide="swords"></i>Play</button>
+              <div class="row g8"><span class="pill ok">Victory</span><span class="s grow trunc">vs lena_speed · 3–2 · Ao5 12.31</span><button class="btn sm soft">Rematch</button></div>
+            </div>
+            <div class="tile g10" style="padding:14px 16px">
+              <div class="row between"><b class="h3">Challenge a friend</b><button class="btn sm ghost"><i data-lucide="link-2"></i>Copy my link</button></div>
+              <div class="row between">
+                <div class="col g2" style="align-items:center"><span class="avatar">AL</span><span class="xs b">alex_cubes</span></div>
+                <div class="col g2" style="align-items:center"><span class="avatar y">CO</span><span class="xs b">coach</span></div>
+                <div class="col g2" style="align-items:center"><span class="avatar y">KE</span><span class="xs b">kenji_cfop</span></div>
+                <div class="col g2" style="align-items:center"><span class="avatar y">LE</span><span class="xs b">lena_speed</span></div>
+                <div class="col g2" style="align-items:center"><span class="avatar n"><i data-lucide="search"></i></span><span class="xs b">Find</span></div>
+              </div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile g6" style="padding:14px">
+                <div class="row between"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="calendar-days"></i></span><span class="pill warn"><i data-lucide="flame" style="width:13px;height:13px"></i>4 days</span></div>
+                <b class="h3">Daily</b>
+                <span class="xs">3×3 · new at midnight UTC</span>
+                <span class="s"><b class="num" style="color:var(--fg)">14</b> solvers today</span>
+                <button class="btn sm pri block"><i data-lucide="play"></i>Solve it</button>
+              </div>
+              <div class="tile g6" style="padding:14px">
+                <div class="row between"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="trophy"></i></span><span class="pill pri">Ready</span></div>
+                <b class="h3">Tournaments</b>
+                <span class="xs trunc">Friday sprint · Semi-finals</span>
+                <span class="s">vs <b style="color:var(--fg)">lena_speed</b></span>
+                <button class="btn sm pri block"><i data-lucide="play"></i>Play</button>
+              </div>
+            </div>
+            <div class="tile" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+              <div class="col g6 grow"><div class="row between"><b>Races played</b><span class="s"><b class="ok">7</b> won · <b class="bad">4</b> lost · 1 draw</span></div><span class="rs" style="flex:none"><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="w"></i><i class="l"></i><i class="l"></i><i class="l"></i><i class="l"></i><i class="t"></i></span></div>
+              <i data-lucide="chevron-right" class="faint"></i>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Course · outil</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Round 3 of 5<small>vs lena_speed · Ao5 race · 3×3</small></span>
+            <button class="btn icon ghost"><i data-lucide="box"></i></button>
+          </div>
+          <div class="col g10 px16" style="padding-top:4px">
+            <div class="card" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+              <span class="avatar y">LE</span>
+              <div class="col g2 grow"><b class="h3">lena_speed</b><span class="xs ok b row g6"><i class="live"></i>Solving</span></div>
+              <span class="timer m dim" style="opacity:.75">8.<span class="ms">41</span></span>
+            </div>
+            <div class="row g10"><span class="row g6"><span class="avatar sm l" style="width:24px;height:24px;font-size:9px">DE</span><b class="h2 pri num">1</b></span><span class="rs l"><i class="w"></i><i class="l"></i><i class="c"></i><i></i><i></i></span><span class="row g6"><b class="h2 lilac num">1</b><span class="avatar sm y" style="width:24px;height:24px;font-size:9px">LE</span></span></div>
+            <div class="row g12" style="align-items:center;margin-top:4px">
+              <i class="iso" style="width:84px;height:84px" data-iso="gwbrwoyyb|rboggwyrw|ogyrrbwob"></i>
+              <span class="alg sm grow">D2 B2 U' R2 F2 U L2 D' F2 R' B U' L' F D2 R' U2 B' R</span>
+            </div>
+          </div>
+          <div class="col center grow" style="gap:14px">
+            <span class="pill pri">Your turn</span>
+            <div class="timer xl">0.<span class="ms">000</span></div>
+            <span class="s">Hold, then release to start</span>
+          </div>
+          <div class="actionbar" style="justify-content:space-around;padding:10px 6px">
+            <span class="toggle"><i data-lucide="plus"></i>+2</span>
+            <span class="toggle"><i data-lucide="ban"></i>DNF</span>
+            <span class="toggle"><i data-lucide="undo-2"></i>Redo</span>
+            <span class="toggle"><i data-lucide="list-ordered"></i>Rounds</span>
+            <span class="toggle" style="position:relative"><i data-lucide="message-square"></i>Chat<span class="badge" style="position:absolute;top:-4px;right:16px">1</span></span>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 15 · Tournaments -->
+<section class="page" id="tournaments" data-short="Tournaments">
+  <div class="page-head">
+    <h2>15 · Tournaments <small>/tournaments</small></h2>
+    <p>Les tournois ouverts à tous et ceux de ses groupes : s'inscrire, suivre le tableau, jouer son match quand il est prêt. Le téléphone d'aujourd'hui pose la liste, la scène et les joueurs l'une sous l'autre ; ici la liste est un écran, le tournoi un autre, et « ton match est prêt » passe devant tout le reste.</p>
+    <div class="feats"><span>Liste : Under way / Registration open</span><span>Ligne : groupe · puzzle · format · tour en cours</span><span>Your match is ready · Play your match</span><span>Group tournament / Open tournament</span><span>First to N solves · best of M sets</span><span>Players 7 / 16 · You are registered</span><span>Register / Registered / Unregister / Full</span><span>Starts (date, heure, dans combien)</span><span>Bracket : Quarter-finals, Semi-finals, Final, Champion</span><span>N of M matches over</span><span>Players (classement)</span><span>Give up</span><span>Start now · Cancel the tournament (organisateur)</span><span>Decide the match · Give the match to (organisateur)</span><span>New tournament (dans un groupe)</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>L'onglet Tournaments est une liste en deux groupes ; le tournoi touché s'ouvre en carte avec son inscription. Le tournoi en cours est un écran poussé : le tour, le tableau du tour courant et du suivant, les joueurs ; le menu ⋯ porte les actions rares.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Liste</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Challenges</span>
+            <button class="btn icon ghost"><i data-lucide="plus"></i></button>
+            <span class="avatar sm l">DE</span>
+          </div>
+          <div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+          <div class="col g10 px16 grow" style="padding-top:12px;padding-bottom:12px">
+            <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px">
+              <i data-lucide="trophy"></i>
+              <div class="col g0 grow"><b>Semi-finals: your match is ready</b><span class="xs">Friday sprint · against lena_speed</span></div>
+              <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play</button>
+            </div>
+            <span class="cap" style="margin-top:4px">Under way · 2</span>
+            <div class="li" style="background:var(--card);padding:10px 14px">
+              <div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2 solves</span></div>
+              <div class="col g4" style="align-items:flex-end"><span class="pill pri">Semi-finals</span><span class="rs" style="width:54px;flex:none"><i class="w" style="height:5px"></i><i class="c" style="height:5px"></i><i style="height:5px"></i></span></div>
+            </div>
+            <div class="li" style="background:var(--card);padding:10px 14px">
+              <div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2 solves</span></div>
+              <div class="col g4" style="align-items:flex-end"><span class="pill pri">Final</span><span class="rs" style="width:54px;flex:none"><i class="w" style="height:5px"></i><i class="w" style="height:5px"></i><i class="c" style="height:5px"></i></span></div>
+            </div>
+            <span class="cap" style="margin-top:4px">Registration open · 2</span>
+            <div class="card hi g8">
+              <div class="row between"><b class="h3">Club cup</b><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Registered</span></div>
+              <span class="xs">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span>
+              <div class="row g10"><span class="bar ok grow"><i style="width:44%"></i></span><span class="s num"><b style="color:var(--fg)">7 / 16</b> players</span></div>
+              <span class="s row g6"><i data-lucide="calendar-clock" style="width:15px;height:15px"></i>Starts Sun 11 Oct · 16:22 · in 2 h</span>
+              <div class="row g6"><button class="btn sm ok"><i data-lucide="check"></i>Registered</button><button class="btn sm"><i data-lucide="play"></i>Start now</button><span class="grow"></span><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button></div>
+            </div>
+            <div class="card g6" style="padding:12px 14px">
+              <div class="row between"><b class="h3">Qbix Autumn Open</b><span class="pill ok">Registration open</span></div>
+              <span class="xs">Open tournament · 3×3 · First to 3 solves · best of 3 sets</span>
+              <div class="row g10"><span class="s num grow">23 / 64 · Sat 17 Oct · 18:00</span><button class="btn sm pri">Register</button></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Tournoi · menu ⋯ ouvert</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title" style="font-size:20px">Friday sprint</span>
+            <button class="btn icon ghost" style="background:var(--muted)"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="menu" style="top:50px;right:14px;width:236px">
+            <div class="li"><i data-lucide="flag"></i><span class="grow">Give up</span></div>
+            <div class="li"><i data-lucide="gavel"></i><span class="grow">Decide a match…</span><span class="xs">organiser</span></div>
+            <div class="hr" style="margin:2px 6px"></div>
+            <div class="li bad"><i data-lucide="ban"></i><span class="grow">Cancel the tournament</span></div>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:2px;padding-bottom:12px">
+            <span class="cap">Cubix Club · group tournament · 2×2 · First to 2 solves</span>
+            <div class="grid3">
+              <div class="stat"><span>Semi-finals</span><b>1 / 2 <small class="xs">over</small></b></div>
+              <div class="stat"><span>Players</span><b>8</b></div>
+              <div class="stat"><span>Started</span><b>14:00</b></div>
+            </div>
+            <div class="card pri" style="flex-direction:row;align-items:center;gap:10px;padding:10px 12px">
+              <div class="col g0 grow"><b>Your semi-final is ready</b><span class="xs">Against lena_speed: both on the match page and it starts.</span></div>
+              <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)">Play your match</button>
+            </div>
+            <div class="row g6"><span class="chip"><i data-lucide="check"></i>Quarter-finals</span><span class="chip on">Semi-finals</span><span class="chip">Final</span></div>
+            <div class="grid2" style="align-items:center;gap:10px">
+              <div class="col g8">
+                <div class="mcard on"><div class="pl"><span class="avatar l">DE</span>dev<b>0</b></div><div class="pl"><span class="avatar y">LE</span>lena_speed<b>0</b></div><span class="xs pri b">Your match</span></div>
+                <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes<b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span>coach<b>0</b></div><span class="xs">Over</span></div>
+              </div>
+              <div class="col g4">
+                <span class="xs b">Final · next</span>
+                <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes</div><div class="pl out"><span class="avatar n">?</span>To be decided</div></div>
+              </div>
+            </div>
+            <div class="card g6 grow" style="padding-bottom:4px">
+              <b class="h3">Players <span class="faint">8</span></b>
+              <div class="scroll g2">
+                <div class="row g10" style="min-height:38px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow">alex_cubes</b><span class="pill pri">Final</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">2</span><span class="avatar sm l">DE</span><b class="grow pri">dev</b><span class="pill">Semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow">lena_speed</b><span class="pill">Semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow">coach</b><span class="xs">Out · semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">5</span><span class="avatar sm">BE</span><b class="grow">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>La scène du desktop devient l'écran : le tournoi choisi en grand, l'inscription sous le pouce ; la liste des tournois est une feuille qui dépasse. Dans un tournoi en cours, toucher son match ouvre une feuille d'actions : jouer, et pour l'organisateur trancher ou annuler.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tournoi ouvert · liste en feuille</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Tournaments <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="plus"></i></button>
+          </div>
+          <div class="col g12 px16" style="align-items:center;text-align:center;padding-top:8px">
+            <span class="cap">Cubix Club · group tournament</span>
+            <span class="display" style="margin-top:-4px">Club cup</span>
+            <span class="s" style="margin-top:-6px">3×3 · First to 3 solves · best of 3 sets</span>
+            <div class="card" style="width:100%;text-align:left">
+              <div class="row between"><span class="big">7 / 16</span><span class="s">You are registered</span></div>
+              <span class="bar ok"><i style="width:44%"></i></span>
+              <div class="row g6"><span class="av3"><span class="avatar sm l">DE</span><span class="avatar sm y">LE</span><span class="avatar sm">AL</span><span class="avatar sm y">CO</span><span class="avatar sm">BE</span></span><span class="s grow trunc">dev, lena_speed, alex_cubes +4</span><i data-lucide="chevron-right" class="faint"></i></div>
+            </div>
+            <div class="grid2" style="width:100%">
+              <div class="well"><span class="xs">Starts</span><b class="h3">Today, 16:22</b><span class="xs pri b">in 2 h</span></div>
+              <div class="well"><span class="xs">Bracket</span><b class="h3">Drawn at the start</b><span class="xs">16 places</span></div>
+            </div>
+            <div class="grid2" style="width:100%"><button class="btn lg ok"><i data-lucide="check"></i>Registered</button><button class="btn lg">Unregister</button></div>
+            <button class="btn block"><i data-lucide="play"></i>Start now<span class="xs">· organiser</span></button>
+          </div>
+          <div class="sheet over-nav" style="gap:8px">
+            <div class="row between"><span class="h3">Tournaments <span class="faint">4</span></span><div class="seg"><span class="on">Under way 2</span><span>Open 2</span></div></div>
+            <div class="li" style="background:var(--card);padding:8px 12px">
+              <div class="col"><b>Friday sprint</b><span class="xs pri b">Semi-finals · your match is ready</span></div>
+              <button class="btn sm pri">Play</button>
+            </div>
+            <div class="li" style="padding:6px 12px">
+              <div class="col"><b>Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2 solves · Final</span></div>
+              <i data-lucide="chevron-right" class="faint"></i>
+            </div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i>Challenges</span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Tableau · feuille du match</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where"><i data-lucide="chevron-left"></i>Friday sprint</span>
+            <span class="grow"></span>
+            <span class="pill pri">Semi-finals</span>
+          </div>
+          <div class="col g10 px16">
+            <span class="cap">Cubix Club · 2×2 · First to 2 solves · 1 of 2 over</span>
+            <span class="xs b">Semi-finals</span>
+            <div class="mcard on"><div class="pl"><span class="avatar l">DE</span>dev<b>0</b></div><div class="pl"><span class="avatar y">LE</span>lena_speed<b>0</b></div></div>
+            <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes<b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span>coach<b>0</b></div></div>
+            <span class="xs b">Final · next</span>
+            <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes</div><div class="pl out"><span class="avatar n">?</span>To be decided</div></div>
+            <span class="xs b warn">Champion</span>
+            <div class="mcard"><div class="pl out"><i data-lucide="crown" class="warn"></i>To be decided</div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="row g10"><div class="col g0 grow"><b class="h2">dev vs lena_speed</b><span class="s">Semi-finals · 0 – 0 · both not here yet</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <button class="btn lg pri block"><i data-lucide="play"></i>Play your match</button>
+            <span class="cap" style="margin-top:4px">Decide the match · organiser</span>
+            <div class="li" style="background:var(--card)"><span class="avatar sm l">DE</span><div class="col"><b>Give the match to dev</b><span class="xs">dev goes through to the final</span></div></div>
+            <div class="li" style="background:var(--card)"><span class="avatar sm y">LE</span><div class="col"><b>Give the match to lena_speed</b><span class="xs">lena_speed goes through to the final</span></div></div>
+            <div class="hr"></div>
+            <div class="grid2"><button class="btn ghost"><i data-lucide="flag"></i>Give up</button><button class="btn ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel tournament</button></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Depuis la tuile Tournaments du tableau Challenges : un outil plein écran où le match prêt est la tuile principale, les tournois ouverts en cartes avec leur jauge. Le tournoi en cours est un tableau qu'on lit d'un coup : demi-finales reliées à la finale, puis les joueurs.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Outil · tournois</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Tournaments<small>Open to every player, and your groups'</small></span>
+            <button class="btn icon ghost"><i data-lucide="plus"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:14px">
+            <div class="tile hero g12">
+              <div class="row between"><span class="cap">Friday sprint · semi-finals</span><span class="pill pri">Ready</span></div>
+              <div class="row center g16">
+                <div class="col g4" style="align-items:center"><span class="avatar lg l halo">DE</span><b>You</b></div>
+                <span class="h2 faint">vs</span>
+                <div class="col g4" style="align-items:center"><span class="avatar lg y halo off">LE</span><b>lena_speed</b></div>
+              </div>
+              <span class="s" style="text-align:center">Cubix Club · 2×2 · First to 2 solves</span>
+              <button class="btn pri lg block"><i data-lucide="play"></i>Play your match</button>
+            </div>
+            <div class="tile" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+              <span class="live"></span>
+              <div class="col g0 grow"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Final · yuki_blind vs tom_onehand</span></div>
+              <i data-lucide="chevron-right" class="faint"></i>
+            </div>
+            <span class="cap" style="margin-top:2px">Registration open</span>
+            <div class="grid2" style="gap:10px">
+              <div class="tile g6" style="padding:14px">
+                <div class="row between"><div class="ring" style="--p:44;width:46px;height:46px"><b>7/16</b></div><span class="pill ok">In</span></div>
+                <b class="h3">Club cup</b>
+                <span class="xs">Cubix Club · 3×3 · First to 3 · best of 3 sets</span>
+                <span class="s b" style="color:var(--fg)">Today 16:22</span>
+                <button class="btn sm block">Unregister</button>
+                <button class="btn sm ghost block" style="margin-top:-2px"><i data-lucide="play"></i>Start now</button>
+              </div>
+              <div class="tile g6" style="padding:14px">
+                <div class="row between"><div class="ring" style="--p:36;width:46px;height:46px"><b>23/64</b></div><span class="pill">Open</span></div>
+                <b class="h3">Qbix Autumn Open</b>
+                <span class="xs">3×3 · First to 3 · best of 3 sets</span>
+                <span class="s b" style="color:var(--fg)">Sat 17 Oct 18:00</span>
+                <button class="btn sm pri block">Register</button>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · tableau, menu ouvert</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Friday sprint<small>Semi-finals · 1 of 2 matches over</small></span>
+            <button class="btn icon ghost" style="background:var(--muted)"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="menu" style="top:48px;right:12px;width:228px">
+            <div class="li"><i data-lucide="gavel"></i><span class="grow">Decide a match…</span></div>
+            <div class="li"><i data-lucide="flag"></i><span class="grow">Give up</span></div>
+            <div class="li bad"><i data-lucide="ban"></i><span class="grow">Cancel the tournament</span></div>
+          </div>
+          <div class="col g12 px16 grow">
+            <div class="row g6"><span class="chip"><i data-lucide="check"></i>QF 4/4</span><span class="chip on">Semi-finals 1/2</span><span class="chip">Final</span></div>
+            <div class="row g0" style="align-items:center">
+              <div class="col g16" style="width:178px">
+                <div class="mcard on"><div class="pl"><span class="avatar l">DE</span>dev<b>0</b></div><div class="pl"><span class="avatar y">LE</span>lena_speed<b>0</b></div></div>
+                <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes<b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span>coach<b>0</b></div></div>
+              </div>
+              <div style="width:14px;height:96px;border:2px solid var(--acc);border-left:0;border-radius:0 12px 12px 0;flex:none"></div>
+              <div style="width:12px;height:2px;background:var(--acc);flex:none"></div>
+              <div class="col g6 grow">
+                <span class="xs b">Final</span>
+                <div class="mcard"><div class="pl"><span class="avatar">AL</span>alex_cubes</div><div class="pl out"><span class="avatar n">?</span>TBD</div></div>
+                <span class="xs b warn row g4"><i data-lucide="crown" style="width:14px;height:14px"></i>Champion</span>
+              </div>
+            </div>
+            <div class="tile g6 grow" style="padding:14px 16px 4px">
+              <b class="h3">Players <span class="faint">8</span></b>
+              <div class="scroll g2">
+                <div class="row g10" style="min-height:38px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow">alex_cubes</b><span class="pill pri">Final</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">2</span><span class="avatar sm l">DE</span><b class="grow pri">dev</b><span class="pill">Semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow">lena_speed</b><span class="pill">Semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow">coach</b><span class="xs">Out · semi-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">5</span><span class="avatar sm">BE</span><b class="grow">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+                <div class="row g10" style="min-height:38px"><span class="rk">6</span><span class="avatar sm y">CH</span><b class="grow">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="actionbar">
+            <button class="btn ghost"><i data-lucide="flag"></i>Give up</button>
+            <button class="btn pri grow"><i data-lucide="play"></i>Play your match</button>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 16 · Battle -->
+<section class="page" id="match" data-short="Battle">
+  <div class="page-head">
+    <h2>16 · Battle <small>/match/1</small></h2>
+    <p>Un match entre deux joueurs, lancé d'un tournoi ou d'une conversation de groupe : on attend que les deux soient là, puis la course se joue par manches (sets), mélange par mélange, jusqu'au verdict. Sur le téléphone d'aujourd'hui le score, les temps et la liste des résolutions se disputent la même colonne ; ici le score et le chrono sont seuls à l'écran, la liste des résolutions se tire à part.</p>
+    <div class="feats"><span>Battle · groupe · puzzle · format</span><span>Waiting for the players / for {joueur}</span><span>Here / Not here yet / Away</span><span>Event · Format</span><span>Set N · Solve N</span><span>Score des sets + points « 1 of 3 »</span><span>Bande des résolutions du set</span><span>Mélange</span><span>État : Ready, Solving, Waiting for, Winner</span><span>Hold, then release to start</span><span>+2 · DNF · Redo</span><span>Cube</span><span>« Solve 3 · alex_cubes took it by 0.31 » · A tie: no point</span><span>You win set N</span><span>Solves (papillon par set)</span><span>Forfeit · Give up the match? · Keep playing</span><span>Victory / Defeat · Sets 2–1 · Fastest solve</span><span>Back to the tournament / conversation · Stay</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Le match est un écran poussé depuis le tournoi ou la conversation, barre d'onglets gardée. L'attente montre les deux joueurs et qui est là ; la course empile le score, le mélange, son chrono et les résolutions du set.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Attente des joueurs</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <div class="col g0 grow"><span class="h2">Battle</span><span class="xs">Cubix Club</span></div>
+          </div>
+          <div class="col g16 px16 grow" style="align-items:center;text-align:center;padding-top:28px">
+            <span class="cap">Cubix Club · 2×2 · First to 3 solves · best of 3 sets</span>
+            <div class="row g16" style="align-items:flex-start;margin-top:18px">
+              <div class="col g6" style="align-items:center;width:120px"><span class="avatar xl l halo">DE</span><b class="h3" style="margin-top:6px">You</b><span class="s row g6"><i class="dot ok"></i>Here</span></div>
+              <span class="h2 faint" style="margin-top:32px">vs</span>
+              <div class="col g6" style="align-items:center;width:120px"><span class="avatar xl halo off">AL</span><b class="h3" style="margin-top:6px">alex_cubes</b><span class="s row g6"><i class="dot faint"></i>Not here yet</span></div>
+            </div>
+            <span class="pill pri" style="margin-top:18px"><i class="dot"></i>Waiting</span>
+            <span class="h1">Waiting for alex_cubes</span>
+            <span class="s" style="max-width:300px">The race starts by itself once you are both on this page. Keep it open: alex_cubes has been told.</span>
+            <span class="grow"></span>
+            <div class="grid2" style="width:100%">
+              <div class="well" style="align-items:center"><b class="big">2×2</b><span class="xs">Event</span></div>
+              <div class="well" style="align-items:center"><b class="h3">First to 3 solves</b><b class="h3">best of 3 sets</b><span class="xs">Format</span></div>
+            </div>
+            <span style="height:4px"></span>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Course · set 2</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <div class="col g0 grow"><span class="h3">Battle</span><span class="xs">Cubix Club · 2×2</span></div>
+            <button class="btn icon ghost"><i data-lucide="box"></i></button>
+            <button class="btn sm ghost"><i data-lucide="flag"></i>Forfeit</button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:4px;padding-bottom:12px">
+            <div class="row between">
+              <div class="row g6"><span class="avatar sm l">DE</span><div class="col g0"><b>You</b><span class="xs pri b">Your turn · 1 of 3</span></div></div>
+              <div class="row g6"><div class="col g0" style="text-align:right"><b>alex_cubes</b><span class="xs ok b row g4 end"><i class="live"></i>Solving · 2 of 3</span></div><span class="avatar sm">AL</span></div>
+            </div>
+            <div class="row g10"><span class="col g0" style="align-items:center"><b class="h1 pri num">1</b><span class="xs">sets</span></span><span class="rs l"><i class="l"></i><i class="w"></i><i class="l"></i><i class="c"></i><i></i></span><span class="col g0" style="align-items:center"><b class="h1 lilac num">0</b><span class="xs">sets</span></span></div>
+            <div class="row between"><span class="cap">Set 2 · Solve 4</span><span class="s">Solve 3 · alex_cubes took it by 0.31</span></div>
+            <span class="alg" style="text-align:center">R U' F2 R' U2 F U' R2 F'</span>
+            <div class="card grow center" style="gap:12px">
+              <span class="grow"></span>
+              <div class="timer xl">0.<span class="ms">000</span></div>
+              <span class="s">Hold, then release to start</span>
+              <span class="grow"></span>
+              <div class="row" style="width:100%"><span class="toggle"><i data-lucide="plus"></i>+2</span><span class="toggle"><i data-lucide="ban"></i>DNF</span><span class="toggle"><i data-lucide="undo-2"></i>Redo</span></div>
+            </div>
+            <div class="card tight g6">
+              <div class="row between"><b>Solves</b><span class="xs">Set 1 · You 3–1</span></div>
+              <span class="xs b">Set 2</span>
+              <div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+              <div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+              <div class="bf"><b class="faint">4.27</b><span class="bar r"><i style="width:0"></i></span><span class="n">3</span><span class="bar lil"><i style="width:100%"></i></span><b>3.96</b></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Tout le bas de l'écran est la zone du chrono ; le score des sets se lit en haut d'un coup d'œil, les résolutions du match sont dans une feuille qui dépasse. Le verdict monte en feuille, avec le retour vers la conversation ou le tournoi.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Course · feuille des résolutions</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where"><i data-lucide="chevron-left"></i>Battle <small>2×2</small></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="box"></i></button>
+            <button class="btn sm ghost"><i data-lucide="flag"></i>Forfeit</button>
+          </div>
+          <div class="col g10 px16">
+            <div class="card g10" style="padding:12px 14px">
+              <div class="row between">
+                <div class="row g10"><span class="avatar l">DE</span><div class="col g0"><b>You</b><span class="xs">1 of 3</span></div></div>
+                <span class="big num"><span class="pri">1</span> <span class="faint">–</span> <span class="lilac">0</span></span>
+                <div class="row g10"><div class="col g0" style="text-align:right"><b>alex_cubes</b><span class="xs">2 of 3</span></div><span class="avatar">AL</span></div>
+              </div>
+              <div class="row g10"><span class="xs b" style="width:40px">Set 2</span><span class="rs"><i class="l"></i><i class="w"></i><i class="l"></i><i class="c"></i><i></i></span><span class="xs b" style="width:40px;text-align:right">Solve 4</span></div>
+            </div>
+            <span class="alg" style="text-align:center;margin-top:4px">R U' F2 R' U2 F U' R2 F'</span>
+            <div class="row center g6"><span class="pill"><i class="dot warn"></i>alex_cubes · Ready</span></div>
+          </div>
+          <div class="col center grow" style="gap:12px;padding-bottom:120px">
+            <div class="timer xl armed">0.<span class="ms">000</span></div>
+            <span class="s">Release to start</span>
+            <div class="row" style="width:280px;margin-top:10px"><span class="toggle"><i data-lucide="plus"></i>+2</span><span class="toggle"><i data-lucide="ban"></i>DNF</span><span class="toggle"><i data-lucide="undo-2"></i>Redo</span></div>
+          </div>
+          <div class="sheet over-nav" style="gap:8px">
+            <div class="row between"><span class="h3">Solves <span class="faint">7</span></span><span class="s">Solve 3 · alex_cubes took it by 0.31</span></div>
+            <div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+            <div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i>Challenges</span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Verdict</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where"><i data-lucide="chevron-left"></i>Battle <small>2×2</small></span>
+            <span class="grow"></span>
+          </div>
+          <div class="col g10 px16">
+            <span class="cap">Cubix Club · 2×2 · First to 3 solves · best of 3 sets</span>
+            <div class="card g10" style="padding:12px 14px">
+              <div class="row between">
+                <div class="row g10"><span class="avatar l">DE</span><div class="col g0"><b>You</b><span class="xs ok b">Winner</span></div></div>
+                <span class="big num"><span class="pri">2</span> <span class="faint">–</span> <span class="lilac">1</span></span>
+                <div class="row g10"><div class="col g0" style="text-align:right"><b>alex_cubes</b><span class="xs">Finished</span></div><span class="avatar">AL</span></div>
+              </div>
+            </div>
+            <div class="col g6">
+              <div class="row g10"><span class="xs b" style="width:40px">Set 1</span><span class="rs"><i class="w"></i><i class="l"></i><i class="w"></i><i class="t"></i><i class="w"></i></span><b class="xs" style="width:30px;text-align:right">3–1</b></div>
+              <div class="row g10"><span class="xs b" style="width:40px">Set 2</span><span class="rs"><i class="l"></i><i class="w"></i><i class="l"></i><i class="l"></i></span><b class="xs" style="width:30px;text-align:right">1–3</b></div>
+              <div class="row g10"><span class="xs b" style="width:40px">Set 3</span><span class="rs"><i class="w"></i><i class="w"></i><i class="w"></i></span><b class="xs" style="width:30px;text-align:right">3–0</b></div>
+            </div>
+          </div>
+          <div class="scrim" style="background:rgba(8,3,6,.3)"></div>
+          <div class="sheet" style="gap:12px;padding-bottom:18px">
+            <div class="row between"><span class="display ok">Victory</span><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <span class="s" style="margin-top:-8px">Sets 2–1 · Fastest solve 3.12</span>
+            <div class="grid3">
+              <div class="well"><span class="xs">Sets</span><b class="h2 num">2–1</b></div>
+              <div class="well"><span class="xs">Solves won</span><b class="h2 num">7–4</b></div>
+              <div class="well"><span class="xs">Fastest</span><b class="h2 num ok">3.12</b></div>
+            </div>
+            <div class="col g6">
+              <span class="cap">Set 3</span>
+              <div class="bf"><b>3.22</b><span class="bar r"><i style="width:100%"></i></span><span class="n">1</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.70</b></div>
+              <div class="bf"><b>3.49</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.58</b></div>
+              <div class="bf"><b>3.31</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">DNF</b></div>
+            </div>
+            <button class="btn lg pri block"><i data-lucide="message-square"></i>Back to the conversation</button>
+            <button class="btn ghost block">Stay on the match</button>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le match est un outil plein écran : l'adversaire en bandeau en haut, le score des sets et le mélange au centre, son propre chrono en bas, les actions dans une barre. Le verdict remplace l'écran entier, set par set, avec un seul bouton pour repartir.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Course · outil</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Set 2 · Solve 4<small>Battle · Cubix Club · 2×2</small></span>
+            <button class="btn icon ghost"><i data-lucide="flag"></i></button>
+          </div>
+          <div class="col g12 px16">
+            <div class="card" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+              <span class="avatar">AL</span>
+              <div class="col g2 grow"><b class="h3">alex_cubes</b><span class="xs ok b row g6"><i class="live"></i>Solving · 2 of 3</span></div>
+              <span class="timer m" style="opacity:.7">1.<span class="ms">86</span></span>
+            </div>
+            <div class="col g6" style="align-items:center;margin-top:8px">
+              <span class="cap">Sets</span>
+              <div class="row g16"><span class="display pri num">1</span><span class="h2 faint">–</span><span class="display lilac num">0</span></div>
+              <span class="rs" style="width:200px;flex:none"><i class="l"></i><i class="w"></i><i class="l"></i><i class="c"></i><i></i></span>
+              <span class="s">Solve 3 · alex_cubes took it by 0.31</span>
+            </div>
+            <span class="alg" style="text-align:center;font-size:22px;margin-top:6px">R U' F2 R' U2 F U' R2 F'</span>
+          </div>
+          <div class="col center grow" style="gap:12px">
+            <span class="pill pri">You · 1 of 3</span>
+            <div class="timer xl">0.<span class="ms">000</span></div>
+            <span class="s">Hold, then release to start</span>
+          </div>
+          <div class="actionbar" style="justify-content:space-around;padding:10px 6px">
+            <span class="toggle"><i data-lucide="plus"></i>+2</span>
+            <span class="toggle"><i data-lucide="ban"></i>DNF</span>
+            <span class="toggle"><i data-lucide="undo-2"></i>Redo</span>
+            <span class="toggle"><i data-lucide="list-ordered"></i>Solves</span>
+            <span class="toggle"><i data-lucide="box"></i>Cube</span>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Verdict · outil</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Battle<small>Cubix Club · 2×2</small></span>
+            <span style="width:40px"></span>
+          </div>
+          <div class="col g12 px16 grow" style="padding-bottom:12px">
+            <div class="col g6" style="align-items:center;text-align:center;padding-top:8px">
+              <i data-lucide="crown" class="warn" style="width:34px;height:34px"></i>
+              <span class="display ok" style="font-size:52px">Victory</span>
+              <span class="s">Sets 2–1 · Fastest solve 3.12</span>
+            </div>
+            <div class="row center g16" style="margin-top:6px">
+              <div class="col g4" style="align-items:center"><span class="avatar lg l halo">DE</span><b>You</b><span class="xs ok b">Winner</span></div>
+              <span class="big"><span class="pri">2</span><span class="faint"> – </span><span class="lilac">1</span></span>
+              <div class="col g4" style="align-items:center"><span class="avatar lg halo off">AL</span><b>alex_cubes</b><span class="xs">Finished</span></div>
+            </div>
+            <div class="tile g10 grow" style="padding:14px 16px 6px">
+              <div class="row between"><b class="h3">Solves</b><span class="xs">You · alex_cubes</span></div>
+              <div class="scroll g6">
+                <div class="row between"><span class="xs b">Set 3 · You 3–0</span></div>
+                <div class="bf"><b>3.22</b><span class="bar r"><i style="width:100%"></i></span><span class="n">1</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.70</b></div>
+                <div class="bf"><b>3.49</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.58</b></div>
+                <div class="bf"><b>3.31</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">DNF</b></div>
+                <div class="row between" style="margin-top:4px"><span class="xs b">Set 2 · alex_cubes 3–1</span></div>
+                <div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+                <div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+                <div class="bf"><b class="faint">4.27</b><span class="bar r"><i style="width:0"></i></span><span class="n">3</span><span class="bar lil"><i style="width:100%"></i></span><b>3.96</b></div>
+                <div class="bf"><b class="faint">3.70</b><span class="bar r"><i style="width:0"></i></span><span class="n">4</span><span class="bar lil"><i style="width:100%"></i></span><b>3.52</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="actionbar"><button class="btn lg pri block"><i data-lucide="message-square"></i>Back to the conversation</button></div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 17 · Daily -->
+<section class="page" id="daily" data-short="Daily">
+  <div class="page-head">
+    <h2>17 · Daily <small>/daily</small></h2>
+    <p>Le mélange du jour, le même pour tout le monde : une seule tentative classée par jour, vérifiée si elle est faite sur un cube connecté, puis sa place dans le peloton du jour. Aujourd'hui le téléphone empile résultats, scène et histogramme ; ici le mélange et « Solve it » sont l'écran, le peloton se lit en graphique, et l'historique des jours a son écran ou sa feuille.</p>
+    <div class="feats"><span>3×3 / 3×3 One-Handed</span><span>Date · new at midnight UTC</span><span>Mélange du jour</span><span>Solve it · one ranked attempt a day, on the timer</span><span>Verified / Not verified (cube connecté)</span><span>Time · Beats · Rank · Solvers</span><span>% of the field beaten</span><span>Today's field (histogramme, barre « You »)</span><span>All / Verified</span><span>Your results : Best, Mean, Mean rank, Streak</span><span>Your days (temps, rang, vérifié, Not tried)</span><span>Un jour passé : son mélange, Field of {jour}, Back to today</span><span>Après la résolution : Your ranked attempt of the day / Not ranked</span><span>Cancel this time · Today's ranking · Close</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>L'onglet Daily tient en trois blocs : le mélange du jour et « Solve it », les quatre chiffres du jour, le peloton en barres. « Your results » (icône calendrier) pousse l'écran des records et de l'historique des jours.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Avant la tentative</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Challenges</span>
+            <button class="btn icon ghost"><i data-lucide="calendar-days"></i></button>
+            <span class="avatar sm l">DE</span>
+          </div>
+          <div class="utabs"><span>Duel</span><span>Tournaments</span><span class="on">Daily</span></div>
+          <div class="col g10 px16 grow" style="padding-top:12px;padding-bottom:12px">
+            <div class="seg block"><span class="on">3×3</span><span>3×3 One-Handed</span></div>
+            <div class="card hi g10" style="padding:16px">
+              <div class="row between"><span class="cap">11 October · new at midnight UTC</span><button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button></div>
+              <span class="alg" style="font-size:18px">B2 R' B2 D2 B2 F2 L2 R D2 L U2 B' L D' B F D U L D' L</span>
+              <button class="btn pri lg block" style="height:58px;justify-content:flex-start"><i data-lucide="play"></i><span class="col g0" style="align-items:flex-start"><span>Solve it</span><span style="font-size:12px;font-weight:600;opacity:.75">Your one ranked attempt of the day, on the timer</span></span></button>
+              <div class="row g6"><span class="pill"><i data-lucide="bluetooth" style="width:12px;height:12px"></i>Verified on a connected cube</span><span class="pill">1 attempt / day</span></div>
+            </div>
+            <div class="grid4" style="text-align:center">
+              <div class="col g0"><b class="h2 faint">–</b><span class="xs">Time</span></div>
+              <div class="col g0"><b class="h2 faint">–</b><span class="xs">Beats</span></div>
+              <div class="col g0"><b class="h2 faint">–</b><span class="xs">Rank</span></div>
+              <div class="col g0"><b class="h2">14</b><span class="xs">Solvers</span></div>
+            </div>
+            <div class="card g8 grow">
+              <div class="row between"><span class="h3">Today's field</span><div class="seg"><span class="on">All 14</span><span>Verified 8</span></div></div>
+              <div class="col g4" style="margin-top:4px">
+                <div class="hist"><span>9.5 s</span><span class="bar"><i style="width:33%"></i></span><span>1</span></div>
+                <div class="hist"><span>10 s</span><span class="bar"><i style="width:33%"></i></span><span>1</span></div>
+                <div class="hist"><span>10.5 s</span><span class="bar"><i style="width:33%"></i></span><span>1</span></div>
+                <div class="hist"><span>11 s</span><span class="bar"><i style="width:67%"></i></span><span>2</span></div>
+                <div class="hist"><span>11.5 s</span><span class="bar"><i style="width:67%"></i></span><span>2</span></div>
+                <div class="hist"><span>12 s</span><span class="bar"><i style="width:100%"></i></span><span>3</span></div>
+                <div class="hist"><span>12.5 s</span><span class="bar"><i style="width:33%"></i></span><span>1</span></div>
+                <div class="hist"><span>13 s</span><span class="bar"><i style="width:33%"></i></span><span>1</span></div>
+                <div class="hist"><span>14 s+</span><span class="bar"><i style="width:33%"></i></span><span>2</span></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Your results · écran poussé</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Your results</span>
+            <span class="chip on">3×3</span>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:6px;padding-bottom:12px">
+            <div class="grid2">
+              <div class="card tight"><div class="stat"><span><i class="dot ok"></i>Best</span><b class="ok">10.92</b></div></div>
+              <div class="card tight"><div class="stat"><span><i class="dot"></i>Mean</span><b>12.86</b></div></div>
+              <div class="card tight"><div class="stat"><span><i class="dot lilac"></i>Mean rank</span><b>6.2</b></div></div>
+              <div class="card tight"><div class="stat"><span><i class="dot warn"></i>Streak</span><b class="warn">3 days</b></div></div>
+            </div>
+            <span class="cap" style="margin-top:6px">Your days</span>
+            <div class="scroll g6">
+              <div class="li" style="background:var(--card);box-shadow:inset 3px 0 0 var(--pri)"><b class="h3 faint" style="width:58px">–</b><div class="col"><b>Today</b><span class="xs">Not tried yet</span></div><button class="btn sm pri">Solve it</button></div>
+              <div class="li" style="background:var(--card)"><b class="h3 num" style="width:58px">13.05</b><div class="col"><b>Sat 10 Oct</b><span class="xs">7 of 17 · beats 59 %</span></div><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span></div>
+              <div class="li" style="background:var(--card)"><b class="h3 num ok" style="width:58px">10.92</b><div class="col"><b>Fri 9 Oct</b><span class="xs">2 of 15 · beats 93 %</span></div><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span></div>
+              <div class="li" style="background:var(--card)"><b class="h3 num" style="width:58px">12.71</b><div class="col"><b>Thu 8 Oct</b><span class="xs">6 of 12 · beats 50 %</span></div><span class="pill">Not verified</span></div>
+              <div class="li" style="background:var(--card)"><b class="h3 bad" style="width:58px">DNF</b><div class="col"><b>Wed 7 Oct</b><span class="xs">12 of 12</span></div><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span></div>
+              <div class="li" style="background:var(--card)"><b class="h3 faint" style="width:58px">–</b><div class="col"><b>Tue 6 Oct</b><span class="xs">Not tried that day</span></div></div>
+              <div class="li" style="background:var(--card)"><b class="h3 num" style="width:58px">12.20</b><div class="col"><b>Mon 5 Oct</b><span class="xs">4 of 13 · beats 75 %</span></div><span class="pill">Not verified</span></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span class="on"><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Une fois la tentative faite, l'écran devient son résultat : le temps, la part du peloton battue, le rang, le peloton en colonnes avec sa barre « You ». L'historique est une feuille qui dépasse. La tentative se fait sur le chrono, qui ouvre ensuite la feuille du classement.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Fait pour aujourd'hui</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Daily <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <div class="seg"><span class="on">3×3</span><span>One-Handed</span></div>
+          </div>
+          <div class="col g12 px16" style="padding-top:2px">
+            <span class="cap">11 October · done · new at midnight UTC</span>
+            <span class="alg sm" style="margin-top:-4px">B2 R' B2 D2 B2 F2 L2 R D2 L U2 B' L D' B F D U L D' L</span>
+            <div class="row between" style="align-items:flex-end">
+              <div class="col g4"><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span><span class="timer l">12.<span class="ms">48</span></span></div>
+              <div class="col g2" style="text-align:right;padding-bottom:4px"><span class="big">5<span class="faint" style="font-size:18px"> of 14</span></span><span class="xs">Rank</span></div>
+            </div>
+            <div class="col g6">
+              <div class="row between"><b class="ok">64 % of the field beaten</b><span class="s">9 of 14</span></div>
+              <span class="bar ok" style="height:8px"><i style="width:64%"></i></span>
+            </div>
+            <div class="card g10" style="padding:14px 14px 10px">
+              <div class="row between"><span class="h3">Today's field</span><div class="seg"><span class="on">All 14</span><span>Verified 8</span></div></div>
+              <div class="vbars" style="height:96px;margin-top:14px"><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:67%"></i><i style="height:67%"></i><i class="me" style="height:100%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i></div>
+              <div class="row between xs num"><span>9.5 s</span><span>12 s</span><span>14 s+</span></div>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:8px">
+            <div class="row between"><span class="h3">Your results</span><span class="pill warn"><i data-lucide="flame" style="width:12px;height:12px"></i>4 days</span></div>
+            <div class="grid3" style="text-align:left">
+              <div class="col g0"><span class="xs">Best</span><b class="num ok">10.92</b></div>
+              <div class="col g0"><span class="xs">Mean</span><b class="num">12.80</b></div>
+              <div class="col g0"><span class="xs">Mean rank</span><b class="num">5.9</b></div>
+            </div>
+            <div class="li" style="background:var(--card);padding:8px 12px"><b class="num" style="width:48px">13.05</b><div class="col"><b>Sat 10 Oct</b><span class="xs">7 of 17 · Verified</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i>Challenges</span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Juste après, sur le chrono</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Timer <i data-lucide="chevron-down"></i></span>
+            <span class="pill pri">Daily · 3×3</span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="bluetooth"></i></button>
+          </div>
+          <div class="col center g10" style="padding-top:90px">
+            <span class="timer xl">12.<span class="ms">48</span></span>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:12px;padding-bottom:18px">
+            <div class="row between"><div class="col g0"><span class="h2">Daily scramble</span><span class="s">3×3 · Today</span></div><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span></div>
+            <div class="row g12" style="align-items:flex-end">
+              <span class="timer m">12.<span class="ms">48</span></span>
+              <span class="s grow" style="padding-bottom:6px">Your ranked attempt of the day.</span>
+            </div>
+            <div class="col g6">
+              <div class="row between"><b class="ok">64 % of the field beaten</b><span class="s">so far</span></div>
+              <span class="bar ok" style="height:8px"><i style="width:64%"></i></span>
+            </div>
+            <div class="grid3">
+              <div class="well"><span class="xs">Rank</span><b class="h2 num">5 <span class="s">of 14</span></b></div>
+              <div class="well"><span class="xs">Solvers</span><b class="h2 num">14</b></div>
+              <div class="well"><span class="xs">Streak</span><b class="h2 num warn">4 days</b></div>
+            </div>
+            <div class="vbars" style="height:70px;margin-top:16px"><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:67%"></i><i style="height:67%"></i><i class="me" style="height:100%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i></div>
+            <div class="grid2"><button class="btn"><i data-lucide="undo-2"></i>Cancel this time</button><button class="btn">Today's ranking</button></div>
+            <button class="btn lg pri block">Close</button>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Depuis la tuile Daily du tableau Challenges : un outil où le mélange est affiché en grand avec son cube, un seul bouton « Solve it », et le peloton en colonnes. Toucher un jour de la frise ouvre ce jour-là : son mélange, son peloton, son résultat, et « Back to today ».</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Outil · aujourd'hui</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Daily scramble<small>Sun 11 October · new at midnight UTC</small></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="col g12 px16 grow" style="padding-bottom:14px">
+            <div class="seg block"><span class="on">3×3</span><span>3×3 One-Handed</span></div>
+            <div class="tile hero g12" style="align-items:center;text-align:center">
+              <i class="iso" style="width:120px;height:120px" data-iso="obgwyrbyw|ryogrbwgo|bwrygoyrg"></i>
+              <span class="alg" style="font-size:20px">B2 R' B2 D2 B2 F2 L2 R D2 L U2 B' L D' B F D U L D' L</span>
+              <button class="btn pri lg block" style="height:60px;font-size:18px"><i data-lucide="play"></i>Solve it</button>
+              <span class="xs">Your one ranked attempt of the day, on the timer</span>
+            </div>
+            <div class="tile g8 grow" style="padding:14px 16px">
+              <div class="row between"><span class="h3">Today's field <span class="s">14</span></span><div class="seg"><span class="on">All</span><span>Verified</span></div></div>
+              <div class="vbars grow" style="margin-top:6px"><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:67%"></i><i style="height:67%"></i><i style="height:100%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i><i style="height:33%"></i></div>
+              <div class="row between xs num"><span>9.5 s</span><span>12 s</span><span>14 s+</span></div>
+            </div>
+            <div class="row g6" style="justify-content:space-between">
+              <span class="pill">Time –</span><span class="pill">Beats –</span><span class="pill">Rank –</span><span class="pill">14 solvers</span>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · un jour passé</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Fri 9 October<small>3×3 · 15 solvers</small></span>
+            <button class="btn sm soft">Back to today</button>
+          </div>
+          <div class="col g12 px16 grow" style="padding-bottom:14px">
+            <div class="tile hero g10">
+              <div class="row between" style="align-items:flex-end">
+                <div class="col g4"><span class="pill ok"><i data-lucide="badge-check" style="width:12px;height:12px"></i>Verified</span><span class="timer m">10.<span class="ms">92</span></span></div>
+                <div class="col g0" style="text-align:right"><span class="big">2<span class="faint" style="font-size:18px"> of 15</span></span><span class="xs">Rank · beats 93 %</span></div>
+              </div>
+              <span class="alg sm">U2 F' L2 U' R2 D B2 L2 U' F2 R' D' B' L F' U2 R2 F' U'</span>
+              <div class="vbars" style="height:62px;margin-top:14px"><i style="height:25%"></i><i class="me" style="height:25%"></i><i style="height:50%"></i><i style="height:75%"></i><i style="height:100%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:25%"></i><i style="height:25%"></i><i style="height:25%"></i></div>
+              <span class="xs">Field of 9 October · 15 solvers</span>
+            </div>
+            <div class="grid4">
+              <div class="col g0"><span class="xs">Best</span><b class="num ok">10.92</b></div>
+              <div class="col g0"><span class="xs">Mean</span><b class="num">12.80</b></div>
+              <div class="col g0"><span class="xs">Mean rank</span><b class="num">5.9</b></div>
+              <div class="col g0"><span class="xs">Streak</span><b class="num warn">4 days</b></div>
+            </div>
+            <div class="tile g8 grow" style="padding:14px 16px 4px">
+              <b class="h3">Your days</b>
+              <div class="scroll g4">
+                <div class="li" style="padding:8px 10px"><b class="num" style="width:48px">12.48</b><div class="col"><b>Today</b><span class="xs">5 of 14</span></div><i data-lucide="badge-check" class="ok"></i></div>
+                <div class="li" style="padding:8px 10px"><b class="num" style="width:48px">13.05</b><div class="col"><b>Sat 10 Oct</b><span class="xs">7 of 17</span></div><i data-lucide="badge-check" class="ok"></i></div>
+                <div class="li on" style="padding:8px 10px"><b class="num ok" style="width:48px">10.92</b><div class="col"><b>Fri 9 Oct</b><span class="xs">2 of 15</span></div><i data-lucide="badge-check" class="ok"></i></div>
+                <div class="li" style="padding:8px 10px"><b class="num" style="width:48px">12.71</b><div class="col"><b>Thu 8 Oct</b><span class="xs">6 of 12 · not verified</span></div></div>
+                <div class="li" style="padding:8px 10px"><b class="bad" style="width:48px">DNF</b><div class="col"><b>Wed 7 Oct</b><span class="xs">12 of 12</span></div><i data-lucide="badge-check" class="ok"></i></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>

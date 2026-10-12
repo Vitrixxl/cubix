@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import type { LucideIcon, LucideProps } from 'lucide-react-native';
 import { styled } from 'nativewind';
 import * as React from 'react';
+import { Platform } from 'react-native';
 
 type IconProps = LucideProps & {
   as: LucideIcon;
@@ -15,9 +16,10 @@ function IconImpl({ as: IconComponent, ...props }: IconProps) {
 /**
  * NativeWind v5: the text colour of the classes becomes the icon's `color`. The size is the `size` prop, not a class.
  */
-const StyledIcon = styled(IconImpl, {
-  className: { target: false, nativeStyleMapping: { color: 'color', opacity: 'opacity' } },
-} as never) as unknown as React.ComponentType<IconProps & { className?: string }>;
+const StyledIcon = styled(IconImpl, Platform.OS === 'web'
+  // On the web the classes stay CSS: the icon's stroke is `currentColor`, the text colour they set.
+  ? { className: 'style' }
+  : { className: { target: false, nativeStyleMapping: { color: 'color', opacity: 'opacity' } } } as never) as unknown as React.ComponentType<IconProps & { className?: string }>;
 
 /**
  * A Lucide icon coloured with classes (`text-muted-foreground`), inheriting the text colour of the button or menu item

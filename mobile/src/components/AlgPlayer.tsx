@@ -23,13 +23,13 @@ import { said, tr } from "../../../src/client/i18n";
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
 export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string; puzzle?: PolyPuzzle } = {}) {
-  const { setup, autoplay, loop, speed, view, puzzle } = options;
+  const { setup, autoplay, loop, speed, view, puzzle, hints } = options;
   const player = useMemo(() => {
     const scene = puzzle ? polyAlgScene(puzzle, alg) : size ? algScene(alg, size, mask, setup) : null;
-    return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view }) : null;
+    return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view, hints }) : null;
     // The view and speed are read once: a new algorithm starts a new player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alg, size, mask, setup, autoplay, loop, puzzle]);
+  }, [alg, size, mask, setup, autoplay, loop, puzzle, hints]);
   useEffect(() => () => player?.dispose(), [player]);
   return player;
 }
@@ -104,17 +104,21 @@ export function Pulse({ pulse, unit, shapes, size }: { pulse: ReturnType<AlgPlay
   </G>;
 }
 
-/** Under the cube: show the face to hold in front (marked for a moment), and put the cube back as it started once it has been turned. */
-export function ViewButtons({ player }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned"> }) {
+/**
+ * Under the cube: show the face to hold in front (marked for a moment), and put the cube back as it started once it
+ * has been turned. `compact`: small buttons, to sit over the cube's corner (`className` places them).
+ */
+export function ViewButtons({ player, compact = false, className }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned">; compact?: boolean; className?: string }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned);
-  return <View className="flex-row justify-center gap-2">
-    <Button variant="secondary" size="lg" onPress={player.showFront} className="gap-2">
-      <Icon as={Focus} size={18} className="text-secondary-foreground" />
+  const size = compact ? "sm" : "lg", icon = compact ? 15 : 18;
+  return <View className={cn("flex-row justify-center gap-2", className)}>
+    <Button variant="secondary" size={size} onPress={player.showFront} className={cn("gap-2", compact && "h-10")}>
+      <Icon as={Focus} size={icon} className="text-secondary-foreground" />
       <Text>{tr("Show front")}</Text>
     </Button>
-    {turned && <Button variant="secondary" size="lg" onPress={player.resetView} className="gap-2">
-      <Icon as={Rotate3d} size={18} className="text-secondary-foreground" />
-      <Text>{tr("Reset view")}</Text>
+    {turned && <Button variant="secondary" size={size} onPress={player.resetView} className={cn("gap-2", compact && "h-10")} accessibilityLabel={tr("Reset view")}>
+      <Icon as={Rotate3d} size={icon} className="text-secondary-foreground" />
+      {!compact && <Text>{tr("Reset view")}</Text>}
     </Button>}
   </View>;
 }
@@ -143,16 +147,31 @@ function Words({ words, size, current, onMove }: { words: ReturnType<typeof read
   </View>;
 }
 
-/** The transport, every target 44 dp: restart, step back, play or pause, step forward, the speed; the scrubber under it. */
-export function PlayerControls({ player }: { player: AlgPlayer }) {
+/**
+ * The transport, every target 44 dp: restart, step back, play or pause, step forward, the speed; the scrubber under it.
+ * `inline` puts the scrubber and the moves played between the step forward and the speed, all on one bar (40 dp).
+ */
+export function PlayerControls({ player, inline = false, className }: { player: AlgPlayer; inline?: boolean; className?: string }) {
   const p = usePlayback(player), total = player.total;
   const button = (label: string, icon: typeof Play, onPress: () => void, disabled = false, primary = false) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
-      className={cn("size-11 items-center justify-center rounded-lg", primary ? "bg-primary active:bg-primary/85" : "active:bg-muted/50", disabled && "opacity-40")}>
+      className={cn(inline ? "size-10" : "size-11", "items-center justify-center rounded-lg", primary ? "bg-primary active:bg-primary/85" : "active:bg-muted/50", disabled && "opacity-40")}>
       <Icon as={icon} size={19} className={primary ? "text-primary-foreground" : "text-muted-foreground"} />
     </Pressable>;
   const ended = p.position >= total;
-  return <View className="gap-1">
+  const played = `${Math.floor(Math.round(p.position * 10) / 10)}/${total}`;
+  if (inline) return <View className={cn("flex-row items-center", className)}>
+    {button(tr("Restart"), ChevronFirst, player.restart, p.position === 0 && !p.playing)}
+    {button(tr("Previous move"), StepBack, player.stepBack, p.target === 0)}
+    {button(p.playing ? tr("Pause") : ended ? tr("Play again") : tr("Play"), p.playing ? Pause : ended ? RotateCcw : Play, player.toggle, false, true)}
+    {button(tr("Next move"), StepForward, player.stepForward, p.target >= total)}
+    <View className="min-w-12 flex-1 px-2"><Scrubber value={p.position} total={total} onSeek={(at, settle) => player.seek(at, settle)} /></View>
+    <Numeric className="text-xs text-muted-foreground">{played}</Numeric>
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Speed {0}", { 0: speedLabel(p.speed) })} onPress={player.cycleSpeed} className="h-10 min-w-10 items-center justify-center rounded-lg px-1.5 active:bg-muted/50">
+      <Numeric className="text-sm text-muted-foreground">{speedLabel(p.speed)}</Numeric>
+    </Pressable>
+  </View>;
+  return <View className={cn("gap-1", className)}>
     <View className="flex-row items-center justify-between">
       {button(tr("Restart"), ChevronFirst, player.restart, p.position === 0 && !p.playing)}
       {button(tr("Previous move"), StepBack, player.stepBack, p.target === 0)}
@@ -195,7 +214,7 @@ function Scrubber({ value, total, onSeek }: { value: number; total: number; onSe
 }
 
 /** An algorithm the player can show: its name, its ways to play it (the first one first), and the cube it is on. */
-export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string; puzzle?: PolyPuzzle }
+export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string; puzzle?: PolyPuzzle; hints?: boolean }
 
 /**
  * A list of algorithms in 3D, in a sheet: the one shown with the previous and next a tap away, its alternatives, the
@@ -219,7 +238,7 @@ export function AlgPlayerSheet({ items, index, onIndex, onClose, choice: initial
 
 function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: PlayItem; choice: number; onChoice: (choice: number) => void; count: number; index: number; onIndex: (index: number) => void }) {
   const alg = item.algs[choice] ?? item.algs[0]!;
-  const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup, puzzle: item.puzzle });
+  const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup, puzzle: item.puzzle, hints: item.hints });
   const step = (label: string, icon: typeof Play, target: number) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={target < 0 || target >= count} onPress={() => onIndex(target)}
       className={cn("size-11 items-center justify-center rounded-lg active:bg-muted/50", (target < 0 || target >= count) && "opacity-40")}>

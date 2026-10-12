@@ -4,10 +4,12 @@ import { useSyncExternalStore } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { mockLucide } from "../tests/lucide-mock";
 
-// The messages page on a mocked community client, its native drawing replaced by host nodes: what is checked is the
-// list (search, unread, last words), opening a conversation from it, reading it, and sending a message.
+// The Messages and Community tabs on a mocked community client, their native drawing replaced by host nodes: what is
+// checked is the list (search, filters, unread, last words), opening a conversation from it, reading it, sending a
+// message, and a friend's page opened from the Community tab.
 mock.module("react-native", () => ({
   View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", TextInput: "TextInput", Image: "Image", Modal: "Modal",
+  FlatList: ({ data, renderItem }: { data: unknown[]; renderItem: (info: { item: unknown; index: number }) => unknown }) => data.map((item, index) => ({ ...(renderItem({ item, index }) as object), key: String(index) })),
   AppState: { currentState: "active", addEventListener: () => ({ remove() {} }) }, Share: { share: async () => ({}) },
   StyleSheet: { create: (s: unknown) => s, absoluteFill: {} },
 }));
@@ -20,9 +22,10 @@ for (const [path, names] of Object.entries({
   "../src/components/ui/text": ["Text"], "../src/components/ui/button": ["Button"], "../src/components/ui/icon": ["Icon"],
   "../src/components/ui/skeleton": ["Skeleton"], "../src/components/ui/badge": ["Badge"],
   "../src/components/Sheet": ["Sheet", "SheetInput", "SheetScrollView"],
+  "../src/components/AppBar": ["AppBar", "PushedBar", "SectionTabs"],
   "../src/components/PuzzlePicker": ["ChoiceButton", "PuzzleIcon"],
   "../src/components/duel/parts": ["SolveTime"],
-  "../src/components/layout": ["BackButton", "Empty", "Figure", "HeadButton", "IconTile", "Label", "ListSkeleton", "MenuItem", "MoreMenu", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Surface"],
+  "../src/components/layout": ["BackButton", "Empty", "Figure", "HeadButton", "IconTile", "Label", "ListSkeleton", "MenuItem", "MoreMenu", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"],
 })) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
 mock.module("../src/components/tournaments/format", () => ({
   EventTile: "EventTile", MatchStatusBadge: "MatchStatusBadge", PlayerLine: "PlayerLine", StatusBadge: "StatusBadge", Strip: "Strip",
@@ -79,8 +82,10 @@ test("the list shows each conversation with its unread count and last words; a r
   store.set(routeAtom, { page: "community" });
   navigate.mockImplementation(url => store.set(routeAtom, { page: "community", view: url.replace("/community/", "") }));
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
-  expect(all("PageHead")[0]!.props.title).toBe("Messages");
-  expect(all("PageHead")[0]!.props.sub).toBe("1 friend · 0 groups");
+  // The Me section's head and tabs, then the inbox's search and filters.
+  expect(all("AppBar")).toHaveLength(1);
+  expect(all("SectionTabs")).toHaveLength(1);
+  expect(all("Segmented")[0]!.props.options.map((o: { label: string; count?: number }) => [o.label, o.count])).toEqual([["All", undefined], ["Unread", 1], ["Friends", undefined], ["Groups", undefined]]);
   // The rows: the unread one bold with its count, the other's last words as the account's.
   expect(pressable("lena_speed, 2 unread")).toBeDefined();
   expect(texts()).toContain("gg!");
@@ -90,11 +95,17 @@ test("the list shows each conversation with its unread count and last words; a r
   expect(pressable("lena_speed, 2 unread")).toBeUndefined();
   expect(pressable("alex_cubes")).toBeDefined();
   await act(() => all("SearchField")[0]!.props.onChangeText(""));
+  // Unread keeps the conversations with something new.
+  await act(() => all("Segmented")[0]!.props.onChange("unread"));
+  expect(pressable("alex_cubes")).toBeUndefined();
+  await act(() => all("Segmented")[0]!.props.onChange("all"));
 
   await act(() => pressable("lena_speed, 2 unread")!.props.onPress());
   expect(navigate).toHaveBeenCalledWith("/community/messages/4");
   expect(store.get(routeAtom)).toEqual({ page: "community", view: "messages/4" });
   expect(community.load).toHaveBeenCalledWith("messages:4");
+  // The conversation is a screen of its own: no tabs over it.
+  expect(all("SectionTabs")).toHaveLength(0);
   // On screen, the conversation is read.
   expect(community.read).toHaveBeenCalledWith(4);
   expect(community.open).toBe(4);
@@ -114,4 +125,19 @@ test("the list shows each conversation with its unread count and last words; a r
   // The way back returns to the list, a step back in the history.
   await act(() => pressable("Conversations")!.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "community" });
+});
+
+test("the Community tab lists the friends; a friend opens their page, with the score of your battles and the way to challenge them", async () => {
+  const store = createStore();
+  store.set(routeAtom, { page: "community", view: "people" });
+  await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
+  expect(all("SearchField")[0]!.props.placeholder).toBe("A friend, a group or a Qbix player");
+  expect(all("Segmented")[0]!.props.options.map((o: { id: string; count?: number }) => [o.id, o.count])).toEqual([["all", undefined], ["friends", 1], ["groups", 0], ["requests", 0]]);
+  expect(texts()).toContain("Your link · whoever opens it adds you");
+  await act(() => pressable("lena_speed")!.props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "community", view: "people/u/u2" });
+  expect(all("PushedBar")[0]!.props.title).toBe("Friend");
+  expect(texts()).toContain("Your battles");
+  expect(pressable("Challenge")).toBeDefined();
+  expect(pressable("Write")).toBeDefined();
 });

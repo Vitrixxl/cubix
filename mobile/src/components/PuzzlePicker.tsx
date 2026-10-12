@@ -1,15 +1,18 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { ChevronDown } from "lucide-react-native";
+import { atomWithStorage, createJSONStorage } from "jotai/utils";
+import { Box, Check, ChevronDown, Keyboard, Timer, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
-import { TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
+import { INSPECTIONS, TIME_ENTRIES, type Inspection, type TimeEntry } from "../../../src/client/lib/format";
+import { DEFAULT_FIGURES } from "../../../src/client/lib/practiceSummary";
 import { EVENTS, eventInfo, puzzleInfo, scrambleLabel, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
 import { crossTrainingType } from "../../../src/shared/crossTraining";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
+import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom } from "../state";
+import { storage } from "../platform/storage";
 import { useColors } from "../theme";
 import { pickEventAtom } from "../journey";
 import { Sheet } from "./Sheet";
@@ -52,17 +55,17 @@ export function SheetChoice<T extends string>({ label, value, options, onChange,
   </View>;
 }
 
-/** The fourteen WCA events as a grid of glyph cells, the current one lit. */
+/** The fourteen WCA events as a grid of glyph tiles, the current one lit in the accent. */
 export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onChange: (event: EventId) => void; disabled?: boolean }) {
   const colors = useColors();
-  return <View className="flex-row flex-wrap" style={{ marginHorizontal: -2 }} accessibilityRole="radiogroup" accessibilityLabel={tr("Puzzle")}>
+  return <View className="flex-row flex-wrap" style={{ marginHorizontal: -4 }} accessibilityRole="radiogroup" accessibilityLabel={tr("Puzzle")}>
     {EVENTS.map(e => {
       const on = e.id === value;
-      return <View key={e.id} style={{ width: "25%", padding: 2 }}>
+      return <View key={e.id} style={{ width: "25%", padding: 4 }}>
         <Pressable accessibilityRole="radio" accessibilityLabel={tr(e.label)} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
-          className={cn("h-20 items-center justify-center gap-1.5 rounded-lg px-1 active:bg-muted", on && "bg-primary/15", disabled && "opacity-50")}>
-          <PuzzleIcon puzzle={e.id} size={24} color={on ? colors.foreground : colors.mutedForeground} />
-          <Text numberOfLines={2} className={cn("text-center text-xs leading-tight", on ? "text-foreground" : "text-muted-foreground")}>{tr(e.label)}</Text>
+          className={cn("h-16 items-center justify-center gap-1 rounded-[14px] px-1", on ? "border-[1.5px] border-primary bg-primary/20" : "bg-muted active:bg-muted/70", disabled && "opacity-50")}>
+          <PuzzleIcon puzzle={e.id} size={22} color={on ? colors.primary : colors.mutedForeground} />
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-center text-xs font-bold", on ? "text-primary" : "text-muted-foreground")}>{tr(e.label)}</Text>
         </Pressable>
       </View>;
     })}
@@ -99,9 +102,20 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
     detail={scramble ? [scrambleType !== "normal" && tr(scrambleLabel(scrambleType)), entry !== "timer" && said(TIME_ENTRIES.find(e => e.id === entry)?.label)].filter(Boolean).join(" · ") || undefined : undefined} />;
 }
 
+const json = createJSONStorage<any>(() => storage);
+/** The WCA inspection before a timer solve (the web's `cubix.timer.inspection`). */
+export const inspectionAtom = atomWithStorage<Inspection>("cubix.timer.inspection", "off", json, { getOnInit: true });
+/** Whether the timer shows the scrambled puzzle beside its scramble. */
+export const scrambleCubeShownAtom = atomWithStorage("cubix.timer.scrambleCube", true, json, { getOnInit: true });
+/** The figures of the timer's session card, chosen by the player (see `sessionFigures`). */
+export const timerFiguresAtom = atomWithStorage<string[]>("cubix.practice.figures", DEFAULT_FIGURES, json, { getOnInit: true });
+/** "Spoken and on screen" in a segment of four. */
+const INSPECTION_SHORT: Partial<Record<Inspection, string>> = { both: "Both" };
+
 /**
  * The sheet of `SessionButton`, rendered once by the shell: picking a puzzle restarts the timer's session, and the
- * sheet must stay open meanwhile to choose the scramble type.
+ * sheet stays open meanwhile to choose the rest. On the timer: the puzzle, the scramble type, the time entry, the WCA
+ * inspection and the scrambled cube.
  */
 export function SessionSheet() {
   const [mode, setMode] = useAtom(sessionSheetAtom);
@@ -110,19 +124,83 @@ export function SessionSheet() {
   const locked = useAtomValue(cubeSwitchLockedAtom);
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
-  const puzzle = useAtomValue(puzzleAtom);
+  const [inspection, setInspection] = useAtom(inspectionAtom);
+  const [cubeShown, setCubeShown] = useAtom(scrambleCubeShownAtom);
+  const puzzle = useAtomValue(puzzleAtom), blind = useAtomValue(solveModeAtom) === "blindfolded";
   const close = () => setMode(null);
-  return <Sheet open={!!mode} onClose={close} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} scroll={scramble}>
+  return <Sheet open={!!mode} onClose={close} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} scroll={scramble} contentClassName="gap-3">
     <View className="gap-2">
-      {scramble && <Label>{tr("Puzzle")}</Label>}
+      {scramble && <Caption>{tr("Puzzle")}</Caption>}
       <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />
     </View>
     {scramble && <>
-      <SheetChoice label={tr("Scramble")} columns={2} value={scrambleType} disabled={locked}
-        options={timerScrambles(puzzleInfo(puzzle).scrambles).map(id => ({ id, label: scrambleLabel(id) }))} onChange={setScrambleType} />
-      <SheetChoice<TimeEntry> label={tr("Entry")} value={entry} disabled={locked} options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label }))} onChange={setEntry} />
+      <Caption>{tr("Scramble")}</Caption>
+      <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Scramble")}>
+        {timerScrambles(puzzleInfo(puzzle).scrambles).map(id => <Pill key={id} label={tr(scrambleLabel(id))} icon={id === scrambleType ? Check : undefined} primary={id === scrambleType}
+          disabled={locked} onPress={() => setScrambleType(id)} role="radio" />)}
+      </View>
+      <Caption>{tr("Entry")}</Caption>
+      <PillSeg<TimeEntry> block label={tr("Entry")} value={entry} onChange={setEntry} disabled={locked}
+        options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label, icon: e.id === "timer" ? Timer : e.id === "typing" ? Keyboard : undefined }))} />
+      {/* Blindfolded solves have no inspection (it is part of the time), typed ones neither. */}
+      {!blind && entry !== "typing" && <>
+        <Caption>{tr("WCA inspection")}</Caption>
+        <PillSeg<Inspection> block label={tr("WCA inspection")} value={inspection} onChange={setInspection}
+          options={INSPECTIONS.map(i => ({ id: i.id, label: INSPECTION_SHORT[i.id] ?? i.label }))} />
+      </>}
+      <Pressable accessibilityRole="switch" accessibilityState={{ checked: cubeShown }} onPress={() => setCubeShown(!cubeShown)} className="min-h-12 flex-row items-center gap-3">
+        <Icon as={Box} size={20} className="text-foreground" />
+        <Text className="flex-1 text-base font-bold">{tr("Show the scrambled cube")}</Text>
+        <Switch on={cubeShown} />
+      </Pressable>
     </>}
   </Sheet>;
+}
+
+/** A small uppercase caption over a group of controls. */
+export function Caption({ children }: { children: ReactNode }) {
+  return <Text className="pt-1 text-xs font-bold tracking-[0.09em] text-muted-foreground uppercase">{children}</Text>;
+}
+
+/** An on/off switch drawn in the accent (its row is the touch target). */
+export function Switch({ on }: { on: boolean }) {
+  return <View className={cn("h-6 w-10 justify-center rounded-full px-[3px]", on ? "bg-primary" : "bg-accent")}>
+    <View className={cn("size-[18px] rounded-full", on ? "self-end bg-primary-foreground" : "bg-muted-foreground")} />
+  </View>;
+}
+
+/**
+ * A filled pill: a setting with its value in the accent (`label` + `value`), a filter, a choice. `on` raises it,
+ * `primary` fills it with the accent.
+ */
+export function Pill({ label, value, icon, trailing, on, primary, disabled, onPress, role = "button", accessibilityLabel, className }: {
+  label?: ReactNode; value?: ReactNode; icon?: LucideIcon; trailing?: LucideIcon; on?: boolean; primary?: boolean; disabled?: boolean; onPress?: () => void;
+  role?: "button" | "radio" | "tab"; accessibilityLabel?: string; className?: string;
+}) {
+  const checked = role === "button" ? undefined : !!(on || primary);
+  return <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled, selected: checked, checked }} disabled={disabled || !onPress} onPress={onPress}
+    className={cn("h-10 shrink-0 flex-row items-center gap-1.5 rounded-full px-3.5", primary ? "bg-primary active:bg-primary/85" : on ? "bg-accent" : "bg-muted active:bg-muted/70", disabled && "opacity-50", className)}>
+    {icon && <Icon as={icon} size={15} className={primary ? "text-primary-foreground" : on ? "text-foreground" : "text-muted-foreground"} />}
+    {label != null && <Text numberOfLines={1} className={cn("text-[13px] font-semibold", primary ? "text-primary-foreground" : on ? "text-foreground" : "text-muted-foreground")}>{label}</Text>}
+    {value != null && <Text numberOfLines={1} className={cn("text-[13px] font-bold tabular-nums", primary ? "text-primary-foreground" : "text-primary")}>{value}</Text>}
+    {trailing && <Icon as={trailing} size={15} className={primary ? "text-primary-foreground" : "text-muted-foreground"} />}
+  </Pressable>;
+}
+
+/** A segmented pill control: the chosen part raised; `block` spreads it over the width. */
+export function PillSeg<T extends string>({ value, options, onChange, label, block, disabled, className }: {
+  value: T; options: { id: T; label: string; icon?: LucideIcon }[]; onChange: (id: T) => void; label: string; block?: boolean; disabled?: boolean; className?: string;
+}) {
+  return <View accessibilityRole="tablist" accessibilityLabel={said(label)} className={cn("h-10 flex-row gap-0.5 rounded-xl bg-muted p-[3px]", !block && "self-start", disabled && "opacity-50", className)}>
+    {options.map(o => {
+      const on = o.id === value;
+      return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on, disabled }} disabled={disabled} onPress={() => { if (!on) onChange(o.id); }}
+        className={cn("flex-row items-center justify-center gap-1.5 rounded-[9px] px-3", block && "flex-1", on && "bg-accent")}>
+        {o.icon && <Icon as={o.icon} size={15} className={on ? "text-foreground" : "text-muted-foreground"} />}
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-[13px] font-semibold", on ? "text-foreground" : "text-muted-foreground")}>{said(o.label)}</Text>
+      </Pressable>;
+    })}
+  </View>;
 }
 
 /** A filter's own event (the profile), picked from the same grid. */

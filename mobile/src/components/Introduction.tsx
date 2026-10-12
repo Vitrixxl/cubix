@@ -1,10 +1,10 @@
 /**
- * Native setup and tour. The setup walks through a welcome, the puzzles the player can solve (methods inline under
- * each chosen one) and the times of another timer; any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
+ * Native setup and tour. The setup walks through a welcome and the puzzles the player can solve (methods inline under
+ * each chosen one, the times of another timer in a sheet), then the tour; any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
  * dims everything but the step's tab and the view it points at inside the page (`useTourTarget`).
  */
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { ArrowLeft, ArrowRight, Ban, Check, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Ban, Check, GraduationCap, Plus, Shapes, Timer, Upload, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { fmtTime, parseTypedTime } from "../../../src/client/lib/format";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile, type Journey } from "../../../src/client/lib/journey";
+import { IMPORT_APPS } from "../../../src/client/lib/timerImport";
 import { METHODS } from "../../../src/shared/methods";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
@@ -25,9 +26,10 @@ import { introductionAtom, journeyAtom } from "../journey";
 import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom, type Page } from "../state";
 import { alpha, useColors } from "../theme";
 import { ImportTimes } from "./ImportTimes";
-import { IconTile, Label } from "./layout";
+import { Label } from "./layout";
 import { Logo } from "./Logo";
 import { PuzzleIcon } from "./PuzzlePicker";
+import { Sheet } from "./Sheet";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
 import { tr } from "../../../src/client/i18n";
 
@@ -48,48 +50,60 @@ function StepTransition({ children, identity, direction = 1 }: { children: React
 /** A puzzle tile: its WCA glyph and name, ticked when chosen. */
 function Tile({ label, checked, glyph, onPress }: { label: string; checked: boolean; glyph: ReactNode; onPress: () => void }) {
   return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label} onPress={onPress}
-    className={cn("h-18 w-[23.5%] items-center justify-center gap-1.5 rounded-lg border px-1 active:bg-muted/50", checked ? "border-primary/50 bg-primary/10" : "border-border bg-card")}>
+    className={cn("h-[60px] w-[23.8%] items-center justify-center gap-1 rounded-2xl px-1", checked ? "bg-accent" : "bg-card active:bg-muted")}>
     {glyph}
-    <Text numberOfLines={1} className="text-xs font-medium tracking-tight">{label}</Text>
-    {checked ? <Icon as={Check} size={14} strokeWidth={3} className="absolute top-1.5 right-1.5 text-primary" /> : null}
+    <Text numberOfLines={1} className={cn("text-xs font-bold", checked ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
+    {checked ? <Icon as={Check} size={13} strokeWidth={3} className="absolute top-1.5 right-1.5 text-primary" /> : null}
   </Pressable>;
 }
 
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
-/** Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked. */
-function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest }: {
+/**
+ * Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked; then the
+ * times of another timer, brought in a sheet.
+ */
+function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest, onImport }: {
   value: PuzzleId[]; methods: MethodMap; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onNone: () => void;
-  onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void;
+  onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void; onImport: () => void;
 }) {
   const colors = useColors();
-  return <View className="gap-4">
+  return <View className="gap-2.5">
     <View className="flex-row flex-wrap justify-between gap-y-1.5" accessibilityLabel={tr("Puzzles you can solve")}>
-      <Tile label={tr("None yet")} checked={!value.length} onPress={onNone} glyph={<Icon as={Ban} size={24} strokeWidth={1.5} className={!value.length ? "text-primary" : "text-muted-foreground"} />} />
+      <Tile label={tr("None yet")} checked={!value.length} onPress={onNone} glyph={<Icon as={Ban} size={22} strokeWidth={1.75} className={!value.length ? "text-primary" : "text-muted-foreground"} />} />
       {PUZZLES.map(p => {
         const on = value.includes(p.id);
-        return <Tile key={p.id} label={tr(p.label)} checked={on} onPress={() => onToggle(p.id)} glyph={<PuzzleIcon puzzle={p.id} size={24} color={on ? colors.primary : colors.mutedForeground} />} />;
+        return <Tile key={p.id} label={tr(p.label)} checked={on} onPress={() => onToggle(p.id)} glyph={<PuzzleIcon puzzle={p.id} size={22} color={on ? colors.primary : colors.mutedForeground} />} />;
       })}
+      {Array.from({ length: (4 - (PUZZLES.length + 1) % 4) % 4 }, (_, i) => <View key={i} className="w-[23.8%]" />)}
     </View>
-    <View className="gap-1" accessibilityLabel={tr("Methods")}>
+    <View className="gap-1 rounded-2xl bg-card px-3 py-2.5" accessibilityLabel={tr("Methods")}>
       <Label>{tr("Methods you know")}</Label>
-      {value.length ? value.map(id => <View key={id} className="gap-2 border-b border-border py-2.5 last:border-b-0">
+      {value.length ? value.map(id => <View key={id} className="gap-2 border-b border-border py-2 last:border-b-0">
         <View className="flex-row items-center gap-2">
-          <PuzzleIcon puzzle={id} size={18} color={colors.mutedForeground} />
-          <Text className="min-w-0 flex-1 text-sm font-medium">{tr(puzzleInfo(id).label)}</Text>
+          <PuzzleIcon puzzle={id} size={16} color={colors.mutedForeground} />
+          <Text className="min-w-0 flex-1 text-sm font-bold">{tr(puzzleInfo(id).label)}</Text>
           <PbInput puzzle={tr(puzzleInfo(id).label)} value={bests[id] ?? ""} onChange={text => onBest(id, text)} />
         </View>
         {METHODS[id].length ? <View className="flex-row flex-wrap gap-1.5" accessibilityLabel={tr("{0} methods", { 0: tr(puzzleInfo(id).label) })}>
           {METHODS[id].map(m => {
             const on = methods[id]?.includes(m.id) ?? false;
             return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${tr(puzzleInfo(id).label)} ${tr(m.name)}`} onPress={() => onMethod(id, m.id)}
-              className={cn("h-11 flex-row items-center gap-1.5 rounded-lg border px-3 active:bg-muted/50", on ? "border-primary/50 bg-primary/10" : "border-border")}>
+              className={cn("h-10 flex-row items-center gap-1.5 rounded-xl px-3", on ? "bg-primary/15" : "bg-muted active:bg-accent")}>
               <Icon as={on ? Check : Plus} size={14} strokeWidth={on ? 3 : 2} className={on ? "text-primary" : "text-muted-foreground"} />
-              <Text className={cn("text-sm", on ? "text-foreground" : "text-muted-foreground")}>{tr(m.name)}</Text>
+              <Text className={cn("text-[13px] font-bold", on ? "text-foreground" : "text-muted-foreground")}>{tr(m.name)}</Text>
             </Pressable>;
           })}
         </View> : null}
-      </View>) : <Text className="py-2.5 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
+      </View>) : <Text className="py-2 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
+    </View>
+    <View className="flex-row items-center gap-3 rounded-2xl bg-card p-3">
+      <View className="size-10 items-center justify-center rounded-full bg-primary/15"><Icon as={Upload} size={18} className="text-primary" /></View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-bold">{tr("Bring your times")}</Text>
+        <Text numberOfLines={2} className="text-xs text-muted-foreground">{tr("From {0}, {1}, {2} and {3} more timers", { 0: IMPORT_APPS[0], 1: tr(IMPORT_APPS[1]!), 2: IMPORT_APPS[4], 3: IMPORT_APPS.length - 3 })}</Text>
+      </View>
+      <Button size="sm" variant="secondary" className="h-10 rounded-xl" onPress={onImport}><Text className="text-[13px] font-bold">{tr("Choose files")}</Text></Button>
     </View>
   </View>;
 }
@@ -97,18 +111,16 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
 /** The best single on a puzzle, typed as 12.34 or 1:05.21; optional, and flagged while it does not read as a time. */
 function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; onChange: (text: string) => void }) {
   const invalid = !!value.trim() && parseTypedTime(value) === null;
-  return <View className="flex-row items-center gap-2">
-    <Text className="text-xs text-muted-foreground">{tr("PB")}</Text>
-    <Input value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={tr("PB · 12.34")} accessibilityLabel={tr("Your best {0} single", { 0: puzzle })}
-      aria-invalid={invalid} className={cn("h-11 w-28 text-right tabular-nums", invalid && "border-destructive")} />
-  </View>;
+  return <Input value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={tr("PB · 12.34")} accessibilityLabel={tr("Your best {0} single", { 0: puzzle })}
+    aria-invalid={invalid} className={cn("h-10 w-28 rounded-xl border-0 bg-muted text-right tabular-nums", invalid && "border border-destructive")} />;
 }
 
+/** The wizard's steps; the third one is the tour itself. */
 const STEPS = [
   { label: "Welcome", title: "Welcome to Qbix", sub: "A few seconds to set the app up for you" },
   { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
-  { label: "Times", title: "Bring your times", sub: "Your history from another timer, if you have one" },
 ] as const;
+const STEP_LABELS = [...STEPS.map(s => s.label), "Tour"];
 const LAST = STEPS.length - 1;
 const WELCOME = [
   { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
@@ -118,9 +130,26 @@ const WELCOME = [
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
 const withoutKey = <T,>(record: Partial<Record<PuzzleId, T>>, key: PuzzleId) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== key)) as Partial<Record<PuzzleId, T>>;
 
+/** The numbered steps: the ones done ticked, the current one filled. */
+function Stepper({ step }: { step: number }) {
+  return <View className="flex-row items-center gap-1" accessibilityLabel={tr("Step {0} of {1}", { 0: step + 1, 1: STEP_LABELS.length })}>
+    {STEP_LABELS.map((label, i) => {
+      const done = i < step, here = i === step;
+      return <View key={label} className={cn("h-8 flex-row items-center gap-1.5 rounded-full pr-2.5 pl-1", here && "bg-primary/15")}>
+        <View className={cn("size-6 items-center justify-center rounded-full", here ? "bg-primary" : done ? "bg-primary/25" : "bg-muted")}>
+          {done ? <Icon as={Check} size={13} strokeWidth={3} className="text-primary" />
+            : <Text className={cn("text-xs font-extrabold", here ? "text-primary-foreground" : "text-muted-foreground")}>{i + 1}</Text>}
+        </View>
+        <Text className={cn("text-[13px] font-bold", here ? "text-foreground" : "text-muted-foreground")}>{tr(label)}</Text>
+      </View>;
+    })}
+  </View>;
+}
+
 /**
- * The introduction, as the web's on a phone: Welcome, the puzzles (methods and best single inline under each chosen
- * one), then the times of another timer. Opened again on a saved profile, it starts on the puzzles and can be cancelled.
+ * The setup as a wizard of numbered steps (direction A): Welcome, then the puzzles (methods and best single inline
+ * under each chosen one, the times of another timer in a sheet), then the tour, started or skipped at the bottom.
+ * Opened again on a saved profile, it starts on the puzzles and can be cancelled.
  */
 function Editor() {
   const insets = useSafeAreaInsets();
@@ -128,10 +157,11 @@ function Editor() {
   const setIntro = useSetAtom(introductionAtom), setEvent = useSetAtom(eventAtom), setScramble = useSetAtom(scrambleTypeAtom), replace = useSetAtom(replaceRouteAtom);
   const current = useAtomValue(puzzleAtom);
   // Editing a saved setup skips the welcome.
-  const [step, setStep] = useState(existing ? 1 : 0), [direction, setDirection] = useState(1);
+  const first = existing ? 1 : 0;
+  const [step, setStep] = useState(first), [direction, setDirection] = useState(1);
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
   const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
-  const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [busy, setBusy] = useState(false), [error, setError] = useState(""), [importing, setImporting] = useState(false);
   const go = (next: number) => { if (next < 0 || next > LAST) return; setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
   const cancel = () => { if (!busy) setIntro(null); };
   const save = async (changes: Journey, tour = false) => {
@@ -156,58 +186,66 @@ function Editor() {
       [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
     }, tour);
   };
-  const advance = () => step < LAST ? go(step + 1) : finish(!existing);
   const { title, sub } = STEPS[step]!;
+  const tourNext = step === LAST && !existing;
 
   return <View className="absolute inset-0 bg-background">
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <View accessibilityViewIsModal className="w-full max-w-[640px] flex-1 self-center">
-        <View className="h-14 flex-row items-center gap-2.5 px-4">
-          <Logo size={20} />
-          <View className="flex-1" />
-          {existing ? <Button variant="ghost" className="h-11" disabled={busy} onPress={cancel}><Text>{tr("Cancel")}</Text></Button> : null}
+        <View className="h-14 flex-row items-center justify-between gap-2.5 px-4">
+          <Logo size={22} />
+          {existing ? <Button variant="ghost" className="h-11" disabled={busy} onPress={cancel}><Text>{tr("Cancel")}</Text></Button> : <Stepper step={step} />}
         </View>
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pt-2 pb-4" contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-3 px-4 pt-1 pb-4" contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
           <StepTransition identity={step} direction={direction}>
-            <View className="gap-4">
-              <View className="gap-1">
-                <Text accessibilityRole="header" className="font-sans text-2xl font-semibold tracking-tight">{tr(title)}</Text>
+            <View className="gap-3">
+              <View className="gap-0.5">
+                <Text accessibilityRole="header" className="text-[28px] leading-tight font-extrabold tracking-[-0.04em]">{tr(title)}</Text>
                 <Text className="text-sm text-muted-foreground">{tr(sub)}</Text>
               </View>
               {step === 0 && <View className="gap-2">
-                {WELCOME.map((r, i) => <View key={r.title} className="flex-row items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
-                  <IconTile icon={r.icon} />
+                {WELCOME.map((r, i) => <View key={r.title} className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3">
+                  <View className="size-10 items-center justify-center rounded-xl bg-primary/15"><Icon as={r.icon} size={20} className="text-primary" /></View>
                   <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="text-sm font-medium"><Text className="text-sm text-muted-foreground">{i + 1}  </Text>{tr(r.title)}</Text>
+                    <Text numberOfLines={1} className="text-[15px] font-bold"><Text className="text-[15px] font-bold text-primary">{i + 1}  </Text>{tr(r.title)}</Text>
                     <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(r.text)}</Text>
                   </View>
                 </View>)}
               </View>}
-              {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests}
+              {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests} onImport={() => setImporting(true)}
                 onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}
                 onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
                 onToggle={p => { setKnown(v => toggle(v, p)); setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); }}
                 onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
-              {/* Imported puzzles are solved ones: they join the known puzzles. */}
-              {step === 2 && <ImportTimes onImported={puzzles => setKnown(v => [...v, ...puzzles.filter(p => !v.includes(p))])} />}
             </View>
           </StepTransition>
           {!!error && <Alert variant="destructive">{error}</Alert>}
         </ScrollView>
-        <View className="flex-row items-center justify-between gap-2 border-t border-border px-4 py-3">
-          <Button variant="ghost" className={cn("h-11", step === 0 && "opacity-0")} disabled={busy || step === 0} onPress={() => go(step - 1)}>
-            <Icon as={ArrowLeft} size={16} /><Text>{tr("Back")}</Text>
-          </Button>
+        <View className="gap-2 border-t border-border px-4 pt-3 pb-3">
+          {tourNext && <View className="flex-row items-center gap-3">
+            <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
+              {TOUR.map((_, i) => <View key={i} className={cn("h-1.5 rounded-full", i ? "w-1.5 bg-muted" : "w-4 bg-primary")} />)}
+            </View>
+            <Text numberOfLines={2} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("Then a tour in {0} steps, from the scramble to your profile", { 0: TOUR.length })}</Text>
+          </View>}
           <View className="flex-row items-center gap-2">
-            {step === LAST && !existing && <Button variant="outline" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip")}</Text></Button>}
-            <Button className="h-11" disabled={busy} onPress={advance}>
-              <Text>{busy ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? existing ? tr("Save") : tr("Start the tour") : tr("Continue")}</Text>
+            {step > first ? <Button variant="ghost" size="icon" className="size-11" accessibilityLabel={tr("Back")} disabled={busy} onPress={() => go(step - 1)}>
+              <Icon as={ArrowLeft} size={18} />
+            </Button> : null}
+            <View className="flex-1" />
+            {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip the tour")}</Text></Button>}
+            <Button className="h-11" disabled={busy} onPress={() => step < LAST ? go(step + 1) : finish(!existing)}>
+              <Text>{busy ? tr("Saving…") : step < LAST ? tr("Get started") : existing ? tr("Save") : tr("Start the tour")}</Text>
               {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
             </Button>
           </View>
         </View>
       </View>
     </KeyboardAvoidingView>
+    <Sheet open={importing} onClose={() => setImporting(false)} title={tr("Import times")} scroll>
+      {/* Imported puzzles are solved ones: they join the known puzzles. */}
+      <ImportTimes onImported={puzzles => setKnown(v => [...v, ...puzzles.filter(p => !v.includes(p))])} />
+    </Sheet>
   </View>;
 }
 
@@ -253,8 +291,8 @@ function useGlidingRect(target: Rect | null, reduced: boolean) {
   return shown;
 }
 
-/** The shared steps in the order of the phone's tabs: the timer, Train, Battle, Learn, Profile. */
-const PAGE_ORDER: Page[] = ["playground", "training", "duel", "learn", "algorithms", "profile"];
+/** The shared steps in the order of the bottom bar's sections: Timer, Learn (courses, training), Algs, Challenges, Me. */
+const PAGE_ORDER: Page[] = ["playground", "learn", "training", "algorithms", "duel", "profile"];
 const TOUR = [...TOUR_STEPS].sort((a, b) => PAGE_ORDER.indexOf(a.page) - PAGE_ORDER.indexOf(b.page));
 
 function Tour() {

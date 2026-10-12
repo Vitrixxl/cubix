@@ -81,3 +81,32 @@ test("scramble loading or an empty selection prevents arming", async () => {
   await act(() => { timer.press(); timer.release(); });
   expect(timer.phase).toBe("idle");
 });
+
+test("an inspection begins at the first tap and a late start saves its +2; blindfolded, the first stop marks the memo", async () => {
+  const saved = mock();
+  function Inspected() { timer = useTimer({ onStop: saved, inspection: true }); return null; }
+  await act(() => { renderer = create(<Inspected />); });
+  await act(() => { timer.press(); timer.release(); });
+  expect(timer.phase).toBe("inspecting");
+  await act(() => timer.press());
+  await act(async () => { await Bun.sleep(HOLD_DELAY_MS + 30); });
+  clock = 16_000;
+  await act(() => timer.release());
+  expect(timer.phase).toBe("running");
+  clock = 26_000;
+  await act(() => timer.press());
+  expect(saved).toHaveBeenCalledWith(10_000, "+2", undefined);
+  await act(() => renderer.unmount());
+
+  const blind = mock();
+  function Blind() { timer = useTimer({ onStop: blind, memo: true }); return null; }
+  await act(() => { renderer = create(<Blind />); });
+  clock = 0;
+  await start();
+  clock = 5000;
+  await act(() => timer.press());
+  expect(timer.memo).toBe(4000);
+  clock = 9000;
+  await act(() => timer.press());
+  expect(blind).toHaveBeenCalledWith(8000, "none", 4000);
+});

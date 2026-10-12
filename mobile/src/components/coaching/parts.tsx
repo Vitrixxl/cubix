@@ -1,14 +1,13 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { Check, Star } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
-import { Image, Pressable, View, type ViewProps } from "react-native";
+import { Pressable, View, type ViewProps } from "react-native";
 import { localFormat, tn, tr } from "../../../../src/client/i18n";
 import { EVENTS, eventInfo, type EventId } from "../../../../src/shared/puzzles";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { API_ORIGIN } from "../../api";
 import { goBackAtom, previousRouteAtom, replaceRouteAtom, routeAtom } from "../../state";
 import { useColors } from "../../theme";
 import { PuzzleIcon } from "../PuzzlePicker";
@@ -72,14 +71,8 @@ export function relative(ms: number, now = Date.now()) {
 }
 export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
-/** An account's face: its picture, or the first two letters of its name on a disc of the accent. */
-export function Face({ name, src, size = 32 }: { name: string | undefined; src?: string | null; size?: number }) {
-  if (src) return <Image source={{ uri: src.startsWith("/") ? API_ORIGIN + src : src }} accessibilityIgnoresInvertColors
-    className="shrink-0 rounded-full bg-muted" style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return <View className="shrink-0 items-center justify-center rounded-full bg-primary/15" style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants">
-    <Text className="font-semibold text-primary" style={{ fontSize: Math.max(9, size / 2.8) }}>{name?.slice(0, 2).toUpperCase()}</Text>
-  </View>;
-}
+/** An account's face, the same as in the conversations. */
+export { Face } from "../chat/kit";
 
 /** Five stars, filled up to the rating (halves rounded), with the figure beside. */
 export function Stars({ rating, size = 14, figure = true }: { rating: number | null; size?: number; figure?: boolean }) {

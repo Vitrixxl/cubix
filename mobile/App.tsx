@@ -16,7 +16,6 @@ import { NotationSheet } from "./src/components/Notation";
 import { Fade } from "./src/components/layout";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { PageStack } from "./src/components/PageStack";
-import { SettingsSheet } from "./src/components/Settings";
 import { SessionSheet } from "./src/components/PuzzlePicker";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { StartupGate } from "./src/components/StartupGate";
@@ -28,6 +27,7 @@ import { introductionAtom, journeyAtom } from "./src/journey";
 import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
+import { XpGain } from "./src/components/XpGain";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { profileAchievementsAtom, profileDataAtom } from "./src/profile";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
@@ -40,7 +40,7 @@ import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import {
-  TAB_ROOT, casesAtom, goBackAtom, replaceRouteAtom, hasTokenAtom, keyboardVisibleAtom, openTabAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
+  TAB_ROOT, casesAtom, goBackAtom, replaceRouteAtom, hasTokenAtom, keyboardVisibleAtom, openTabAtom, guestModeAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
   tabOf, timerRunningAtom, userAtom, type Route, type Tab,
 } from "./src/state";
 
@@ -60,12 +60,16 @@ function afterFirstFrames(...tasks: (() => void)[]) {
 function renderPage(route: Route) {
   switch (route.page) {
     case "learn": return <LearnPage method={route.method} />;
-    case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
+    case "algorithms": return <AlgorithmsPage {...route} />;
     case "training": return <TrainingPage />;
     case "playground": return <PlaygroundPage />;
     case "duel": return <DuelPage />;
     case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
     case "assisted": return <AssistedPage />;
+    case "solve": { const { SolvePage } = require("./src/pages/SolvePage") as typeof import("./src/pages/SolvePage"); return <SolvePage id={route.id} step={route.step} comment={route.comment} />; }
+    case "analysis": { const { AnalysisPage } = require("./src/pages/AnalysisPage") as typeof import("./src/pages/AnalysisPage"); return <AnalysisPage />; }
+    case "daily": { const { DailyPage } = require("./src/pages/DailyPage") as typeof import("./src/pages/DailyPage"); return <DailyPage day={route.day} />; }
+    case "settings": { const { SettingsPage } = require("./src/pages/SettingsPage") as typeof import("./src/pages/SettingsPage"); return <SettingsPage />; }
     // The social pages load on first use: none of them is on the way to the timer.
     case "community": { const { CommunityPage } = require("./src/pages/CommunityPage") as typeof import("./src/pages/CommunityPage"); return <CommunityPage view={route.view} />; }
     case "tournaments": { const { TournamentsPage } = require("./src/pages/TournamentsPage") as typeof import("./src/pages/TournamentsPage"); return <TournamentsPage view={route.view} />; }
@@ -118,7 +122,9 @@ function Session() {
   // The community and the coaching follow the account signed in, and leave with it.
   const account = signedIn ? user : null;
   useEffect(() => attachSocial(account), [account?.id, account?.isGuest]);
-  if (!signedIn) return <AuthScreen key={user?.id ?? "none"} initialUsername={user && !user.isGuest ? user.username : ""} />;
+  // Without an account, the app opens once the player chose to go on without one (never over an ended session).
+  const guest = useAtomValue(guestModeAtom) && (!user || user.isGuest);
+  if (!signedIn && !guest) return <AuthScreen key={user?.id ?? "none"} initialUsername={user && !user.isGuest ? user.username : ""} />;
   return <Shell />;
 }
 
@@ -200,11 +206,11 @@ function Shell() {
     </KeyboardAvoidingView>
     {!keyboardVisible && active !== "assisted" && <Fade hidden={running}><Tabs active={active} onNavigate={openTab} /></Fade>}
     <FloatingCall />
-    <SettingsSheet />
     <SessionSheet />
     <GuidesSheet />
     <NotationSheet />
     <SyncIndicator hidden={running} />
+    <XpGain />
     <Toast />
     </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;
 }
@@ -220,9 +226,8 @@ function FloatingCall() {
 /** The tab bar, with a dot where something waits: unread coaching messages; unread messages, friend requests and group
  * invitations on the account, which holds the community (as on the web). */
 function Tabs({ active, onNavigate }: { active: Route["page"]; onNavigate: (tab: Tab) => void }) {
-  const coach = useSocial(() => coaching.me?.unread ?? 0);
-  const account = useSocial(() => (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0));
-  return <TabBar active={tabOf(active)} waiting={{ coaching: coach, profile: account }} onNavigate={onNavigate} />;
+  const me = useSocial(() => (coaching.me?.unread ?? 0) + (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0));
+  return <TabBar active={tabOf(active)} waiting={{ me }} onNavigate={onNavigate} />;
 }
 
 /** Whether the link the app was opened with was followed, so signing in again does not follow it twice. */

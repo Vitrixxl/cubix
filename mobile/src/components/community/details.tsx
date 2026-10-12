@@ -1,7 +1,7 @@
-import { Crown, LogOut, MessageSquare, Pencil, Plus, Shield, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react-native";
+import { Crown, LogOut, MessageCircle, MessageSquare, Pencil, Plus, Shield, Swords, Trash2, Trophy, UserMinus, UserPlus, UserRoundX, Users, X } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
-import { eventName, scoreOf, tournamentUrl, type Conversation, type Group, type Match } from "../../../../src/client/lib/community";
+import { Pressable, ScrollView, View } from "react-native";
+import { MATCH_STATUS, communityUrl, eventName, formatText, scoreOf, seatIn, tournamentUrl, type Conversation, type Group, type Match } from "../../../../src/client/lib/community";
 import { plural } from "../../../../src/client/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { community } from "../../lib/social";
-import { Empty, Figure, Label, MenuItem, MoreMenu, Numeric, SectionHead } from "../layout";
+import { Empty, Figure, Label, ListSkeleton, MenuItem, MoreMenu, Numeric, SectionHead } from "../layout";
+import { PushedBar } from "../AppBar";
 import { Sheet, SheetInput } from "../Sheet";
-import { Face, day, relative } from "../chat/kit";
+import { Face, day, relative, time } from "../chat/kit";
 import { EventTile, MatchStatusBadge, StatusBadge, Strip } from "../tournaments/format";
-import { MatchSheet } from "./cards";
-import { TournamentSheet } from "./launch";
-import { GroupMark, organiser } from "./marks";
-import { Field, FriendPicker, PersonRow, friendsOutside } from "./people";
-import { tr } from "../../../../src/client/i18n";
+import { MatchSheet, TournamentChatCard, waiting } from "./cards";
+import { BattleSheet, TournamentSheet } from "./launch";
+import { Caption, GroupMark, Pill, TextLink, organiser } from "./marks";
+import { Field, FriendPicker, PersonRow, battlesIn, directWith, friendsOutside, tally } from "./people";
+import { localFormat, said, tr } from "../../../../src/client/i18n";
 import { msg } from "../../../../src/client/i18n/msg";
 
 /**
@@ -203,4 +204,152 @@ function FriendDetails({ c }: { c: Conversation }) {
       <Quiet icon={UserMinus} label={tr("Remove from friends")} danger onPress={() => void community.removeFriend(other.id)} />
     </View> : null}
   </>;
+}
+
+const shortDate = localFormat({ day: "numeric", month: "short" });
+const when = (at: number) => (Date.now() - at < 86_400_000 ? time(at) : shortDate.format(at));
+const MARK = { good: "bg-success/15 text-success", accent: "bg-primary/15 text-primary", quiet: "bg-muted text-muted-foreground" } as const;
+/** Where a battle stands for the account, in a small filled word. */
+function Mark({ tone, children }: { tone: keyof typeof MARK; children: string }) {
+  return <View className={cn("h-[22px] items-center justify-center rounded-full px-2", MARK[tone].split(" ")[0])}>
+    <Text className={cn("text-[11px] font-bold", MARK[tone].split(" ")[1])}>{said(children)}</Text>
+  </View>;
+}
+
+/** Battles as lines: when, the event, how it is won (or who played), the score and where it stands; each opens its detail. */
+function BattleLines({ battles, group = false }: { battles: Match[]; group?: boolean }) {
+  const [shown, setShown] = useState<Match | null>(null);
+  return <View>
+    {battles.map((b, i) => {
+      const seat = seatIn(b, me()), [a, z] = scoreOf(b), mine = seat === 1 ? [z, a] : [a, z], won = b.status === "done" && seat !== null && b.winner === me();
+      return <Pressable key={b.id} accessibilityRole="button" accessibilityLabel={`${eventName(b.event)} · ${formatText(b)}`} onPress={() => setShown(b)}
+        className={cn("min-h-11 flex-row items-center gap-2.5 active:bg-muted/40", i > 0 && "border-t border-border")}>
+        <Numeric className="w-10 text-[11px] text-muted-foreground">{when(b.finishedAt ?? b.createdAt)}</Numeric>
+        <Text numberOfLines={1} className="w-12 text-sm font-extrabold">{eventName(b.event)}</Text>
+        <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] text-muted-foreground">{group ? `${b.players[0]?.username ?? ""} ${tr("vs")} ${b.players[1]?.username ?? tr("anyone")}` : formatText(b)}</Text>
+        <Numeric className={cn("text-[15px] font-extrabold", b.status !== "done" && b.status !== "live" && "text-muted-foreground")}>{b.status === "done" || b.status === "live" ? `${mine[0]}–${mine[1]}` : "–"}</Numeric>
+        {b.status === "done" && seat !== null ? <Mark tone={won ? "good" : "accent"}>{won ? tr("Won") : tr("Lost")}</Mark>
+          : <Mark tone={b.status === "live" ? "accent" : b.status === "ready" ? "good" : "quiet"}>{b.status === "cancelled" ? tr("Called off") : MATCH_STATUS[b.status]}</Mark>}
+      </Pressable>;
+    })}
+    <MatchSheet match={shown} onClose={() => setShown(null)} />
+  </View>;
+}
+
+/** One thing to do, in a card of its own: a lead in large, a title and a line, and its step. */
+function Offer({ lead, title, sub, action, accent, run }: { lead: string; title: string; sub?: string; action: string; accent: boolean; run: () => void }) {
+  return <View className={cn("flex-row items-center gap-3 rounded-2xl px-4 py-3", accent ? "bg-accent" : "bg-muted")}>
+    <Numeric numberOfLines={1} className="max-w-24 text-xl font-extrabold tracking-tight">{lead}</Numeric>
+    <View className="min-w-0 flex-1">
+      <Text numberOfLines={1} className="text-sm font-bold">{title}</Text>
+      {sub ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{sub}</Text> : null}
+    </View>
+    {accent ? <Pill text={action} tone="primary" onPress={run} /> : <TextLink accent onPress={run}>{action}</TextLink>}
+  </View>;
+}
+
+/** The head of a friend's or a group's page: the face, the name in large, a line. */
+function Head({ face, name, sub }: { face: ReactNode; name: string; sub: string }) {
+  return <View className="flex-row items-center gap-3">
+    {face}
+    <View className="min-w-0 flex-1 gap-0.5">
+      <Text numberOfLines={1} accessibilityRole="header" className="text-[26px] font-extrabold tracking-[-0.035em]">{name}</Text>
+      <Numeric numberOfLines={1} className="text-[13px] text-muted-foreground">{sub}</Numeric>
+    </View>
+  </View>;
+}
+
+/**
+ * A friend's page, pushed from the Community tab: Challenge and Write in large, the score of your battles and every
+ * one of them, what waits for you between you and a rematch; ending the friendship in its menu.
+ */
+export function FriendPage({ id, back }: { id: string; back: () => void }) {
+  const f = community.me?.friends.find(x => x.id === id), [c, setC] = useState<Conversation | undefined>(() => directWith(id)), [battle, setBattle] = useState(false);
+  useEffect(() => { void community.load("conversations"); }, []);
+  useEffect(() => {
+    const found = directWith(id);
+    if (found) setC(found);
+    // A battle needs the conversation it shows in: made on first need, without leaving the page.
+    else if (community.conversations && f) void community.act<Conversation>("POST", "social/conversations", { userId: id }, ["conversations"]).then(setC);
+  }, [id, community.conversations, !!f]);
+  useEffect(() => { if (c) void community.load(`messages:${c.id}`); }, [c?.id]);
+  const messages = c ? community.messages.get(c.id) : undefined, battles = battlesIn(c), t = tally(battles), items = messages ? waiting(messages) : [],
+    last = battles.find(b => b.status === "done"), you = community.host.account();
+  return <View className="min-h-0 flex-1">
+    <PushedBar title={tr("Friend")} onBack={back}>
+      {f ? <MoreMenu label={tr("More about {0}", { 0: f.username })}>
+        <MenuItem icon={UserMinus} destructive onPress={() => void community.removeFriend(f.id)}>{tr("Remove from friends")}</MenuItem>
+      </MoreMenu> : null}
+    </PushedBar>
+    {!community.me ? <ListSkeleton className="px-4" /> : !f ? <Empty icon={UserRoundX} title={tr("No longer among your friends and groups.")} />
+      : <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-4 pb-4">
+        <Head face={<Face name={f.username} src={f.avatar} size={64} />} name={f.username}
+          sub={[tr("Friends since {0}", { 0: day(f.since) }), t.played ? plural(t.played, "battle") : ""].filter(Boolean).join(" · ")} />
+        <View className="flex-row gap-2">
+          <Pill icon={Swords} text={tr("Challenge")} tone="primary" disabled={!c} onPress={() => setBattle(true)} className="h-11 flex-1" />
+          <Pill icon={MessageCircle} text={tr("Write")} onPress={() => void community.message(f.id)} className="h-11 flex-1" />
+        </View>
+        <Caption className="pt-1">{tr("Your battles")}</Caption>
+        <View accessibilityLabel={tr("{0} to {1}", { 0: t.won, 1: t.lost })} className="flex-row items-center justify-between rounded-3xl bg-muted px-4 py-4">
+          <View className="w-24 items-center gap-1"><Face name={you.username} size={30} /><Text className="text-sm font-bold">{tr("You")}</Text><Text className="text-[11px] text-muted-foreground">{plural(t.won, "win")}</Text></View>
+          <Numeric className="text-[46px] leading-none font-extrabold tracking-[-0.05em]">{t.won}<Text className="text-[46px] font-extrabold text-muted-foreground"> – </Text>{t.lost}</Numeric>
+          <View className="w-24 items-center gap-1"><Face name={f.username} src={f.avatar} size={30} /><Text numberOfLines={1} className="text-sm font-bold">{f.username}</Text><Text className="text-[11px] text-muted-foreground">{plural(t.lost, "win")}</Text></View>
+        </View>
+        {!messages ? <ListSkeleton rows={2} /> : !battles.length ? <Text className="text-[13px] text-muted-foreground">{tr("No battle yet between you.")}</Text> : <BattleLines battles={battles} />}
+        <Caption className="pt-1">{tr("Waiting for you")}</Caption>
+        {items.map(w => <Offer key={w.key} lead={w.lead} title={w.text} action={w.label} accent={w.accent} run={w.run} />)}
+        {c && last ? <Offer lead={eventName(last.event)} title={tr("A rematch?")} sub={tr("Same format: {0}", { 0: formatText(last) })} action={tr("Launch")} accent={false}
+          run={() => void community.battle(c.id, { event: last.event, points: last.points, sets: last.sets, opponentId: null })} /> : null}
+        {!items.length && !last ? <Text className="text-[13px] text-muted-foreground">{tr("Nothing waits between you. Challenge {0} to a first battle.", { 0: f.username })}</Text> : null}
+      </ScrollView>}
+    {c ? <BattleSheet conversation={c} open={battle} onClose={() => setBattle(false)} /> : null}
+  </View>;
+}
+
+/**
+ * A group's page, pushed from the Community tab: its members in place of a score (invited by its organisers), a
+ * battle, a tournament or a message to launch, its battles and its tournaments; editing or leaving it in its menu.
+ */
+export function GroupPage({ id, back }: { id: number; back: () => void }) {
+  useEffect(() => { void community.load(`group:${id}`); void community.load("conversations"); }, [id]);
+  const g = community.groups.get(id), [editing, setEditing] = useState(false), [inviting, setInviting] = useState(false), [organising, setOrganising] = useState(false), [battle, setBattle] = useState(false),
+    c = g && community.conversations?.find(x => x.id === g.conversationId);
+  const run = organiser(g?.role), members = g?.members.filter(m => m.role !== "invited") ?? [], invited = g?.members.filter(m => m.role === "invited") ?? [];
+  return <View className="min-h-0 flex-1">
+    <PushedBar title={tr("Group")} onBack={back}>
+      {g ? <MoreMenu label={tr("More about {0}", { 0: g.name })}>
+        {run ? <MenuItem icon={Pencil} onPress={() => setEditing(true)}>{tr("Edit the group")}</MenuItem> : null}
+        {g.role === "owner" ? <MenuItem icon={Trash2} destructive onPress={() => void community.deleteGroup(g.id)}>{tr("Delete the group")}</MenuItem>
+          : <MenuItem icon={LogOut} destructive onPress={() => void community.remove(g.id, me())}>{tr("Leave the group")}</MenuItem>}
+      </MoreMenu> : null}
+    </PushedBar>
+    {!g ? <ListSkeleton className="px-4" /> : <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-4 pb-4">
+      <Head name={g.name} sub={[plural(members.length, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")}
+        face={<View className="flex-row" importantForAccessibility="no-hide-descendants">
+          {members.slice(0, 3).map((m, i) => <View key={m.id} className={cn("rounded-full border-[3px] border-background", i > 0 && "-ml-4")}><Face name={m.username} src={m.avatar} size={44} /></View>)}
+        </View>} />
+      <View className="flex-row gap-2">
+        {c?.open !== false ? <Pill icon={Swords} text={tr("Battle")} tone={run ? "muted" : "primary"} disabled={!c} onPress={() => setBattle(true)} className="h-11 flex-1" /> : null}
+        {run ? <Pill icon={Trophy} text={tr("New tournament")} tone="primary" onPress={() => setOrganising(true)} className="h-11 flex-[1.4]" /> : null}
+        <Pill icon={MessageCircle} text={tr("Write")} onPress={() => community.host.navigate(communityUrl("messages/" + g.conversationId))} className="h-11 flex-1" />
+      </View>
+      {g.description ? <Text className="text-sm leading-relaxed text-muted-foreground">{g.description}</Text> : null}
+      <View className="flex-row items-center justify-between pt-1">
+        <Caption>{`${tr("Members")} · ${members.length}`}</Caption>
+        {run ? <TextLink accent onPress={() => setInviting(true)}>{tr("Invite")}</TextLink> : null}
+      </View>
+      <View className="-mx-2 gap-0.5">{[...members, ...invited].map(m => <Member key={m.id} g={g} m={m} leave={() => {}} />)}</View>
+      <Caption className="pt-1">{tr("Battles of the group")}</Caption>
+      {g.battles.length ? <BattleLines battles={g.battles.map(b => community.card(b))} group /> : <Text className="text-[13px] text-muted-foreground">{tr("No battle yet: launch the first one.")}</Text>}
+      <Caption className="pt-1">{tr("Tournaments")}</Caption>
+      {!g.tournaments.length ? <Text className="text-[13px] text-muted-foreground">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</Text>
+        : g.tournaments.map(t => <TournamentChatCard key={t.id} tournament={t} />)}
+    </ScrollView>}
+    {g ? <>
+      <EditGroupSheet group={g} open={editing} onClose={() => setEditing(false)} />
+      <InviteSheet g={g} open={inviting} onClose={() => setInviting(false)} />
+      <TournamentSheet group={g} open={organising} onClose={() => setOrganising(false)} />
+      {c ? <BattleSheet conversation={c} group={g} open={battle} onClose={() => setBattle(false)} /> : null}
+    </> : null}
+  </View>;
 }

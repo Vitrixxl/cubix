@@ -24,10 +24,12 @@ for (const [path, names] of [
   ["../src/components/ui/text", ["Text"]], ["../src/components/ui/icon", ["Icon"]], ["../src/components/ui/button", ["Button"]],
   ["../src/components/ui/badge", ["Badge"]], ["../src/components/ui/alert", ["Alert"]], ["../src/components/ui/input", ["Input"]],
   ["../src/components/ui/skeleton", ["Skeleton"]], ["../src/components/Sheet", ["Sheet", "SheetInput", "SheetScrollView"]],
-  ["../src/components/PuzzlePicker", ["ChoiceButton", "PuzzleIcon"]], ["../src/components/coaching/CoachingMessages", ["CoachingMessages"]],
+  ["../src/components/PuzzlePicker", ["ChoiceButton", "PuzzleIcon"]], ["../src/components/AppBar", ["AppBar", "PushedBar", "SectionTabs"]],
+  ["../src/components/ui/dropdown-menu", ["DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuLabel", "DropdownMenuSeparator", "DropdownMenuTrigger"]], ["../src/components/coaching/CoachingMessages", ["CoachingMessages"]],
   ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"]],
 ] as const) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
 mock.module("../src/components/Confirm", () => ({ ask: async () => true }));
+mock.module("../src/components/tournaments/format", () => ({ day: () => "Thu 8 Oct", time: () => "18:00", relative: () => "now" }));
 const toastAtom = atom<{ title: string; description?: string } | null>(null);
 mock.module("../src/components/Toast", () => ({ toastAtom }));
 
@@ -83,17 +85,18 @@ const press = (node: { props: Record<string, any> }) => act(async () => { await 
 
 test("a player finds a coach, opens their page and books one of their free slots", async () => {
   const store = await mount("coaches");
-  expect(all("PageHead")[0]!.props.title).toBe("Coaching");
-  expect(all("SearchField")[0]!.props.placeholder).toBe("Name, language, method…");
+  // The Me section's head and tabs; the sub-page in a menu over the content, the filters as chips.
+  expect(all("AppBar")).toHaveLength(1);
+  expect(byTest("coaching-sections")).toBeDefined();
+  expect(all("SearchField")[0]!.props.placeholder).toBe("Name, method, speciality…");
   expect(all("ChoiceButton")[0]!.props.options.map((o: { label: string }) => o.label)).toEqual(["Every event", "3×3"]);
+  expect(texts()).toContain("1 coach");
   await press(byTest("coach-lena_speed"));
   expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "coach/c1" });
-  // The coach's page: the way to book, their figures and their reviews.
-  expect(texts()).toEqual(expect.arrayContaining(["Sub-8 CFOP coach", "alex_cubes", "Great"]));
-  expect(all("SectionHead").map(node => node.props.title)).toEqual(["As a coach", "As a cuber", "Activity", "Cases learned", "Times per puzzle", "Reviews"]);
-  await press(byTest("open-booking"));
-  expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "coach/c1/book" });
-  expect(all("PageHead")[0]!.props.title).toBe("Book a session");
+  // The coach's page, pushed: who they are and a review, their week of slots, the booking stuck under them.
+  expect(all("PushedBar")[0]!.props.title).toBe("Coach");
+  expect(all("SectionTabs")).toHaveLength(0);
+  expect(texts()).toEqual(expect.arrayContaining(["Sub-8 CFOP coach", "alex_cubes", "Great", "Pick your slot", "Times per puzzle", "Reviews"]));
   // Nothing to book before a time is picked and the policy accepted.
   expect(byTest("book").props.disabled).toBe(true);
   await press(byTest("slot-" + slot.start));
@@ -122,7 +125,7 @@ test("a coach's dashboard: the figures, the forecast, the next sessions and what
   await press(todo.props.action);
   expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "schedule" });
   // The section menu groups a coach's own sections apart from a player's.
-  expect(all("Label").map(node => node.props.children)).toEqual(["Your coaching", "Get coached"]);
+  expect(all("DropdownMenuLabel").map(node => node.props.children)).toEqual(["Your coaching", "Get coached"]);
   await press(byTest("coaching-students"));
   expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "students" });
 });

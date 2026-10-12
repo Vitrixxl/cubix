@@ -1,63 +1,64 @@
 import * as Clipboard from "expo-clipboard";
-import { Bell, Check, Copy, MessageSquare, Search, Share2, UserMinus, UserPlus, UserRoundX, Users, X } from "lucide-react-native";
+import { useSetAtom } from "jotai";
+import { Check, Copy, MessageSquare, Plus, Search, Share2, UserPlus, UserRoundX, Users } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { Pressable, Share, View } from "react-native";
+import { Pressable, ScrollView, Share, View } from "react-native";
 import { plural } from "../../../../src/client/lib/format";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import type { Group, Person } from "../../../../src/client/lib/community";
+import type { Conversation, Group, Match, Person } from "../../../../src/client/lib/community";
 import { community } from "../../lib/social";
-import { Empty, Label, ListSkeleton, MenuItem, MoreMenu, Numeric, SectionHead } from "../layout";
+import { routeAtom } from "../../state";
+import { Empty, ListSkeleton, Numeric, SearchField, Segmented } from "../layout";
 import { Sheet, SheetInput, SheetScrollView } from "../Sheet";
-import { Face, relative } from "../chat/kit";
-import { GroupMark } from "./marks";
+import { Face, day, relative } from "../chat/kit";
+import { waiting } from "./cards";
+import { Caption, Dashed, GroupMark, Pill, TextLink } from "./marks";
 import { tr } from "../../../../src/client/i18n";
 
 /**
- * The people of the community (the web's community/dialogs.tsx): a player in a list, finding players, the link that
- * adds the account, the friends, the requests waiting, a new group with the friends to invite, and the request a shared
- * link opens.
+ * The people of the community (the web's community/people.tsx and dialogs.tsx): the Community tab's list (the requests
+ * waiting, the friends with the score of your battles, the groups, the players found by name, the link that adds the
+ * account), and the sheets around it: adding a friend, the requests, a new group with the friends to invite, and the
+ * request a shared link opens.
  */
 
 const me = () => community.host.account();
 
+/** The address of a friend's page (`u`) or a group's (`g`) under the Community tab. */
+export const peopleView = (kind: "u" | "g", id: string | number) => `people/${kind}/${id}`;
+/** The direct conversation with a player, if there is one. */
+export const directWith = (id: string) => community.conversations?.find(c => c.kind === "direct" && c.with?.id === id);
+/** The battles of a conversation, from its cards, the latest first. */
+export const battlesIn = (c: Conversation | undefined) => (c ? community.messages.get(c.id) ?? [] : []).filter(m => m.match).map(m => community.card(m.match!)).reverse();
+/** The account's wins and losses among battles played. */
+export function tally(battles: Match[]) {
+  const done = battles.filter(b => b.status === "done"), won = done.filter(b => b.winner === me().id).length;
+  return { won, lost: done.length - won, played: done.length };
+}
+
 /**
- * A player in a list, the same everywhere (friends, requests, members): the face, the name, a line under it, and what
- * can be done on the right. `face` stands in for the avatar (a group's mark), `lead` comes before it (a tick).
+ * A player in a list, the same everywhere (members, players found, friends to pick): the face, the name, a line under
+ * it, and what can be done on the right. `face` stands in for the avatar (a group's mark), `lead` comes before it (a tick).
  */
 export function PersonRow({ p, name, face, detail, lead, children, onPress, selected, className }: {
   p?: Person; name?: ReactNode; face?: ReactNode; detail?: string; lead?: ReactNode; children?: ReactNode; onPress?: () => void; selected?: boolean; className?: string;
 }) {
   const body = <>
     {lead}
-    {face ?? <Face name={p?.username} src={p?.avatar} size={32} />}
+    {face ?? <Face name={p?.username} src={p?.avatar} size={36} />}
     <View className="min-w-0 flex-1">
-      {typeof (name ?? p?.username) === "string" || name == null ? <Text numberOfLines={1} className="text-sm font-medium">{name ?? p?.username}</Text> : name}
+      {typeof (name ?? p?.username) === "string" || name == null ? <Text numberOfLines={1} className="text-[15px] font-bold">{name ?? p?.username}</Text> : name}
       {detail ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{detail}</Text> : null}
     </View>
     {children ? <View className="shrink-0 flex-row items-center gap-1">{children}</View> : null}
   </>;
-  const row = cn("min-h-12 flex-row items-center gap-3 rounded-lg px-2 py-1.5", className);
+  const row = cn("min-h-12 flex-row items-center gap-3 rounded-xl px-2 py-1.5", className);
   return onPress
     ? <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={p?.username} onPress={onPress} className={cn(row, "active:bg-muted/60", selected && "bg-primary/10")}>{body}</Pressable>
     : <View className={row}>{body}</View>;
-}
-
-/** A small button of a row, its icon then its word. */
-function RowButton({ icon, label, onPress, variant = "outline", accessibilityLabel }: { icon?: typeof Check; label: string; onPress: () => void; variant?: "default" | "outline" | "ghost"; accessibilityLabel?: string }) {
-  return <Button size="sm" variant={variant} className="h-9 rounded-lg px-3" accessibilityLabel={accessibilityLabel} onPress={onPress}>
-    {icon ? <Icon as={icon} size={15} /> : null}
-    <Text>{label}</Text>
-  </Button>;
-}
-
-/** Turning down a request or an invitation: a quiet ×. */
-function Decline({ onPress }: { onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={tr("Decline")} onPress={onPress} className="size-10 items-center justify-center rounded-lg active:bg-muted">
-    <Icon as={X} size={17} className="text-muted-foreground" />
-  </Pressable>;
 }
 
 /** A search field inside a sheet, which the sheet lifts over the keyboard. */
@@ -70,13 +71,17 @@ export function SheetSearch({ value, onChangeText, placeholder, label, autoFocus
 }
 
 type Found = Person & { relation: "friend" | "incoming" | "outgoing" | "none" };
+const RELATION = { none: "", friend: "Already your friend", incoming: "Wants to be your friend", outgoing: "Request sent" } as const;
 
-/** What can be done with a player found by name: add, accept, or where things stand. */
+/** What can be done with a player found by name, in a word: add, accept, write; nothing once asked. */
 export function RelationAction({ p, onMessage }: { p: Found; onMessage?: () => void }) {
-  return p.relation === "none" ? <RowButton icon={UserPlus} label={tr("Add")} onPress={() => void community.addFriend(p.username)} />
-    : p.relation === "incoming" ? <RowButton icon={Check} label={tr("Accept")} variant="default" onPress={() => void community.acceptFriend(p.id)} />
-      : p.relation === "friend" ? <RowButton icon={MessageSquare} label={tr("Message")} onPress={async () => { if (await community.message(p.id)) onMessage?.(); }} />
-        : <Text className="px-2 text-xs text-muted-foreground">{tr("Request sent")}</Text>;
+  if (p.relation === "outgoing") return null;
+  return <TextLink accent={p.relation !== "friend"} label={`${p.relation === "none" ? tr("Add") : p.relation === "incoming" ? tr("Accept") : tr("Write")} ${p.username}`}
+    onPress={async () => {
+      if (p.relation === "none") void community.addFriend(p.username);
+      else if (p.relation === "incoming") void community.acceptFriend(p.id);
+      else if (await community.message(p.id)) onMessage?.();
+    }}>{p.relation === "none" ? tr("Add") : p.relation === "incoming" ? tr("Accept") : tr("Write")}</TextLink>;
 }
 
 /** Players whose name starts with what is typed, a moment after the last key; found again as relations change. */
@@ -91,90 +96,161 @@ function useFound(query: string) {
   return found;
 }
 
-/** The link that adds the account as a friend, to copy or share. */
+/** The link that adds the account as a friend, on a card: copied or shared in a tap. */
 function ShareLink() {
   const link = community.shareLink(), [copied, setCopied] = useState(false);
-  return <View className="gap-2" accessibilityLabel={tr("Your link")}>
-    <View>
-      <SectionHead title={tr("Your link")} className="min-h-0" />
-      <Text className="text-xs text-muted-foreground">{tr("Whoever opens it is asked to add you as a friend.")}</Text>
+  return <View accessibilityLabel={tr("Your link")} className="flex-row items-center gap-2 rounded-2xl bg-card py-2.5 pr-2.5 pl-3.5">
+    <View className="min-w-0 flex-1">
+      <Text className="text-[11px] text-muted-foreground">{tr("Your link · whoever opens it adds you")}</Text>
+      <Text numberOfLines={1} selectable className="text-sm font-bold">{link.replace(/^https?:\/\//, "")}</Text>
     </View>
-    <View className="min-h-11 flex-row items-center gap-1 rounded-lg border border-input bg-input/30 pl-3">
-      <Text numberOfLines={1} selectable className="min-w-0 flex-1 font-mono text-xs text-foreground">{link}</Text>
-      <Button size="sm" variant="ghost" className="h-10 rounded-lg px-2.5" onPress={() => void Clipboard.setStringAsync(link).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
-      })}>
-        <Icon as={copied ? Check : Copy} size={15} />
-        <Text>{copied ? tr("Copied") : tr("Copy")}</Text>
-      </Button>
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("Share")} onPress={() => void Share.share({ title: tr("Qbix"), message: tr("Add me on Qbix {0}", { 0: link }), url: link }).catch(() => {})}
-        className="size-10 items-center justify-center rounded-lg active:bg-muted">
-        <Icon as={Share2} size={16} />
-      </Pressable>
-    </View>
+    <Pill icon={copied ? Check : Copy} text={copied ? tr("Copied") : tr("Copy")} tone="soft" onPress={() => void Clipboard.setStringAsync(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    })} />
+    <Pill icon={Share2} label={tr("Share")} onPress={() => void Share.share({ title: tr("Qbix"), message: tr("Add me on Qbix {0}", { 0: link }), url: link }).catch(() => {})} />
   </View>;
 }
 
-/** Finding players by name, the account's link to share, and the friends: each a message away. */
-export function FriendsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [query, setQuery] = useState(""), found = useFound(query), friends = community.me?.friends ?? [];
-  useEffect(() => { if (!open) setQuery(""); }, [open]);
-  return <Sheet open={open} onClose={onClose} title={tr("Friends")} description={tr("Find players by their username, or share your link.")} contentClassName="gap-5">
-    <View className="gap-2" accessibilityLabel={tr("Find players")}>
-      <SheetSearch value={query} onChangeText={setQuery} placeholder={tr("Username")} label={tr("Search players")} />
-      {found && (!found.length
-        ? <Empty icon={UserRoundX} className="flex-none p-4">{tr("No player by that name.")}</Empty>
-        : <SheetScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="-mx-2 gap-0.5">
-          {found.map(p => <PersonRow key={p.id} p={p}><RelationAction p={p} onMessage={onClose} /></PersonRow>)}
-        </SheetScrollView>)}
+const FILTERS = ["all", "friends", "groups", "requests"] as const;
+type Filter = (typeof FILTERS)[number];
+
+/**
+ * The Community tab: the search (a friend, a group or any player) and a new group, the filters, then the requests
+ * waiting, the friends with the score of your battles and the groups, each opening its page; the link to share at the foot.
+ */
+export function Contacts({ onNewGroup }: { onNewGroup: () => void }) {
+  const m = community.me, [query, setQuery] = useState(""), [filter, setFilter] = useState<Filter>("all"), found = useFound(query), q = query.trim().toLowerCase(),
+    friends = (m?.friends ?? []).filter(f => f.username.toLowerCase().includes(q)),
+    groups = (m?.groups ?? []).filter(g => g.name.toLowerCase().includes(q)),
+    requests = m ? m.incoming.length + m.invitations.length + m.outgoing.length : 0,
+    // Players found on Qbix who are not friends already (those show in the list).
+    strangers = found?.filter(p => p.relation !== "friend");
+  useEffect(() => { void community.load("conversations"); }, []);
+  // ponytail: one request per friend for the score in the list; a count from the server when friends run to hundreds.
+  useEffect(() => {
+    for (const c of community.conversations ?? []) if (c.kind === "direct" && !community.messages.has(c.id)) void community.load(`messages:${c.id}`);
+  }, [community.conversations]);
+  return <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-2">
+    <View className="flex-row items-center gap-2">
+      <SearchField value={query} onChangeText={setQuery} placeholder={tr("A friend, a group or a Qbix player")} className="min-w-0 flex-1" />
+      <Pill icon={Plus} text={tr("Group")} label={tr("New group")} tone="soft" onPress={onNewGroup} className="h-11" />
     </View>
-    {!found ? <ShareLink /> : null}
-    {!found ? <View className="min-h-0 shrink gap-1" accessibilityLabel={tr("Your friends")}>
-      <SectionHead title={tr("Your friends")} meta={friends.length || undefined} />
-      {!friends.length
-        ? <Empty icon={Users} className="flex-none p-4">{tr("No friend yet. Find players by their username, or share your link.")}</Empty>
-        : <SheetScrollView contentContainerClassName="-mx-2 gap-0.5">
-          {friends.map(p => <PersonRow key={p.id} p={p} detail={tr("Friends since {0}", { 0: relative(p.since) })}>
-            <RowButton icon={MessageSquare} label={tr("Message")} onPress={async () => { if (await community.message(p.id)) onClose(); }} />
-            <MoreMenu label={tr("More about {0}", { 0: p.username })}>
-              <MenuItem icon={UserMinus} destructive onPress={() => void community.removeFriend(p.id)}>{tr("Remove from friends")}</MenuItem>
-            </MoreMenu>
-          </PersonRow>)}
-        </SheetScrollView>}
-    </View> : null}
-  </Sheet>;
+    <Segmented label={tr("Contacts")} value={filter} onChange={setFilter} options={[
+      { id: "all", label: tr("All") },
+      { id: "friends", label: tr("Friends"), count: m?.friends.length },
+      { id: "groups", label: tr("Groups"), count: m?.groups.length },
+      { id: "requests", label: tr("Requests"), count: requests, accent: true },
+    ]} />
+    {!m ? <ListSkeleton className="flex-1" /> : <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2 pb-2" keyboardShouldPersistTaps="handled">
+      {q && strangers ? <Part title={tr("On Qbix · “{0}”", { 0: query.trim() })}>
+        {!strangers.length ? <Text className="px-1 text-[13px] text-muted-foreground">{tr("No other player by that name.")}</Text>
+          : strangers.map(p => <PersonRow key={p.id} p={p} detail={RELATION[p.relation] ? tr(RELATION[p.relation]) : undefined}><RelationAction p={p} /></PersonRow>)}
+      </Part> : null}
+      {!q && (filter === "all" || filter === "requests") ? <Requests empty={filter === "requests"} /> : null}
+      {filter === "all" || filter === "friends" ? <Part title={tr("Friends")} count={friends.length}>
+        {!friends.length ? <Text className="px-1 text-[13px] text-muted-foreground">{q ? tr("No friend by that name.") : tr("No friend yet. Find players by their username, or share your link.")}</Text>
+          : friends.map(f => <FriendRow key={f.id} f={f} />)}
+      </Part> : null}
+      {filter === "all" || filter === "groups" ? <Part title={tr("Groups")} count={groups.length}>
+        {!groups.length ? <Text className="px-1 text-[13px] text-muted-foreground">{q ? tr("No group by that name.") : tr("No group yet: make one for your club or your friends.")}</Text>
+          : groups.map(g => <Line key={g.id} view={peopleView("g", g.id)} face={<GroupMark size={44} />} name={g.name}
+            sub={[plural(g.members, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")} />)}
+      </Part> : null}
+    </ScrollView>}
+    <ShareLink />
+  </View>;
 }
 
-/** The bell's sheet: who asked to be friends, the groups the account is invited to, the requests it sent. */
-export function RequestsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const m = community.me, empty = !m || (!m.incoming.length && !m.invitations.length && !m.outgoing.length);
-  return <Sheet open={open} onClose={onClose} title={tr("Requests")} scroll>
-    {empty ? <Empty icon={Bell} className="flex-none p-4">{tr("Nothing waiting. Requests and invitations show here.")}</Empty> : null}
-    {m?.incoming.length ? <RequestSection title={tr("Friend requests")}>
-      {m.incoming.map(p => <PersonRow key={p.id} p={p} detail={tr("Asked {0}", { 0: relative(p.at) })}>
-        <RowButton icon={Check} label={tr("Accept")} variant="default" onPress={() => void community.acceptFriend(p.id)} />
-        <Decline onPress={() => void community.removeFriend(p.id)} />
-      </PersonRow>)}
-    </RequestSection> : null}
-    {m?.invitations.length ? <RequestSection title={tr("Group invitations")}>
-      {m.invitations.map(g => <PersonRow key={g.id} face={<GroupMark size={32} />} name={g.name} detail={tr("From {0} · {1}", { 0: g.invitedBy, 1: plural(g.members, "member") })}>
-        <RowButton icon={Check} label={tr("Join")} variant="default" onPress={() => { onClose(); void community.join(g.id); }} />
-        <Decline onPress={() => void community.remove(g.id, me().id)} />
-      </PersonRow>)}
-    </RequestSection> : null}
-    {m?.outgoing.length ? <RequestSection title={tr("Sent")}>
-      {m.outgoing.map(p => <PersonRow key={p.id} p={p} detail={tr("You asked {0}", { 0: relative(p.at) })}>
-        <RowButton label={tr("Cancel")} variant="ghost" onPress={() => void community.removeFriend(p.id)} />
-      </PersonRow>)}
-    </RequestSection> : null}
-  </Sheet>;
-}
-function RequestSection({ title, children }: { title: string; children: ReactNode }) {
-  return <View className="-mx-2 gap-0.5" accessibilityLabel={title}>
-    <Label className="px-2 pt-1">{title}</Label>
+/** A titled part of the list. */
+function Part({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+  return <View accessibilityLabel={title} className="gap-1 pt-1">
+    <Caption className="px-1">{count ? `${title} · ${count}` : title}</Caption>
     {children}
   </View>;
+}
+
+/** A friend or a group in the list: the face, the name, a line under it, and on the right what stands between you; it opens their page. */
+function Line({ view, face, name, sub, end, on = false }: { view: string; face: ReactNode; name: string; sub: string; end?: ReactNode; on?: boolean }) {
+  const push = useSetAtom(routeAtom);
+  return <Pressable accessibilityRole="button" accessibilityLabel={name} onPress={() => push({ page: "community", view })}
+    className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-muted/60", on && "bg-accent")}>
+    {face}
+    <View className="min-w-0 flex-1">
+      <Text numberOfLines={1} className="text-base font-bold tracking-tight">{name}</Text>
+      <Text numberOfLines={1} className="text-xs text-muted-foreground">{sub}</Text>
+    </View>
+    {end}
+  </Pressable>;
+}
+
+function FriendRow({ f }: { f: Person & { since: number } }) {
+  const c = directWith(f.id), messages = c && community.messages.get(c.id), t = tally(battlesIn(c)), waits = !!messages && waiting(messages).length > 0;
+  return <Line view={peopleView("u", f.id)} on={waits} face={<Face name={f.username} src={f.avatar} size={44} />} name={f.username} sub={tr("Friends since {0}", { 0: day(f.since) })}
+    end={messages ? <View className="items-end">
+      {waits ? <Text className="text-[13px] font-extrabold text-primary">{tr("waiting")}</Text>
+        : <Numeric className={cn("text-[15px] font-extrabold", t.won > t.lost ? "text-success" : t.won < t.lost ? "text-destructive" : "text-foreground")}>{t.played ? `${t.won}–${t.lost}` : "–"}</Numeric>}
+      <Numeric className="text-[11px] font-semibold text-muted-foreground">{waits ? `${t.won}–${t.lost}` : t.played ? plural(t.played, "battle") : tr("none yet")}</Numeric>
+    </View> : null} />;
+}
+
+/** What waits for an answer, each in a card of its own: friend requests, group invitations, then the requests sent. */
+export function Requests({ empty, onDone }: { empty: boolean; onDone?: () => void }) {
+  const m = community.me;
+  if (!m) return null;
+  const count = m.incoming.length + m.invitations.length;
+  if (!count && !m.outgoing.length) return empty ? <Empty icon={Check} className="flex-none p-6">{tr("Nothing waiting. Requests and invitations show here.")}</Empty> : null;
+  return <Part title={tr("Requests")} count={count}>
+    <View className="gap-2">
+      {m.incoming.map(p => <View key={p.id} className="gap-2.5 rounded-2xl bg-card p-2.5">
+        <View className="flex-row items-center gap-2.5">
+          <Face name={p.username} src={p.avatar} size={30} />
+          <Text className="min-w-0 flex-1 text-sm"><Text className="text-sm font-bold">{p.username}</Text> {tr("wants to be your friend")} <Text className="text-sm text-muted-foreground">· {relative(p.at)}</Text></Text>
+        </View>
+        <View className="flex-row gap-2">
+          <Pill text={tr("Accept")} label={tr("Accept {0}", { 0: p.username })} tone="primary" onPress={() => void community.acceptFriend(p.id)} className="flex-1" />
+          <Pill text={tr("Decline")} label={tr("Decline {0}", { 0: p.username })} onPress={() => void community.removeFriend(p.id)} className="flex-1" />
+        </View>
+      </View>)}
+      {m.invitations.map(g => <Dashed key={g.id}>
+        <View className="flex-row items-start gap-2.5">
+          <GroupMark size={30} />
+          <Text className="min-w-0 flex-1 text-[13px] text-muted-foreground">{tr("{0} invites you to the group", { 0: g.invitedBy })} <Text className="text-[13px] font-bold text-foreground">{g.name}</Text> · {plural(g.members, "member")}</Text>
+        </View>
+        <View className="flex-row gap-4 pl-10">
+          <TextLink accent label={tr("Join {0}", { 0: g.name })} onPress={() => { onDone?.(); void community.join(g.id); }}>{tr("Join")}</TextLink>
+          <TextLink onPress={() => void community.remove(g.id, me().id)}>{tr("Decline")}</TextLink>
+        </View>
+      </Dashed>)}
+      {m.outgoing.map(p => <Dashed key={p.id} quiet className="flex-row items-center gap-2.5 py-1.5">
+        <Face name={p.username} src={p.avatar} size={30} />
+        <Text className="min-w-0 flex-1 text-[13px] text-muted-foreground">{tr("Sent to")} <Text className="text-[13px] font-bold text-foreground">{p.username}</Text> · {relative(p.at)}</Text>
+        <TextLink onPress={() => void community.removeFriend(p.id)}>{tr("Take back")}</TextLink>
+      </Dashed>)}
+    </View>
+  </Part>;
+}
+
+/** The requests in a sheet, from the Messages tab's row. */
+export function RequestsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return <Sheet open={open} onClose={onClose} title={tr("Requests")} hideTitle scroll>
+    <Requests empty onDone={onClose} />
+  </Sheet>;
+}
+
+/** Adding a friend: players found by their username, or the account's link to share. */
+export function AddFriendSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [query, setQuery] = useState(""), found = useFound(query);
+  useEffect(() => { if (!open) setQuery(""); }, [open]);
+  return <Sheet open={open} onClose={onClose} title={tr("Add a friend")} description={tr("Find players by their username, or share your link.")} contentClassName="gap-4">
+    <SheetSearch value={query} onChangeText={setQuery} placeholder={tr("Username")} label={tr("Search players")} />
+    {found && (!found.length
+      ? <Empty icon={UserRoundX} className="flex-none p-4">{tr("No player by that name.")}</Empty>
+      : <SheetScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="-mx-2 gap-0.5">
+        {found.map(p => <PersonRow key={p.id} p={p} detail={RELATION[p.relation] ? tr(RELATION[p.relation]) : undefined}><RelationAction p={p} onMessage={onClose} /></PersonRow>)}
+      </SheetScrollView>)}
+    {!found ? <ShareLink /> : null}
+  </Sheet>;
 }
 
 /** Friends to tick, found by name: who to invite to a group. */
@@ -231,7 +307,9 @@ export function LinkSheet({ username, onClose }: { username: string; onClose: ()
     {self ? null : player === undefined ? <ListSkeleton rows={1} />
       : !player ? <Empty icon={UserRoundX} className="flex-none p-4">{tr("No player is called {0}.", { 0: username })}</Empty>
         : <View className="-mx-2"><PersonRow p={player} detail={player.relation === "friend" ? tr("Already your friend") : player.relation === "outgoing" ? tr("Request sent") : player.relation === "incoming" ? tr("Wants to be your friend") : undefined}>
-          <RelationAction p={player} onMessage={onClose} />
+          {player.relation === "none" ? <Button size="sm" className="h-10 rounded-lg px-3" onPress={() => void community.addFriend(player.username)}><Icon as={UserPlus} size={15} /><Text>{tr("Add")}</Text></Button>
+            : player.relation === "friend" ? <Button size="sm" variant="outline" className="h-10 rounded-lg px-3" onPress={async () => { if (await community.message(player.id)) onClose(); }}><Icon as={MessageSquare} size={15} /><Text>{tr("Message")}</Text></Button>
+              : <RelationAction p={player} />}
         </PersonRow></View>}
   </Sheet>;
 }

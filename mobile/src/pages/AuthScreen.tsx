@@ -1,7 +1,8 @@
-import { Eye, EyeOff, HardDrive } from "lucide-react-native";
+import { useSetAtom } from "jotai";
+import { Eye, EyeOff, GraduationCap, Shapes, Timer } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Linking, Pressable, Text as RNText, TextInput, View } from "react-native";
-import { KeyboardAvoidingView, KeyboardAwareScrollView, useKeyboardState } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { ApiError } from "../../../src/client/api-client";
@@ -11,7 +12,6 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { legalPath } from "../../../src/client/lib/legal";
 import { API_ORIGIN, api, authToken, local } from "../api";
 import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
+import { guestModeAtom } from "../state";
 import { useColors } from "../theme";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -68,14 +69,21 @@ function Consent() {
   </Text>;
 }
 
+const PROMISES = [
+  { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
+  { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
+  { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
+];
+
 /**
- * The app needs an account: signing in or creating one comes first. Times already kept on this device (a guest's,
- * from before accounts were required) are added to the account either way. Google sign-in is announced, not yet
- * available.
+ * The welcome (direction A): the welcome words and their three promises on top, then signing in or creating an
+ * account as tabs, then going on without an account (this device only). Times already kept on this device are added
+ * to the account either way. Google sign-in is announced, not yet available.
  */
 export function AuthScreen({ initialMode = "login", initialUsername = "" }: { initialMode?: AuthMode; initialUsername?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const setGuest = useSetAtom(guestModeAtom);
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState("");
@@ -84,8 +92,6 @@ export function AuthScreen({ initialMode = "login", initialUsername = "" }: { in
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const passwordRef = useRef<TextInput>(null);
-  // With the keyboard up, the foot keeps only the submit button, right above it.
-  const keyboard = useKeyboardState(state => state.isVisible);
   const register = mode === "register";
   // Shown while no session is open: a known account means its session ended (an expired token); only its password is asked again.
   const [expired] = useState(() => !local.current().isGuest), [kept] = useState(localData);
@@ -105,70 +111,78 @@ export function AuthScreen({ initialMode = "login", initialUsername = "" }: { in
       if (authToken.get() && local.current().isGuest) await local.restore().catch(() => {});
       if (register) await api.register(name, password); else await api.login(name, password);
       setPassword("");
+      setGuest(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : tr("Can't reach Qbix. Check your connection and try again."));
     } finally { setBusy(false); }
   };
-  const switchMode = (next: string) => { setMode(next as AuthMode); setError(""); setTried(false); };
+  const switchMode = (next: AuthMode) => { if (busy) return; setMode(next); setError(""); setTried(false); };
   return <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-    <KeyboardAwareScrollView bottomOffset={24} style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 40, paddingHorizontal: 24, paddingBottom: 24 }}>
-      <View className="gap-8">
-        <View className="gap-6">
-          <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel={tr("Qbix")} className="text-2xl tracking-tight"><Text className="text-2xl font-extrabold">Q</Text><Text className="text-2xl font-medium">bix</Text></Text></View>
-          <View className="gap-2">
-            <Text accessibilityRole="header" className="text-2xl font-semibold tracking-tight">{register ? tr("Create your account") : tr("Welcome back")}</Text>
-            <Text className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</Text>
-          </View>
-        </View>
-        <Tabs value={mode} onValueChange={switchMode}>
-          <TabsList className="h-11 w-full">
-            <TabsTrigger value="login" className="h-9 flex-1" disabled={busy}><Text>{tr("Sign in")}</Text></TabsTrigger>
-            <TabsTrigger value="register" className="h-9 flex-1" disabled={busy}><Text>{tr("Create account")}</Text></TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
-        <View className="gap-5">
-          <Field label={tr("Username")} error={usernameError} hint={register ? tr("3–24 letters, digits or underscores.") : undefined}>
-            <Input accessibilityLabel={tr("Username")} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username"
-              maxLength={24} editable={!busy} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => passwordRef.current?.focus()}
-              placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
-              className={cn("h-12 rounded-lg", usernameError && "border-destructive")} />
-          </Field>
-          <Field label={tr("Password")} error={passwordError} hint={register ? tr("{0} characters or more.", { 0: PASSWORD_MIN }) : undefined}>
-            <View>
-              <Input ref={passwordRef} accessibilityLabel={tr("Password")} value={password} onChangeText={setPassword} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false}
-                autoComplete={register ? "new-password" : "current-password"} textContentType={register ? "newPassword" : "password"} maxLength={128} editable={!busy}
-                returnKeyType="go" onSubmitEditing={() => void submit()} placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
-                className={cn("h-12 rounded-lg pr-12", passwordError && "border-destructive")} />
-              <Pressable accessibilityRole="button" accessibilityLabel={visible ? tr("Hide password") : tr("Show password")} onPress={() => setVisible(v => !v)} hitSlop={6}
-                className="absolute top-0 right-0 bottom-0 w-12 items-center justify-center rounded-lg active:bg-muted/50">
-                <Icon as={visible ? EyeOff : Eye} size={18} className="text-muted-foreground" />
-              </Pressable>
-            </View>
-          </Field>
-          {error ? <Alert variant="destructive">{error}</Alert> : null}
-        </View>
+    <KeyboardAwareScrollView bottomOffset={24} style={{ flex: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 12) + 8, gap: 14 }}>
+      <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel={tr("Qbix")} className="text-2xl font-extrabold tracking-[-0.03em]">Qbix</Text></View>
+      <View className="gap-1">
+        <Text accessibilityRole="header" className="text-[28px] leading-tight font-extrabold tracking-[-0.04em]">{expired ? tr("Welcome back") : tr("Welcome to Qbix")}</Text>
+        <Text className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</Text>
       </View>
-    </KeyboardAwareScrollView>
-    <View className="gap-3 border-t border-border bg-background px-6 pt-4" style={{ paddingBottom: keyboard ? 12 : Math.max(insets.bottom, 12) + 8 }}>
-        <Button size="lg" className="h-12 rounded-lg" disabled={busy} onPress={() => void submit()}>
-          <Text className="text-base">{busy ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}</Text>
-        </Button>
-        {register && !keyboard && <Consent />}
-        {!keyboard && <><View className="flex-row items-center gap-3">
-          <Separator className="flex-1" />
-          <Text className="text-xs text-muted-foreground">{tr("or")}</Text>
-          <Separator className="flex-1" />
+      {!expired && <View className="gap-2">
+        {PROMISES.map((p, i) => <View key={p.title} className="flex-row items-center gap-3">
+          <View className="size-9 items-center justify-center rounded-xl bg-primary/15"><Icon as={p.icon} size={18} className="text-primary" /></View>
+          <View className="min-w-0 flex-1">
+            <Text numberOfLines={1} className="text-sm font-bold"><Text className="text-sm font-bold text-primary">{i + 1}</Text> {tr(p.title)}</Text>
+            <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(p.text)}</Text>
+          </View>
+        </View>)}
+      </View>}
+      <View accessibilityRole="tablist" className="flex-row border-b border-border">
+        {(["login", "register"] as const).map(id => {
+          const here = mode === id;
+          return <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: here, disabled: busy }} onPress={() => switchMode(id)} className="h-11 flex-1 items-center justify-center">
+            <Text className={cn("text-[15px] font-bold", here ? "text-foreground" : "text-muted-foreground")}>{id === "login" ? tr("Sign in") : tr("Create account")}</Text>
+            {here && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
+          </Pressable>;
+        })}
+      </View>
+      {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
+      <Field label={tr("Username")} error={usernameError} hint={register ? tr("3–24 letters, digits or underscores.") : undefined}>
+        <Input accessibilityLabel={tr("Username")} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username"
+          maxLength={24} editable={!busy} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => passwordRef.current?.focus()}
+          placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
+          className={cn("h-12 rounded-xl border-0 bg-muted", usernameError && "border border-destructive")} />
+      </Field>
+      <Field label={tr("Password")} error={passwordError} hint={register ? tr("{0} characters or more.", { 0: PASSWORD_MIN }) : undefined}>
+        <View>
+          <Input ref={passwordRef} accessibilityLabel={tr("Password")} value={password} onChangeText={setPassword} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false}
+            autoComplete={register ? "new-password" : "current-password"} textContentType={register ? "newPassword" : "password"} maxLength={128} editable={!busy}
+            returnKeyType="go" onSubmitEditing={() => void submit()} placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
+            className={cn("h-12 rounded-xl border-0 bg-muted pr-12", passwordError && "border border-destructive")} />
+          <Pressable accessibilityRole="button" accessibilityLabel={visible ? tr("Hide password") : tr("Show password")} onPress={() => setVisible(v => !v)} hitSlop={6}
+            className="absolute top-0 right-0 bottom-0 w-12 items-center justify-center rounded-xl active:bg-accent">
+            <Icon as={visible ? EyeOff : Eye} size={18} className="text-muted-foreground" />
+          </Pressable>
         </View>
-        <Button variant="outline" size="lg" className="h-12 rounded-lg" disabled accessibilityHint={tr("Coming soon")}>
-          <GoogleMark />
-          <Text className="text-base">{tr("Continue with Google")}</Text>
-          <Badge variant="secondary" className="ml-1"><Text>{tr("Soon")}</Text></Badge>
+      </Field>
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      <Button size="lg" className="h-13 rounded-2xl" disabled={busy} onPress={() => void submit()}>
+        <Text className="text-base font-extrabold">{busy ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}</Text>
+      </Button>
+      {register && <Consent />}
+      <View className="flex-row items-center gap-3">
+        <Separator className="flex-1" />
+        <Text className="text-xs text-muted-foreground">{tr("or")}</Text>
+        <Separator className="flex-1" />
+      </View>
+      <Button variant="secondary" size="lg" className="h-12 rounded-2xl opacity-60" disabled accessibilityHint={tr("Coming soon")}>
+        <GoogleMark />
+        <Text className="text-base">{tr("Continue with Google")}</Text>
+        <Badge variant="secondary" className="ml-1"><Text>{tr("Soon")}</Text></Badge>
+      </Button>
+      {!expired && <View className="items-center gap-0.5">
+        <Button variant="ghost" className="h-11 w-full" disabled={busy} onPress={() => setGuest(true)}>
+          <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>
         </Button>
-        {kept && <View className="flex-row items-center justify-center gap-1.5">
-          <Icon as={HardDrive} size={14} className="text-muted-foreground" />
-          <Text className="text-xs text-muted-foreground">{tr("Your times on this device will be kept.")}</Text>
-        </View>}</>}
-    </View>
+        <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>
+      </View>}
+    </KeyboardAwareScrollView>
   </KeyboardAvoidingView>;
 }

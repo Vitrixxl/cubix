@@ -21,8 +21,6 @@ export function slideOf(from: Route, to: Route, kind: NavigationKind, reduced = 
   if (reduced || JSON.stringify(from) === JSON.stringify(to)) return { kind: "none" };
   if (tabOf(from.page) !== tabOf(to.page)) return { kind: "none" };
   const change = Math.sign(routeDepth(to) - routeDepth(from));
-  // A case of the library slides itself over the list (AlgorithmsPage).
-  if (from.page === to.page && from.page === "algorithms") return { kind: "none" };
   if (!change) return from.page === to.page ? { kind: "none" } : { kind: "fade" };
   // A replace that goes deeper (opening a section in place) still reads as a step forward.
   return { kind: "slide", direction: kind === "pop" ? -1 : change as 1 | -1 };

@@ -12,8 +12,11 @@ for (const [path, names] of Object.entries({
   "../src/components/ui/text": ["Text"], "../src/components/ui/button": ["Button"], "../src/components/ui/icon": ["Icon"],
   "../src/components/ui/skeleton": ["Skeleton"], "../src/components/ui/badge": ["Badge"], "../src/components/ui/alert": ["Alert"],
   "../src/components/PuzzlePicker": ["PuzzleIcon"], "../src/components/UserAvatar": ["UserAvatar"],
-  "../src/components/duel/parts": ["LiveDot", "Ping", "SolveTime"],
-  "../src/components/layout": ["Alg", "BackButton", "Empty", "Fade", "Figure", "Label", "ListSkeleton", "MenuItem", "MoreMenu", "Numeric", "Page", "PageHead", "SectionHead", "Segmented", "Surface", "TouchAction", "TouchBar"],
+  "../src/components/duel/parts": ["Cap", "Fly", "LiveDot", "Ping", "RaceScore", "RoundStrip", "SolveActions", "SolveTime", "TimerCard"],
+  "../src/components/layout": ["Alg", "BackButton", "Bar", "Empty", "Fade", "Figure", "HeadButton", "Label", "MenuItem", "MoreMenu", "Numeric", "Surface", "TouchAction", "TouchBar"],
+  "../src/components/AppBar": ["AppBar", "PushedBar", "SectionTabs"], "../src/components/ScrambleCube": ["ScrambleCube"],
+  "../src/components/community/launch": ["TournamentSheet"],
+  "../src/components/ui/dropdown-menu": ["DropdownMenu", "DropdownMenuContent", "DropdownMenuTrigger"],
 })) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
 mock.module("../src/components/Practice", () => ({
   Digits: "Digits", LiveDigits: "LiveDigits", StopSurface: "StopSurface",
@@ -24,7 +27,7 @@ mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
 mock.module("../src/components/Confirm", () => ({ ask: async () => true }));
 mock.module("../src/components/Toast", () => ({ toastAtom: atom(null) }));
 mock.module("../src/theme", () => ({ useColors: () => ({ foreground: "#fff", mutedForeground: "#888" }), alpha: (c: string) => c }));
-mock.module("../src/state", () => ({ goBackAtom: atom(null, () => {}), previousRouteAtom: atom(null) }));
+mock.module("../src/state", () => ({ goBackAtom: atom(null, () => {}), previousRouteAtom: atom(null), signedInAtom: atom(true) }));
 
 // The fake community: one tournament open, registered for on demand; the account "u1".
 const listeners = new Set<() => void>();
@@ -37,7 +40,10 @@ const tournament = {
 };
 const community = {
   tournaments: undefined as unknown,
+  me: undefined,
   details: new Map<number, unknown>(),
+  groups: new Map<number, unknown>(),
+  summary: (t: { id: number }) => community.details.get(t.id) ?? t,
   competition: undefined,
   host: { account: () => ({ id: me.id, username: me.username }) },
   load: mock(async (key: string) => {
@@ -94,13 +100,13 @@ const button = (label: string) => all("Button").find(node => textOf(node) === la
 test("the list opens a tournament, where the player registers", async () => {
   await act(() => { renderer = create(createElement(Routed)); });
   expect(community.load).toHaveBeenCalledWith("tournaments");
-  expect(all("SectionHead").map(node => node.props.title)).toEqual(["Registration open"]);
+  expect(all("Cap").map(textOf)).toEqual(["Registration open · 1"]);
   const card = all("Pressable").find(node => node.props.accessibilityLabel === "Open Spring Open")!;
   expect(textOf(card)).toContain("First to 3 solves");
   await act(() => card.props.onPress());
   expect(openUrl).toHaveBeenLastCalledWith("/tournaments/7");
   expect(community.load).toHaveBeenCalledWith("tournament:7");
-  expect(all("PageHead")[0]!.props.title).toBe("Spring Open");
+  expect(all("PushedBar")[0]!.props.title).toBe("Spring Open");
   expect(all("Figure").find(node => node.props.label === "Players")!.props.value).toBe("3 / 8");
   expect(all("Empty")[0] && textOf(all("Empty")[0]!)).toStartWith("The players are drawn into the bracket in 2 days");
   await act(async () => { button("Register").props.onPress(); });

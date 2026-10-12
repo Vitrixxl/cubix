@@ -1,0 +1,847 @@
+<style>
+#algorithms .stk, #set .stk { display: flex; gap: 2px; height: 8px; border-radius: 8px; overflow: hidden; flex: none; }
+#algorithms .stk > i, #set .stk > i { display: block; height: 100%; }
+#algorithms .sti, #set .sti { width: 16px; height: 16px; }
+#algorithms .res, #set .res { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 16px; background: var(--card); min-width: 0; }
+#algorithms .gtile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; border-radius: 18px; background: var(--card); min-width: 0; }
+#algorithms .gtile b { font-size: 13px; font-weight: 700; }
+#algorithms .gtile small { font-size: 11.5px; color: var(--ok); font-weight: 700; font-variant-numeric: tabular-nums; }
+#algorithms .kb { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding: 8px 4px 6px; background: var(--card); flex: none; }
+#algorithms .kb > i { font-style: normal; height: 38px; border-radius: 7px; background: var(--acc); display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--fg); }
+#set .case { position: relative; }
+#set .case.dim > .iso, #set .case.dim > .ll { opacity: .5; }
+#set .case.prog small { color: var(--mfg); }
+#set .case.sel { background: color-mix(in srgb, var(--pri) 16%, var(--card)); box-shadow: inset 0 0 0 2px var(--pri); }
+#set .case > .check { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; }
+#set .pips { display: flex; gap: 3px; flex-wrap: wrap; }
+#set .pips i { width: 9px; height: 6px; border-radius: 3px; background: var(--acc); }
+#set .pips i.ok { background: var(--ok); }
+#set .pips i.p { background: color-mix(in srgb, var(--pri) 60%, transparent); }
+#set .fab { position: absolute; right: 16px; z-index: 3; box-shadow: var(--shadow); }
+#case .stage { position: relative; background: var(--bg); border-radius: 22px; box-shadow: inset 0 0 0 1px var(--border); display: flex; flex-direction: column; min-width: 0; }
+#case .stage.c { background: var(--card); box-shadow: none; }
+#case .front { position: absolute; top: 10px; right: 10px; z-index: 2; }
+#case .mv { font-size: 21px; font-weight: 700; word-spacing: 7px; color: var(--faint); letter-spacing: -.01em; text-align: center; line-height: 1.4; }
+#case .mv.l { font-size: 28px; word-spacing: 9px; }
+#case .mv b { color: var(--fg); font-weight: 700; }
+#case .mv em { font-style: normal; color: var(--pri-fg); background: var(--pri); border-radius: 8px; padding: 0 6px; }
+#case .tp { display: flex; align-items: center; gap: 2px; background: var(--card); border-radius: 16px; padding: 4px; flex: none; }
+#case .tp > .btn { color: var(--fg); }
+#case .tp .play { width: 46px; height: 40px; border-radius: 12px; background: var(--pri); color: var(--pri-fg); display: grid; place-items: center; flex: none; }
+#case .track { position: relative; height: 6px; border-radius: 6px; background: var(--acc); flex: 1; margin: 0 8px; min-width: 40px; }
+#case .track > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--pri); }
+#case .track > b { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: var(--fg); transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+#case .track > u { position: absolute; top: 50%; width: 2px; height: 10px; border-radius: 2px; background: var(--faint); transform: translate(-50%, -50%); }
+#case .ar { display: grid; grid-template-columns: 22px minmax(0, 1fr) 20px; gap: 2px 10px; padding: 10px 12px; border-radius: 16px; align-items: start; }
+#case .ar.on { background: var(--acc); }
+#case .ar > span:first-child { font-weight: 800; font-size: 13px; color: var(--mfg); text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; }
+#case .ar > span.ok:first-child { color: var(--ok); }
+#case .ar .alg { font-size: 16px; line-height: 1.35; word-spacing: 4px; }
+#case .ar .facts { grid-column: 2; display: flex; flex-wrap: wrap; gap: 2px 9px; font-size: 12.5px; font-weight: 600; color: var(--mfg); }
+#case .ar .facts b { color: var(--fg); }
+#case .facts { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 13px; color: var(--mfg); align-items: center; }
+#case .facts b { color: var(--fg); }
+#case .acard { flex: none; width: 236px; background: var(--card); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+#case .acard.on { background: var(--acc); box-shadow: inset 0 0 0 2px var(--pri); }
+#case .side { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+</style>
+
+<!-- =============================================================== 11 · Algorithms -->
+<section class="page" id="algorithms" data-short="Algorithms">
+  <div class="page-head">
+    <h2>11 · Algorithms <small>/algorithms</small></h2>
+    <p>Le catalogue des jeux d'algorithmes du puzzle choisi, groupés par étape, avec ce qui est appris dans chacun. Aujourd'hui, le téléphone ouvre directement sur les cases de F2L et cache les jeux derrière un sélecteur « Set » ; ici, le catalogue a son propre écran, lisible d'un coup d'œil, et chaque jeu s'ouvre sur sa page (12).</p>
+    <div class="feats"><span>Choix du puzzle</span><span>125 of 1,327 learned</span><span>Jeux groupés par étape : F2L, OLL, PLL, ZBLL, Last slot, OLLCP, COLL, ELL, TTLL, BLD</span><span>Compte appris par jeu (34 / 41)</span><span>État : appris, en cours, jamais travaillé</span><span>Groupes d'un jeu (Free Pairs, Disconnected Pairs…)</span><span>Search cases (oll 21, pll t…)</span><span>Résultats avec schéma, état et meilleur temps</span><span>Solving methods</span><span>Guide des algorithmes (aide)</span><span>Autres puzzles</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>La colonne de gauche du desktop devient l'écran entier : la recherche, le total, puis les jeux en liste par étape, chacun avec son compte. Les autres puzzles ferment la liste. La recherche s'ouvre en écran poussé, résultats dessinés.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Catalogue</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Algorithms</span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">DE</span>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:4px">
+            <div class="field"><i data-lucide="search"></i>Search cases: oll 21, pll t…</div>
+            <div class="card g10">
+              <div class="row between"><span class="col g2"><b class="h3">3×3</b><span class="s num"><b style="color:var(--fg)">125</b> of 1,327 learned</span></span><button class="btn sm soft"><i data-lucide="book-open"></i>Solving methods</button></div>
+              <div class="stk"><i style="width:9.4%;background:var(--ok)"></i><i style="width:1.2%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i><i style="flex:1;background:var(--acc)"></i></div>
+            </div>
+            <div class="scroll g0">
+              <span class="cap" style="padding:6px 4px 2px">F2L</span>
+              <div class="li" style="padding:9px 6px"><i class="st prog sti"></i><div class="col"><b class="t">F2L</b><span class="xs">Free Pairs, Connected Pairs… · 6 groups</span></div><b class="num t">34<span class="faint"> / 41</span></b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li" style="padding:9px 6px"><i class="st sti"></i><div class="col"><b class="t">F2L Advanced</b><span class="xs">Other slots, edge in slot…</span></div><b class="num t faint">0 / 60</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li" style="padding:9px 6px"><i class="st sti"></i><div class="col"><b class="t">F2L Expert</b><span class="xs">Keyhole, multislotting…</span></div><b class="num t faint">0 / 33</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <span class="cap" style="padding:10px 4px 2px">OLL</span>
+              <div class="li" style="padding:9px 6px"><i class="st ok sti"></i><div class="col"><b class="t">2-Look OLL</b><span class="xs">Edges, then corners</span></div><b class="num t ok">10 / 10</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li" style="padding:9px 6px"><i class="st prog sti"></i><div class="col"><b class="t">OLL</b><span class="xs">Dot, Cross, Fish… · 15 groups</span></div><b class="num t">54<span class="faint"> / 57</span></b><i data-lucide="chevron-right" class="faint"></i></div>
+              <span class="cap" style="padding:10px 4px 2px">PLL</span>
+              <div class="li" style="padding:9px 6px"><i class="st ok sti"></i><div class="col"><b class="t">2-Look PLL</b><span class="xs">Corners, then edges</span></div><b class="num t ok">6 / 6</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li" style="padding:9px 6px"><i class="st ok sti"></i><div class="col"><b class="t">PLL</b><span class="xs">Adjacent, diagonal, edges only</span></div><b class="num t ok">21 / 21</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <span class="cap" style="padding:10px 4px 2px">ZBLL</span>
+              <div class="li" style="padding:9px 6px"><i class="st sti"></i><div class="col"><b class="t">ZBLL T</b><span class="xs">T, U, L, Pi, H, S, AS · 7 sets</span></div><b class="num t faint">0 / 72</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <span class="cap" style="padding:10px 4px 2px">Last slot · OLLCP · COLL · ELL · TTLL · BLD</span>
+              <span class="cap" style="padding:10px 4px 2px">Other puzzles</span>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span class="on"><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">Recherche</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar" style="gap:6px;padding-left:8px">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <div class="field grow" style="color:var(--fg)"><i data-lucide="search" class="faint"></i><span class="grow">oll 2</span><i data-lucide="x" class="faint"></i></div>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:4px">
+            <div class="row g6"><span class="chip on">All puzzles' sets</span><span class="chip">3×3 only</span><span class="grow"></span><span class="s num">11 cases</span></div>
+            <div class="scroll">
+              <div class="res"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|xyy"></i><div class="col g2 grow"><b class="t">OLL 2</b><span class="xs">OLL · Dot</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">1.611</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><div class="col g2 grow"><b class="t">OLL 20</b><span class="xs">OLL · Dot</span></div><span class="col g2" style="align-items:flex-end"><i class="st prog"></i><b class="num s mfg">2.304</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyxyyyxyx|xxx|yxy|xxx|yxy"></i><div class="col g2 grow"><b class="t">OLL 21 <span class="mfg m">H</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">0.982</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyxyyyxyx|xxy|xxx|xxy|yxy"></i><div class="col g2 grow"><b class="t">OLL 22 <span class="mfg m">Pi</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">1.046</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="yyyyyyxyx|xxx|xxx|yxy|xxx"></i><div class="col g2 grow"><b class="t">OLL 23 <span class="mfg m">Headlights</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">1.218</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|yxx|xxx"></i><div class="col g2 grow"><b class="t">OLL 24 <span class="mfg m">Chameleon</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">1.130</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyyyyyyyx|yxx|xxy|xxx|xxx"></i><div class="col g2 grow"><b class="t">OLL 25 <span class="mfg m">Bowtie</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st"></i><b class="num s faint">–</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyxyyyxyy|xxy|xxx|yxx|yxx"></i><div class="col g2 grow"><b class="t">OLL 26 <span class="mfg m">Anti-Sune</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">0.871</b></span></div>
+              <div class="res"><i class="ll sm" data-ll="xyxyyyyyx|yxx|yxx|xxy|xxx"></i><div class="col g2 grow"><b class="t">OLL 27 <span class="mfg m">Sune</span></b><span class="xs">OLL · Cross</span></div><span class="col g2" style="align-items:flex-end"><i class="st ok"></i><b class="num s ok">0.794</b></span></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span class="on"><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Une étape à la fois : le sélecteur d'étapes et la recherche sont posés juste au-dessus de la barre, sous le pouce. Chaque jeu de l'étape est une grande carte avec ses groupes. La recherche fait monter les résultats en grandes tuiles.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Étape F2L</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Algorithms</span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="book-open"></i></button>
+            <button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="row g12" style="padding:2px 2px 4px">
+              <span class="big">125</span>
+              <div class="col g4 grow"><span class="s">of 1,327 cases learned on 3×3</span><div class="stk"><i style="width:9.4%;background:var(--ok)"></i><i style="width:1.2%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i><i style="flex:1;background:var(--acc)"></i></div></div>
+            </div>
+            <div class="card g10" style="padding:14px 14px 12px">
+              <div class="row g12">
+                <i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:64px;height:64px"></i>
+                <div class="col g4 grow"><span class="h2">F2L</span><span class="s">The 41 standard cases, front-right slot</span></div>
+                <span class="ring" style="--p:83"><b>34</b></span>
+              </div>
+              <div class="grid3" style="gap:6px">
+                <span class="well" style="padding:7px 9px"><span class="xs">Free Pairs</span><b class="num s" style="color:var(--fg)">2 / 4</b></span>
+                <span class="well" style="padding:7px 9px"><span class="xs trunc">Disconnected</span><b class="num s" style="color:var(--fg)">8 / 10</b></span>
+                <span class="well" style="padding:7px 9px"><span class="xs trunc">Connected</span><b class="num s ok">10 / 10</b></span>
+                <span class="well" style="padding:7px 9px"><span class="xs trunc">Corner in slot</span><b class="num s ok">6 / 6</b></span>
+                <span class="well" style="padding:7px 9px"><span class="xs trunc">Edge in slot</span><b class="num s" style="color:var(--fg)">4 / 6</b></span>
+                <span class="well" style="padding:7px 9px"><span class="xs trunc">Pieces in slot</span><b class="num s" style="color:var(--fg)">4 / 5</b></span>
+              </div>
+            </div>
+            <div class="card tight" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px"><span class="icon-tile"><i data-lucide="layers"></i></span><div class="col g2 grow"><b class="h3">F2L Advanced</b><span class="s">Not started · 60 cases</span></div><b class="num faint">0 / 60</b></div>
+            <div class="card tight" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px"><span class="icon-tile"><i data-lucide="sparkles"></i></span><div class="col g2 grow"><b class="h3">F2L Expert</b><span class="s">Not started · 33 cases</span></div><b class="num faint">0 / 33</b></div>
+            <span class="grow"></span>
+            <div class="field" style="border-radius:16px"><i data-lucide="search"></i>Search cases: oll 21, pll t…</div>
+            <div class="seg block"><span class="on">F2L</span><span>OLL</span><span>PLL</span><span>ZBLL</span><span>More<i data-lucide="chevron-up" style="width:14px;height:14px"></i></span></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span class="on"><i data-lucide="boxes"></i>Algs</span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">Recherche « perm »</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Search <small>8 cases</small></span>
+            <span class="grow"></span>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="row g6"><span class="chip on">All</span><span class="chip">Learned <span class="v">8</span></span><span class="chip">To learn <span class="v">0</span></span></div>
+            <div class="grid3" style="gap:8px">
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|ggr|bog|bbr|oro" style="width:64px;height:64px"></i><b>T Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL T</span><small>1.402</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|gob|orr|gbb|ogr" style="width:64px;height:64px"></i><b>Y Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Y</span><small>1.687</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|ggr|bbg|brr|ooo" style="width:64px;height:64px"></i><b>Jb Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Jb</span><small>1.208</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|bgo|grg|bbr|roo" style="width:64px;height:64px"></i><b>Aa Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Aa</span><small>1.355</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|ggg|rbr|bob|oro" style="width:64px;height:64px"></i><b>Ua Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Ua</span><small>1.012</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|ggg|ror|brb|obo" style="width:64px;height:64px"></i><b>Ub Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Ub</span><small>1.096</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|gbg|ror|bgb|oro" style="width:64px;height:64px"></i><b>H Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL H</span><small>0.931</small></div>
+              <div class="gtile"><i class="ll" data-ll="yyyyyyyyy|gog|rbr|brb|ogo" style="width:64px;height:64px"></i><b>Z Perm</b><span class="row g4 xs"><i class="st ok"></i>PLL Z</span><small>1.174</small></div>
+              <div class="gtile" style="justify-content:center;background:transparent;box-shadow:inset 0 0 0 1.5px var(--border)"><i data-lucide="list-filter" class="faint"></i><b class="mfg">Open PLL</b><span class="xs">21 cases</span></div>
+            </div>
+            <span class="grow"></span>
+            <div class="field" style="border-radius:16px;color:var(--fg);box-shadow:inset 0 0 0 2px var(--pri)"><i data-lucide="search" class="faint"></i><span class="grow">perm</span><i data-lucide="x" class="faint"></i></div>
+            <div class="row g6 wrap"><span class="xs">Try</span><span class="chip">oll 21</span><span class="chip">pll t</span><span class="chip">sune</span><span class="chip">f2l 5</span></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span class="on"><i data-lucide="boxes"></i>Algs</span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le tableau des algorithmes : une tuile vivante par étape, chacune avec un cas typique et son compte, et en tête ce qu'il reste à apprendre. Toucher une étape ouvre son tableau à elle, avec un jeu par tuile.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Algs</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow">
+            <div class="row g8"><div class="field grow"><i data-lucide="search"></i>Search cases</div><button class="btn icon"><i data-lucide="book-open"></i></button></div>
+            <div class="tile hero g10">
+              <div class="row between"><span class="cap" style="color:var(--pri)">Keep going · OLL</span><span class="s num"><b style="color:var(--fg)">125</b> / 1,327 learned</span></div>
+              <div class="row g12">
+                <div class="col g4 grow"><span class="h2">3 cases left in OLL</span><span class="s">54 of 57 learned · OLL 3, 9, 20</span></div>
+              </div>
+              <div class="row g8">
+                <i class="ll" data-ll="xxxxyxxxx|xyy|xyx|yyx|yyx" style="width:52px;height:52px"></i>
+                <i class="ll" data-ll="xxyyyxxyy|xyx|yxx|xyy|xxx" style="width:52px;height:52px"></i>
+                <i class="ll" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx" style="width:52px;height:52px"></i>
+                <span class="grow"></span>
+                <button class="btn pri"><i data-lucide="timer"></i>Train 3</button>
+              </div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile g6" style="padding:14px"><div class="row between"><i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:48px;height:48px"></i><span class="ring" style="--p:30;width:40px;height:40px"><b>30%</b></span></div><b class="h3">F2L</b><span class="s num">34 / 134 · 3 sets</span></div>
+              <div class="tile g6" style="padding:14px"><div class="row between"><i class="ll" data-ll="xyxyyyyyx|yxx|yxx|xxy|xxx" style="width:48px;height:48px"></i><span class="ring" style="--p:96;width:40px;height:40px"><b>96%</b></span></div><b class="h3">OLL</b><span class="s num">64 / 67 · 2 sets</span></div>
+              <div class="tile g6" style="padding:14px"><div class="row between"><i class="ll" data-ll="yyyyyyyyy|ggr|bog|bbr|oro" style="width:48px;height:48px"></i><span class="icon-tile" style="background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok);width:40px;height:40px;border-radius:50%"><i data-lucide="check"></i></span></div><b class="h3">PLL</b><span class="s num ok">27 / 27 · 2 sets</span></div>
+              <div class="tile g6" style="padding:14px"><div class="row between"><i class="ll" data-ll="yyyyyyyyy|grb|oog|rbr|bgo" style="width:48px;height:48px"></i><span class="ring" style="--p:0;width:40px;height:40px"><b class="faint">0</b></span></div><b class="h3">ZBLL</b><span class="s num">0 / 482 · 7 sets</span></div>
+              <div class="tile g6" style="padding:14px"><div class="row between"><i class="iso" data-iso="xxxxxxxbx|xrxbbxbbr|xxxxrrwrr" style="width:48px;height:48px"></i><span class="ring" style="--p:0;width:40px;height:40px"><b class="faint">0</b></span></div><b class="h3">Last slot</b><span class="s num">0 / 641 · 5 sets</span></div>
+              <div class="tile g6" style="padding:14px"><div class="row between"><span class="icon-tile pri"><i data-lucide="library"></i></span><i data-lucide="chevron-right" class="faint"></i></div><b class="h3">More</b><span class="s">OLLCP, COLL, ELL, TTLL, BLD</span></div>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span class="on"><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">Tableau d'une étape</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead" style="align-items:center"><button class="btn icon ghost" style="margin-left:-10px"><i data-lucide="chevron-left"></i></button><span class="display">OLL</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button></div>
+          <div class="col g10 px16 grow">
+            <div class="tile hero g10">
+              <div class="row g12">
+                <i class="ll lg" data-ll="xyxyyyyyx|yxx|yxx|xxy|xxx" style="width:96px;height:96px"></i>
+                <div class="col g4 grow"><span class="cap">Set</span><span class="h1">OLL</span><span class="s">Orient the last layer in one look · 57 cases</span></div>
+              </div>
+              <div class="row g10"><div class="stk grow"><i style="width:94.7%;background:var(--ok)"></i><i style="width:3.5%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i><i style="flex:1;background:var(--acc)"></i></div><b class="num">54 / 57</b></div>
+              <div class="row g8"><button class="btn pri grow"><i data-lucide="timer"></i>Train all · 57</button><button class="btn">Open<i data-lucide="arrow-right"></i></button></div>
+            </div>
+            <div class="tile g10" style="flex-direction:row;align-items:center;gap:14px">
+              <i class="ll" data-ll="xyxyyxxxx|xxx|xyx|xyx|xxx" style="width:60px;height:60px"></i>
+              <div class="col g4 grow"><b class="h3">2-Look OLL</b><span class="s">Edges, then corners · 10 cases</span><div class="bar thin ok"><i style="width:100%"></i></div></div>
+              <b class="num ok">10 / 10</b>
+            </div>
+            <span class="cap" style="padding:4px 2px 0">Groups of OLL</span>
+            <div class="scroll" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start">
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><div class="col g2 grow"><b class="t">Dot</b><span class="xs num">6 / 8</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xyxyyyxyx|xxx|yxy|xxx|yxy"></i><div class="col g2 grow"><b class="t">Cross</b><span class="xs num ok">7 / 7</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xxxxyyxyy|yyx|yxx|yxx|xyx"></i><div class="col g2 grow"><b class="t">Square</b><span class="xs num ok">2 / 2</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xxyyyxxyy|xyx|yxx|xyy|xxx"></i><div class="col g2 grow"><b class="t">Fish</b><span class="xs num">3 / 4</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="yxyxyyyyy|xyx|xxx|xxx|xyx"></i><div class="col g2 grow"><b class="t trunc">Corners oriented</b><span class="xs num ok">2 / 2</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="yxxyyyxxy|xyy|xxx|yxx|yyx"></i><div class="col g2 grow"><b class="t">Awkward</b><span class="xs num ok">4 / 4</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xyxyyxyxx|xxy|xyx|yyx|xxx"></i><div class="col g2 grow"><b class="t">P Shape</b><span class="xs num ok">4 / 4</span></div></div>
+              <div class="card tight" style="flex-direction:row;align-items:center;gap:10px"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|yxx|xyx"></i><div class="col g2 grow"><b class="t">T Shape</b><span class="xs num ok">2 / 2</span></div></div>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span class="on"><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 12 · A set -->
+<section class="page" id="set" data-short="Set">
+  <div class="page-head">
+    <h2>12 · Un jeu <small>/algorithms/f2l</small></h2>
+    <p>Les cas d'un jeu, groupe par groupe, avec leur état et le meilleur temps. Aujourd'hui, le téléphone empile un sélecteur de jeu, les filtres et les groupes en cubes de 110 px sur trois colonnes, sans résumé ni sélection. Ici, la tête du jeu (fil d'Ariane, description, barre appris / en cours / jamais travaillé) reste courte, les cas défilent seuls, et la sélection multiple a sa barre.</p>
+    <div class="feats"><span>Fil d'Ariane Algorithms › 3×3 › F2L</span><span>Titre et description</span><span>Barre learned / in progress / never trained</span><span>Filtre All 41 · Learned 34 · To learn 7</span><span>Grandes tuiles / tuiles compactes</span><span>Select : Mark learned, Train selection</span><span>Train all · 41</span><span>Groupes « 2 of 4 learned » et Train par groupe</span><span>Tuiles : schéma, numéro, état (pointillé, en cours, appris), meilleur temps</span><span>Cubes iso pour F2L, vues du dessus pour OLL / PLL</span><span>Changer de jeu</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Un écran poussé depuis le catalogue, comme la page du desktop en une colonne : la tête du jeu, le filtre et la taille des tuiles sur une ligne, les groupes en quatre colonnes, « Train all » en bouton flottant. Select passe en mode contextuel, avec sa barre au-dessus des onglets.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">F2L, grandes tuiles</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar" style="padding-left:6px;gap:4px">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">F2L</span>
+            <button class="btn sm ghost"><i data-lucide="square-check-big"></i>Select</button>
+            <button class="btn icon ghost"><i data-lucide="ellipsis-vertical"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="col g4">
+              <span class="xs row g4">Algorithms<i data-lucide="chevron-right" style="width:12px;height:12px"></i>3×3<i data-lucide="chevron-right" style="width:12px;height:12px"></i><b style="color:var(--fg)">F2L</b></span>
+              <span class="s">The 41 standard first-two-layers cases, front-right slot.</span>
+            </div>
+            <div class="col g6">
+              <div class="stk"><i style="width:83%;background:var(--ok)"></i><i style="width:17%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i></div>
+              <div class="row g12 xs"><span class="row g4"><i class="dot ok"></i><b style="color:var(--fg)">34</b> learned</span><span class="row g4"><i class="dot" style="opacity:.6"></i><b style="color:var(--fg)">7</b> in progress</span><span class="row g4"><i class="dot faint"></i><b style="color:var(--fg)">0</b> never trained</span></div>
+            </div>
+            <div class="row between g6">
+              <div class="seg"><span class="on">All <b class="num">41</b></span><span>Learned 34</span><span>To learn 7</span></div>
+              <div class="seg"><span class="on" style="padding:0 8px"><i data-lucide="layout-grid"></i></span><span style="padding:0 8px"><i data-lucide="grid-3x3"></i></span></div>
+            </div>
+            <div class="scroll g10">
+              <div class="row g10"><div class="col g4 grow"><span class="row g8"><b class="h3">Free Pairs</b><span class="xs">2 of 4 learned</span></span><span class="pips"><i class="p"></i><i class="p"></i><i class="ok"></i><i class="ok"></i></span></div><button class="btn sm"><i data-lucide="timer"></i>Train</button></div>
+              <div class="grid4">
+                <div class="case prog dim"><i class="iso" data-iso="xxrxxxxbx|xrxbbxbbx|xxwxrrxrr" style="width:62px;height:62px"></i><b><i class="st prog"></i>1</b><small>0.907</small></div>
+                <div class="case prog dim"><i class="iso" data-iso="xxxxxrxxb|xxrbbxbbx|wbxxrrxrr" style="width:62px;height:62px"></i><b><i class="st prog"></i>2</b><small>0.947</small></div>
+                <div class="case"><i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>3</b><small>0.424</small></div>
+                <div class="case"><i class="iso" data-iso="xbxxxxxxr|xxbbbxbbx|wxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>4</b><small>0.801</small></div>
+              </div>
+              <div class="hr"></div>
+              <div class="row g10"><div class="col g4 grow"><span class="row g8"><b class="h3">Disconnected Pairs</b><span class="xs">8 of 10</span></span><span class="pips"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="p"></i><i class="p"></i><i class="ok"></i></span></div><button class="btn sm"><i data-lucide="timer"></i>Train</button></div>
+              <div class="grid4">
+                <div class="case"><i class="iso" data-iso="xxxxxxxbr|xrwbbxbbx|bxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>5</b><small>0.996</small></div>
+                <div class="case"><i class="iso" data-iso="xxxrxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>6</b><small>1.164</small></div>
+                <div class="case"><i class="iso" data-iso="xrxxxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>7</b><small>1.295</small></div>
+                <div class="case"><i class="iso" data-iso="xxxxxbxxr|xxbbbxbbx|wrxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>8</b><small>1.278</small></div>
+                <div class="case"><i class="iso" data-iso="xxxxxxxrw|xbrbbxbbx|bxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>9</b><small>0.986</small></div>
+                <div class="case"><i class="iso" data-iso="xxxxxbxxw|xxbbbxbbx|rrxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>10</b><small>1.155</small></div>
+                <div class="case"><i class="iso" data-iso="xxxbxxxxw|xxbbbxbbx|rxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st ok"></i>19</b><small>1.077</small></div>
+                <div class="case prog dim"><i class="iso" data-iso="xbxxxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:62px;height:62px"></i><b><i class="st prog"></i>20</b><small>1.560</small></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn pri lg fab" style="bottom:70px"><i data-lucide="timer"></i>Train all · 41</button>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span class="on"><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">OLL compact, sélection</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar" style="padding-left:6px;gap:4px;background:color-mix(in srgb,var(--pri) 12%,transparent)">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title" style="font-size:20px">2 selected</span>
+            <button class="btn sm ghost">Select group</button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:10px">
+            <span class="xs row g4">Algorithms<i data-lucide="chevron-right" style="width:12px;height:12px"></i>3×3<i data-lucide="chevron-right" style="width:12px;height:12px"></i><b style="color:var(--fg)">OLL</b><span class="grow"></span><b class="num" style="color:var(--fg)">54 / 57</b> learned</span>
+            <div class="row between g6">
+              <div class="seg"><span class="on">All <b class="num">57</b></span><span>Learned 54</span><span>To learn 3</span></div>
+              <div class="seg"><span style="padding:0 8px"><i data-lucide="layout-grid"></i></span><span class="on" style="padding:0 8px"><i data-lucide="grid-3x3"></i></span></div>
+            </div>
+            <div class="scroll g8">
+              <div class="row g10"><span class="row g8 grow"><b class="h3">Dot</b><span class="xs">6 of 8 learned</span></span><button class="btn sm ghost"><i data-lucide="timer"></i>Train</button></div><div class="grid5"><div class="case"><span class="check"></span><i class="ll" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy" style="width:46px;height:46px"></i><b><i class="st ok"></i>1</b><small>1.712</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xxxxyxxxx|xyx|yyx|yyy|xyy" style="width:46px;height:46px"></i><b><i class="st ok"></i>2</b><small>1.611</small></div><div class="case prog sel"><span class="check on"></span><i class="ll" data-ll="xxxxyxxxx|xyy|xyx|yyx|yyx" style="width:46px;height:46px"></i><b><i class="st prog"></i>3</b><small>2.118</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xxxxyxxxx|yyx|xyx|xyy|xyy" style="width:46px;height:46px"></i><b><i class="st ok"></i>4</b><small>1.540</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="yxxxyxxxy|xyy|xyx|xyx|yyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>17</b><small>1.833</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>18</b><small>1.902</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>19</b><small>1.776</small></div><div class="case prog sel"><span class="check on"></span><i class="ll" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx" style="width:46px;height:46px"></i><b><i class="st prog"></i>20</b><small>2.304</small></div></div><div class="row g10"><span class="row g8 grow"><b class="h3">Square Shape</b><span class="xs">2 of 2</span></span><button class="btn sm ghost"><i data-lucide="timer"></i>Train</button></div><div class="grid5"><div class="case"><span class="check"></span><i class="ll" data-ll="xxxxyyxyy|yyx|yxx|yxx|xyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>5</b><small>1.263</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xxxyyxyyx|yyx|yyx|xxy|xxx" style="width:46px;height:46px"></i><b><i class="st ok"></i>6</b><small>1.301</small></div></div><div class="row g10"><span class="row g8 grow"><b class="h3">Small Lightning Bolt</b><span class="xs">4 of 4</span></span><button class="btn sm ghost"><i data-lucide="timer"></i>Train</button></div><div class="grid5"><div class="case"><span class="check"></span><i class="ll" data-ll="xyxyyxyxx|xxy|xyx|xyy|yxx" style="width:46px;height:46px"></i><b><i class="st ok"></i>7</b><small>1.044</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xyxxyyxxy|yxx|yxx|xyx|xyy" style="width:46px;height:46px"></i><b><i class="st ok"></i>8</b><small>1.187</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xxxyyyxyy|yyx|xxx|xxx|yyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>11</b><small>1.420</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="yxxyyyxxx|xyy|xyx|xxx|xxx" style="width:46px;height:46px"></i><b><i class="st ok"></i>12</b><small>1.388</small></div></div><div class="row g10"><span class="row g8 grow"><b class="h3">Fish Shape</b><span class="xs">3 of 4</span></span><button class="btn sm ghost"><i data-lucide="timer"></i>Train</button></div><div class="grid5"><div class="case todo"><span class="check"></span><i class="ll" data-ll="xxyyyxxyy|xyx|yxx|xyy|xxx" style="width:46px;height:46px"></i><b><i class="st"></i>9</b><small>–</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="yxxyyyxxy|xyy|xxx|yxx|yyx" style="width:46px;height:46px"></i><b><i class="st ok"></i>10</b><small>1.396</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xyyxyyyxx|xxx|xyy|xyy|yxx" style="width:46px;height:46px"></i><b><i class="st ok"></i>35</b><small>1.502</small></div><div class="case"><span class="check"></span><i class="ll" data-ll="xxyyyyyxx|yyx|xxy|xyx|xxx" style="width:46px;height:46px"></i><b><i class="st ok"></i>37</b><small>0.948</small></div></div>
+            </div>
+          </div>
+          <div class="actionbar">
+            <button class="btn ok" style="flex:1"><i data-lucide="check"></i>Mark learned</button>
+            <button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train selection</button>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span class="on"><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Les cas en grand, trois par ligne, et tout ce qui se touche en bas : une feuille réduite porte le filtre, Select et « Train all ». Le nom du jeu en haut ouvre la liste des jeux. En sélection, la même feuille devient la barre d'actions.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">F2L</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx" style="padding-left:6px">
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="where">F2L <small>34/41</small><i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <div class="seg"><span class="on" style="padding:0 7px"><i data-lucide="layout-grid"></i></span><span style="padding:0 7px"><i data-lucide="grid-3x3"></i></span></div>
+            <button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="col g6">
+              <span class="xs row g4">Algorithms<i data-lucide="chevron-right" style="width:12px;height:12px"></i>3×3 · <span class="mfg">the 41 standard cases, front-right slot</span></span>
+              <div class="stk" style="height:10px"><i style="width:83%;background:var(--ok)"></i><i style="width:17%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i></div>
+              <div class="row g12 xs"><span class="row g4"><i class="dot ok"></i><b style="color:var(--fg)">34</b> learned</span><span class="row g4"><i class="dot" style="opacity:.6"></i><b style="color:var(--fg)">7</b> in progress</span><span class="row g4"><i class="dot faint"></i><b style="color:var(--fg)">0</b> never trained</span></div>
+            </div>
+            <div class="scroll g10">
+              <div class="row g8"><b class="h3 grow" style="font-size:17px">Free Pairs</b><span class="pill">2 of 4</span><button class="btn sm soft"><i data-lucide="timer"></i>Train</button></div>
+              <div class="grid3">
+                <div class="case prog dim" style="padding:10px 4px 8px"><i class="iso" data-iso="xxrxxxxbx|xrxbbxbbx|xxwxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st prog"></i>F2L 1</b><small style="font-size:12px">0.907</small></div>
+                <div class="case prog dim" style="padding:10px 4px 8px"><i class="iso" data-iso="xxxxxrxxb|xxrbbxbbx|wbxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st prog"></i>F2L 2</b><small style="font-size:12px">0.947</small></div>
+                <div class="case" style="padding:10px 4px 8px"><i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st ok"></i>F2L 3</b><small style="font-size:12px">0.424</small></div>
+                <div class="case" style="padding:10px 4px 8px"><i class="iso" data-iso="xbxxxxxxr|xxbbbxbbx|wxxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st ok"></i>F2L 4</b><small style="font-size:12px">0.801</small></div>
+              </div>
+              <div class="row g8" style="padding-top:6px"><b class="h3 grow" style="font-size:17px">Disconnected Pairs</b><span class="pill">8 of 10</span><button class="btn sm soft"><i data-lucide="timer"></i>Train</button></div>
+              <div class="grid3">
+                <div class="case" style="padding:10px 4px 8px"><i class="iso" data-iso="xxxxxxxbr|xrwbbxbbx|bxxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st ok"></i>F2L 5</b><small style="font-size:12px">0.996</small></div>
+                <div class="case" style="padding:10px 4px 8px"><i class="iso" data-iso="xxxrxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st ok"></i>F2L 6</b><small style="font-size:12px">1.164</small></div>
+                <div class="case" style="padding:10px 4px 8px"><i class="iso" data-iso="xrxxxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:84px;height:84px"></i><b style="font-size:14px"><i class="st ok"></i>F2L 7</b><small style="font-size:12px">1.295</small></div>
+              </div>
+            </div>
+            <div style="height:128px;flex:none"></div>
+          </div>
+          <div class="sheet over-nav" style="gap:10px">
+            <div class="seg block"><span class="on">All <b class="num">41</b></span><span>Learned 34</span><span>To learn 7</span></div>
+            <div class="row g8"><button class="btn"><i data-lucide="square-check-big"></i>Select</button><button class="btn pri grow" style="flex:1"><i data-lucide="timer"></i>Train all · 41</button></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span class="on"><i data-lucide="boxes"></i>Algs</span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">PLL compact, sélection</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx" style="padding-left:6px">
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="where">PLL <small>21/21</small><i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <div class="seg"><span style="padding:0 7px"><i data-lucide="layout-grid"></i></span><span class="on" style="padding:0 7px"><i data-lucide="grid-3x3"></i></span></div>
+            <button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="row g10"><span class="pill ok"><i data-lucide="check" style="width:13px;height:13px"></i>All 21 learned</span><span class="xs">Permute the last layer in one look</span></div>
+            <div class="scroll g8">
+              <div class="row g8"><b class="h3 grow">Adjacent Corner Swap</b><span class="xs">12 of 12</span></div>
+              <div class="grid4">
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|bgo|grg|bbr|roo"></i><b><i class="st ok"></i>Aa</b><small>1.355</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|rgr|bro|bbg|goo"></i><b><i class="st ok"></i>Ab</b><small>1.420</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|gbr|brg|bgr|ooo"></i><b><i class="st ok"></i>F</b><small>1.893</small></div>
+                <div class="case sel"><span class="check on"></span><i class="ll" data-ll="yyyyyyyyy|obg|rrb|gob|rgo"></i><b><i class="st ok"></i>Ga</b><small>2.012</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|rog|bbr|ogo|grb"></i><b><i class="st ok"></i>Gb</b><small>1.951</small></div>
+                <div class="case sel"><span class="check on"></span><i class="ll" data-ll="yyyyyyyyy|gro|bgb|roo|rbg"></i><b><i class="st ok"></i>Gc</b><small>2.240</small></div>
+                <div class="case sel"><span class="check on"></span><i class="ll" data-ll="yyyyyyyyy|bgg|ror|obr|ogb"></i><b><i class="st ok"></i>Gd</b><small>2.187</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|oog|rrr|obb|bgg"></i><b><i class="st ok"></i>Ja</b><small>1.264</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|ggr|bbg|brr|ooo"></i><b><i class="st ok"></i>Jb</b><small>1.208</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|obg|rgr|bbo|gor"></i><b><i class="st ok"></i>Ra</b><small>1.588</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|goo|rrb|gbg|bor"></i><b><i class="st ok"></i>Rb</b><small>1.632</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|ggr|bog|bbr|oro"></i><b><i class="st ok"></i>T</b><small>1.402</small></div>
+              </div>
+              <div class="row g8" style="padding-top:4px"><b class="h3 grow">Diagonal Corner Swap</b><span class="xs">5 of 5</span></div>
+              <div class="grid4">
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|ogr|grb|rbo|bog"></i><b><i class="st ok"></i>E</b><small>1.977</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|rgo|brg|obr|gob"></i><b><i class="st ok"></i>Na</b><small>2.401</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|ogr|gro|rbb|bog"></i><b><i class="st ok"></i>Nb</b><small>2.366</small></div>
+                <div class="case"><span class="check"></span><i class="ll" data-ll="yyyyyyyyy|rgb|grr|obg|boo"></i><b><i class="st ok"></i>V</b><small>1.844</small></div>
+              </div>
+            </div>
+            <div style="height:120px;flex:none"></div>
+          </div>
+          <div class="sheet over-nav" style="gap:10px">
+            <div class="row g8"><b class="h3 grow">3 selected</b><button class="btn sm ghost">Select group</button><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <div class="row g8"><button class="btn ok" style="flex:1"><i data-lucide="check"></i>Mark learned</button><button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train selection</button></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span class="on"><i data-lucide="boxes"></i>Algs</span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le jeu comme un tableau : une tuile de tête avec le bilan et « Train all », puis une tuile par groupe où les cas défilent de côté. Ouvrir un groupe le passe en plein écran, en vue tableau (une ligne par cas avec son algorithme), et c'est là qu'on sélectionne.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau du jeu</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead" style="align-items:center"><button class="btn icon ghost" style="margin-left:-10px"><i data-lucide="chevron-left"></i></button><span class="display">F2L</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow">
+            <div class="tile hero g10">
+              <span class="xs row g4">Algorithms<i data-lucide="chevron-right" style="width:12px;height:12px"></i>3×3<i data-lucide="chevron-right" style="width:12px;height:12px"></i><b style="color:var(--fg)">F2L</b></span>
+              <span class="t">The 41 standard first-two-layers cases, front-right slot.</span>
+              <div class="stk" style="height:10px"><i style="width:83%;background:var(--ok)"></i><i style="width:17%;background:color-mix(in srgb,var(--pri) 55%,transparent)"></i></div>
+              <div class="row g12 xs"><span class="row g4"><i class="dot ok"></i><b style="color:var(--fg)">34</b> learned</span><span class="row g4"><i class="dot" style="opacity:.6"></i><b style="color:var(--fg)">7</b> in progress</span><span class="row g4"><i class="dot faint"></i><b style="color:var(--fg)">0</b> never</span></div>
+              <button class="btn pri block"><i data-lucide="timer"></i>Train all · 41</button>
+            </div>
+            <div class="row g6"><div class="seg"><span class="on">All 41</span><span>Learned 34</span><span>To learn 7</span></div><span class="grow"></span><button class="btn icon sm"><i data-lucide="rows-3"></i></button><button class="btn icon sm"><i data-lucide="square-check-big"></i></button></div>
+            <div class="scroll g10">
+              <div class="tile g10" style="padding:14px 0 12px">
+                <div class="row g10 px16"><div class="col g4 grow"><b class="h3">Free Pairs</b><span class="xs">2 of 4 learned · best 0.424</span></div><button class="btn sm soft"><i data-lucide="timer"></i>Train</button><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="hscroll" style="padding-left:16px">
+                  <div class="case prog dim" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxrxxxxbx|xrxbbxbbx|xxwxrrxrr" style="width:64px;height:64px"></i><b><i class="st prog"></i>1</b><small>0.907</small></div>
+                  <div class="case prog dim" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxxxxrxxb|xxrbbxbbx|wbxxrrxrr" style="width:64px;height:64px"></i><b><i class="st prog"></i>2</b><small>0.947</small></div>
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>3</b><small>0.424</small></div>
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xbxxxxxxr|xxbbbxbbx|wxxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>4</b><small>0.801</small></div>
+                </div>
+              </div>
+              <div class="tile g10" style="padding:14px 0 12px">
+                <div class="row g10 px16"><div class="col g4 grow"><b class="h3">Disconnected Pairs</b><span class="xs">8 of 10 learned · best 0.986</span></div><button class="btn sm soft"><i data-lucide="timer"></i>Train</button><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="hscroll" style="padding-left:16px">
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxxxxxxbr|xrwbbxbbx|bxxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>5</b><small>0.996</small></div>
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxxrxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>6</b><small>1.164</small></div>
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xrxxxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>7</b><small>1.295</small></div>
+                  <div class="case" style="background:var(--muted);width:84px"><i class="iso" data-iso="xxxxxbxxr|xxbbbxbbx|wrxxrrxrr" style="width:64px;height:64px"></i><b><i class="st ok"></i>8</b><small>1.278</small></div>
+                </div>
+              </div>
+              <div class="tile g10" style="padding:14px 0 12px">
+                <div class="row g10 px16"><div class="col g4 grow"><b class="h3">Connected Pairs</b><span class="xs">10 of 10 learned</span></div><button class="btn sm soft"><i data-lucide="timer"></i>Train</button><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span class="on"><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+        <div><div class="state">Groupe en tableau, sélection</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Disconnected Pairs<small>F2L · 8 of 10 learned</small></span>
+            <button class="btn icon ghost"><i data-lucide="layout-grid"></i></button>
+          </div>
+          <div class="col g6 px12 grow">
+            <div class="row g10 cap" style="padding:0 6px"><span style="width:20px"></span><span style="width:44px"></span><span class="grow">Case · algorithm used</span><span>Best</span></div>
+            <div class="scroll g2">
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxxxxxbr|xrwbbxbbx|bxxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 5</b><span class="xs trunc">U' R U R' U2 R U' R'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">0.996</b><span class="xs num">24 ×</span></div></div>
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxrxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 6</b><span class="xs trunc">U' r U' R' U R U r'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">1.164</b><span class="xs num">19 ×</span></div></div>
+              <div class="li on" style="padding:8px 6px"><span class="check on"></span><i class="iso" data-iso="xrxxxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 7</b><span class="xs trunc">U' R U2 R' U2 R U' R'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">1.295</b><span class="xs num">31 ×</span></div></div>
+              <div class="li on" style="padding:8px 6px"><span class="check on"></span><i class="iso" data-iso="xxxxxbxxr|xxbbbxbbx|wrxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 8</b><span class="xs trunc">d R' U2 R U2 R' U R</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">1.278</b><span class="xs num">22 ×</span></div></div>
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxxxxxrw|xbrbbxbbx|bxxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 9</b><span class="xs trunc">U' R U' R' U F' U' F</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">0.986</b><span class="xs num">17 ×</span></div></div>
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxxxbxxw|xxbbbxbbx|rrxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 10</b><span class="xs trunc">U' R U R' U R U R'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">1.155</b><span class="xs num">20 ×</span></div></div>
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxbxxxxw|xxbbbxbbx|rxxxrrxrr" style="width:44px;height:44px"></i><div class="col"><b class="t row g6"><i class="st ok"></i>F2L 19</b><span class="xs trunc">U R U2 R' U R U' R'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s ok">1.077</b><span class="xs num">15 ×</span></div></div>
+              <div class="li on" style="padding:8px 6px"><span class="check on"></span><i class="iso" data-iso="xbxxxxxxw|xxrbbxbbx|bxxxrrxrr" style="width:44px;height:44px;opacity:.55"></i><div class="col"><b class="t row g6"><i class="st prog"></i>F2L 20</b><span class="xs trunc">y' U' R' U2 R U' R' U R</span></div><div class="col g2" style="align-items:flex-end"><b class="num s mfg">1.560</b><span class="xs num">6 ×</span></div></div>
+              <div class="li" style="padding:8px 6px"><span class="check"></span><i class="iso" data-iso="xxxxxxxbw|xrbbbxbbx|rxxxrrxrr" style="width:44px;height:44px;opacity:.55"></i><div class="col"><b class="t row g6"><i class="st prog"></i>F2L 21</b><span class="xs trunc">U2 R U R' U R U' R'</span></div><div class="col g2" style="align-items:flex-end"><b class="num s mfg">1.121</b><span class="xs num">4 ×</span></div></div>
+            </div>
+          </div>
+          <div class="actionbar" style="align-items:center">
+            <b class="num t" style="white-space:nowrap">3 selected</b>
+            <span class="grow"></span>
+            <button class="btn ok"><i data-lucide="check"></i>Mark learned</button>
+            <button class="btn pri"><i data-lucide="timer"></i>Train 3</button>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 13 · A case -->
+<section class="page" id="case" data-short="Case">
+  <div class="page-head">
+    <h2>13 · Un cas <small>dialogue du cas · /algorithms?case=f2l-3</small></h2>
+    <p>Un cas en entier : son schéma, sa place et son setup, le lecteur 3D, ses algorithmes et ceux qu'on utilise, ses temps. Aujourd'hui, le téléphone empile tout dans une colonne qui défile (le lecteur, puis la liste, puis les temps) ; ici le lecteur garde sa place fixe, la barre de lecture tient sur une ligne, et la liste ou les temps prennent le reste.</p>
+    <div class="feats"><span>Schéma du cas, place (F2L · Free Pairs), nom, setup</span><span>Cas précédent / suivant (3 / 41)</span><span>Train this case</span><span>Mark learned</span><span>Algorithms 5 · My times 38</span><span>Lecteur 3D, Show front, Reset view</span><span>Coups éclairés au fil de la lecture</span><span>Barre : début, pas arrière, lecture, pas avant, curseur, 3 / 7, vitesse</span><span>Algorithm 1 of 5 : STM, faces, % of players, SpeedCubeDB votes, source, Video</span><span>I use it</span><span>You use / Other algorithms</span><span>Ajouter, modifier son algorithme</span><span>Temps : All / In solves / Training, Best, Mean, Ao5, Ao12, courbe, liste</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Le dialogue du desktop en plein écran : la tête du cas et ses deux boutons, puis deux onglets soulignés, Algorithms et My times. Le lecteur en haut de l'onglet, la liste dessous ; toucher un algorithme le joue.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Algorithms</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar" style="padding-left:6px;gap:2px">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">F2L 3</span>
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="s num" style="min-width:40px;text-align:center">3 / 41</span>
+            <button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <div class="col g10 px16">
+            <div class="row g12">
+              <i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:62px;height:62px"></i>
+              <div class="col g2 grow"><span class="s b">F2L · Free Pairs</span><span class="row g6 s">Setup <span class="alg sm" style="color:var(--fg);font-size:15px">F' U F</span></span></div>
+            </div>
+            <div class="row g8"><button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train</button><button class="btn ok" style="flex:1"><i data-lucide="check"></i>Learned</button></div>
+          </div>
+          <div class="utabs" style="margin-top:6px"><span class="on">Algorithms <span class="faint">5</span></span><span>My times <span class="faint">38</span></span></div>
+          <div class="col g10 px16 grow" style="padding-top:10px;flex:none">
+            <div class="stage">
+              <button class="btn sm front"><i data-lucide="focus"></i>Show front</button>
+              <div class="col center g6" style="padding:10px 10px 8px">
+                <i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:168px;height:168px"></i>
+                <div class="mv"><b>F'</b> <em>U'</em> F</div>
+                <div class="tp" style="width:100%">
+                  <button class="btn icon sm ghost"><i data-lucide="skip-back"></i></button>
+                  <button class="btn icon sm ghost"><i data-lucide="step-back"></i></button>
+                  <span class="play"><i data-lucide="pause"></i></span>
+                  <button class="btn icon sm ghost"><i data-lucide="step-forward"></i></button>
+                  <span class="track"><i style="width:55%"></i><u style="left:33%"></u><u style="left:66%"></u><b style="left:55%"></b></span>
+                  <b class="num s" style="color:var(--fg);min-width:30px;text-align:center">2/3</b>
+                  <button class="btn sm ghost" style="padding:0 6px">1×</button>
+                </div>
+              </div>
+              <div class="hr"></div>
+              <div class="row g10" style="padding:10px 12px">
+                <div class="col g2 grow"><span class="cap">Algorithm 1 of 5</span><span class="facts" style="font-size:12.5px"><span><b>3</b> STM</span><span>F U</span><span>41% of players</span><span>48 votes</span><span class="row g4 pri"><i data-lucide="video" style="width:14px;height:14px"></i>Video</span></span></div>
+                <button class="btn sm ok"><i data-lucide="check"></i>I use it</button>
+              </div>
+            </div>
+          </div>
+          <div class="col g2 px12 grow" style="padding-top:8px">
+            <div class="row between" style="padding:0 4px"><span class="cap">You use</span><button class="btn sm ghost" style="height:28px"><i data-lucide="plus"></i>Add yours</button></div>
+            <div class="scroll g2">
+              <div class="ar on"><span class="ok">1</span><span class="alg">F' U' F</span><i data-lucide="check" class="ok" style="width:16px"></i><span class="facts"><span><b>3</b> STM</span><span>F U</span><span>48 SpeedCubeDB votes</span><span>Video</span></span></div>
+              <span class="cap" style="padding:6px 4px 2px">Other algorithms of the case</span>
+              <div class="ar"><span>2</span><span class="alg">y' R' U' R</span><span></span><span class="facts"><span><b>3</b> STM</span><span>R U + rotation</span><span>28 votes</span></span></div>
+              <div class="ar"><span>3</span><span class="alg">y L' U' L</span><span></span><span class="facts"><span><b>3</b> STM</span><span>L U + rotation</span><span>12 votes</span></span></div>
+            </div>
+          </div>
+        </div></div></div></div>
+        <div><div class="state">My times</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar" style="padding-left:6px;gap:2px">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">F2L 3</span>
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="s num" style="min-width:40px;text-align:center">3 / 41</span>
+            <button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <div class="col g10 px16" style="flex:none">
+            <div class="row g12">
+              <i class="iso" data-iso="xxxrxxxxb|xxwbbxbbx|rxxxrrxrr" style="width:62px;height:62px"></i>
+              <div class="col g2 grow"><span class="s b">F2L · Free Pairs</span><span class="row g6 s">Setup <span class="alg sm" style="color:var(--fg);font-size:15px">F' U F</span></span></div>
+            </div>
+            <div class="row g8"><button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train</button><button class="btn ok" style="flex:1"><i data-lucide="check"></i>Learned</button></div>
+          </div>
+          <div class="utabs" style="margin-top:16px"><span>Algorithms <span class="faint">5</span></span><span class="on">My times <span class="faint">38</span></span></div>
+          <div class="col g12 px16 grow" style="padding-top:12px">
+            <div class="seg block"><span class="on">All <b class="num">38</b></span><span>In solves 21</span><span>Training 17</span></div>
+            <div class="grid4" style="gap:10px">
+              <div class="stat"><span><i class="dot ok"></i>Best</span><b class="ok">0.424</b></div>
+              <div class="stat"><span><i class="dot"></i>Ao5</span><b>0.552</b></div>
+              <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>0.598</b></div>
+              <div class="stat"><span><i class="dot warn"></i>Mean</span><b>0.611</b></div>
+            </div>
+            <div class="card g6" style="padding:12px 12px 8px">
+              <div class="row between"><span class="cap">Last 38</span><span class="row g10 xs"><span class="row g4"><i class="dot"></i>Time</span><span class="row g4"><i class="dot lilac"></i>Ao5</span></span></div>
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;height:100px;display:block">
+                <line x1="0" x2="300" y1="88" y2="88" stroke="var(--ok)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+                <polyline fill="none" stroke="var(--pri)" stroke-width="2" vector-effect="non-scaling-stroke" points="0,20 8,34 16,12 24,40 32,30 40,46 48,28 56,52 64,38 72,44 80,30 88,58 96,50 104,36 112,60 120,48 128,62 136,40 144,56 152,64 160,52 168,70 176,58 184,66 192,48 200,72 208,62 216,70 224,56 232,76 240,68 248,74 256,60 264,80 272,70 280,88 288,72 300,78"/>
+                <polyline fill="none" stroke="var(--c2)" stroke-width="2" vector-effect="non-scaling-stroke" points="32,30 64,42 96,44 128,50 160,56 192,60 224,64 256,68 288,74 300,74"/>
+              </svg>
+            </div>
+            <div class="scroll g2">
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.552</b><span class="pill">In a solve</span><span class="grow"></span><span class="xs">Today 14:02</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t ok" style="width:52px">0.424</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Today 13:47</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.611</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Today 13:46</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.698</b><span class="pill">In a solve</span><span class="grow"></span><span class="xs">Yesterday 21:15</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.587</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Yesterday 21:09</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.743</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Oct 9 · 18:30</span></div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Le cas monte en feuille au-dessus du jeu. Tout ce qui se touche est en bas : la lecture, les onglets Player / Algorithms / My times, puis cas précédent, Train, Learned, cas suivant. Les temps clés restent visibles en haut. L'onglet Algorithms réduit le lecteur à une ligne et permet d'écrire son propre algorithme.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Lecteur</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="scrim"></div>
+          <div class="sheet" style="top:22px;gap:10px;padding-bottom:12px">
+            <div class="row g12">
+              <i class="ll" data-ll="yyyyyyyyy|ggr|bog|bbr|oro" style="width:58px;height:58px"></i>
+              <div class="col g2 grow"><span class="xs b">PLL · Adjacent Corner Swap</span><span class="row g6" style="align-items:baseline"><b class="h2">PLL T</b><span class="mfg b">T Perm</span></span><span class="row g4 xs">Setup <span style="color:var(--fg);font-weight:600">F R U' R' U R U R2 F' R U R U' R'</span></span></div>
+              <button class="btn icon sm ghost" style="align-self:flex-start"><i data-lucide="x"></i></button>
+            </div>
+            <div class="row g6">
+              <div class="well grow" style="padding:7px 10px"><span class="xs">Best</span><b class="num ok">1.402</b></div>
+              <div class="well grow" style="padding:7px 10px"><span class="xs">Ao5</span><b class="num">1.538</b></div>
+              <div class="well grow" style="padding:7px 10px"><span class="xs">Mean</span><b class="num">1.611</b></div>
+              <div class="well grow" style="padding:7px 10px"><span class="xs">Attempts</span><b class="num">46</b></div>
+            </div>
+            <div class="stage grow" style="min-height:0">
+              <div class="front row g6"><button class="btn icon sm"><i data-lucide="rotate-3d"></i></button><button class="btn sm"><i data-lucide="focus"></i>Show front</button></div>
+              <div class="col center grow g6" style="padding:12px 10px 8px;justify-content:flex-end">
+                <i class="iso" data-iso="yyyyyyyyy|bbrbbbbbb|gobrrrrrr" style="width:176px;height:176px"></i>
+                <div class="mv" style="font-size:19px"><b>R</b> <b>U</b> <b>R'</b> <b>U'</b> <em>R'</em> F R2 U' R' U' R U R' F'</div>
+              </div>
+              <div class="hr"></div>
+              <div class="row g10" style="padding:9px 12px">
+                <div class="col g2 grow"><span class="cap">Algorithm 1 of 4</span><span class="facts" style="font-size:12.5px"><span><b>14</b> STM</span><span>R U F</span><span>62% of players</span><span>222 votes</span><span class="row g4 pri"><i data-lucide="video" style="width:14px;height:14px"></i>Video</span></span></div>
+                <button class="btn sm ok"><i data-lucide="check"></i>I use it</button>
+              </div>
+            </div>
+            <div class="tp">
+              <button class="btn icon sm ghost"><i data-lucide="skip-back"></i></button>
+              <button class="btn icon sm ghost"><i data-lucide="step-back"></i></button>
+              <span class="play"><i data-lucide="pause"></i></span>
+              <button class="btn icon sm ghost"><i data-lucide="step-forward"></i></button>
+              <span class="track"><i style="width:33%"></i><b style="left:33%"></b></span>
+              <b class="num s" style="color:var(--fg);min-width:38px;text-align:center">5/14</b>
+              <button class="btn sm ghost" style="padding:0 6px">1×</button>
+            </div>
+            <div class="seg block"><span class="on">Player</span><span>Algorithms <span class="faint">4</span></span><span>My times <span class="faint">46</span></span></div>
+            <div class="row g8">
+              <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+              <button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train</button>
+              <button class="btn ok" style="flex:1"><i data-lucide="check"></i>Learned</button>
+              <button class="btn icon"><i data-lucide="chevron-right"></i></button>
+            </div>
+          </div>
+        </div></div></div></div>
+        <div><div class="state">Algorithms, le sien en cours d'écriture</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="scrim"></div>
+          <div class="sheet" style="top:22px;gap:10px;padding-bottom:12px">
+            <div class="row g12">
+              <i class="ll" data-ll="yyyyyyyyy|ggr|bog|bbr|oro" style="width:58px;height:58px"></i>
+              <div class="col g2 grow"><span class="xs b">PLL · Adjacent Corner Swap</span><span class="row g6" style="align-items:baseline"><b class="h2">PLL T</b><span class="mfg b">T Perm</span></span><span class="xs">7 of 21 · 46 attempts · best <b class="ok">1.402</b></span></div>
+              <button class="btn icon sm ghost" style="align-self:flex-start"><i data-lucide="x"></i></button>
+            </div>
+            <div class="row g10 card tight" style="flex-direction:row;padding:6px 10px 6px 6px">
+              <i class="iso" data-iso="yyyyyyyyy|bbrbbbbbb|gobrrrrrr" style="width:52px;height:52px"></i>
+              <span class="alg sm grow" style="font-size:14px;line-height:1.3">R U R' U' R' F R2 U' R' U' R U R' F'</span>
+              <span class="play" style="width:40px;height:40px;border-radius:12px;background:var(--pri);color:var(--pri-fg);display:grid;place-items:center;flex:none"><i data-lucide="play"></i></span>
+            </div>
+            <div class="scroll g2" style="mask-image:none;-webkit-mask-image:none">
+              <span class="cap" style="padding:2px 4px">You use</span>
+              <div class="ar on"><span class="ok">1</span><span class="alg">R U R' U' R' F R2 U' R' U' R U R' F'</span><i data-lucide="check" class="ok" style="width:16px"></i><span class="facts"><span><b>14</b> STM</span><span>R U F</span><span>222 votes</span><span>Video</span></span></div>
+              <span class="cap" style="padding:6px 4px 2px">Other algorithms of the case</span>
+              <div class="ar"><span>2</span><span class="alg">R U R' U' R' F R2 U' R' U F' L' U L</span><span></span><span class="facts"><span><b>14</b> STM</span><span>R U F L</span><span>19 votes</span></span></div>
+              <div class="ar"><span>3</span><span class="alg">R2 u R2 u' R2 F2 u' F2 u F2</span><span></span><span class="facts"><span><b>10</b> STM</span><span>R u F</span><span>19 votes</span></span></div>
+              <div class="card hi g8" style="padding:12px;margin-top:4px">
+                <div class="row between"><span class="cap" style="color:var(--pri)">Your algorithm</span><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Solves the case</span></div>
+                <div class="field area" style="min-height:0;color:var(--fg);box-shadow:inset 0 0 0 2px var(--pri);font-weight:600;font-size:15px;word-spacing:3px;line-height:1.4;display:block">(R U R' U') (R' F R2) (U' R' U') (R U R' F')<span style="display:inline-block;vertical-align:middle;width:2px;height:20px;background:var(--pri);margin-left:2px"></span></div>
+                <div class="row g8"><span class="xs grow">14 STM · R U F · saved on your account</span><button class="btn sm ghost">Cancel</button><button class="btn sm pri">Save</button></div>
+              </div>
+            </div>
+            <div class="seg block"><span>Player</span><span class="on">Algorithms <span class="faint">4</span></span><span>My times <span class="faint">46</span></span></div>
+            <div class="row g8">
+              <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+              <button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train</button>
+              <button class="btn ok" style="flex:1"><i data-lucide="check"></i>Learned</button>
+              <button class="btn icon"><i data-lucide="chevron-right"></i></button>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le cas est un outil plein écran : le cube occupe le milieu, on glisse de côté pour changer de cas, l'algorithme s'écrit en grand. Les algorithmes du cas défilent en cartes sous la lecture, la dernière pour ajouter le sien. Les temps s'ouvrent en écran à part.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Lecteur</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">OLL 27 · Sune<small>Cross · 27 of 57</small></span>
+            <button class="btn icon ghost"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="col g10 grow" style="padding:0 14px">
+            <div class="stage c grow" style="min-height:0;border-radius:28px">
+              <span style="position:absolute;top:12px;left:12px;z-index:2" class="col g2"><i class="ll" data-ll="xyxyyyyyx|yxx|yxx|xxy|xxx" style="width:46px;height:46px"></i><span class="pill ok" style="height:20px"><i data-lucide="check" style="width:12px;height:12px"></i>Learned</span></span>
+              <div class="front row g6"><button class="btn sm"><i data-lucide="focus"></i>Show front</button></div>
+              <button class="btn icon sm ghost side" style="left:6px"><i data-lucide="chevron-left"></i></button>
+              <button class="btn icon sm ghost side" style="right:6px"><i data-lucide="chevron-right"></i></button>
+              <div class="col center grow g10" style="padding:30px 10px 12px">
+                <i class="iso" data-iso="xyxyyyyyx|xxybbbbbb|xxyrrrrrr" style="width:200px;height:200px"></i>
+                <div class="mv l"><b>R</b> <b>U</b> <b>R'</b> <em>U</em> R U2 R'</div>
+                <span class="xs">Setup <b style="color:var(--fg)">R U2 R' U' R U' R'</b> · swipe for OLL 26 / 28</span>
+              </div>
+            </div>
+            <div class="tp" style="background:var(--muted)">
+              <button class="btn icon sm ghost"><i data-lucide="skip-back"></i></button>
+              <button class="btn icon sm ghost"><i data-lucide="step-back"></i></button>
+              <span class="play"><i data-lucide="pause"></i></span>
+              <button class="btn icon sm ghost"><i data-lucide="step-forward"></i></button>
+              <span class="track"><i style="width:57%"></i><b style="left:57%"></b></span>
+              <b class="num s" style="color:var(--fg);min-width:30px;text-align:center">4/7</b>
+              <button class="btn sm ghost" style="padding:0 6px">1×</button>
+            </div>
+            <div class="hscroll" style="margin-right:-14px">
+              <div class="acard on"><div class="row between"><b class="s" style="color:var(--fg)">1 of 4</b><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>I use it</span></div><span class="alg sm">R U R' U R U2 R'</span><span class="facts" style="font-size:12px"><span><b>7</b> STM</span><span>R U</span><span>71% of players</span><span>112 votes</span><span class="pri">Video</span></span></div>
+              <div class="acard"><div class="row between"><b class="s" style="color:var(--fg)">2 of 4</b><span class="pill">Use it</span></div><span class="alg sm">y' R' U2 R U R' U R</span><span class="facts" style="font-size:12px"><span><b>7</b> STM</span><span>R U + rotation</span><span>15 votes</span></span></div>
+              <div class="acard" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--border);width:120px;align-items:center;justify-content:center"><i data-lucide="plus" class="pri"></i><b class="s" style="color:var(--fg)">Add yours</b></div>
+            </div>
+          </div>
+          <div class="actionbar" style="margin-top:10px">
+            <button class="btn pri" style="flex:1"><i data-lucide="timer"></i>Train this case</button>
+            <button class="btn ok"><i data-lucide="check"></i>Learned</button>
+            <button class="btn icon"><i data-lucide="chart-line"></i></button>
+          </div>
+        </div></div></div></div>
+        <div><div class="state">Mes temps sur le cas</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">OLL 27 · My times<small>38 attempts · since Sept 2</small></span>
+            <button class="btn icon ghost"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="col g12 px16 grow">
+            <div class="seg block"><span class="on">All <b class="num">38</b></span><span>In solves 24</span><span>Training 14</span></div>
+            <div class="tile hero g6" style="align-items:center;text-align:center">
+              <span class="cap">Best</span>
+              <div class="timer m">0.<span class="ms">794</span></div>
+              <span class="s">Training · Oct 8 · with R U R' U R U2 R'</span>
+            </div>
+            <div class="grid3">
+              <div class="card tight g2"><span class="xs">Ao5</span><b class="h2 num">0.951</b></div>
+              <div class="card tight g2"><span class="xs">Ao12</span><b class="h2 num">0.987</b></div>
+              <div class="card tight g2"><span class="xs">Mean</span><b class="h2 num">1.032</b></div>
+            </div>
+            <div class="card g6" style="padding:12px 12px 8px">
+              <div class="row between"><span class="cap">Trend</span><span class="xs ok b">−0.18 s this month</span></div>
+              <svg viewBox="0 0 300 80" preserveAspectRatio="none" style="width:100%;height:80px;display:block">
+                <line x1="0" x2="300" y1="74" y2="74" stroke="var(--ok)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+                <polyline fill="none" stroke="var(--pri)" stroke-width="2" vector-effect="non-scaling-stroke" points="0,14 10,26 20,18 30,34 40,22 50,40 60,30 70,44 80,36 90,28 100,46 110,40 120,50 130,38 140,52 150,46 160,56 170,44 180,58 190,50 200,60 210,54 220,62 230,48 240,66 250,58 260,64 270,74 280,60 290,66 300,62"/>
+              </svg>
+            </div>
+            <div class="scroll g2">
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.912</b><span class="pill">In a solve</span><span class="grow"></span><span class="xs">Today 14:02</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">1.004</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Today 13:40</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">0.938</b><span class="pill">In a solve</span><span class="grow"></span><span class="xs">Yesterday 21:15</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t ok" style="width:52px">0.794</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Oct 8 · 19:22</span></div>
+              <div class="li" style="padding:9px 6px"><b class="num t" style="width:52px">1.120</b><span class="pill pri">Training</span><span class="grow"></span><span class="xs">Oct 8 · 19:20</span></div>
+            </div>
+          </div>
+          <div class="actionbar"><button class="btn pri block"><i data-lucide="timer"></i>Train this case</button></div>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>

@@ -56,6 +56,8 @@ function chunks({ meta }: Bundle, sources: string[]) {
 export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   await rm(out, { recursive: true, force: true });
   await mkdir(join(out, "build"), { recursive: true });
+  // The phone app (mobile/, React Native for the web), exported under /phone beside the rest of the build.
+  const phone = exportPhone(join(out, "phone")).catch((error: Error) => error);
   const production = { "process.env.NODE_ENV": '"production"', CUBIX_DEV: String(devTools) };
   const naming = { entry: "[name]-[hash].[ext]", chunk: "[name]-[hash].[ext]", asset: "[name]-[hash].[ext]" };
   // The fonts (desktop/scripts/subset-fonts.ts), named after their content: the stylesheet links them rather than
@@ -107,14 +109,24 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // one after the other as each is read; the engine's bridge and the i18n start with them (main.tsx).
   const start = chunks(app, ["desktop/renderer/app.tsx", "desktop/renderer/bridge.ts", "src/client/i18n/index.ts"]).filter((path) => path !== app.entry);
   const styles = app.files.filter((path) => path.endsWith(".css"));
-  // Before anything is drawn: whether this device shows the pages written ahead of time (boot.ts).
-  const { entry: boot } = await bundle("desktop/renderer/boot.ts");
+  // Before anything is drawn: whether this device shows the pages written ahead of time, and which app it loads, the
+  // desktop one or the phone one (boot.ts writes either's tags).
+  const desktopHead = [...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
+  let phoneHead = await phone;
+  if (phoneHead instanceof Error) {
+    // In development the desktop app is still served, everywhere, while mobile/ does not build.
+    if (!devTools) throw phoneHead;
+    console.warn(`${phoneHead.message}\nServing the desktop app at every width.`);
+    phoneHead = "";
+  }
+  const { entry: boot } = await bundle("desktop/renderer/boot.ts", { CUBIX_DESKTOP_HEAD: JSON.stringify(desktopHead.join("\n")), CUBIX_PHONE_HEAD: JSON.stringify(phoneHead) });
   const html = (await readFile("desktop/renderer/index.html", "utf8"))
-    .replace("<!-- styles -->", [`<script src="${boot}"></script>`, ...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`)].join("\n    "))
-    .replace("<!-- scripts -->", `<script type="module" src="${app.entry}"></script>`);
+    .replace("<!-- styles -->", `<script src="${boot}"></script>`)
+    .replace("<!-- scripts -->", "");
   await writeFile(join(out, "index.html"), html);
-  // The administration's page: the same entry without the app's chunks loaded ahead (go-api/web.go serves it at /admin).
-  await writeFile(join(out, "admin.html"), html.replace(/\n\s*<link rel="modulepreload"[^>]*>/g, ""));
+  // The administration's page (go-api/web.go serves it at /admin): the same, which boot.ts gives the desktop app
+  // without the app's chunks loaded ahead.
+  await writeFile(join(out, "admin.html"), html);
   const pages = await buildPages(out);
   // The landing page draws in the app's face alone.
   await landing(out, bundle, preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage")))), pages, [app.entry, ...start, ...styles]);
@@ -180,7 +192,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
   }
   await setLanguage("en", false);
   await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemap(new Date().toISOString().slice(0, 10), pages));
+  await writeFile(join(out, "sitemap.xml"), sitemap(pages));
   await writeFile(join(out, "llms.txt"), llms());
   await writeFile(join(out, "llms-full.txt"), llmsFull());
   for (const name of ["install.sh", "install.ps1"]) await cp(join("desktop/install", name), join(out, name));
@@ -210,6 +222,26 @@ async function legal(out: string, bundle: (entry: string) => Promise<Bundle>) {
     }));
 }
 
+/**
+ * The phone app (mobile/: the Android app's React Native code, through react-native-web) exported to `out`, served at
+ * /phone; returns the tags its page needs, which boot.ts writes in the app's page on a phone. Its own index.html is
+ * dropped: it lives at the app's addresses, like the desktop one.
+ */
+async function exportPhone(out: string): Promise<string> {
+  const exported = Bun.spawn(["bunx", "expo", "export", "--platform", "web", "--output-dir", out], {
+    cwd: "mobile", env: { ...process.env, CUBIX_WEB_BASE: "/phone" }, stdout: "ignore", stderr: "pipe",
+  });
+  if (await exported.exited) throw new Error(`Phone app export failed:\n${await new Response(exported.stderr).text()}`);
+  const page = await readFile(join(out, "index.html"), "utf8");
+  await rm(join(out, "index.html"));
+  await rm(join(out, "metadata.json"), { force: true });
+  // React Native for the web's reset (the page's height, no scrolling of the body), its stylesheet and its bundle.
+  const tags = page.match(/<style id="expo-reset">[\s\S]*?<\/style>|<link rel="stylesheet"[^>]*>|<script src="[^"]*"[^>]*><\/script>/g) ?? [];
+  if (!tags.some((tag) => tag.startsWith("<script"))) throw new Error("The phone app's index.html has no script");
+  // A page written ahead of time is never shown on a phone (pageDocument.ts hides it only up to the layout's width).
+  return [...tags, "<style>#prerendered{display:none}</style>"].join("\n");
+}
+
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */
 const preloads = (fonts: Map<string, string>) => [...fonts.values()].map((href) => `<link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin />`);
 
@@ -218,7 +250,7 @@ async function compress(directory: string): Promise<void> {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) await compress(path);
-    else if (/\.(js|css|html|svg|json|webmanifest|ttf)$/.test(entry.name)) {
+    else if (/\.(js|css|html|svg|json|webmanifest|ttf|xml|txt)$/.test(entry.name)) {
       const bytes = await readFile(path);
       if (bytes.length < 1024) continue;
       await writeFile(path + ".br", brotliCompressSync(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }));

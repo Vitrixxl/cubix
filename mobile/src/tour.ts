@@ -1,8 +1,8 @@
 /**
  * The guided tour's view registry. A page tags the view a tour step points at with `useTourTarget(key)` (the keys are
- * the `inner` ones of `TOUR_STEPS`, plus `tab:<page>` for the tab bar's buttons); the tour measures the tagged view in
- * the window once its page has finished sliding in (`settledPageAtom`). Nothing here imports react-native, so pages
- * keep their light test mocks.
+ * the `inner` ones of `TOUR_STEPS`, plus `tab:<tab>` for the bottom bar's sections: timer, learn, algorithms, compete,
+ * me); the tour measures the tagged view in the window once its page has finished sliding in (`settledPageAtom`).
+ * Nothing here imports react-native, so pages keep their light test mocks.
  */
 import { atom, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";

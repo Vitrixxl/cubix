@@ -14,7 +14,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { SCAN_HTML } from "../../scan/scan-html";
 import { useColors } from "../../theme";
-import { Empty, Label, Numeric } from "../layout";
+import { Empty, Label } from "../layout";
 import { tr } from "../../../../src/client/i18n";
 
 /**
@@ -185,8 +185,9 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
 
   const done = faces.filter(Boolean).length,
     turn = redo === null ? step.turn : undefined;
-  return <View className="min-h-0 flex-1 gap-4">
-    <View className="min-h-0 flex-1 items-center justify-center" onLayout={e => { const { width, height } = e.nativeEvent.layout; setSide(Math.floor(Math.min(width, height))); }}>
+  // The camera's square in a box that takes the height left; what it sees is said over its corners.
+  return <View className="min-h-0 flex-1 gap-2.5">
+    <View className="min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl bg-card" onLayout={e => { const { width, height } = e.nativeEvent.layout; setSide(Math.floor(Math.min(width, height) - 24)); }}>
       {side > 0 && <View className={cn("overflow-hidden rounded-2xl border bg-muted", flash ? "border-4 border-success" : "border-border")} style={{ width: side, height: side }}>
         {foreground && <WebView key={attempt} ref={web} source={{ html: SCAN_HTML, baseUrl: "https://cubix.local/" }} originWhitelist={["*"]}
           javaScriptEnabled mediaPlaybackRequiresUserAction={false} allowsInlineMediaPlayback domStorageEnabled={false} cacheEnabled={false}
@@ -195,45 +196,53 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
         {status === "starting" && <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
           <Text className="text-sm text-muted-foreground">{tr("Starting your camera…")}</Text>
         </View>}
-        {status === "live" && <View pointerEvents="none" className="absolute inset-x-0 bottom-3 items-center px-3" accessibilityLiveRegion="polite">
-          <Badge variant="secondary" className="h-8 gap-1.5 rounded-full bg-background/85 px-3">
-            {dark && <Icon as={TriangleAlert} size={14} className="text-warning" />}
-            <Text className="text-xs font-medium text-foreground">{dark ? tr("More light would help: face a lamp or a window.") : found ? tr("Face found: read it.") : tr("Show the whole face to the camera.")}</Text>
-          </Badge>
-        </View>}
-        {cameras > 1 && <Button variant="secondary" size="icon" accessibilityLabel={tr("Switch camera")} className="absolute top-3 right-3 size-11 rounded-full bg-background/85"
-          onPress={() => send({ type: "switch" })}>
-          <Icon as={SwitchCamera} size={19} />
-        </Button>}
       </View>}
+      <View pointerEvents="none" className="absolute top-3 left-3"><Pill>{tr("Face {0} of {1}", { 0: Math.max(current, 0) + 1, 1: ORDER.length })}</Pill></View>
+      {status === "live" && <View pointerEvents="none" className="absolute right-3 bottom-3 left-3 flex-row" accessibilityLiveRegion="polite">
+        <Pill dot={dark ? "bg-warning" : found ? "bg-success" : "bg-muted-foreground"}>{dark ? tr("More light would help: face a lamp or a window.") : found ? tr("Face found: read it.") : tr("Show the whole face to the camera.")}</Pill>
+      </View>}
+      {cameras > 1 && <Button variant="secondary" size="icon" accessibilityLabel={tr("Switch camera")} className="absolute top-2 right-2 size-11 rounded-full bg-background/85"
+        onPress={() => send({ type: "switch" })}>
+        <Icon as={SwitchCamera} size={19} />
+      </Button>}
     </View>
-    <View className="flex-row items-center gap-4" accessibilityLiveRegion="polite">
-      <HoldCube front={step.face} top={step.top} turn={turn} size={64} stickers={scanStickers(faces, refs)} />
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Label>{tr("Face {0} of {1}", { 0: Math.max(current, 0) + 1, 1: ORDER.length })}</Label>
-        <Text className="text-lg font-semibold tracking-tight">{tr(step.title)}</Text>
+    <View className="flex-row items-center gap-3" accessibilityLiveRegion="polite">
+      <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={scanStickers(faces, refs)} />
+      <View className="min-w-0 flex-1">
+        <Text className="text-[13px] font-bold text-primary">{tr("Show the face")}</Text>
+        <Text className="text-lg font-extrabold tracking-[-0.02em]">{tr(step.title)}</Text>
       </View>
     </View>
-    <View className="gap-2">
-      <View className="flex-row items-baseline justify-between">
-        <Label>{tr("Faces read")}</Label>
-        <Numeric className="text-xs text-muted-foreground">{done}/{ORDER.length}</Numeric>
-      </View>
+    <View className="gap-2 rounded-2xl bg-card px-3 py-2.5">
+      <Label className="font-bold tracking-widest uppercase">{tr("Faces read")} · {done} / {ORDER.length}</Label>
       <View className="flex-row justify-between">
-        {ORDER.map((o, i) => <MiniFace key={o.face} step={o} colours={faces[i]?.map(c => scanColour(c, refs))} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />)}
+        {ORDER.map((o, i) => <View key={o.face} className="items-center gap-0.5">
+          <MiniFace step={o} colours={faces[i]?.map(c => scanColour(c, refs))} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />
+          <Text className={cn("text-xs font-bold", i === current ? "text-foreground" : "text-muted-foreground")}>{i === current ? tr("Now") : capitalised(tr(COLOUR_NAMES[o.face]!))}</Text>
+        </View>)}
       </View>
     </View>
+    <Button size="lg" className="h-14 rounded-2xl" disabled={status !== "live" || !found} onPress={() => send({ type: "read" })}>
+      <Icon as={Camera} size={19} className="text-primary-foreground" /><Text className="text-lg font-extrabold">{tr("Read this face")}</Text>
+    </Button>
     <View className="flex-row gap-2">
-      <Button size="lg" className="h-12 flex-1" disabled={status !== "live" || !found} onPress={() => send({ type: "read" })}>
-        <Icon as={Camera} size={18} /><Text>{tr("Read this face")}</Text>
+      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Read the last face again")} disabled={last < 0} onPress={undo}>
+        <Icon as={Undo2} size={17} /><Text>{tr("Last face again")}</Text>
       </Button>
-      <Button variant="outline" size="icon" className="size-12" accessibilityLabel={tr("Read the last face again")} disabled={last < 0} onPress={undo}>
-        <Icon as={Undo2} size={18} />
-      </Button>
-      <Button variant="ghost" size="lg" className="h-12 flex-1" onPress={onHand}>
-        <Icon as={Paintbrush} size={18} className="text-muted-foreground" /><Text className="text-muted-foreground">{tr("By hand")}</Text>
+      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={onHand}>
+        <Icon as={Paintbrush} size={17} /><Text>{tr("By hand")}</Text>
       </Button>
     </View>
+  </View>;
+}
+
+const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** A word over the camera's picture, on frosted ground. */
+function Pill({ dot, children }: { dot?: string; children: string }) {
+  return <View className="h-8 flex-row items-center gap-1.5 rounded-full bg-background/85 px-3">
+    {dot && <View className={cn("size-2 rounded-full", dot)} />}
+    <Text numberOfLines={1} className="shrink text-xs font-bold text-foreground">{children}</Text>
   </View>;
 }
 

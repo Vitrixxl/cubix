@@ -3,10 +3,10 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { atom, createStore, Provider, useAtomValue } from "jotai";
 import { mockLucide } from "../tests/lucide-mock";
 
-// The account page with its cards, dialogs and native drawing replaced by host nodes: what is checked
-// is which sections the overview shows, where they lead, and which filters each page offers.
+// The Me section's Profile page with its cards, sheets and native drawing replaced by host nodes: what is checked is
+// what the page shows, where its buttons lead, and that its figures are prepared once, never during a render.
 mock.module("react-native", () => ({
-  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
+  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", FlatList: "FlatList",
   StyleSheet: { create: (styles: unknown) => styles, absoluteFill: { position: "absolute", inset: 0 } },
 }));
 const stored = new Map<string, string>();
@@ -20,10 +20,10 @@ let timerCount = 3;
 const history = () => Array.from({ length: timerCount }, (_, i) => ({ id: i + 1, time: 10000 + i * 500, timeMs: 10000 + i * 500, penalty: "none", comment: null, at: `2026-09-2${i + 1}T20:00:00Z`, best: 10000, sessionId: 1 }));
 const cases = [{ id: "OLL 1", set: "oll", stage: "OLL", group: "Dots", name: "OLL 1" }, { id: "PLL Aa", set: "pll", stage: "PLL", group: "Corners", name: "Aa" }];
 const sets = [{ id: "oll", stage: "OLL", label: "OLL" }, { id: "pll", stage: "PLL", label: "PLL" }];
-const achievements = { unlocked: 1, total: 3, achievements: [
-  { id: "a", title: "First solve", description: "", group: "General", ratio: 1, unlocked: true, detail: "1 / 1" },
-  { id: "b", title: "10 solves", description: "", group: "General", ratio: 0.3, unlocked: false, detail: "3 / 10 solves" },
-  { id: "c", title: "Sub-15", description: "", group: "3×3", ratio: 0.6, unlocked: false, detail: "Best 9.980" },
+const achievements = { unlocked: 1, total: 3, xp: 120, achievements: [
+  { id: "a", title: "First solve", description: "", group: "General", category: "volume", ratio: 1, unlocked: true, unlockedAt: "2026-09-22T20:00:00Z", detail: "1 / 1" },
+  { id: "b", title: "10 solves", description: "", group: "General", category: "volume", ratio: 0.3, unlocked: false, detail: "3 / 10 solves" },
+  { id: "c", title: "Sub-15", description: "", group: "3×3", category: "speed", ratio: 0.6, unlocked: false, detail: "Best 9.980" },
 ] };
 const profileCalls: unknown[] = [];
 const logout = mock(async () => ({ ok: true }));
@@ -35,40 +35,38 @@ mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "tok
     catalog: () => ({ cases, sets }),
     profile: (cube: string, filter: unknown) => {
       profileCalls.push({ cube, filter });
-      return { user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 2, activeDays: 1 };
+      return {
+        user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 2, activeDays: 1,
+        records: timerCount ? [{ event: "333", puzzle: "333", solveMode: "standard", count: timerCount, best: 10000, bestAo5: null, bestAo12: null, bestAo100: null, lastAt: "2026-09-23T20:00:00Z" }] : [],
+      };
     },
     achievements: () => achievements,
   },
 } }));
 mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5, RESULT_MARK: {}, ao5Text: String }));
 mock.module("../src/lib/files", () => ({ exportData }));
-mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
 mockLucide();
-mock.module("../src/components/ProfileProgress", () => ({
-  ...Object.fromEntries(["AchievementBadge", "EmptyLine", "Goal", "Heatmap", "LatestSolves", "MoreLink", "ProfileCaseDialog", "Section", "Stat", "Stats", "SubHead", "Tag", "TrainingProgress", "Trend", "TrendLegend", "TwoTone"]
-    .map(name => [name, name])),
-}));
-mock.module("../src/components/ProfileCard", () => Object.fromEntries(["EmptyLine", "MoreLink", "Section", "SubHead", "Tag"].map(name => [name, name])));
-mock.module("../src/components/Achievements", () => ({ AchievementList: "AchievementList", AchievementTotal: "AchievementTotal" }));
-mock.module("../src/components/ImportTimes", () => ({ ImportTimes: "ImportTimes" }));
-mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
+mock.module("../src/components/ProfileProgress", () => ({ ProfileCaseDialog: "ProfileCaseDialog", TrainingProgress: "TrainingProgress" }));
+mock.module("../src/components/Achievements", () => ({ AchievementBadge: "AchievementBadge", AchievementDialog: "AchievementDialog", AchievementsScreen: "AchievementsScreen" }));
+mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", SectionTabs: "SectionTabs" }));
+mock.module("../src/components/ImportTimes", () => ({ ImportSheet: "ImportSheet" }));
+mock.module("../src/components/Stats", () => ({ StatsScreen: "StatsScreen" }));
 mock.module("../src/components/Toast", () => ({ toastAtom: atom(null) }));
-mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats" }));
-mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker", ChoiceButton: "ChoiceButton" }));
+mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/skeleton", () => ({ Skeleton: "Skeleton" }));
-mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsList", TabsTrigger: "TabsTrigger" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "ListGroup", "ListRow", "ListSkeleton", "MenuItem", "MoreMenu", "Numeric", "Page", "PageHead", "SectionHead", "Surface"].map(name => [name, name])));
+mock.module("../src/components/ui/dropdown-menu", () => ({ DropdownMenu: "DropdownMenu", DropdownMenuContent: "DropdownMenuContent", DropdownMenuTrigger: "DropdownMenuTrigger" }));
+mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "MenuItem", "Numeric", "Segmented", "Surface"].map(name => [name, name])));
+mock.module("../src/theme", () => ({ useColors: () => ({ primary: "#f5609f", variables: {} }) }));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
-const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, notationAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
+const { routeAtom, userAtom, profileFiltersAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
 const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");
 const { settledPageAtom } = await import("../src/tour");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-// The sections under the fold come a frame later: here, at once.
 (globalThis as any).requestAnimationFrame = (run: (time: number) => void) => { run(0); return 0; };
 (globalThis as any).cancelAnimationFrame = () => {};
 
@@ -90,119 +88,93 @@ async function mount() {
   return store;
 }
 const all = (type: string) => renderer.root.findAllByType(type as any);
-const head = () => all("PageHead")[0]!;
-const card = (label: string) => all("Section").find(node => node.props.label === label)!;
 const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
-const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
-const row = (title: string) => all("ListRow").find(node => node.props.title === title)!;
-const picker = () => card("Timer").props.title;
+const pressable = (label: string) => all("Pressable").find(node => node.props.accessibilityLabel === label)!;
+const journal = () => all("FlatList").at(-1)!;
 
-test("the overview shows the account, its activity, timer, training, awards and battles, with the profile's puzzle", async () => {
+test("the profile shows the account, its level, records, shortcuts and journal under the section's tabs", async () => {
   await mount();
+  expect(all("AppBar")).toHaveLength(1);
+  expect(all("SectionTabs")).toHaveLength(1);
   expect(texts()).toContain("vitrix");
-  expect(texts().some(text => text.startsWith("Joined "))).toBe(true);
-  // The sections as tabs on top, as on the web's phone; no page head on the overview.
-  expect(all("TabsTrigger").map(node => node.props.value)).toEqual(["overview", "playground", "training", "achievements", "duels"]);
-  expect(all("Tabs")[0]!.props.value).toBe("overview");
-  expect(all("PageHead")).toHaveLength(0);
-  expect(all("Heatmap")).toHaveLength(1);
-  // The timer card's title picks its event.
-  expect(picker().type).toBe("EventPicker");
-  expect(card("Timer").props.onMore).toBeDefined();
-  expect(all("Trend")).toHaveLength(1);
-  expect(all("LatestSolves")).toHaveLength(1);
-  expect(card("Training").props.meta).toBe("1 of 2 learned");
-  expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
-  expect(card("Battles")).toBeDefined();
-  // The scramble type only on the timer section.
-  expect(all("ChoiceButton")).toHaveLength(0);
+  expect(texts().some(text => text.includes("Joined "))).toBe(true);
+  expect(texts()).toContain("Level 2");
+  // The records, each event's best single.
+  expect(all("Numeric").some(node => node.props.children === "10.000")).toBe(true);
+  // The four shortcuts, with their counts.
+  expect(["Analysis", "Cases 1", "Awards 1", "Battles 0"].every(label => pressable(label))).toBe(true);
+  // The journal: a day per active day, newest first, the profile's puzzle beside it.
+  expect(journal().props.data.map((day: { key: string }) => day.key)).toEqual(["2026-09-23", "2026-09-22", "2026-09-21"]);
+  expect(all("EventPicker")).toHaveLength(1);
+  expect(all("Segmented")[0]!.props.options.map((o: { id: string }) => o.id)).toEqual(["all", "records", "achievements", "battles"]);
 });
 
 test("opening the profile never works it out during its render: placeholders first, the figures a frame later", async () => {
   const store = createStore();
   store.set(userAtom, account);
   store.set(routeAtom, { page: "profile" });
-  store.set(settledPageAtom, "profile");
   profileCalls.length = 0;
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
   expect(profileCalls).toHaveLength(0);
   expect(texts()).toContain("vitrix");
-  expect(all("Heatmap")).toHaveLength(0);
-  expect(all("Section").map(node => [node.props.label, node.props.meta])).toEqual(expect.arrayContaining([["Timer", undefined], ["Achievements", undefined]]));
+  expect(all("FlatList")).toHaveLength(0);
   await prepared();
   expect(profileCalls).toHaveLength(1);
-  expect(all("Heatmap")).toHaveLength(1);
-  expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
+  expect(all("FlatList")).toHaveLength(1);
 });
 
-test("the identity's menu: import, exports, notation, guides and settings; signing out closes the overview", async () => {
+test("the identity's buttons: import, exports, the settings and signing out", async () => {
   const store = await mount();
-  expect(all("MenuItem").map(node => node.props.children)).toEqual(["Import times", "Export my solves (CSV)", "Export all my data (JSON)", "Notation", "Guides", "Settings"]);
-  await act(() => item("Settings").props.onPress());
-  expect(store.get(settingsOpenAtom)).toBe(true);
-  await act(() => item("Guides").props.onPress());
-  expect(store.get(guidesAtom)).toBe("about");
-  await act(() => item("Notation").props.onPress());
-  expect(store.get(notationAtom)).toBe(true);
-  await act(() => item("Export my solves (CSV)").props.onPress());
-  await act(() => item("Export all my data (JSON)").props.onPress());
+  expect(all("ImportSheet")[0]!.props.open).toBe(false);
+  await act(() => pressable("Import").props.onPress());
+  expect(all("ImportSheet")[0]!.props.open).toBe(true);
+  const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
+  await act(() => item("My solves, as a table (CSV)").props.onPress());
+  await act(() => item("All my profile's data (JSON)").props.onPress());
   expect(exportData.mock.calls.map(call => call[0])).toEqual(["csv", "json"]);
-  const importSheet = () => all("Sheet").find(node => node.props.title === "Import times")!;
-  expect(importSheet().props.open).toBe(false);
-  await act(() => item("Import times").props.onPress());
-  expect(importSheet().props.open).toBe(true);
-  const logOut = all("Button").find(node => node.findAllByType("Text" as any).some(t => t.props.children === "Log out"))!;
-  await act(async () => { logOut.props.onPress(); await Promise.resolve(); });
+  await act(() => pressable("Account").props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "settings" });
+  await act(() => store.set(routeAtom, { page: "profile" }));
+  await act(async () => { pressable("Log out").props.onPress(); await Promise.resolve(); });
   expect(logout).toHaveBeenCalled();
 });
 
-test("messages and tournaments open from the account page", async () => {
+test("the statistics, the shortcuts and the activity are screens pushed over the profile", async () => {
   const store = await mount();
-  await act(() => row("Messages").props.onPress());
-  expect(store.get(routeAtom)).toEqual({ page: "community" });
-  await act(() => store.set(routeAtom, { page: "profile" }));
-  await act(() => row("Tournaments").props.onPress());
-  expect(store.get(routeAtom)).toEqual({ page: "tournaments" });
-});
-
-test("the identity's figures are the web's, every event together, two by two", async () => {
-  await mount();
-  const cells = all("Figure");
-  expect(cells.map(node => node.props.label)).toEqual(expect.arrayContaining(["Solves", "Active days", "Streak", "Best streak", "This week", "Trained"]));
-  const value = (label: string) => cells.find(node => node.props.label === label)!.props.value;
-  expect([value("Solves"), value("Active days"), value("Trained")]).toEqual(["3", "3", "2"]);
-});
-
-test("a card opens its section's tab, and the tabs switch the section in place", async () => {
-  const store = await mount();
-  await act(() => card("Timer").props.onMore());
+  const link = all("Pressable").find(node => node.findAllByType("Text" as any).some(t => t.props.children === "Statistics"))!;
+  await act(() => link.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "playground" });
-  expect(all("Tabs")[0]!.props.value).toBe("playground");
-  expect(head().props.title).toBe("Timer");
-  expect(all("ChoiceButton").map(node => node.props.label)).toEqual(["Scramble type"]);
-  expect(all("TimerStats")[0]!.props.fill).toBe(true);
-  await act(() => all("Tabs")[0]!.props.onValueChange("overview"));
-  expect(store.get(routeAtom)).toEqual({ page: "profile" });
-  await act(() => card("Training").props.onMore());
-  expect(all("TrainingProgress")).toHaveLength(1);
-  await act(() => all("Tabs")[0]!.props.onValueChange("achievements"));
-  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "achievements" });
-  expect(head().props.title).toBe("Achievements");
-  expect(all("AchievementTotal")).toHaveLength(1);
-  expect(all("AchievementList")).toHaveLength(1);
-  await act(() => all("Tabs")[0]!.props.onValueChange("duels"));
-  expect(head().props.title).toBe("Battles");
+  expect(all("StatsScreen")).toHaveLength(1);
+  for (const [label, route, shown] of [
+    ["Cases 1", { page: "profile", mode: "training" }, "TrainingProgress"],
+    ["Awards 1", { page: "profile", mode: "achievements" }, "AchievementsScreen"],
+    ["Battles 0", { page: "profile", mode: "duels" }, "PushedBar"],
+  ] as const) {
+    await act(() => store.set(routeAtom, { page: "profile" }));
+    await act(() => pressable(label).props.onPress());
+    expect(store.get(routeAtom)).toEqual(route);
+    expect(all(shown)).toHaveLength(1);
+  }
   expect(all("Empty").some(node => node.props.title === "No battles yet")).toBe(true);
+  await act(() => store.set(routeAtom, { page: "profile" }));
+  await act(() => pressable("Analysis").props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "analysis" });
+  // The streak and the journal's calendar open the activity.
+  await act(() => store.set(routeAtom, { page: "profile" }));
+  await act(() => pressable("Activity").props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "activity" });
+  expect(all("PushedBar")[0]!.props.title).toBe("Activity");
+  expect(texts()).toContain("solves in all");
 });
 
-test("the profile's puzzle changes the profile's own selection", async () => {
+test("the journal's puzzle changes the profile's own selection", async () => {
   const store = await mount();
   profileCalls.length = 0;
-  await act(() => picker().props.onChange("222"));
+  await act(() => all("EventPicker")[0]!.props.onChange("222"));
   await prepared();
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
-  await act(() => picker().props.onChange("333oh"));
+  await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
   await prepared();
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
@@ -219,7 +191,7 @@ test("prepared profile data survives page changes and unmounts without rebuildin
   expect(data).not.toBeNull();
   profileCalls.length = 0;
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
-  for (const route of [{ page: "profile" }, { page: "profile", mode: "playground" }, { page: "playground" }, { page: "profile" }] as const) {
+  for (const route of [{ page: "profile" }, { page: "profile", mode: "activity" }, { page: "playground" }, { page: "profile" }] as const) {
     await act(() => store.set(routeAtom, route));
   }
   // Clearing already-default filters on leaving the profile must not invalidate its histories.
@@ -228,44 +200,31 @@ test("prepared profile data survives page changes and unmounts without rebuildin
   expect(store.get(profileDataAtom)).toBe(data);
   expect(store.get(profileAchievementsAtom)).toBe(awards);
   expect(profileCalls).toHaveLength(0);
-  expect(all("Figure").find(node => node.props.label === "Solves")!.props.value).toBe("3");
+  expect(journal().props.data).toHaveLength(3);
 });
 
 test("cached profile updates after sync, deletion and account changes, including while unmounted", async () => {
   const store = await mount();
-  const solves = () => all("Figure").find(node => node.props.label === "Solves")!.props.value;
+  const days = () => journal().props.data.length;
   await act(() => store.set(routeAtom, { page: "playground" }));
   timerCount = 4;
   await act(() => store.set(statsVersionAtom, v => v + 1));
   await act(() => store.set(routeAtom, { page: "profile" }));
   await prepared();
-  expect(solves()).toBe("4");
+  expect(days()).toBe(4);
   timerCount = 2;
   await act(() => store.set(deletedSolveIdAtom, 3));
   await prepared();
-  expect(solves()).toBe("2");
+  expect(days()).toBe(2);
   timerCount = 1;
   await act(() => store.set(userAtom, { ...account, id: "u2", username: "other" }));
   await prepared();
-  expect(solves()).toBe("1");
+  expect(days()).toBe(1);
   expect(texts()).toContain("other");
 });
 
-test("an empty timer selection offers to open the timer", async () => {
+test("without timed solves, the records say where they will appear", async () => {
   timerCount = 0;
-  const store = await mount();
-  // No statistics link without a solve, but a way to the timer.
-  expect(card("Timer").props.onMore).toBeUndefined();
-  expect(all("Trend")).toHaveLength(0);
-  await act(() => store.set(routeAtom, { page: "profile", mode: "playground" }));
-  await prepared();
-  const stats = all("TimerStats")[0]!;
-  expect(stats.props.data.summary.count).toBe(0);
-  // The empty state is passed to the statistics, which render it when there is no solve.
-  let empty!: ReactTestRenderer;
-  await act(() => { empty = create(stats.props.empty); });
-  const open = empty.root.findAllByType("Button" as any)[0]!;
-  await act(() => open.props.onPress());
-  await act(() => empty.unmount());
-  expect(store.get(routeAtom)).toEqual({ page: "playground" });
+  await mount();
+  expect(texts()).toContain("Your records appear after your first timed solves.");
 });

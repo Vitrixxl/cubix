@@ -43,9 +43,12 @@ export function relative(ms: number, now = Date.now()) {
 export const when = (ms: number) => `${day(ms)} · ${time(ms)} · ${relative(ms)}`;
 
 /** The way back: the page before, or `to` (a web address) when the page was opened on its own (a link, a notification). */
-export function Back({ to }: { to: string }) {
+export function useBack(to: string) {
   const previous = useAtomValue(previousRouteAtom), goBack = useSetAtom(goBackAtom);
-  return <BackButton onPress={() => previous ? goBack() : openUrl(to)} />;
+  return () => { if (previous) goBack(); else openUrl(to); };
+}
+export function Back({ to }: { to: string }) {
+  return <BackButton onPress={useBack(to)} />;
 }
 
 /** A status as a soft badge: the accent with the live dot while under way, green when ready or open, quiet once over. */

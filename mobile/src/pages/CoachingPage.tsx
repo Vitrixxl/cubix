@@ -1,14 +1,15 @@
 import { CalendarClock, CalendarDays, Check, ChevronDown, IdCard, LayoutDashboard, MessagesSquare, Search, Sparkles, Users, type LucideIcon } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Fragment, useEffect } from "react";
+import { View } from "react-native";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Sheet } from "../components/Sheet";
-import { Empty, Label, ListSkeleton, Page, PageHead } from "../components/layout";
+import { AppBar, SectionTabs } from "../components/AppBar";
+import { Empty, ListSkeleton, Numeric } from "../components/layout";
 import { Apply } from "../components/coaching/apply";
-import { BookPage, CoachList, CoachPage } from "../components/coaching/browse";
+import { BookPage, CoachList, CoachPage, zone } from "../components/coaching/browse";
 import { CoachProfile, Dashboard, StudentsView } from "../components/coaching/coach";
 import { CoachingMessages } from "../components/coaching/CoachingMessages";
 import { COACH_SECTIONS, coaching, useCoaching, type SectionId } from "../components/coaching/client";
@@ -18,9 +19,10 @@ import { Sessions } from "../components/coaching/sessions";
 import { tr } from "../../../src/client/i18n";
 
 /**
- * The coaching page, after the web's phone layout (desktop/renderer/coaching/page.tsx). Players find a coach, book one
+ * The coaching page, the Me section's Coaching tab (desktop/renderer/coaching/page.tsx). Players find a coach, book one
  * of their slots, follow their sessions and talk with them; coaches also get their dashboard, students, schedule and
- * profile. The sections are a menu in the page head; a coach's page and their booking take the whole page.
+ * profile. The sub-page is chosen in a menu at the top of the content, never a second row of tabs; a coach's page, a
+ * conversation, a student and a call are screens of their own.
  */
 export function CoachingPage({ view: path = "" }: { view?: string }) {
   const c = useCoaching(), nav = useCoachingNav();
@@ -39,22 +41,31 @@ export function CoachingPage({ view: path = "" }: { view?: string }) {
   // The call loads on first use, with WebRTC.
   if (view === "call" && arg) { const { CallView } = require("../components/coaching/call/CallView") as typeof import("../components/coaching/call/CallView"); return <CallView id={arg} />; }
   if (view === "coach" && arg) return sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} />;
-  return <Page>
-    <PageHead title={tr("Coaching")}><SectionMenu view={view} /></PageHead>
-    <View className="min-h-0 flex-1">
-      {view === "dashboard" ? <Dashboard />
-        : view === "students" ? <StudentsView id={arg} />
-          : view === "schedule" ? <Schedule />
-            : view === "profile" ? <CoachProfile />
-              : view === "sessions" ? <Sessions />
-                : view === "messages" ? <CoachingMessages conversationId={arg ? Number(arg) : undefined} />
-                  : view === "apply" ? <Apply />
-                    : view === "coaches" ? <CoachList />
-                      : !me && c.failure ? <Empty icon={MessagesSquare} title={c.failure}>
-                        <Button variant="outline" onPress={() => void coaching.load("me")}><Text>{tr("Retry")}</Text></Button>
-                      </Empty> : <ListSkeleton />}
+  if (view === "messages" && arg) return <CoachingMessages conversationId={Number(arg)} />;
+  if (view === "students" && arg) return <StudentsView id={arg} />;
+  return <View className="min-h-0 flex-1">
+    <AppBar puzzle={false} />
+    <SectionTabs />
+    <View className="min-h-0 flex-1 gap-3 px-4 pt-3 pb-2">
+      <View className="flex-row items-center gap-2">
+        <SectionMenu view={view} />
+        {view === "coaches" ? <Text numberOfLines={1} className="ml-auto shrink text-xs text-muted-foreground">{tr("times in {0}", { 0: zone() })}</Text> : null}
+      </View>
+      <View className="min-h-0 flex-1">
+        {view === "dashboard" ? <Dashboard />
+          : view === "students" ? <StudentsView id="" />
+            : view === "schedule" ? <Schedule />
+              : view === "profile" ? <CoachProfile />
+                : view === "sessions" ? <Sessions />
+                  : view === "messages" ? <CoachingMessages />
+                    : view === "apply" ? <Apply />
+                      : view === "coaches" ? <CoachList />
+                        : !me && c.failure ? <Empty icon={MessagesSquare} title={c.failure}>
+                          <Button variant="outline" onPress={() => void coaching.load("me")}><Text>{tr("Retry")}</Text></Button>
+                        </Empty> : <ListSkeleton />}
+      </View>
     </View>
-  </Page>;
+  </View>;
 }
 
 const ICONS: Record<SectionId, LucideIcon> = {
@@ -62,35 +73,36 @@ const ICONS: Record<SectionId, LucideIcon> = {
   coaches: Search, sessions: CalendarDays, messages: MessagesSquare, apply: Sparkles,
 };
 
-/** The sections in the page head: the current one with the unread messages, opening a sheet of radio rows. */
+/** The sub-pages in a menu at the top of the content: the current one in the button, each with what waits on it; the way to become a coach apart. */
 function SectionMenu({ view }: { view: string }) {
   const c = useCoaching(), nav = useCoachingNav();
-  const [open, setOpen] = useState(false);
-  const groups = c.sections(), current = groups.flat().find(([id]) => id === view);
-  return <>
-    <Button variant="outline" className="h-11 gap-1.5 rounded-lg px-3" accessibilityLabel={tr("Sections: {0}", { 0: current ? tr(current[1]) : tr("Sections") })} onPress={() => setOpen(true)} testID="coaching-sections">
-      {current ? <Icon as={ICONS[current[0]]} size={16} /> : null}
-      <Text numberOfLines={1} className="shrink text-sm">{current ? tr(current[1]) : tr("Sections")}</Text>
-      <Count n={c.me?.unread ?? 0} />
-      <Icon as={ChevronDown} size={14} className="text-muted-foreground" />
-    </Button>
-    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Coaching")} hideTitle>
-      <View accessibilityRole="radiogroup" accessibilityLabel={tr("Sections")} className="gap-3">
-        {groups.map((group, i) => <View key={i} className={cn("gap-0.5", i > 0 && "border-t border-border pt-3")}>
-          {c.isCoach ? <Label className="px-3 pb-1">{i === 0 ? tr("Your coaching") : tr("Get coached")}</Label> : null}
-          {group.map(([id, label]) => {
-            const on = id === view;
-            return <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={tr(label)} testID={"coaching-" + id}
-              onPress={() => { setOpen(false); if (!on) nav.go(id); }}
-              className={cn("min-h-12 flex-row items-center gap-3 rounded-lg px-3 active:bg-muted", on && "bg-muted")}>
-              <Icon as={ICONS[id]} size={18} className={on ? "text-foreground" : "text-muted-foreground"} />
-              <Text className={cn("flex-1 text-base", on && "font-medium")}>{tr(label)}</Text>
-              <Count n={c.badge(id)} />
-              {on ? <Icon as={Check} size={16} className="text-primary" /> : null}
-            </Pressable>;
-          })}
-        </View>)}
-      </View>
-    </Sheet>
-  </>;
+  const groups = c.sections(), current = groups.flat().find(([id]) => id === view),
+    upcoming = c.bookings?.filter(b => b.role === "student" && b.status === "booked" && b.endsAt > Date.now()).length ?? 0,
+    waiting = groups.flat().reduce((n, [id]) => n + (id === view ? 0 : c.badge(id)), 0);
+  return <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="outline" className="h-11 gap-2 rounded-xl px-3.5" accessibilityLabel={tr("Sections: {0}", { 0: current ? tr(current[1]) : tr("Sections") })} testID="coaching-sections">
+        <Icon as={current ? ICONS[current[0]] : Search} size={17} />
+        <Text numberOfLines={1} className="shrink text-[15px] font-bold">{current ? tr(current[1]) : tr("Sections")}</Text>
+        <Count n={waiting} />
+        <Icon as={ChevronDown} size={16} className="text-muted-foreground" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start" className="w-64 rounded-2xl p-1.5">
+      {groups.map((group, i) => <Fragment key={i}>
+        {i > 0 ? <DropdownMenuSeparator className="mx-2 my-1" /> : null}
+        {c.isCoach ? <DropdownMenuLabel className="px-2.5 pt-2 pb-1 text-[11px] font-bold tracking-widest text-muted-foreground uppercase">{i === 0 ? tr("Your coaching") : tr("Get coached")}</DropdownMenuLabel> : null}
+        {group.map(([id, label]) => {
+          const on = id === view, apply = id === "apply";
+          return <DropdownMenuItem key={id} testID={"coaching-" + id} onPress={() => { if (!on) nav.go(id, true); }} className={cn("min-h-11 gap-2.5 rounded-xl px-2.5", on && "bg-accent")}>
+            <Icon as={ICONS[id]} size={17} className={apply ? "text-primary" : on ? "text-foreground" : "text-muted-foreground"} />
+            <Text className={cn("flex-1 text-[15px] font-bold", apply && "text-primary")}>{tr(label)}</Text>
+            {id === "sessions" && upcoming && !c.badge(id) ? <Numeric className="text-xs text-muted-foreground">{tr("{0} upcoming", { 0: upcoming })}</Numeric> : <Count n={c.badge(id)} />}
+            {on ? <Icon as={Check} size={16} className="text-primary" /> : null}
+          </DropdownMenuItem>;
+        })}
+      </Fragment>)}
+      {!c.isCoach ? <Text className="px-2.5 pt-0.5 pb-1.5 text-xs text-muted-foreground">{tr("A coach also finds here Dashboard, Students, Schedule and Coach profile.")}</Text> : null}
+    </DropdownMenuContent>
+  </DropdownMenu>;
 }

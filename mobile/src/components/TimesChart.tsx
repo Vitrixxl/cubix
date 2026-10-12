@@ -2,7 +2,7 @@ import { atom, useAtom } from "jotai";
 import { ChartLine, MessageSquare, Table } from "lucide-react-native";
 import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
-import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 import { effective, fmtDate, fmtTime } from "../../../src/client/lib/format";
 import type { CaseHistoryDto, HistoryPoint } from "../../../src/shared/types";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ type Sort = "newest" | "oldest" | "fastest" | "slowest";
 const SORTS: { id: Sort; label: string }[] = [{ id: "newest", label: "Newest first" }, { id: "oldest", label: "Oldest first" }, { id: "fastest", label: "Fastest first" }, { id: "slowest", label: "Slowest first" }];
 /** Rows drawn before the list asks for more; long timer histories stay light. */
 const PAGE = 100;
-type Range = [number, number];
+export type Range = [number, number];
 
 /** The seven figures: four columns over two rows, flat. */
 function StatStrip({ summary }: { summary: CaseHistoryDto["summary"] }) {
@@ -96,7 +96,7 @@ function StatsPanel({ history, ao5, compact, fill, table }: { history: HistoryPo
 
 const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(high, n));
 /** Inclusive solve bounds; keeps the requested width when reaching either edge. */
-function fitRange(start: number, width: number, last: number): Range {
+export function fitRange(start: number, width: number, last: number): Range {
   const span = clamp(Math.round(width), Math.min(1, last), last);
   const first = clamp(Math.round(start), 0, last - span);
   return [first, first + span];
@@ -105,9 +105,15 @@ function fitRange(start: number, width: number, last: number): Range {
 /**
  * Single times (accent) and the rolling Ao5 (series colour) over the visible period, four hairline levels with their
  * times on the left, the first and last dates below. A tap shows the solve under the finger; dragging across the chart
- * selects a period and zooms into it; "Reset zoom" shows every solve.
+ * selects a period and zooms into it; "Reset zoom" shows every solve. `points` draws each time as a dot rather than a
+ * line, `marks` (indices) as larger mint dots (the records), `dnfs` a cross on top for each time missing (a DNF).
  */
-const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height }: { history: HistoryPoint[]; averages: (number | null)[]; range: Range; onRange: (range: Range) => void; height?: number }) {
+export const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height, points = false, marks, dnfs = false, label }: {
+  history: readonly { time: number | null; at: string }[]; averages: (number | null)[]; range: Range; onRange: (range: Range) => void; height?: number;
+  points?: boolean; marks?: readonly number[]; dnfs?: boolean;
+  /** The line of a point's tip under its time (default: its number and date). */
+  label?: (index: number) => string;
+}) {
   const colors = useColors();
   const [size, setSize] = useState({ w: 0, h: height ?? 0 });
   const [hover, setHover] = useState<number | null>(null);
@@ -176,10 +182,14 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
         accessibilityLabel={tr("Solve times: tap a point to read it, drag across the chart to zoom into a period")}>
         {W > 0 && H > 0 && <Svg width={W} height={H}>
           {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={colors.border} strokeWidth={1} />)}
-          <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={1.6} strokeLinejoin="round" />
-          <Path d={paths.single} fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />
-          {visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
+          {points
+            ? visible.map((v, i) => v.time != null ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={visible.length > 300 ? 1.2 : 1.8} fill={colors.primary} fillOpacity={0.75} /> : null)
+            : <Path d={paths.single} fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />}
+          <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={2} strokeLinejoin="round" />
+          {!points && visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
             ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={2.5} fill={colors.primary} /> : null)}
+          {marks?.map(i => i >= first && i <= last && history[i]?.time != null ? <Circle key={"m" + i} cx={x(i)} cy={y(history[i]!.time!)} r={3.5} fill={colors.variables["--success"]} /> : null)}
+          {dnfs && span < 300 && visible.map((v, i) => v.time == null ? <SvgText key={"x" + i} x={x(first + i)} y={11} fill={colors.variables["--destructive"]} fontSize={12} fontWeight="800" textAnchor="middle">×</SvgText> : null)}
           {hover != null && <Line x1={x(hover)} x2={x(hover)} y1={0} y2={H} stroke={colors.mutedForeground} strokeDasharray="3 3" />}
           {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={colors.primary} stroke={colors.card} strokeWidth={2} />}
           {selection && <Rect x={x(selection[0]!)} y={0} width={Math.max(1, x(selection[1]!) - x(selection[0]!))} height={H} fill={colors.primary} fillOpacity={0.12} stroke={colors.primary} strokeWidth={1} />}
@@ -189,7 +199,7 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
         {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
           <Numeric className="text-base font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Numeric>
           {averages[hover!] != null && <Numeric className="text-xs" style={{ color: colors.chart2 }}>{tr("Ao5 {0}", { 0: fmtTime(averages[hover!]) })}</Numeric>}
-          <Text className="text-xs text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
+          <Text className="text-xs text-muted-foreground">{label ? label(hover!) : `#${hover! + 1} · ${fmtDate(point.at)}`}</Text>
         </View>}
       </View>
     </View>

@@ -35,7 +35,11 @@ mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["BackButton", "Empty", "Figure", "HeadButton", "Label", "Numeric", "Page", "PageHead"].map(name => [name, name])));
+  ["Alg", "BackButton", "Empty", "Figure", "HeadButton", "Label", "Numeric", "Page", "PageHead", "Segmented"].map(name => [name, name])));
+mock.module("../src/components/AppBar", () => ({ PushedBar: ({ children }: { children?: unknown }) => children ?? null }));
+mock.module("../src/components/AlgPlayer", () => ({ Pulse: "Pulse", ViewButtons: "ViewButtons" }));
+mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: "StaticCubeSvg" }));
+mock.module("../src/lib/practiceScramble", () => ({ generatePracticeScramble: async () => "R U F" }));
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);
 const { AssistedPage } = await import("../src/pages/AssistedPage");
@@ -49,11 +53,11 @@ const press = async (label: string, index = 0) => {
   if (!node) throw new Error("No control " + label);
   await act(() => node.props.onPress());
 };
-/** The control (a Button, named by its text) that holds `text`. */
-const button = (text: string) => renderer.root.findAll((n: any) => n.type === "Button" && n.findAll((c: any) => c.type === "Text" && c.props.children === text).length > 0)[0];
+/** The control (a Button or a card, named by its text) that holds `text`. */
+const button = (text: string) => renderer.root.findAll((n: any) => (n.type === "Button" || n.type === "Pressable") && n.findAll((c: any) => c.type === "Text" && c.props.children === text).length > 0)[0];
 /** Every measured box laid out as on a phone, so what waits for its size draws. */
 const layout = () => act(() => { for (const n of renderer.root.findAll((n: any) => typeof n.props.onLayout === "function")) n.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 420 } } }); });
-const shows = (text: string) => renderer.root.findAll((n: any) => n.type === "Text" && [n.props.children].flat().join("") === text).length > 0;
+const shows = (text: string) => renderer.root.findAll((n: any) => n.type === "Text" && [n.props.children].flat().join("").includes(text)).length > 0;
 
 test("a cube painted by hand is planned, then solved turn by turn to the end", async () => {
   await act(() => { renderer = create(<Provider store={createStore()}><AssistedPage /></Provider>); });
@@ -73,15 +77,15 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   await layout();
 
   const parts = solveBeginner(scannedState(target))!, total = parts.reduce((sum, p) => sum + p.alg.split(" ").length, 0);
-  expect(shows("White cross")).toBe(true);
+  expect(shows("Step 1 · White cross")).toBe(true);
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
   // A turn made, then taken back.
-  await act(() => button("Next turn")!.props.onPress());
+  await act(() => button("Done, next turn")!.props.onPress());
   expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
   await press("Previous turn");
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
   let turns = 0;
-  while (button("Next turn") && turns < 500) { await act(() => button("Next turn")!.props.onPress()); turns++; }
+  while (button("Done, next turn") && turns < 500) { await act(() => button("Done, next turn")!.props.onPress()); turns++; }
   expect(turns).toBe(total);
   expect(shows("Solved!")).toBe(true);
   expect(button("Solve again")).toBeDefined();

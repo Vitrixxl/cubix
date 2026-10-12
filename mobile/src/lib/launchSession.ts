@@ -21,3 +21,8 @@ export function launchSessionId(mode: SessionMode, context: PracticeContext): nu
 export async function ensureLaunchSession(mode: SessionMode, context: PracticeContext, caseIds: string[] = []): Promise<number> {
   return sessions.ensure(key(mode, context), () => api.createSession(mode, caseIds, context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }));
 }
+
+/** Another session for the context: a new one, or an earlier one chosen again (the timer's sessions). */
+export function setLaunchSession(mode: SessionMode, context: PracticeContext, id: number) {
+  sessions.set(key(mode, context), id);
+}

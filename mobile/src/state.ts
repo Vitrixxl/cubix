@@ -17,10 +17,19 @@ import { CROSS_MOVES, crossMovesFor, crossScrambleType, isCrossTarget, type Cros
 export type GuideId = "about" | "algorithms" | "training" | "timer" | "smartCube" | "duel" | "community" | "coaching" | "methods" | "notation" | "averages";
 export type Route =
   | { page: "learn"; method?: string }
-  | { page: "algorithms"; caseId?: string; caseIds?: string[] }
+  /** The catalogue; `set` opens a set, `search` the search over every case, `caseId` a case (`caseIds`: its neighbours). */
+  | { page: "algorithms"; caseId?: string; caseIds?: string[]; set?: string; search?: boolean }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
+  /** The smart cube solves' analysis (the timer section's second page). */
+  | { page: "analysis" }
+  /** A solve on its own, pushed from a list of times: its replay, and (`step`) the analysis of one of its steps. */
+  | { page: "solve"; id: number; step?: string; comment?: boolean }
   | { page: "duel" }
+  /** The daily scramble; `day` (YYYY-MM-DD) opens a past day, "results" the player's results (DailyPage). */
+  | { page: "daily"; day?: string }
+  /** The settings, pushed from the account menu. */
+  | { page: "settings" }
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string }
   /** The beginner course's assisted solve (AssistedPage), over the course. */
   | { page: "assisted" }
@@ -35,7 +44,7 @@ export type Route =
   /** Coaching: its section and argument, as on the web ("dashboard", "coach/<id>", "messages/<id>", "call/<id>"); none opens the account's default. */
   | { page: "coaching"; view?: string };
 /** A profile detail view; no mode shows the overview tiles. */
-export type ProfileMode = "playground" | "training" | "achievements" | "duels";
+export type ProfileMode = "playground" | "training" | "achievements" | "duels" | "activity";
 /** The account's sections, as its tabs show them. */
 export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[] = [
   { id: "overview", label: "Overview" }, { id: "playground", label: "Timer" }, { id: "training", label: "Training" },
@@ -43,28 +52,61 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
 ];
 export type Page = Route["page"];
 /**
- * The seven tabs of the bottom bar, as on the web phone. Each holds pages of its own; the account also holds the
- * community, tournaments and matches.
+ * The five sections of the bottom bar, as on the desktop: the timer (and the analysis), learning (courses, training),
+ * the algorithms, the challenges (duel, tournaments, daily) and the player's own pages (profile, messages, community,
+ * coaching).
  */
-export type Tab = "timer" | "algorithms" | "learn" | "train" | "duel" | "coaching" | "profile";
-export const TABS: readonly Tab[] = ["timer", "algorithms", "learn", "train", "duel", "coaching", "profile"];
+export type Tab = "timer" | "learn" | "algorithms" | "compete" | "me";
+export const TABS: readonly Tab[] = ["timer", "learn", "algorithms", "compete", "me"];
 const TAB_OF: Record<Page, Tab> = {
-  playground: "timer", algorithms: "algorithms", learn: "learn", assisted: "learn", training: "train", duel: "duel", coaching: "coaching",
-  profile: "profile", community: "profile", tournaments: "profile", match: "profile",
+  playground: "timer", analysis: "timer", solve: "timer", learn: "learn", assisted: "learn", training: "learn", algorithms: "algorithms",
+  duel: "compete", tournaments: "compete", match: "compete", daily: "compete",
+  profile: "me", community: "me", coaching: "me", settings: "me",
 };
 export const tabOf = (page: Page): Tab => TAB_OF[page];
-/** The page a tab opens on the first time, and goes back to when its button is tapped again. */
+/** The page a section opens on the first time, and goes back to when its button is tapped again. */
 export const TAB_ROOT: Record<Tab, Route> = {
-  timer: { page: "playground" }, algorithms: { page: "algorithms" }, learn: { page: "learn" }, train: { page: "training" },
-  duel: { page: "duel" }, coaching: { page: "coaching" }, profile: { page: "profile" },
+  timer: { page: "playground" }, learn: { page: "learn" }, algorithms: { page: "algorithms" }, compete: { page: "duel" }, me: { page: "profile" },
+};
+/** A page of a section, as its tab under the app bar shows it: its name, where it leads, and whether a route is in it. */
+export type SectionPage = { id: string; label: string; route: Route; has: (route: Route) => boolean };
+const isPeople = (route: Route) => route.page === "community" && !!route.view?.startsWith("people");
+export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
+  timer: [
+    { id: "playground", label: "Timer", route: { page: "playground" }, has: r => r.page === "playground" },
+    { id: "analysis", label: "Analysis", route: { page: "analysis" }, has: r => r.page === "analysis" },
+  ],
+  learn: [
+    { id: "learn", label: "Courses", route: { page: "learn" }, has: r => r.page === "learn" || r.page === "assisted" },
+    { id: "training", label: "Training", route: { page: "training" }, has: r => r.page === "training" },
+  ],
+  algorithms: [{ id: "algorithms", label: "Algorithms", route: { page: "algorithms" }, has: r => r.page === "algorithms" }],
+  compete: [
+    { id: "duel", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
+    { id: "tournaments", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },
+    { id: "daily", label: "Daily", route: { page: "daily" }, has: r => r.page === "daily" },
+  ],
+  me: [
+    { id: "profile", label: "Profile", route: { page: "profile" }, has: r => r.page === "profile" || r.page === "settings" },
+    { id: "messages", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
+    { id: "people", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
+    { id: "coaching", label: "Coaching", route: { page: "coaching" }, has: r => r.page === "coaching" },
+  ],
 };
 /** How deep a route sits in its tab: its first page is 0, a page opened from it 1. */
 export function routeDepth(route: Route) {
   switch (route.page) {
     case "learn": return route.method ? 1 : 0;
+    // The profile's modes (statistics, cases, achievements, battles, activity) are screens pushed over it.
+    case "profile": return route.mode ? 1 : 0;
+    case "algorithms": return route.caseId ? 2 : route.set || route.search ? 1 : 0;
     case "assisted": return 2;
-    case "community": case "tournaments": return route.view ? 2 : 1;
-    case "match": return 3;
+    case "settings": return 1;
+    case "solve": return route.step ? 2 : 1;
+    case "daily": return route.day ? 1 : 0;
+    case "community": return route.view && route.view !== "people" ? 1 : 0;
+    case "tournaments": return route.view ? 1 : 0;
+    case "match": return 2;
     // A section is the tab's own level; what it opens (a coach, a conversation, a call) goes one deeper.
     case "coaching": return route.view?.includes("/") ? 1 : 0;
     default: return 0;
@@ -79,7 +121,8 @@ export function routeOfUrl(url: string): { route: Route; puzzle?: PuzzleId } | n
   const r = readRoute(path, search);
   if (!r) return null;
   const route: Route | null =
-    r.page === "playground" || r.page === "training" || r.page === "duel" ? { page: r.page }
+    r.page === "playground" || r.page === "training" || r.page === "duel" || r.page === "daily" ? { page: r.page }
+    : r.page === "profile" && r.profileMode === "analysis" ? { page: "analysis" }
     : r.page === "algorithms" ? (r.caseId ? { page: "algorithms", caseId: r.caseId } : { page: "algorithms" })
     : r.page === "learn" ? (r.learnMethod ? { page: "learn", method: r.learnMethod } : { page: "learn" })
     : r.page === "profile" ? (PROFILE_SECTIONS.some(s => s.id === r.profileMode && s.id !== "overview") ? { page: "profile", mode: r.profileMode as ProfileMode } : { page: "profile" })
@@ -95,6 +138,9 @@ export function urlOfRoute(route: Route) {
     case "algorithms": return pageUrl("algorithms", { caseId: route.caseId });
     case "learn": return pageUrl("learn", { learnMethod: route.method });
     case "assisted": return pageUrl("learn");
+    case "analysis": return pageUrl("profile", { profileMode: "analysis" });
+    case "solve": return pageUrl("playground");
+    case "settings": return pageUrl("profile");
     case "profile": return pageUrl("profile", { profileMode: route.mode ?? "overview" });
     case "community": case "tournaments": return pageUrl(route.page, { view: route.view });
     case "match": return pageUrl("match", { view: String(route.id) });
@@ -111,7 +157,7 @@ const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "learn", "algorithms", "training", "duel", "coaching", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "analysis", "learn", "algorithms", "training", "duel", "daily", "tournaments", "coaching", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }
@@ -153,7 +199,7 @@ export const openTabAtom = atom(null, (get, set, tab: Tab) => {
   if (tabOf(current.page) !== tab) {
     const last = [...history].reverse().find(route => tabOf(route.page) === tab);
     // Training opened on a selection starts once: coming back to the tab does not start it again.
-    set(routeAtom, last && !(last.page === "training" && last.autostart) ? last : TAB_ROOT[tab]);
+    set(routeAtom, !last ? TAB_ROOT[tab] : last.page === "training" && last.autostart ? { page: "training" } : last);
     return;
   }
   // Training keeps its steps (setup, a way to practise, the session) in state rather than in routes.
@@ -177,7 +223,7 @@ export const profileFiltersAtom = atom<{ cube?: PuzzleId; solveMode?: SolveMode;
 // Persisted preferences (synchronous MMKV storage, read on init)
 // ---------------------------------------------------------------------------
 const json = createJSONStorage<any>(() => storage);
-const persisted = <T>(key: string, fallback: T) => atomWithStorage<T>(key, fallback, json, { getOnInit: true });
+export const persisted = <T>(key: string, fallback: T) => atomWithStorage<T>(key, fallback, json, { getOnInit: true });
 
 const storedPuzzleAtom = persisted<PuzzleId>("cubix.puzzle", "333");
 export const cubeSwitchLockedAtom = atom(false);
@@ -185,14 +231,14 @@ export const puzzleAtom = atom(get => { const value = get(storedPuzzleAtom); ret
   if (!isPuzzle(puzzle) || get(cubeSwitchLockedAtom)) return;
   set(storedPuzzleAtom, puzzle);
   const route = get(routeAtom);
-  if (route.page === "algorithms" && route.caseId) set(routeAtom, { page: "algorithms" });
+  if (route.page === "algorithms" && (route.caseId || route.set)) set(routeAtom, { page: "algorithms" });
   // A course belongs to its puzzle: another puzzle opens on its own methods.
   if (route.page === "learn" && route.method) set(replaceRouteAtom, { page: "learn" });
   set(learnMethodAtom, undefined);
   if (route.page === "profile" && route.caseId) set(routeAtom, { ...route, caseId: undefined });
 });
 /** Each puzzle remembers its own stage, set, training selection and scramble. */
-function perPuzzleAtom<T>(key: string, fallback: T) {
+export function perPuzzleAtom<T>(key: string, fallback: T) {
   const values = persisted<Record<string, T>>(key, {});
   const read = (all: Record<string, T>, puzzle: PuzzleId) => all[puzzle] ?? all[String(puzzleInfo(puzzle).cubeSize)] ?? fallback;
   return atom(get => read(get(values), get(puzzleAtom)), (get, set, update: T | ((value: T) => T)) => {
@@ -263,6 +309,9 @@ export const crossMovesAtom = atom(get => crossMovesFor(get(crossTargetAtom), ge
   (get, set, moves: number) => { if (CROSS_MOVES[get(crossTargetAtom)].includes(moves)) set(storedCrossMovesAtom, moves); });
 /** Training opens on the choice of what to practise, then shows the timer for it (kept while switching tabs). */
 export const trainingStepAtom = atom<"setup" | "practice">("setup");
+/** What the training started drills: the learned cases' pool, free practice, cross scrambles or a recognition run. */
+export type TrainingRun = "cases" | "free" | "cross" | "recognition";
+export const trainingRunAtom = atom<TrainingRun>("cases");
 /** Mode highlighted on the setup screen before it starts; empty = the one trained last. */
 export const trainingSetupModeAtom = atom("");
 
@@ -338,8 +387,8 @@ export const userAtom = atom<UserDto | null>(local.current());
 export const hasTokenAtom = atom(!!authToken.get());
 /** The app is only used signed in: an account and its token, or the sign-in screen. */
 export const signedInAtom = atom(get => { const user = get(userAtom); return !!user && !user.isGuest && get(hasTokenAtom); });
-/** The settings sheet (the account's "…" menu). */
-export const settingsOpenAtom = atom(false);
+/** The app used without an account, on this device only ("Continue without an account"); signing in clears it. */
+export const guestModeAtom = persisted<boolean>("cubix.guestMode", false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
 /** The Android keyboard covers the floating navigation; reclaim that space in forms. */

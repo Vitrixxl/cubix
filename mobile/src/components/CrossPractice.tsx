@@ -20,7 +20,8 @@ import { TimesSheet } from "./TimesSheet";
 import { crossSolutions, type CrossSolution } from "../scrambler";
 import { crossContextAtom, crossMovesAtom, crossScrambleAtom, crossTargetAtom, statsVersionAtom } from "../state";
 import { DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
-import { Alg, BackButton, Fade, Label, MoreMenu, Page, PageHead } from "./layout";
+import { Alg, Fade, Label, MoreMenu } from "./layout";
+import { PushedBar } from "./AppBar";
 import {
   AverageWindow, CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock,
   useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
@@ -125,9 +126,9 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
     ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Replay the scramble on the cube")} onPress={() => setReplay(n => n + 1)}><CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /></Pressable>
     : <View style={{ width: previewSize, height: previewSize }} />) : null;
 
-  return <Page className="pb-0">
+  return <View className="flex-1">
     <Fade hidden={running}>
-      <PageHead lead={<BackButton label={tr("Change what to train")} onPress={onBack} />} title={tr(CROSS_TARGET_LABELS[target])} sub={tr("{0} moves", { 0: moves })}>
+      <PushedBar title={tr(CROSS_TARGET_LABELS[target])} sub={tr("{0} moves", { 0: moves })} onBack={onBack}>
         <MoreMenu>
           {/* The web phone's MenuChoices: what to build, then the number of moves, as radio items under their label. */}
           <DropdownMenuGroup>
@@ -143,8 +144,9 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
         </MoreMenu>
-      </PageHead>
+      </PushedBar>
     </Fade>
+    <View className="min-h-0 flex-1 px-4">
     <Stage timer={timer} disabled={!!timer.saveError} running={running} prompt={prompt} visual={visual}
       readout={area => <>
         <TimerDigits timer={timer} area={area} />
@@ -155,7 +157,8 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
       bar={<LastSolveBar solve={saving ? null : lastSolve}
         extra={<SolveAction icon={Shuffle} label={tr("Scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
     <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
+    </View>
     <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title={tr("Times")} />
     <StopSurface timer={timer} />
-  </Page>;
+  </View>;
 }

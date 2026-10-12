@@ -21,7 +21,7 @@ export type { Tone };
  * a one-line label in a row of equal cells shrinks a little where a language's word is longer.
  */
 
-/** Figures and moves: Geist with even digits. */
+/** Figures and moves: Bricolage with even digits. */
 export function Numeric({ className, ...props }: React.ComponentProps<typeof Text>) {
   return <Text className={cn("font-sans tabular-nums", className)} {...props} />;
 }
@@ -72,13 +72,14 @@ export function HeadButton({ icon, label, onPress, disabled, active, badge, prim
 }
 
 /** Two or three parts of one page as a segmented control, the chosen part raised; `locked` ones are greyed but answer a tap. */
-export function Segmented<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; locked?: boolean }[]; onChange: (id: T) => void; label: string; className?: string }) {
+export function Segmented<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; locked?: boolean; count?: number; accent?: boolean }[]; onChange: (id: T) => void; label: string; className?: string }) {
   return <View accessibilityRole="tablist" accessibilityLabel={said(label)} className={cn("h-11 flex-row rounded-xl bg-muted p-1", className)}>
     {options.map(o => {
       const on = o.id === value;
       return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { if (!on) onChange(o.id); }}
-        className={cn("flex-1 items-center justify-center rounded-lg", on && "bg-background shadow-sm shadow-black/20", o.locked && "opacity-45")}>
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-sm", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{said(o.label)}</Text>
+        className={cn("flex-1 flex-row items-center justify-center gap-1 rounded-lg", on && "bg-background shadow-sm shadow-black/20", o.locked && "opacity-45")}>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("shrink text-sm", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{said(o.label)}</Text>
+        {o.count ? <Numeric className={cn("text-xs font-bold", o.accent ? "text-primary" : "text-muted-foreground")}>{o.count}</Numeric> : null}
       </Pressable>;
     })}
   </View>;
@@ -242,7 +243,7 @@ export function Bar({ ratio, behind, done = true, fill, className }: { ratio: nu
   </View>;
 }
 
-/** Moves in Geist, wrapping between moves only; brackets and rotations in parentheses are muted. */
+/** Moves in Bricolage, wrapping between moves only; brackets and rotations in parentheses are muted. */
 export function Alg({ text, size = 18, className, selectable }: { text: string; size?: number; className?: string; selectable?: boolean }) {
   const words = (text ?? "").trim().split(/\s+/).filter(Boolean);
   return <View className={cn("min-w-0 flex-row flex-wrap", className)} style={{ columnGap: size * 0.5, rowGap: size * 0.3 }}>

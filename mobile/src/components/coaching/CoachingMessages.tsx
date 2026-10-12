@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { coaching, useCoaching } from "../../lib/social";
 import { routeAtom } from "../../state";
-import { Empty, ListSkeleton, Surface } from "../layout";
+import { Empty, ListSkeleton } from "../layout";
+import { PushedBar } from "../AppBar";
 import { toastAtom } from "../Toast";
 import { Bubble, ChatClosed, ChatHeader, Composer, ConversationList, ConversationRow, Face, MessageList } from "../chat/kit";
 import { useCoachingNav } from "./parts";
@@ -35,13 +36,15 @@ export function CoachingMessages({ conversationId }: { conversationId?: number }
       : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10">{tr("Book a session with a coach to write to them.")}<Button variant="outline" className="h-11 rounded-lg" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button>
       </Empty>
         : list.map(c => <ConversationRow key={c.id} onPress={() => nav.go("messages/" + c.id)} name={c.with.username} tag={c.role === "student" ? "coach" : "student"}
-          face={<Face name={c.with.username} src={c.with.avatar} size={40} />} at={c.lastMessage?.at} unread={c.unread}
+          face={<Face name={c.with.username} src={c.with.avatar} size={44} />} at={c.lastMessage?.at} unread={c.unread}
           preview={c.lastMessage ? (c.lastMessage.mine ? tr("You: {0}", { 0: preview(c.lastMessage) }) : preview(c.lastMessage)) : tr("No message yet")} />)}
   </ConversationList>;
-  return <Surface className="min-h-0 flex-1">
+  // A conversation is a screen of its own.
+  return <View className="min-h-0 flex-1">
     {current ? <Chat conversation={current} back={() => nav.back(section)} />
-      : <Empty icon={MessagesSquare} title={list ? tr("This conversation does not exist.") : tr("Your conversations open here.")} />}
-  </Surface>;
+      : <><PushedBar title={tr("Messages")} onBack={() => nav.back(section)} />
+        <Empty icon={MessagesSquare} title={list ? tr("This conversation does not exist.") : tr("Your conversations open here.")} /></>}
+  </View>;
 }
 
 /** A last message in the list: its words, or what it holds ("Photo"), translated. */
@@ -95,13 +98,13 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
     {head ? <ChatHeader back={back && { label: tr("Every conversation"), onPress: back }} face={<Face name={c.with.username} src={c.with.avatar} size={32} />}
       title={c.with.username} sub={student ? tr("Your coach") : tr("Your student")} onOpen={() => setFile(true)} openLabel={student ? tr("Coach file") : tr("Student file")} /> : null}
     <PersonDialog id={student ? c.coachId : c.studentId} name={c.with.username} open={file} onClose={() => setFile(false)} inChat />
-    <MessageList<Message> key={c.id} messages={messages} me={coaching.host.account().id}
-      bubble={(m, mine, last) => <>
+    <MessageList<Message> key={c.id} messages={messages} me={coaching.host.account().id} them={c.with.username}
+      bubble={m => <>
         {m.media ? <MediaView media={m.media} /> : null}
-        {m.body ? <Bubble mine={mine} last={last}>{m.body}</Bubble> : null}
+        {m.body ? <Bubble>{m.body}</Bubble> : null}
       </>}
       empty={<Empty icon={MessagesSquare} title={tr("Say hello to {0}.", { 0: c.with.username })}>{tr("Messages, pictures and videos you send show here.")}</Empty>}>
-      {uploads.map(u => <View key={u.key} accessibilityLabel={tr("Sending {0}", { 0: u.name })} className="max-w-[70%] items-end gap-1 self-end">
+      {uploads.map(u => <View key={u.key} accessibilityLabel={tr("Sending {0}", { 0: u.name })} className="max-w-[70%] items-start gap-1 pl-[66px]">
         <Skeleton className="h-40 w-56 rounded-2xl" />
         <Text numberOfLines={1} className="px-1 text-xs text-muted-foreground">{tr("Sending {0}", { 0: u.name })}</Text>
       </View>)}

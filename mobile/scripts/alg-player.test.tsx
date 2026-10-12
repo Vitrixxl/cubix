@@ -10,7 +10,7 @@ mock.module("react-native", () => ({
   View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
   PanResponder: { create: (config: any) => { responders++; return { panHandlers: { config } }; } },
 }));
-mock.module("react-native-svg", () => ({ default: "Svg", Circle: "Circle", ClipPath: "ClipPath", Defs: "Defs", G: "G", Polygon: "Polygon", Polyline: "Polyline" }));
+mock.module("react-native-svg", () => ({ default: "Svg", Circle: "Circle", ClipPath: "ClipPath", Defs: "Defs", G: "G", Path: "Path", Polygon: "Polygon", Polyline: "Polyline", Rect: "Rect", Text: "SvgText" }));
 const stored = new Map<string, string>();
 mock.module("../src/platform/storage", () => ({ storage: {
   getItem: (key: string) => stored.get(key) ?? null,
@@ -28,7 +28,7 @@ mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Choice", "Label", "Numeric"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["Alg", "Choice", "Label", "Numeric"].map(name => [name, name])));
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);
 const { AlgPlayerSheet } = await import("../src/components/AlgPlayer");
@@ -77,7 +77,7 @@ test("the sheet plays the case: moves lit as they turn, stepping, alternatives, 
   await act(() => byLabel("Speed 1×").props.onPress());
   expect(byLabel("Speed 2×")).toBeDefined();
   // The alternative is played on its own.
-  await act(() => renderer.root.findByType("Choice" as any).props.onChange("1"));
+  await act(() => renderer.root.findAll((n: any) => n.type === "Pressable" && n.findAllByType("Text" as any).some((t: any) => t.props.children === "Alternative 1"))[0]!.props.onPress());
   expect(renderer.root.findAll((n: any) => /^Move /.test(n.props.accessibilityLabel ?? "")).length).toBe(11);
   // Next algorithm.
   await act(() => byLabel("Next algorithm").props.onPress());

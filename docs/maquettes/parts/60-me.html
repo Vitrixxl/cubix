@@ -1,0 +1,1184 @@
+<style>
+:is(#profile,#achievements,#settings,#welcome) .pill svg.lucide { width: 12px; height: 12px; }
+:is(#profile,#achievements,#settings,#welcome) .cal { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+:is(#profile,#achievements,#settings,#welcome) .cal > * { height: 31px; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--faint); position: relative; font-variant-numeric: tabular-nums; }
+:is(#profile,#achievements,#settings,#welcome) .cal > .wd { height: 18px; font-size: 10.5px; color: var(--faint); }
+:is(#profile,#achievements,#settings,#welcome) .cal > .a { color: var(--fg); }
+:is(#profile,#achievements,#settings,#welcome) .cal > .a::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: var(--w, 14px); height: 3px; transform: translateX(-50%); border-radius: 3px; background: var(--warn); }
+:is(#profile,#achievements,#settings,#welcome) .cal > .now { box-shadow: inset 0 0 0 2px var(--pri); border-radius: 10px; }
+:is(#profile,#achievements,#settings,#welcome) .cal.sm > * { height: 26px; font-size: 12px; }
+:is(#profile,#achievements,#settings,#welcome) .cal.sm > .wd { height: 16px; font-size: 10px; }
+:is(#profile,#achievements,#settings,#welcome) .wk { display: flex; align-items: flex-end; gap: 5px; }
+:is(#profile,#achievements,#settings,#welcome) .wk > div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; min-width: 0; }
+:is(#profile,#achievements,#settings,#welcome) .wk i { display: block; width: 100%; border-radius: 7px; background: var(--acc); }
+:is(#profile,#achievements,#settings,#welcome) .wk i.best { background: var(--lilac); }
+:is(#profile,#achievements,#settings,#welcome) .wk small { font-size: 9.5px; font-weight: 700; color: var(--faint); white-space: nowrap; }
+:is(#profile,#achievements,#settings,#welcome) .wk small.v { color: var(--lilac); }
+:is(#profile,#achievements,#settings,#welcome) .jd { display: grid; grid-template-columns: 38px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex: none; }
+:is(#profile,#achievements,#settings,#welcome) .jd .dn { display: flex; flex-direction: column; align-items: center; padding-top: 2px; }
+:is(#profile,#achievements,#settings,#welcome) .jd .dn b { font-size: 24px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+:is(#profile,#achievements,#settings,#welcome) .jd .dn small { font-size: 11px; color: var(--mfg); font-weight: 700; }
+:is(#profile,#achievements,#settings,#welcome) .jd .dn.now b { color: var(--pri); }
+:is(#profile,#achievements,#settings,#welcome) .bdg { --c: var(--pri); width: 48px; height: 48px; border-radius: 50%; background: var(--c); color: var(--bg); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex: none; line-height: 1; position: relative; }
+:is(#profile,#achievements,#settings,#welcome) .bdg b { font-size: 15px; font-weight: 800; letter-spacing: -.03em; position: relative; font-variant-numeric: tabular-nums; }
+:is(#profile,#achievements,#settings,#welcome) .bdg i { font-style: normal; font-size: 8.5px; font-weight: 700; opacity: .8; position: relative; margin-top: 1px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lock { background: conic-gradient(var(--c) calc(var(--p, 30) * 1%), var(--acc) 0); color: var(--mfg); }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lock::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--muted); }
+:is(#profile,#achievements,#settings,#welcome) .bdg.xs { width: 18px; height: 18px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.xs b { font-size: 8.5px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.xs i { display: none; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.sm { width: 36px; height: 36px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.sm b { font-size: 11.5px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.sm i { font-size: 6.5px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lg { width: 108px; height: 108px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lg b { font-size: 38px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lg i { font-size: 16px; }
+:is(#profile,#achievements,#settings,#welcome) .bdg.lock.lg::before { inset: 6px; }
+:is(#profile,#achievements,#settings,#welcome) .dots { --c: var(--pri); display: flex; flex-wrap: wrap; gap: 3px; }
+:is(#profile,#achievements,#settings,#welcome) .dots i { width: 7px; height: 7px; border-radius: 50%; background: color-mix(in srgb, var(--faint) 35%, transparent); flex: none; }
+:is(#profile,#achievements,#settings,#welcome) .dots i.u { background: var(--c); }
+:is(#profile,#achievements,#settings,#welcome) .ach { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 12px 4px 10px; border-radius: 18px; background: var(--card); text-align: center; min-width: 0; }
+:is(#profile,#achievements,#settings,#welcome) .ach > b { font-size: 13px; font-weight: 700; line-height: 1.15; margin-top: 3px; }
+:is(#profile,#achievements,#settings,#welcome) .ach > small { font-size: 11.5px; color: var(--mfg); font-weight: 600; }
+:is(#profile,#achievements,#settings,#welcome) .ach.on { background: var(--acc); }
+:is(#profile,#achievements,#settings,#welcome) .cico { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--bg); flex: none; }
+:is(#profile,#achievements,#settings,#welcome) .cico svg.lucide { width: 16px; height: 16px; }
+:is(#profile,#achievements,#settings,#welcome) .sw { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #1c1317; }
+:is(#profile,#achievements,#settings,#welcome) .sw.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+:is(#profile,#achievements,#settings,#welcome) .sw svg.lucide { width: 16px; height: 16px; stroke-width: 3; }
+:is(#profile,#achievements,#settings,#welcome) .menu { position: absolute; z-index: 7; background: var(--pop); border-radius: 22px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); padding: 6px; display: flex; flex-direction: column; gap: 1px; }
+:is(#profile,#achievements,#settings,#welcome) .menu .li { padding: 9px 10px; border-radius: 12px; gap: 10px; font-weight: 600; }
+:is(#profile,#achievements,#settings,#welcome) .menu .li svg.lucide { color: var(--mfg); }
+:is(#profile,#achievements,#settings,#welcome) .grp { background: var(--card); border-radius: 20px; display: flex; flex-direction: column; flex: none; }
+:is(#profile,#achievements,#settings,#welcome) .grp > .li { border-radius: 0; padding: 11px 14px; min-height: 48px; }
+:is(#profile,#achievements,#settings,#welcome) .grp > .li + .li { box-shadow: inset 0 1px 0 var(--border); }
+:is(#profile,#achievements,#settings,#welcome) .tdots { display: flex; gap: 4px; align-items: center; }
+:is(#profile,#achievements,#settings,#welcome) .tdots i { width: 6px; height: 6px; border-radius: 6px; background: var(--acc); }
+:is(#profile,#achievements,#settings,#welcome) .tdots i.d { background: color-mix(in srgb, var(--pri) 55%, transparent); }
+:is(#profile,#achievements,#settings,#welcome) .tdots i.on { width: 18px; background: var(--pri); }
+:is(#profile,#achievements,#settings,#welcome) .xpg { position: absolute; left: 22px; right: 22px; z-index: 8; background: var(--pop); border-radius: 18px; padding: 11px 14px; display: flex; flex-direction: column; gap: 7px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); }
+:is(#profile,#achievements,#settings,#welcome) .xpg .bar { height: 8px; }
+:is(#profile,#achievements,#settings,#welcome) .gl { display: inline-grid; gap: 1.5px; }
+:is(#profile,#achievements,#settings,#welcome) .gl i { width: var(--s); height: var(--s); border-radius: 1.5px; background: currentColor; }
+:is(#profile,#achievements,#settings,#welcome) .pz { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; height: 68px; border-radius: 16px; background: var(--card); font-size: 12.5px; font-weight: 700; color: var(--mfg); position: relative; min-width: 0; }
+:is(#profile,#achievements,#settings,#welcome) .pz.on { background: var(--acc); color: var(--fg); }
+:is(#profile,#achievements,#settings,#welcome) .pz.on .gl, :is(#profile,#achievements,#settings,#welcome) .pz.on > svg.lucide { color: var(--pri); }
+:is(#profile,#achievements,#settings,#welcome) .pz.on::after { content: "✓"; position: absolute; top: 5px; right: 9px; color: var(--pri); font-weight: 800; font-size: 12px; }
+:is(#profile,#achievements,#settings,#welcome) .pz svg.lucide { width: 22px; height: 22px; stroke-width: 1.6; }
+:is(#profile,#achievements,#settings,#welcome) .mchip { height: 36px; padding: 0 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; background: var(--muted); color: var(--mfg); flex: none; }
+:is(#profile,#achievements,#settings,#welcome) .mchip.on { background: color-mix(in srgb, var(--pri) 20%, var(--card)); color: var(--fg); }
+:is(#profile,#achievements,#settings,#welcome) .mchip svg.lucide { width: 15px; height: 15px; }
+:is(#profile,#achievements,#settings,#welcome) .mchip.on svg.lucide { color: var(--pri); }
+:is(#profile,#achievements,#settings,#welcome) .stp { display: flex; align-items: center; gap: 6px; }
+:is(#profile,#achievements,#settings,#welcome) .stp > span { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px; border-radius: 12px; font-weight: 700; font-size: 13px; color: var(--faint); }
+:is(#profile,#achievements,#settings,#welcome) .stp > span.on { background: var(--card); color: var(--fg); padding-right: 11px; }
+:is(#profile,#achievements,#settings,#welcome) .stp b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--muted); }
+:is(#profile,#achievements,#settings,#welcome) .stp .on b { background: var(--pri); color: var(--pri-fg); }
+:is(#profile,#achievements,#settings,#welcome) .stp .ok b { background: color-mix(in srgb, var(--pri) 25%, var(--card)); color: var(--pri); }
+:is(#profile,#achievements,#settings,#welcome) .stp b svg.lucide { width: 13px; height: 13px; stroke-width: 3; }
+:is(#profile,#achievements,#settings,#welcome) .spot { position: absolute; border-radius: 20px; box-shadow: 0 0 0 2px var(--pri), 0 0 0 999px rgba(8, 3, 6, .62); z-index: 6; pointer-events: none; }
+:is(#profile,#achievements,#settings,#welcome) .lbl { font-size: 12.5px; font-weight: 700; color: var(--mfg); }
+:is(#profile,#achievements,#settings,#welcome) .sep { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--faint); font-weight: 600; }
+:is(#profile,#achievements,#settings,#welcome) .sep::before, :is(#profile,#achievements,#settings,#welcome) .sep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+</style>
+
+<!-- =============================================================== 18 · Profile -->
+<section class="page" id="profile" data-short="Profile">
+  <div class="page-head">
+    <h2>18 · Profile <small>/profile</small></h2>
+    <p>Le carnet de pratique : qui on est, ses records, le journal de ses jours, le mois et les meilleures Ao5 de chaque semaine. Aujourd'hui le téléphone empile deux rangées d'onglets (Profile, Messages… puis Overview, Timer, Training, Awards, Battles) au-dessus d'une longue colonne qui défile. Ici une seule rangée d'onglets au plus ; les modes du profil (statistiques, entraînement, succès, duels) s'ouvrent depuis leurs raccourcis, et le journal défile seul, à l'intérieur de l'écran.</p>
+    <div class="feats"><span>Identité : avatar, nom, méthode, inscription</span><span>Niveau et barre d'XP</span><span>Import · Export (CSV, JSON) · Account · Log out</span><span>Records single / Ao5 par épreuve</span><span>Lien Statistics</span><span>Journal par jour : solves, best, Ao5, records, succès, duels</span><span>Filtre All / Records / Achievements / Battles</span><span>Filtre de puzzle</span><span>Calendrier du mois, mois précédent / suivant</span><span>Streak · record, this week, active days</span><span>Solves in all, training solves, cases learned</span><span>Best Ao5 per week</span><span>Raccourcis Analysis · Cases · Achievements · Battles</span><span>Modes : vue d'ensemble, stats du chrono, entraînement, succès, duels</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Une seule rangée d'onglets, celle de la section Me. L'onglet Profile tient l'identité, les records, les modes en raccourcis et le journal qui défile. Le calendrier, les compteurs et les semaines forment un écran poussé « Activity », ouvert par la série ou l'icône du journal.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Onglet Profile</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Me</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">DE</span>
+          </div>
+          <div class="utabs" style="gap:16px"><span class="on">Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div>
+          <div class="col g10 px16 grow" style="padding-top:12px;padding-bottom:10px">
+            <div class="row g12">
+              <span class="avatar lg l" style="border-radius:20px">DE</span>
+              <div class="col g4 grow">
+                <div class="row between"><span class="h2">dev</span><span class="pill warn"><i data-lucide="flame"></i>17 d</span></div>
+                <span class="s">CFOP · Joined Sep 2025</span>
+                <div class="row between"><b class="s" style="color:var(--fg)">Level 12</b><span class="xs num b">450 / 1,200 XP</span></div>
+                <div class="bar"><i style="width:37.5%"></i></div>
+              </div>
+            </div>
+            <div class="row g6">
+              <button class="btn sm" style="flex:1"><i data-lucide="upload"></i>Import</button>
+              <button class="btn sm" style="flex:1"><i data-lucide="download"></i>Export</button>
+              <button class="btn sm" style="flex:1"><i data-lucide="settings"></i>Account</button>
+              <button class="btn sm icon" aria-label="Log out"><i data-lucide="log-out"></i></button>
+            </div>
+            <div class="col g6">
+              <div class="row between"><span class="cap">Records · single / Ao5</span><span class="s pri b row g2">Statistics<i data-lucide="chevron-right"></i></span></div>
+              <div class="hscroll">
+                <div class="card tight" style="width:98px;gap:1px"><span class="xs b">3×3</span><b class="h3 num ok">9.775</b><span class="xs num">Ao5 10.782</span></div>
+                <div class="card tight" style="width:98px;gap:1px"><span class="xs b">2×2</span><b class="h3 num">2.566</b><span class="xs num">Ao5 3.591</span></div>
+                <div class="card tight" style="width:98px;gap:1px"><span class="xs b">3×3 OH</span><b class="h3 num ok">14.187</b><span class="xs num">Ao5 17.098</span></div>
+                <div class="card tight" style="width:98px;gap:1px"><span class="xs b">4×4</span><b class="h3 num">30.057</b><span class="xs num">Ao5 38.618</span></div>
+              </div>
+            </div>
+            <div class="grid4" style="gap:6px">
+              <div class="card tight center" style="gap:3px;padding:9px 4px"><i data-lucide="gauge" class="pri"></i><span class="xs b" style="color:var(--fg)">Analysis</span></div>
+              <div class="card tight center" style="gap:3px;padding:9px 4px"><i data-lucide="book-open" class="pri"></i><span class="xs b" style="color:var(--fg)">Cases <span class="faint">125</span></span></div>
+              <div class="card tight center" style="gap:3px;padding:9px 4px"><i data-lucide="trophy" class="pri"></i><span class="xs b" style="color:var(--fg)">Awards <span class="faint">109</span></span></div>
+              <div class="card tight center" style="gap:3px;padding:9px 4px"><i data-lucide="swords" class="pri"></i><span class="xs b" style="color:var(--fg)">Battles <span class="faint">6</span></span></div>
+            </div>
+            <div class="card grow" style="padding:12px 14px 0;gap:8px">
+              <div class="row between"><span class="h3">Journal</span><span class="row g4"><button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><button class="btn icon sm ghost"><i data-lucide="calendar-days"></i></button></span></div>
+              <div class="seg block"><span class="on">All</span><span>Records</span><span>Awards</span><span>Battles</span></div>
+              <div class="scroll g0">
+                <div class="jd"><div class="dn now"><b>11</b><small>Sun</small></div><div class="col g6"><span class="t"><b>105 solves</b> <span class="mfg">· best 9.775 · Ao5 10.782</span></span><div class="row wrap g4"><span class="pill pri"><i data-lucide="trophy"></i>Single 9.775 (−0.112)</span><span class="pill pri"><i data-lucide="trophy"></i>Ao5 10.782 (−0.231)</span><span class="pill"><span class="bdg xs"><b>10</b></span>Sub-10</span></div></div></div>
+                <div class="jd"><div class="dn"><b>10</b><small>Sat</small></div><div class="col g6"><span class="t"><b>79 solves</b> <span class="mfg">· best 10.303 · Ao5 11.479</span></span><div class="row wrap g4"><span class="pill ok"><i data-lucide="swords"></i>Won vs lena_speed</span></div></div></div>
+                <div class="jd"><div class="dn"><b>9</b><small>Fri</small></div><div class="col g6"><span class="t"><b>6 solves</b> <span class="mfg">· best 11.782 · Ao5 12.896</span></span></div></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Écran poussé · Activity</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Activity</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:12px">
+            <div class="card" style="gap:4px;padding:12px 12px 8px">
+              <div class="row between" style="padding-left:4px"><span class="h3">October 2026</span><span class="row g4"><button class="btn icon sm"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost" style="opacity:.4"><i data-lucide="chevron-right"></i></button></span></div>
+              <div class="cal">
+                <span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+                <span></span><span></span><span></span><span class="a" style="--w:6px">1</span><span class="a" style="--w:12px">2</span><span class="a" style="--w:8px">3</span><span class="a" style="--w:16px">4</span>
+                <span class="a" style="--w:12px">5</span><span class="a" style="--w:10px">6</span><span class="a" style="--w:6px">7</span><span class="a" style="--w:12px">8</span><span class="a" style="--w:4px">9</span><span class="a" style="--w:16px">10</span><span class="a now" style="--w:20px">11</span>
+                <span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+                <span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span>
+                <span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span></span>
+              </div>
+            </div>
+            <div class="grid3" style="gap:6px">
+              <div class="well"><b class="h2 num warn">17 d</b><span class="xs">streak · record 17</span></div>
+              <div class="well"><b class="h2 num">384</b><span class="xs">this week</span></div>
+              <div class="well"><b class="h2 num">291</b><span class="xs">active days</span></div>
+              <div class="well"><b class="h2 num">9,221</b><span class="xs">solves in all</span></div>
+              <div class="well"><b class="h2 num">1,634</b><span class="xs">training solves</span></div>
+              <div class="well"><b class="h2 num">125</b><span class="xs">cases learned</span></div>
+            </div>
+            <div class="card grow" style="gap:8px">
+              <div class="row between"><span class="cap">Best Ao5 per week · 3×3</span><span class="s b lilac num">10.782</span></div>
+              <div class="wk grow" style="min-height:0">
+                <div><i style="height:40%"></i><small>8/3</small></div>
+                <div><i style="height:46%"></i><small>8/10</small></div>
+                <div><i style="height:36%"></i><small>8/17</small></div>
+                <div><i style="height:52%"></i><small>8/24</small></div>
+                <div><i style="height:55%"></i><small>8/31</small></div>
+                <div><i style="height:50%"></i><small>9/7</small></div>
+                <div><i style="height:60%"></i><small>9/14</small></div>
+                <div><i style="height:63%"></i><small>9/21</small></div>
+                <div><i style="height:67%"></i><small>9/28</small></div>
+                <div><i class="best" style="height:88%"></i><small class="v">10/5</small></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Le haut se lit, le bas se touche. Le mois et les semaines se balaient comme deux cartes ; les modes du profil sont une rangée de pastilles juste au-dessus du journal, qui dépasse en feuille au repos. Tirée, la feuille montre les jours et leurs filtres sous le pouce.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Repos</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Profile <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="ellipsis"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px16">
+            <div class="row g12">
+              <span class="avatar lg l" style="border-radius:20px">DE</span>
+              <div class="col g4 grow">
+                <span class="h1">dev</span>
+                <span class="s">CFOP · Joined Sep 2025</span>
+              </div>
+            </div>
+            <div class="card tight" style="gap:6px;padding:10px 12px">
+              <div class="row between"><b class="t b">Level 12</b><span class="xs num b">450 / 1,200 XP · 109 achievements</span></div>
+              <div class="bar"><i style="width:37.5%"></i></div>
+            </div>
+            <div class="hscroll" style="gap:10px">
+              <div class="card" style="width:300px;gap:2px;padding:10px 12px 6px">
+                <div class="row between"><span class="h3">October 2026</span><span class="row g2"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost" style="opacity:.4"><i data-lucide="chevron-right"></i></button></span></div>
+                <div class="cal sm">
+                  <span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+                  <span></span><span></span><span></span><span class="a" style="--w:6px">1</span><span class="a" style="--w:12px">2</span><span class="a" style="--w:8px">3</span><span class="a" style="--w:16px">4</span>
+                  <span class="a" style="--w:12px">5</span><span class="a" style="--w:10px">6</span><span class="a" style="--w:6px">7</span><span class="a" style="--w:12px">8</span><span class="a" style="--w:4px">9</span><span class="a" style="--w:16px">10</span><span class="a now" style="--w:20px">11</span>
+                  <span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+                  <span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span>
+                  <span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span></span>
+                </div>
+                <div class="grid3" style="gap:4px;padding:6px 2px 4px">
+                  <div class="col g0"><b class="h3 num warn">17 d</b><span class="xs">streak · rec. 17</span></div>
+                  <div class="col g0"><b class="h3 num">384</b><span class="xs">this week</span></div>
+                  <div class="col g0"><b class="h3 num">291</b><span class="xs">active days</span></div>
+                  <div class="col g0"><b class="h3 num">9,221</b><span class="xs">solves in all</span></div>
+                  <div class="col g0"><b class="h3 num">1,634</b><span class="xs">training solves</span></div>
+                  <div class="col g0"><b class="h3 num">125</b><span class="xs">cases learned</span></div>
+                </div>
+              </div>
+              <div class="card" style="width:300px;gap:8px">
+                <span class="cap">Best Ao5 per week · 3×3</span>
+                <div class="wk" style="height:200px">
+                  <div><i style="height:40%"></i><small>8/3</small></div>
+                  <div><i style="height:46%"></i><small>8/10</small></div>
+                  <div><i style="height:36%"></i><small>8/17</small></div>
+                  <div><i style="height:52%"></i><small>8/24</small></div>
+                  <div><i style="height:55%"></i><small>8/31</small></div>
+                  <div><i style="height:50%"></i><small>9/7</small></div>
+                  <div><i style="height:60%"></i><small>9/14</small></div>
+                  <div><i style="height:63%"></i><small>9/21</small></div>
+                  <div><i style="height:67%"></i><small>9/28</small></div>
+                  <div><small class="v">10.78</small><i class="best" style="height:80%"></i><small class="v">10/5</small></div>
+                </div>
+              </div>
+            </div>
+            <div class="col g6">
+              <div class="row between"><span class="cap">Records · single / Ao5</span><span class="xs faint">9 events</span></div>
+              <div class="hscroll">
+                <div class="well" style="width:96px;gap:0"><span class="xs b">3×3</span><b class="h3 num ok">9.775</b><span class="xs num">10.782</span></div>
+                <div class="well" style="width:96px;gap:0"><span class="xs b">2×2</span><b class="h3 num">2.566</b><span class="xs num">3.591</span></div>
+                <div class="well" style="width:96px;gap:0"><span class="xs b">Pyraminx</span><b class="h3 num">3.758</b><span class="xs num">4.690</span></div>
+                <div class="well" style="width:96px;gap:0"><span class="xs b">Skewb</span><b class="h3 num">3.535</b><span class="xs num">5.259</span></div>
+              </div>
+            </div>
+            <div class="hscroll" style="gap:6px">
+              <span class="chip on"><i data-lucide="chart-line"></i>Statistics</span>
+              <span class="chip on"><i data-lucide="gauge"></i>Analysis</span>
+              <span class="chip on"><i data-lucide="book-open"></i>Cases <span class="v">125</span></span>
+              <span class="chip on"><i data-lucide="trophy"></i>Achievements <span class="v">109</span></span>
+              <span class="chip on"><i data-lucide="swords"></i>Battles <span class="v">6</span></span>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:6px;padding-bottom:12px">
+            <div class="row between"><span class="h3">Journal</span><span class="xs">Today · 105 solves</span></div>
+            <div class="row g6"><span class="pill pri"><i data-lucide="trophy"></i>Single 9.775</span><span class="pill pri"><i data-lucide="trophy"></i>Ao5 10.782</span><span class="pill"><span class="bdg xs"><b>10</b></span>Sub-10</span></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span class="on"><i data-lucide="user-round"></i>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Journal tiré · menu du compte</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Profile <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm" style="background:var(--acc)"><i data-lucide="ellipsis"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px16">
+            <div class="row g12"><span class="avatar lg l" style="border-radius:20px">DE</span><div class="col g4 grow"><span class="h1">dev</span><span class="s">CFOP · Joined Sep 2025</span></div></div>
+            <div class="card tight" style="gap:6px;padding:10px 12px"><div class="row between"><b class="t b">Level 12</b><span class="xs num b">450 / 1,200 XP</span></div><div class="bar"><i style="width:37.5%"></i></div></div>
+          </div>
+          <div class="menu" style="top:44px;right:58px;width:236px">
+            <div class="li"><i data-lucide="upload"></i>Import times</div>
+            <div class="li"><i data-lucide="sheet"></i>Export my solves (CSV)</div>
+            <div class="li"><i data-lucide="file-json"></i>Export all my data (JSON)</div>
+            <div class="li"><i data-lucide="settings"></i>Account</div>
+            <div class="hr" style="margin:3px 6px"></div>
+            <div class="li bad"><i data-lucide="log-out" class="bad"></i>Log out</div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:290px;gap:10px;padding-bottom:12px">
+            <div class="row between"><span class="h2">Journal</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="scroll g0">
+              <div class="jd"><div class="dn now"><b>11</b><small>Sun</small></div><div class="col g6"><span class="t"><b>105 solves</b> <span class="mfg">· best 9.775 · Ao5 10.782</span></span><div class="row wrap g4"><span class="pill pri"><i data-lucide="trophy"></i>Single record 9.775 (−0.112)</span><span class="pill pri"><i data-lucide="trophy"></i>Ao5 record 10.782 (−0.231)</span><span class="pill"><span class="bdg xs"><b>10</b></span>Achievement Sub-10</span></div></div></div>
+              <div class="jd"><div class="dn"><b>10</b><small>Sat</small></div><div class="col g6"><span class="t"><b>79 solves</b> <span class="mfg">· best 10.303 · Ao5 11.479</span></span><div class="row wrap g4"><span class="pill ok"><i data-lucide="swords"></i>Battle won against lena_speed</span></div></div></div>
+              <div class="jd"><div class="dn"><b>9</b><small>Fri</small></div><div class="col g6"><span class="t"><b>6 solves</b> <span class="mfg">· best 11.782 · Ao5 12.896</span></span><div class="row wrap g4"><span class="pill"><span class="bdg xs" style="--c:var(--warn)"><b>1k</b></span>Achievement 1,000 solves</span></div></div></div>
+              <div class="jd"><div class="dn"><b>8</b><small>Thu</small></div><div class="col g6"><span class="t"><b>45 solves</b> <span class="mfg">· best 11.422 · Ao5 12.088</span></span></div></div>
+            </div>
+            <div class="seg block"><span class="on">All</span><span>Records</span><span>Achievements</span><span>Battles</span></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le tableau de la section Me : une tuile vivante par chose à suivre (niveau, série, records, semaines, succès, duels) et les autres pages de la section en bas. Le journal est un outil plein écran : le mois en tête, les jours dessous, les filtres en barre d'action.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau Me</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Me</span><button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><button class="btn icon sm ghost"><i data-lucide="settings"></i></button></div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="tile hero" style="gap:10px;padding:14px">
+              <div class="row g12">
+                <span class="avatar lg l" style="border-radius:20px">DE</span>
+                <div class="col g2 grow"><span class="h1">dev</span><span class="s">CFOP · Joined Sep 2025</span></div>
+              </div>
+              <div class="col g4"><div class="row between"><b class="t b">Level 12</b><span class="xs num b">450 / 1,200 XP</span></div><div class="bar"><i style="width:37.5%"></i></div></div>
+              <div class="row g6">
+                <button class="btn sm" style="flex:1"><i data-lucide="upload"></i>Import</button>
+                <button class="btn sm" style="flex:1"><i data-lucide="download"></i>Export</button>
+                <button class="btn sm" style="flex:1"><i data-lucide="settings"></i>Account</button>
+                <button class="btn sm icon"><i data-lucide="log-out"></i></button>
+              </div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile" style="padding:12px 14px;gap:4px">
+                <span class="row g6 cap"><i data-lucide="flame" class="warn" style="width:14px;height:14px"></i>Streak</span>
+                <b class="big warn">17 d</b>
+                <span class="xs">record 17 · 384 this week</span>
+                <div class="row g4" style="margin-top:4px"><i class="dot warn"></i><i class="dot warn"></i><i class="dot warn"></i><i class="dot warn"></i><i class="dot warn"></i><i class="dot warn"></i><i class="dot warn" style="box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--pri)"></i></div>
+              </div>
+              <div class="tile" style="padding:12px 14px;gap:4px">
+                <span class="cap">Best Ao5 · week</span>
+                <b class="big lilac">10.78</b>
+                <div class="wk" style="height:40px;gap:3px"><div><i style="height:40%"></i></div><div><i style="height:46%"></i></div><div><i style="height:36%"></i></div><div><i style="height:52%"></i></div><div><i style="height:55%"></i></div><div><i style="height:50%"></i></div><div><i style="height:60%"></i></div><div><i style="height:63%"></i></div><div><i style="height:67%"></i></div><div><i class="best" style="height:95%"></i></div></div>
+              </div>
+            </div>
+            <div class="tile" style="padding:12px 14px;gap:8px">
+              <div class="row between"><span class="cap">Records · single / Ao5</span><span class="s pri b row g2">Statistics<i data-lucide="chevron-right"></i></span></div>
+              <div class="grid3" style="gap:6px">
+                <div class="col g0"><span class="xs b">3×3</span><b class="h3 num ok">9.775</b><span class="xs num">10.782</span></div>
+                <div class="col g0"><span class="xs b">2×2</span><b class="h3 num">2.566</b><span class="xs num">3.591</span></div>
+                <div class="col g0"><span class="xs b">One-handed</span><b class="h3 num ok">14.187</b><span class="xs num">17.098</span></div>
+              </div>
+            </div>
+            <div class="grid3" style="gap:8px">
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="notebook-pen" class="pri"></i><b class="h3">Journal</b><span class="xs">2 records today</span></div>
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="trophy" class="pri"></i><b class="h3">Awards</b><span class="xs num">109 / 204</span></div>
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="swords" class="pri"></i><b class="h3">Battles</b><span class="xs num"><b class="ok">4</b> won · 2 lost</span></div>
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="gauge" class="pri"></i><b class="h3">Analysis</b><span class="xs">150 solves</span></div>
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="book-open" class="pri"></i><b class="h3">Cases</b><span class="xs num">125 learned</span></div>
+              <div class="tile" style="padding:12px;gap:4px;border-radius:20px"><i data-lucide="chart-line" class="pri"></i><b class="h3">Stats</b><span class="xs num">9,221 solves</span></div>
+            </div>
+            <div class="row g6">
+              <span class="chip" style="flex:1 1 auto;justify-content:center">Messages <span class="badge">2</span></span>
+              <span class="chip" style="flex:1 1 auto;justify-content:center">Community</span>
+              <span class="chip" style="flex:1 1 auto;justify-content:center">Coaching</span>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · Journal</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Journal<small>3×3 · 291 active days</small></span>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="row between"><span class="h2">October 2026</span><span class="row g4"><button class="btn icon sm"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost" style="opacity:.4"><i data-lucide="chevron-right"></i></button></span></div>
+            <div class="cal sm">
+              <span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span>
+              <span></span><span></span><span></span><span class="a" style="--w:6px">1</span><span class="a" style="--w:12px">2</span><span class="a" style="--w:8px">3</span><span class="a" style="--w:16px">4</span>
+              <span class="a" style="--w:12px">5</span><span class="a" style="--w:10px">6</span><span class="a" style="--w:6px">7</span><span class="a" style="--w:12px">8</span><span class="a" style="--w:4px">9</span><span class="a" style="--w:16px">10</span><span class="a now" style="--w:20px">11</span>
+              <span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+              <span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span>
+              <span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span></span>
+            </div>
+            <div class="hscroll" style="gap:6px">
+              <div class="well" style="gap:0;padding:7px 11px"><b class="h3 num warn">17 d</b><span class="xs">streak · record 17</span></div>
+              <div class="well" style="gap:0;padding:7px 11px"><b class="h3 num">384</b><span class="xs">this week</span></div>
+              <div class="well" style="gap:0;padding:7px 11px"><b class="h3 num">9,221</b><span class="xs">solves in all</span></div>
+              <div class="well" style="gap:0;padding:7px 11px"><b class="h3 num">1,634</b><span class="xs">training solves</span></div>
+              <div class="well" style="gap:0;padding:7px 11px"><b class="h3 num">125</b><span class="xs">cases learned</span></div>
+            </div>
+            <div class="hr"></div>
+            <div class="scroll g0">
+              <div class="jd"><div class="dn now"><b>11</b><small>Sun</small></div><div class="col g6"><span class="t"><b>105 solves</b> <span class="mfg">· best 9.775 · Ao5 10.782</span></span><div class="row wrap g4"><span class="pill pri"><i data-lucide="trophy"></i>Single record 9.775 (−0.112)</span><span class="pill pri"><i data-lucide="trophy"></i>Ao5 record 10.782 (−0.231)</span><span class="pill"><span class="bdg xs"><b>10</b></span>Achievement Sub-10</span></div></div></div>
+              <div class="jd"><div class="dn"><b>10</b><small>Sat</small></div><div class="col g6"><span class="t"><b>79 solves</b> <span class="mfg">· best 10.303 · Ao5 11.479</span></span><div class="row wrap g4"><span class="pill ok"><i data-lucide="swords"></i>Battle won against lena_speed</span></div></div></div>
+              <div class="jd"><div class="dn"><b>9</b><small>Fri</small></div><div class="col g6"><span class="t"><b>6 solves</b> <span class="mfg">· best 11.782 · Ao5 12.896</span></span><div class="row wrap g4"><span class="pill"><span class="bdg xs" style="--c:var(--warn)"><b>1k</b></span>Achievement 1,000 solves</span></div></div></div>
+              <div class="jd"><div class="dn"><b>8</b><small>Thu</small></div><div class="col g6"><span class="t"><b>45 solves</b> <span class="mfg">· best 11.422 · Ao5 12.088</span></span></div></div>
+            </div>
+          </div>
+          <div class="actionbar"><div class="seg block grow"><span class="on">All</span><span>Records</span><span>Awards</span><span>Battles</span></div></div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 19 · Achievements -->
+<section class="page" id="achievements" data-short="Achievements">
+  <div class="page-head">
+    <h2>19 · Achievements <small>/profile/achievements</small></h2>
+    <p>Les succès comme un journal : les catégories filtrent, les débloqués se rangent mois par mois, ceux à faire du plus proche au plus lointain, et le succès choisi montre sa série et quoi faire ensuite. Aujourd'hui, sur téléphone, les catégories disparaissent derrière un menu et la fiche arrive dans une modale sans les points de progression. Ici les catégories gardent leurs points, la fiche a sa place, et la barre d'XP monte du bas quand on en gagne.</p>
+    <div class="feats"><span>109 of 204 unlocked · Level 12</span><span>Catégories Speed / Averages / Volume / Knowledge / Dedication avec points</span><span>Filtre All puzzles</span><span>Unlocked / To do (Almost, On the way, Further, Not started)</span><span>Journal par mois</span><span>Fiche : badge, XP, description</span><span>Unlocked on · Your best</span><span>View the solve · Share</span><span>La série et le suivant</span><span>Closest in Speed + bouton Timer</span><span>Barre de gain d'XP</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Un écran poussé depuis le profil, sans onglets : les filtres, les catégories en cartes défilantes avec leurs points, puis le journal par mois. Toucher un badge ouvre sa fiche en dialogue plein écran.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Écran poussé · gain d'XP</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Achievements</span>
+            <span class="pill pri">Level 12</span>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="row between">
+              <button class="chip on">All puzzles<i data-lucide="chevron-down"></i></button>
+              <div class="seg"><span class="on">Unlocked <span class="faint num">109</span></span><span>To do <span class="faint num">95</span></span></div>
+            </div>
+            <div class="hscroll">
+              <div class="card tight" style="width:150px;gap:8px;background:var(--acc)">
+                <div class="row g6"><span class="cico" style="background:var(--fg)"><i data-lucide="trophy"></i></span><b class="t b grow">All</b><span class="xs b num">109/204</span></div>
+                <div class="bar thin" style="margin-top:6px"><i style="width:53%;background:var(--fg)"></i></div>
+                <span class="xs">53 % unlocked</span>
+              </div>
+              <div class="card tight" style="width:150px;gap:8px">
+                <div class="row g6"><span class="cico" style="background:var(--pri)"><i data-lucide="timer"></i></span><b class="t b grow">Speed</b><span class="xs b num">43/58</span></div>
+                <div class="dots" style="--c:var(--pri)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="card tight" style="width:150px;gap:8px">
+                <div class="row g6"><span class="cico" style="background:var(--lilac)"><i data-lucide="gauge"></i></span><b class="t b grow">Averages</b><span class="xs b num">28/38</span></div>
+                <div class="dots" style="--c:var(--lilac)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="card tight" style="width:150px;gap:8px">
+                <div class="row g6"><span class="cico" style="background:var(--warn)"><i data-lucide="layers"></i></span><b class="t b grow">Volume</b><span class="xs b num">26/47</span></div>
+                <div class="dots" style="--c:var(--warn)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="card tight" style="width:150px;gap:8px">
+                <div class="row g6"><span class="cico" style="background:var(--ok)"><i data-lucide="book-open"></i></span><b class="t b grow">Knowledge</b><span class="xs b num">7/54</span></div>
+                <div class="dots" style="--c:var(--ok)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="card tight" style="width:150px;gap:8px">
+                <div class="row g6"><span class="cico" style="background:var(--bad)"><i data-lucide="flame"></i></span><b class="t b grow">Dedication</b><span class="xs b num">5/7</span></div>
+                <div class="dots" style="--c:var(--bad)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i></div>
+              </div>
+            </div>
+            <div class="card grow" style="padding:12px 14px 0;gap:4px">
+              <div class="row g6" style="align-items:baseline"><span class="h3">Your journal</span><span class="s trunc">109 achievements, latest first</span></div>
+              <div class="scroll g6" style="padding-top:6px">
+                <div class="row g6" style="align-items:baseline"><b class="t b">October 2026</b><span class="xs">3 achievements</span></div>
+                <div class="grid3" style="gap:6px">
+                  <div class="ach" style="background:var(--bg)"><span class="bdg"><b>10</b><i>sec</i></span><b>Sub-10</b><small>3×3 · 11 Oct</small></div>
+                  <div class="ach" style="background:var(--bg)"><span class="bdg" style="--c:var(--warn)"><b>1k</b><i>solves</i></span><b>1,000 solves</b><small>3×3 · 9 Oct</small></div>
+                  <div class="ach" style="background:var(--bg)"><span class="bdg"><b>4</b><i>sec</i></span><b>Sub-4</b><small>Skewb · 3 Oct</small></div>
+                </div>
+                <div class="row g6" style="align-items:baseline;padding-top:4px"><b class="t b">September 2026</b><span class="xs">2 achievements</span></div>
+                <div class="grid3" style="gap:6px">
+                  <div class="ach" style="background:var(--bg)"><span class="bdg" style="--c:var(--lilac)"><b>90</b><i>ao5</i></span><b>Sub-90 average</b><small>Megaminx · 14 Sept</small></div>
+                  <div class="ach" style="background:var(--bg)"><span class="bdg"><b>90</b><i>sec</i></span><b>Sub-90</b><small>Megaminx · 14 Sept</small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="xpg" style="bottom:70px">
+            <div class="row between"><b class="t xb">Level 12</b><b class="t xb pri num">+100 XP</b></div>
+            <div class="bar" style="background:color-mix(in srgb,var(--fg) 10%,transparent)"><i style="width:45.8%"></i></div>
+            <span class="xs b num">550 / 1,200 XP</span>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Dialogue plein écran · fiche</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title" style="font-size:17px;text-align:center">Achievement</span>
+            <button class="btn icon ghost"><i data-lucide="share-2"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:14px">
+            <div class="col center g4">
+              <span class="bdg lg"><b>4</b><i>sec</i></span>
+              <span class="h1" style="margin-top:6px">Sub-4</span>
+              <span class="s b">Skewb · Speed · +100 XP</span>
+              <span class="t mfg">Solve Skewb in under 4 seconds on a full scramble.</span>
+            </div>
+            <div class="grid2">
+              <div class="well"><span class="xs b">Unlocked on</span><b class="h3 num">3 Oct 2026</b></div>
+              <div class="well"><span class="xs b">Your best</span><b class="h3 num">3.535</b></div>
+            </div>
+            <div class="grid2"><button class="btn"><i data-lucide="eye"></i>View the solve</button><button class="btn"><i data-lucide="share-2"></i>Share</button></div>
+            <span class="cap" style="margin-top:4px">The series · Single Skewb</span>
+            <div class="row g6">
+              <span class="bdg sm"><b>20</b><i>sec</i></span><span class="bdg sm"><b>10</b><i>sec</i></span><span class="bdg sm"><b>6</b><i>sec</i></span>
+              <span class="bdg sm" style="box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--fg)"><b>4</b><i>sec</i></span>
+              <span class="bdg sm lock" style="--p:86"><b>3</b><i>sec</i></span>
+            </div>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:86"><b>3</b><i>sec</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Next: Sub-3</b><span class="xs pri b num">0.536 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+            <span class="cap" style="margin-top:4px">Closest in Speed</span>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:84"><b>1:00</b><i>sec</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Sub-1:00 · Megaminx</b><span class="xs pri b num">10.891 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:80"><b>1:00</b><i>BLD</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Sub-1:00 blindfolded · 3×3</b><span class="xs pri b num">11.715 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Le journal en liste lisible, une ligne par succès. Les catégories et le choix Unlocked / To do restent sous le pouce, dans une feuille qui dépasse. Un succès touché monte en feuille haute, par-dessus la liste « To do » rangée par distance.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Repos · débloqués</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="where">Achievements</span>
+            <span class="grow"></span>
+            <button class="chip">All puzzles<i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="row g12" style="align-items:flex-end">
+              <span class="display num">109</span>
+              <div class="col g4 grow" style="padding-bottom:4px"><span class="s b">of 204 unlocked · Level 12</span><div class="bar"><i style="width:37.5%"></i></div></div>
+            </div>
+            <div class="scroll g0">
+              <div class="row g6" style="padding:6px 0 4px;align-items:baseline"><b class="t b">October 2026</b><span class="xs">3 achievements</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg"><b>10</b><i>sec</i></span><div class="col"><b class="t b">Sub-10</b><span class="s">3×3 · Speed</span></div><span class="xs b num">11 Oct</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg" style="--c:var(--warn)"><b>1k</b><i>solves</i></span><div class="col"><b class="t b">1,000 solves</b><span class="s">3×3 · Volume</span></div><span class="xs b num">9 Oct</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg"><b>4</b><i>sec</i></span><div class="col"><b class="t b">Sub-4</b><span class="s">Skewb · Speed</span></div><span class="xs b num">3 Oct</span></div>
+              <div class="row g6" style="padding:10px 0 4px;align-items:baseline"><b class="t b">September 2026</b><span class="xs">2 achievements</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg" style="--c:var(--lilac)"><b>90</b><i>ao5</i></span><div class="col"><b class="t b">Sub-90 average</b><span class="s">Megaminx · Averages</span></div><span class="xs b num">14 Sept</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg"><b>90</b><i>sec</i></span><div class="col"><b class="t b">Sub-90</b><span class="s">Megaminx · Speed</span></div><span class="xs b num">14 Sept</span></div>
+              <div class="row g6" style="padding:10px 0 4px;align-items:baseline"><b class="t b">July 2026</b><span class="xs">2 achievements</span></div>
+              <div class="li" style="padding:8px 0"><span class="bdg"><b>4</b><i>sec</i></span><div class="col"><b class="t b">Sub-4</b><span class="s">Pyraminx · Speed</span></div><span class="xs b num">23 Jul</span></div>
+            </div>
+          </div>
+          <div class="xpg" style="bottom:256px;left:30px;right:30px">
+            <div class="row between"><b class="t xb row g6"><i data-lucide="sparkles" class="pri" style="width:16px;height:16px"></i>Level up · level 13</b><b class="t xb pri num">+150 XP</b></div>
+            <div class="bar" style="background:color-mix(in srgb,var(--fg) 10%,transparent)"><i style="width:8%"></i></div>
+            <span class="xs b num">100 / 1,300 XP</span>
+          </div>
+          <div class="sheet over-nav" style="gap:8px;padding-bottom:12px">
+            <div class="seg block"><span class="on">Unlocked <span class="faint num">109</span></span><span>To do <span class="faint num">95</span></span></div>
+            <div class="hscroll" style="gap:6px">
+              <div class="well" style="width:128px;gap:6px;background:var(--acc)"><div class="row g6"><i data-lucide="timer" class="pri" style="width:15px;height:15px"></i><b class="s b grow" style="color:var(--fg)">Speed</b><span class="xs b num">43/58</span></div><div class="dots" style="--c:var(--pri);gap:2px"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="well" style="width:128px;gap:6px"><div class="row g6"><i data-lucide="gauge" class="lilac" style="width:15px;height:15px"></i><b class="s b grow" style="color:var(--fg)">Averages</b><span class="xs b num">28/38</span></div><div class="dots" style="--c:var(--lilac);gap:2px"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="well" style="width:128px;gap:6px"><div class="row g6"><i data-lucide="layers" class="warn" style="width:15px;height:15px"></i><b class="s b grow" style="color:var(--fg)">Volume</b><span class="xs b num">26/47</span></div><div class="dots" style="--c:var(--warn);gap:2px"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="well" style="width:128px;gap:6px"><div class="row g6"><i data-lucide="book-open" class="ok" style="width:15px;height:15px"></i><b class="s b grow" style="color:var(--fg)">Knowledge</b><span class="xs b num">7/54</span></div><div class="dots" style="--c:var(--ok);gap:2px"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="well" style="width:128px;gap:6px"><div class="row g6"><i data-lucide="flame" class="bad" style="width:15px;height:15px"></i><b class="s b grow" style="color:var(--fg)">Dedication</b><span class="xs b num">5/7</span></div><div class="dots" style="--c:var(--bad);gap:2px"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i></div></div>
+            </div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span class="on"><i data-lucide="user-round"></i>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">To do · fiche en feuille</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="where">Achievements</span>
+            <span class="grow"></span>
+            <button class="chip">All puzzles<i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g0 px16">
+            <div class="row g6" style="padding:6px 0 4px;align-items:baseline"><b class="t b">Almost</b><span class="xs">4 achievements</span></div>
+            <div class="li" style="padding:8px 0"><span class="bdg lock" style="--p:93"><b>30</b><i>sec</i></span><div class="col"><b class="t b">Sub-30</b><span class="s">4×4 · Speed</span></div><span class="xs b pri num">0.058 to go</span></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:120px;gap:10px;padding-bottom:16px">
+            <div class="row g12">
+              <span class="bdg" style="width:72px;height:72px"><b style="font-size:24px">10</b><i style="font-size:11px">sec</i></span>
+              <div class="col g2 grow"><span class="h1">Sub-10</span><span class="s b">3×3 · Speed · +150 XP</span></div>
+            </div>
+            <span class="t mfg">Solve the 3×3 in under 10 seconds on a full scramble.</span>
+            <div class="grid2">
+              <div class="well"><span class="xs b">Unlocked on</span><b class="h3 num">11 Oct 2026</b></div>
+              <div class="well"><span class="xs b">Your best</span><b class="h3 num ok">9.775</b></div>
+            </div>
+            <div class="grid2"><button class="btn"><i data-lucide="eye"></i>View the solve</button><button class="btn"><i data-lucide="share-2"></i>Share</button></div>
+            <span class="cap">The series · Single 3×3</span>
+            <div class="row g6">
+              <span class="bdg sm"><b>30</b><i>sec</i></span><span class="bdg sm"><b>20</b><i>sec</i></span><span class="bdg sm"><b>15</b><i>sec</i></span><span class="bdg sm"><b>12</b><i>sec</i></span><span class="bdg sm"><b>11</b><i>sec</i></span>
+              <span class="bdg sm" style="box-shadow:0 0 0 2px var(--pop),0 0 0 4px var(--fg)"><b>10</b><i>sec</i></span>
+              <span class="bdg sm lock" style="--p:40"><b>9</b><i>sec</i></span>
+            </div>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:40"><b>9</b><i>sec</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Next: Sub-9</b><span class="xs pri b num">0.776 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+            <span class="cap">Closest in Speed</span>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:93"><b>30</b><i>sec</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Sub-30 · 4×4</b><span class="xs pri b num">0.058 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+            <div class="row g8">
+              <div class="well row g10 grow" style="flex-direction:row;padding:8px 10px"><span class="bdg sm lock" style="--p:88"><b>14</b><i>sec</i></span><div class="col g0 grow"><b class="s trunc" style="color:var(--fg)">Sub-14 · One-handed</b><span class="xs pri b num">0.188 to go</span></div></div>
+              <button class="btn"><i data-lucide="timer"></i>Timer</button>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le tableau des succès : le niveau en tuile héros, une tuile par catégorie avec ses points, et la tuile « le plus proche » qui lance le chrono. Une catégorie s'ouvre en plein écran : le succès choisi en grand, son mois de journal dessous, les filtres en barre d'action.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Achievements</span><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="tile hero" style="gap:8px;padding:14px">
+              <div class="row between" style="align-items:flex-end"><div class="col g0"><span class="cap">Level 12</span><span class="big">109<span class="h3 mfg"> / 204 unlocked</span></span></div><span class="ring" style="--p:53;width:52px;height:52px"><b>53 %</b></span></div>
+              <div class="bar"><i style="width:37.5%"></i></div>
+              <div class="row between"><span class="xs b num">450 / 1,200 XP</span><span class="xs">latest <b class="pri">Sub-10 · 3×3</b>, today</span></div>
+            </div>
+            <div class="row between">
+              <button class="chip on">All puzzles<i data-lucide="chevron-down"></i></button>
+              <div class="seg"><span class="on">Unlocked <span class="faint num">109</span></span><span>To do <span class="faint num">95</span></span></div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile" style="padding:12px;gap:8px;border-radius:20px"><div class="row g6"><span class="cico" style="background:var(--pri);width:28px;height:28px"><i data-lucide="timer"></i></span><b class="t b grow">Speed</b><span class="xs b num">43/58</span></div><div class="dots" style="--c:var(--pri)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="tile" style="padding:12px;gap:8px;border-radius:20px"><div class="row g6"><span class="cico" style="background:var(--lilac);width:28px;height:28px"><i data-lucide="gauge"></i></span><b class="t b grow">Averages</b><span class="xs b num">28/38</span></div><div class="dots" style="--c:var(--lilac)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="tile" style="padding:12px;gap:8px;border-radius:20px"><div class="row g6"><span class="cico" style="background:var(--warn);width:28px;height:28px"><i data-lucide="layers"></i></span><b class="t b grow">Volume</b><span class="xs b num">26/47</span></div><div class="dots" style="--c:var(--warn)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="tile" style="padding:12px;gap:8px;border-radius:20px"><div class="row g6"><span class="cico" style="background:var(--ok);width:28px;height:28px"><i data-lucide="book-open"></i></span><b class="t b grow">Knowledge</b><span class="xs b num">7/54</span></div><div class="dots" style="--c:var(--ok)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              <div class="tile" style="padding:12px;gap:8px;border-radius:20px"><div class="row g6"><span class="cico" style="background:var(--bad);width:28px;height:28px"><i data-lucide="flame"></i></span><b class="t b grow">Dedication</b><span class="xs b num">5/7</span></div><div class="dots" style="--c:var(--bad)"><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i class="u"></i><i></i><i></i></div></div>
+              <div class="tile" style="padding:12px;gap:6px;border-radius:20px;background:var(--acc)"><span class="cap">Closest</span><div class="row g8"><span class="bdg sm lock" style="--p:93"><b>30</b><i>sec</i></span><div class="col g0 grow"><b class="s b trunc" style="color:var(--fg)">Sub-30 · 4×4</b><span class="xs pri b num">0.058 to go</span></div></div><button class="btn sm pri"><i data-lucide="timer"></i>Timer · 4×4</button></div>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · une catégorie</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Speed<small>43 of 58 unlocked</small></span>
+            <button class="btn icon ghost"><i data-lucide="share-2"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="tile hero" style="gap:10px;padding:14px">
+              <div class="row g12">
+                <span class="bdg" style="width:76px;height:76px"><b style="font-size:26px">4</b><i style="font-size:12px">sec</i></span>
+                <div class="col g2 grow"><span class="h1">Sub-4</span><span class="s b">Skewb · +100 XP</span><span class="s">Solve Skewb in under 4 seconds on a full scramble.</span></div>
+              </div>
+              <div class="grid2" style="gap:6px">
+                <div class="well" style="background:var(--bg)"><span class="xs b">Unlocked on</span><b class="h3 num">3 Oct 2026</b></div>
+                <div class="well" style="background:var(--bg)"><span class="xs b">Your best</span><b class="h3 num">3.535</b></div>
+              </div>
+              <div class="row g6"><span class="xs b" style="width:40px">Series</span><span class="bdg sm"><b>20</b><i>sec</i></span><span class="bdg sm"><b>10</b><i>sec</i></span><span class="bdg sm"><b>6</b><i>sec</i></span><span class="bdg sm" style="box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--fg)"><b>4</b><i>sec</i></span><span class="bdg sm lock" style="--p:86"><b>3</b><i>sec</i></span><span class="xs pri b grow" style="text-align:right">0.536<br>to go</span></div>
+              <div class="grid2"><button class="btn"><i data-lucide="eye"></i>View the solve</button><button class="btn pri"><i data-lucide="timer"></i>Timer · Skewb</button></div>
+            </div>
+            <div class="scroll g6">
+              <div class="row g6" style="align-items:baseline"><b class="t b">October 2026</b><span class="xs">2 achievements</span></div>
+              <div class="grid3" style="gap:6px">
+                <div class="ach"><span class="bdg"><b>10</b><i>sec</i></span><b>Sub-10</b><small>3×3 · 11 Oct</small></div>
+                <div class="ach on"><span class="bdg"><b>4</b><i>sec</i></span><b>Sub-4</b><small>Skewb · 3 Oct</small></div>
+              </div>
+              <div class="row g6" style="align-items:baseline;padding-top:4px"><b class="t b">September 2026</b><span class="xs">1 achievement</span></div>
+              <div class="grid3" style="gap:6px">
+                <div class="ach"><span class="bdg"><b>90</b><i>sec</i></span><b>Sub-90</b><small>Megaminx · 14 Sept</small></div>
+              </div>
+            </div>
+          </div>
+          <div class="xpg" style="bottom:70px">
+            <div class="row between"><b class="t xb">Level 12</b><b class="t xb pri num">+100 XP</b></div>
+            <div class="bar" style="background:color-mix(in srgb,var(--fg) 10%,transparent)"><i style="width:45.8%"></i></div>
+            <span class="xs b num">550 / 1,200 XP</span>
+          </div>
+          <div class="actionbar"><button class="chip on">All puzzles<i data-lucide="chevron-down"></i></button><div class="seg block grow"><span class="on">Unlocked <span class="faint num">43</span></span><span>To do <span class="faint num">15</span></span></div></div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 20 · Settings & account -->
+<section class="page" id="settings" data-short="Settings">
+  <div class="page-head">
+    <h2>20 · Settings &amp; account <small>menu du compte · Settings</small></h2>
+    <p>Le menu du compte (l'avatar) et les réglages. Sur téléphone il n'y a pas d'en-tête : le café et les liens du bas de page passent dans ce menu. Aujourd'hui les réglages sont une modale de desktop rétrécie ; ici ce sont des rangées pleine largeur, faciles à toucher, et l'import depuis les autres chronos a sa propre place.</p>
+    <div class="feats"><span>Menu du compte : identité, succès, niveau</span><span>Profile · Settings · Guides · Notation · Import times</span><span>Connect a cube · Connect a Stackmat (Experimental)</span><span>Thème Dark / Light / System</span><span>Accent Peach, Blue, Pink, Green, Cyan, Orange, Purple</span><span>WCA inspection : None, Spoken, On screen, Spoken and on screen</span><span>Langue : English, Français, Español, Italiano, Deutsch</span><span>Compte : username, email, password</span><span>Download my data · Delete my account</span><span>Import : csTimer, Twisty Timer, Cubic Timer, CubeTime, CubeDesk, ZKT, Cubeast, acubemy, Speedcuber Timer</span><span>Export CSV / JSON</span><span>Guides, Replay tour</span><span>Buy me a coffee</span><span>Open source</span><span>Legal notice · Privacy · Terms · Cookies</span><span>Log out</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>L'avatar de la barre du haut ouvre le menu du compte, comme sur desktop, avec le café et le code source en plus. Settings est un écran poussé de rangées groupées : apparence, chrono et langue, compte, données.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Menu du compte ouvert</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Me</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l" style="box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--pri)">DE</span>
+          </div>
+          <div class="utabs" style="gap:16px"><span class="on">Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div>
+          <div class="col g10 px16 grow" style="padding-top:12px">
+            <div class="row g12"><span class="avatar lg l" style="border-radius:20px">DE</span><div class="col g4 grow"><span class="h2">dev</span><span class="s">CFOP · Joined Sep 2025</span></div></div>
+            <div class="card grow"></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="menu" style="top:48px;right:12px;width:300px">
+            <div class="col g6" style="padding:10px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--pri) 18%,var(--pop)),color-mix(in srgb,var(--pri) 5%,var(--pop)))">
+              <div class="row g10"><span class="avatar l" style="border-radius:12px">DE</span><div class="col g0 grow"><b class="h3">dev</b><span class="xs">109 of 204 achievements unlocked</span></div></div>
+              <div class="col g4" style="background:var(--pop);border-radius:12px;padding:8px 10px"><div class="row between"><b class="s b" style="color:var(--fg)">Level 12</b><span class="xs b num">450 / 1,200 XP</span></div><div class="bar thin"><i style="width:37.5%"></i></div></div>
+            </div>
+            <div class="li"><i data-lucide="user-round"></i>Profile</div>
+            <div class="li on"><i data-lucide="settings"></i>Settings</div>
+            <div class="li"><i data-lucide="book-open"></i>Guides</div>
+            <div class="li"><i data-lucide="book-a"></i>Notation</div>
+            <div class="li"><i data-lucide="upload"></i>Import times</div>
+            <div class="li"><i data-lucide="bluetooth"></i>Connect a cube</div>
+            <div class="li"><i data-lucide="timer"></i><span class="grow">Connect a Stackmat</span><span class="pill pri">Experimental</span></div>
+            <div class="li pri b"><i data-lucide="coffee" class="pri" style="color:var(--pri)"></i>Buy me a coffee</div>
+            <div class="li"><i data-lucide="github"></i><span class="grow">Open source</span><i data-lucide="external-link" class="faint" style="width:14px;height:14px"></i></div>
+            <div class="hr" style="margin:3px 6px"></div>
+            <div class="li bad"><i data-lucide="log-out" style="color:var(--bad)"></i>Log out</div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Écran poussé · Settings</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Settings</span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="scroll g10 px16" style="padding-bottom:12px">
+            <div class="card hi row g12" style="flex-direction:row;padding:10px 12px"><span class="avatar l" style="border-radius:12px">DE</span><div class="col g0 grow"><b class="h3">dev</b><span class="xs">Joined Sep 2025</span></div><button class="btn sm ghost"><i data-lucide="log-out"></i>Sign out</button></div>
+            <span class="cap" style="padding:2px 4px 0">Appearance</span>
+            <div class="grp">
+              <div class="li between"><b class="t b">Theme</b><div class="seg"><span class="on"><i data-lucide="moon" style="width:14px;height:14px"></i>Dark</span><span><i data-lucide="sun" style="width:14px;height:14px"></i>Light</span><span><i data-lucide="monitor" style="width:14px;height:14px"></i>System</span></div></div>
+              <div class="li between"><b class="t b">Accent</b><div class="row g6"><span class="sw" style="background:#ffb48c;width:28px;height:28px"></span><span class="sw" style="background:#7fb2ff;width:28px;height:28px"></span><span class="sw on" style="background:#f5609f;width:28px;height:28px"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2;width:28px;height:28px"></span><span class="sw" style="background:#7fd4e8;width:28px;height:28px"></span><span class="sw" style="background:#ff9d6b;width:28px;height:28px"></span><span class="sw" style="background:#c9b4ff;width:28px;height:28px"></span></div></div>
+            </div>
+            <span class="cap" style="padding:2px 4px 0">Timer &amp; language</span>
+            <div class="grp">
+              <div class="li"><i data-lucide="hourglass" class="mfg"></i><div class="col"><b class="t b">WCA inspection</b></div><span class="s">None</span><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li"><i data-lucide="languages" class="mfg"></i><div class="col"><b class="t b">Language of the app</b></div><span class="s">English</span><i data-lucide="chevron-right" class="faint"></i></div>
+            </div>
+            <span class="cap" style="padding:2px 4px 0">Account</span>
+            <div class="grp">
+              <div class="li"><i data-lucide="at-sign" class="mfg"></i><div class="col"><b class="t b">Username</b></div><span class="s">dev</span><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li"><i data-lucide="mail" class="mfg"></i><div class="col"><b class="t b">Email</b></div><span class="s trunc" style="max-width:130px">dev@qbix.app</span><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li"><i data-lucide="key-round" class="mfg"></i><div class="col"><b class="t b">Password</b></div><span class="s">Change</span><i data-lucide="chevron-right" class="faint"></i></div>
+            </div>
+            <span class="cap" style="padding:2px 4px 0">Your data</span>
+            <div class="grp">
+              <div class="li"><i data-lucide="upload" class="mfg"></i><div class="col"><b class="t b">Import times</b><span class="xs">csTimer, Twisty Timer, Cubic Timer, CubeTime, CubeDesk, ZKT, Cubeast, acubemy, Speedcuber Timer</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li"><i data-lucide="download" class="mfg"></i><div class="col"><b class="t b">Download my data</b></div><span class="row g4"><span class="pill">CSV</span><span class="pill">JSON</span></span></div>
+              <div class="li bad"><i data-lucide="trash-2"></i><div class="col"><b class="t b">Delete my account</b></div></div>
+            </div>
+            <div class="row wrap g10 xs" style="padding:2px 4px;column-gap:14px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>L'onglet Me tenu longtemps (ou l'avatar) ouvre une feuille de compte : de grosses tuiles sous le pouce, la déconnexion tout en bas. Settings monte en feuille haute ; chaque choix se fait en place, sans sous-écran : pastilles de langue, inspection en segments.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Feuille du compte</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Profile <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="ellipsis"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px16"><div class="row g12"><span class="avatar lg l" style="border-radius:20px">DE</span><div class="col g4 grow"><span class="h1">dev</span><span class="s">CFOP · Joined Sep 2025</span></div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:10px;padding-bottom:14px">
+            <div class="row g12">
+              <span class="avatar lg l" style="border-radius:18px;width:56px;height:56px">DE</span>
+              <div class="col g4 grow">
+                <div class="row between"><b class="h2">dev</b><span class="xs b">109 / 204 achievements</span></div>
+                <div class="row between"><b class="s b" style="color:var(--fg)">Level 12</b><span class="xs b num">450 / 1,200 XP</span></div>
+                <div class="bar thin"><i style="width:37.5%"></i></div>
+              </div>
+            </div>
+            <div class="grid3" style="gap:8px">
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--card)"><i data-lucide="user-round" class="pri"></i><b class="s b" style="color:var(--fg)">Profile</b></div>
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--acc)"><i data-lucide="settings" class="pri"></i><b class="s b" style="color:var(--fg)">Settings</b></div>
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--card)"><i data-lucide="book-open" class="pri"></i><b class="s b" style="color:var(--fg)">Guides</b></div>
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--card)"><i data-lucide="book-a" class="pri"></i><b class="s b" style="color:var(--fg)">Notation</b></div>
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--card)"><i data-lucide="upload" class="pri"></i><b class="s b" style="color:var(--fg)">Import times</b></div>
+              <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--card)"><i data-lucide="download" class="pri"></i><b class="s b" style="color:var(--fg)">Export</b></div>
+            </div>
+            <div class="grp" style="background:var(--card)">
+              <div class="li"><i data-lucide="bluetooth" class="mfg"></i><b class="t b grow">Connect a cube</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="li"><i data-lucide="timer" class="mfg"></i><b class="t b grow">Connect a Stackmat</b><span class="pill pri">Experimental</span></div>
+              <div class="li"><i data-lucide="github" class="mfg"></i><b class="t b grow">Open source</b><i data-lucide="external-link" class="faint" style="width:15px;height:15px"></i></div>
+            </div>
+            <button class="btn lg block soft"><i data-lucide="coffee"></i>Buy me a coffee</button>
+            <button class="btn block ghost" style="color:var(--bad)"><i data-lucide="log-out"></i>Log out</button>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Feuille Settings</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Profile <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:10px;gap:10px;padding-bottom:12px">
+            <div class="row between"><span class="h2">Settings</span><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <div class="scroll g10">
+              <div class="col g6"><span class="lbl">Theme</span><div class="seg block"><span class="on"><i data-lucide="moon" style="width:14px;height:14px"></i>Dark</span><span><i data-lucide="sun" style="width:14px;height:14px"></i>Light</span><span><i data-lucide="monitor" style="width:14px;height:14px"></i>System</span></div></div>
+              <div class="col g6"><span class="lbl">Accent</span><div class="row between" style="padding:0 4px"><span class="sw" style="background:#ffb48c"></span><span class="sw" style="background:#7fb2ff"></span><span class="sw on" style="background:#f5609f"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2"></span><span class="sw" style="background:#7fd4e8"></span><span class="sw" style="background:#ff9d6b"></span><span class="sw" style="background:#c9b4ff"></span></div></div>
+              <div class="col g6"><span class="lbl">WCA inspection</span><div class="seg block"><span class="on">None</span><span>Spoken</span><span>On screen</span><span>Both</span></div></div>
+              <div class="col g6"><span class="lbl">Language</span><div class="row wrap g6"><span class="chip on">English</span><span class="chip">Français</span><span class="chip">Español</span><span class="chip">Italiano</span><span class="chip">Deutsch</span></div></div>
+              <div class="col g6"><span class="lbl">Account</span>
+                <div class="grp" style="background:var(--card)">
+                  <div class="li" style="min-height:44px;padding:9px 14px"><b class="t b grow">Username</b><span class="s">dev</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                  <div class="li" style="min-height:44px;padding:9px 14px"><b class="t b grow">Email</b><span class="s">dev@qbix.app</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                  <div class="li" style="min-height:44px;padding:9px 14px"><b class="t b grow">Password</b><span class="s">••••••••••</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                </div>
+              </div>
+              <div class="col g6"><span class="lbl">Your data</span>
+                <div class="well" style="gap:6px"><div class="row between"><b class="s b" style="color:var(--fg)">Import from another timer</b><button class="btn sm pri"><i data-lucide="file-up"></i>Choose files</button></div><span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span></div>
+                <div class="row g6"><button class="btn sm" style="flex:1"><i data-lucide="sheet"></i>Export CSV</button><button class="btn sm" style="flex:1"><i data-lucide="file-json"></i>Export JSON</button><button class="btn sm" style="color:var(--bad)"><i data-lucide="trash-2"></i>Delete</button></div>
+              </div>
+              <div class="row wrap xs" style="column-gap:14px;row-gap:4px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Les réglages en tableau : une tuile par sujet, chacune réglable sur place (thème, accent, langue, inspection). L'import depuis un autre chrono s'ouvre en outil plein écran : fichiers lus sur l'appareil, épreuve devinée, puis un seul bouton.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau Settings</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Settings</span><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="tile hero" style="gap:8px;padding:14px">
+              <div class="row g12"><span class="avatar l" style="border-radius:12px">DE</span><div class="col g0 grow"><b class="h3">dev</b><span class="xs">Level 12 · 109 of 204 achievements</span></div><button class="btn sm ghost"><i data-lucide="log-out"></i>Log out</button></div>
+              <div class="grid3" style="gap:6px">
+                <div class="well" style="background:var(--bg);gap:0;padding:7px 10px"><span class="xs">Username</span><b class="s b" style="color:var(--fg)">dev</b></div>
+                <div class="well" style="background:var(--bg);gap:0;padding:7px 10px"><span class="xs">Email</span><b class="s b trunc" style="color:var(--fg)">dev@qbix.app</b></div>
+                <div class="well" style="background:var(--bg);gap:0;padding:7px 10px"><span class="xs">Password</span><b class="s b pri">Change</b></div>
+              </div>
+            </div>
+            <div class="tile" style="gap:10px;padding:14px">
+              <div class="row between"><span class="cap">Appearance</span><div class="seg"><span class="on"><i data-lucide="moon" style="width:14px;height:14px"></i>Dark</span><span><i data-lucide="sun" style="width:14px;height:14px"></i></span><span><i data-lucide="monitor" style="width:14px;height:14px"></i></span></div></div>
+              <div class="row between"><span class="sw" style="background:#ffb48c"></span><span class="sw" style="background:#7fb2ff"></span><span class="sw on" style="background:#f5609f"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2"></span><span class="sw" style="background:#7fd4e8"></span><span class="sw" style="background:#ff9d6b"></span><span class="sw" style="background:#c9b4ff"></span></div>
+              <div class="row between xs b"><span>Peach</span><span>Blue</span><span class="pri">Pink</span><span>Green</span><span>Cyan</span><span>Orange</span><span>Purple</span></div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile" style="gap:4px;padding:12px 14px"><span class="row g6 cap"><i data-lucide="languages" style="width:14px;height:14px"></i>Language</span><b class="h3">English</b><span class="xs">Français · Español · Italiano · Deutsch</span></div>
+              <div class="tile" style="gap:4px;padding:12px 14px"><span class="row g6 cap"><i data-lucide="hourglass" style="width:14px;height:14px"></i>Inspection</span><b class="h3">None</b><span class="xs">Spoken · On screen · Both</span></div>
+              <div class="tile" style="gap:4px;padding:12px 14px;background:var(--acc)"><span class="row g6 cap"><i data-lucide="upload" style="width:14px;height:14px"></i>Import</span><b class="h3">9 timers</b><span class="xs">csTimer, Twisty Timer, CubeDesk…</span></div>
+              <div class="tile" style="gap:4px;padding:12px 14px"><span class="row g6 cap"><i data-lucide="download" style="width:14px;height:14px"></i>Export</span><div class="row g6" style="margin-top:2px"><span class="pill">CSV</span><span class="pill">JSON</span></div><span class="xs">Download my data</span></div>
+            </div>
+            <div class="grid3" style="gap:8px">
+              <div class="tile center" style="gap:4px;padding:10px 4px;border-radius:18px"><i data-lucide="book-open" class="pri"></i><b class="s b" style="color:var(--fg)">Guides</b></div>
+              <div class="tile center" style="gap:4px;padding:10px 4px;border-radius:18px"><i data-lucide="coffee" class="pri"></i><b class="s b" style="color:var(--fg)">Coffee</b></div>
+              <div class="tile center" style="gap:4px;padding:10px 4px;border-radius:18px"><i data-lucide="github" class="pri"></i><b class="s b" style="color:var(--fg)">Open source</b></div>
+            </div>
+            <div class="row between xs" style="padding:0 4px"><span class="bad b row g4"><i data-lucide="trash-2" style="width:14px;height:14px"></i>Delete my account</span><span>Legal · Privacy · Terms · Cookies</span></div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · Import times</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Import times<small>Files are read on this device</small></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="card dash center g6" style="padding:18px 14px">
+              <span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span>
+              <b class="h3">Drop your exports here</b>
+              <span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT Timer · Cubeast · acubemy · Speedcuber Timer</span>
+              <button class="btn sm pri"><i data-lucide="file-up"></i>Choose files</button>
+            </div>
+            <span class="cap" style="padding:0 4px">Files to import</span>
+            <div class="card tight" style="gap:6px;padding:12px">
+              <div class="row g10"><span class="icon-tile" style="width:34px;height:34px"><i data-lucide="file-json"></i></span><div class="col g0 grow"><b class="t b trunc">cstimer_20261010.txt</b><span class="xs">csTimer backup · 6 sessions</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+              <span class="s num">3×3 4,812 · 2×2 312 · 3×3 One-Handed 140 · Pyraminx 96</span>
+              <span class="xs">Left out: 3 (no time)</span>
+            </div>
+            <div class="card tight" style="gap:6px;padding:12px">
+              <div class="row g10"><span class="icon-tile" style="width:34px;height:34px"><i data-lucide="file-spreadsheet"></i></span><div class="col g0 grow"><b class="t b trunc">twisty_backup.txt</b><span class="xs">Twisty Timer · event not found</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+              <div class="row between"><span class="s num">1,108 solves</span><button class="chip on">Event <span class="v">3×3</span><i data-lucide="chevron-down"></i></button></div>
+            </div>
+            <div class="card hi" style="gap:2px;padding:12px 14px;flex-direction:row;align-items:center">
+              <i data-lucide="circle-check" class="ok"></i>
+              <div class="col g0 grow" style="margin-left:8px"><b class="t b">Last time: 2,410 solves imported</b><span class="xs">186 solves already here · from CubeDesk</span></div>
+            </div>
+          </div>
+          <div class="actionbar"><button class="btn lg pri block"><i data-lucide="download"></i>Import 6,468 solves</button></div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 21 · Welcome & sign in -->
+<section class="page" id="welcome" data-short="Welcome">
+  <div class="page-head">
+    <h2>21 · Welcome &amp; sign in <small>/login · introduction</small></h2>
+    <p>La porte d'entrée : se connecter, créer un compte ou continuer sans compte, puis dire ce qu'on sait résoudre, rapporter ses temps et suivre la visite guidée. Aujourd'hui le téléphone reprend les trois étapes du desktop (Welcome, Puzzles, Times) et la visite pose une carte par-dessus la barre d'onglets. Ici, sur téléphone, Welcome rejoint l'écran de connexion et Times rejoint Puzzles : deux écrans au lieu de quatre, et la visite démarre depuis le second.</p>
+    <div class="feats"><span>Welcome to Qbix : tes puzzles et méthodes · apprendre les autres · chrono et entraînement</span><span>Sign in / Create account</span><span>Username (3–24) · Password (10+) · afficher</span><span>Continue with Google (Soon)</span><span>Continue without an account</span><span>Conditions d'utilisation et confidentialité</span><span>Déjà cubeur / débutant (None yet)</span><span>Puzzles : 2×2 à 7×7, Square-1, Pyraminx, Skewb, Megaminx</span><span>Méthodes connues · PB</span><span>Bring your times (9 chronos) · Choose files</span><span>Visite guidée en 8 étapes · Skip the tour / Start the tour</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Un formulaire classique : le mot d'accueil et ses trois promesses en tête, Sign in / Create account en onglets, puis l'accès invité. Le réglage est un assistant à étapes numérotées, boutons Back / Start the tour en bas.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Accueil · connexion</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="col g12 px16 grow" style="padding-top:10px;padding-bottom:14px">
+            <div class="row g10"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h2">Qbix</b></div>
+            <div class="col g4"><span class="h1">Welcome to Qbix</span><span class="s">Time your solves, learn algorithms, race in duels.</span></div>
+            <div class="col g6">
+              <div class="row g10"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="shapes"></i></span><div class="col g0"><b class="s b" style="color:var(--fg)"><span class="pri">1</span> Your puzzles and methods</b><span class="xs">What you can solve today</span></div></div>
+              <div class="row g10"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="graduation-cap"></i></span><div class="col g0"><b class="s b" style="color:var(--fg)"><span class="pri">2</span> Learn the others</b><span class="xs">A new puzzle starts with its course</span></div></div>
+              <div class="row g10"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="timer"></i></span><div class="col g0"><b class="s b" style="color:var(--fg)"><span class="pri">3</span> Then time and train</b><span class="xs">Everything opens once it is solved</span></div></div>
+            </div>
+            <div class="utabs" style="padding:0;margin-top:2px"><span class="on" style="flex:1;justify-content:center">Sign in</span><span style="flex:1;justify-content:center">Create account</span></div>
+            <div class="col g6"><span class="lbl">Username</span><div class="field" style="color:var(--fg)">dev</div></div>
+            <div class="col g6"><span class="lbl">Password</span><div class="field between" style="color:var(--fg)">••••••••••••<i data-lucide="eye" class="faint"></i></div></div>
+            <button class="btn pri lg block">Sign in</button>
+            <div class="sep">or</div>
+            <button class="btn block" style="opacity:.6"><i data-lucide="chrome"></i>Continue with Google<span class="pill">Soon</span></button>
+            <div class="col center g2"><button class="btn ghost block" style="color:var(--fg)">Continue without an account</button><span class="xs">Your times on this device will be kept.</span></div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Assistant · puzzles, temps, visite</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="row between px16" style="padding-top:6px;padding-bottom:4px">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <div class="stp"><span class="ok"><b><i data-lucide="check"></i></b>Welcome</span><span class="on"><b>2</b>Puzzles</span><span><b>3</b>Tour</span></div>
+          </div>
+          <div class="col g10 px16 grow" style="padding-top:6px">
+            <div class="col g2"><span class="h1">What can you solve?</span><span class="s">The puzzles you already solve, then the methods you use</span></div>
+            <div class="grid4" style="gap:6px">
+              <div class="pz" style="height:60px"><i data-lucide="ban"></i>None yet</div>
+              <div class="pz" style="height:60px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+              <div class="pz on" style="height:60px"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+              <div class="pz" style="height:60px"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+              <div class="pz" style="height:60px"><span class="gl" style="--s:3.6px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+              <div class="pz" style="height:60px"><span class="gl" style="--s:3px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+              <div class="pz" style="height:60px"><span class="gl" style="--s:2.6px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+              <div class="pz" style="height:60px"><i data-lucide="square-asterisk"></i>Square-1</div>
+              <div class="pz" style="height:60px"><i data-lucide="triangle"></i>Pyraminx</div>
+              <div class="pz on" style="height:60px"><i data-lucide="diamond"></i>Skewb</div>
+              <div class="pz" style="height:60px"><i data-lucide="pentagon"></i>Megaminx</div>
+            </div>
+            <div class="card" style="gap:8px;padding:12px">
+              <span class="lbl">Methods you know</span>
+              <div class="row between"><b class="s b row g6" style="color:var(--fg)"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><span class="field" style="height:34px;width:104px;color:var(--fg)">PB · 9.775</span></div>
+              <div class="row wrap g6"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div>
+              <div class="row g6"><i data-lucide="diamond" class="faint" style="width:13px;height:13px"></i><b class="s b" style="color:var(--fg);width:44px">Skewb</b><span class="mchip on"><i data-lucide="check"></i>Beginner</span><span class="grow"></span><span class="field" style="height:34px;width:104px">PB · 12.34</span></div>
+            </div>
+            <div class="card" style="gap:6px;padding:12px;flex-direction:row;align-items:center">
+              <span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span>
+              <div class="col g0 grow"><b class="t b">Bring your times</b><span class="xs">From csTimer, Twisty Timer, CubeDesk and 6 more timers</span></div>
+              <button class="btn sm soft">Choose files</button>
+            </div>
+          </div>
+          <div class="actionbar" style="flex-direction:column;gap:8px;padding-bottom:12px">
+            <div class="row between"><div class="tdots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="xs">Then a tour in 8 steps, from the scramble to your profile</span></div>
+            <div class="row g8"><button class="btn icon ghost" aria-label="Back"><i data-lucide="arrow-left"></i></button><span class="grow"></span><button class="btn ghost">Skip the tour</button><button class="btn pri">Start the tour<i data-lucide="arrow-right"></i></button></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>L'accueil se lit en haut ; le formulaire monte en feuille et tout se tape au pouce, l'accès invité juste sous le bouton. Le réglage met les puzzles en grandes tuiles et les temps à importer dans une feuille ; la visite reprend la même feuille, une étape à la fois au-dessus de la barre.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Accueil · feuille de connexion</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="col g12 px16" style="padding-top:22px">
+            <span class="logo" style="transform:scale(1.6);transform-origin:left top;margin-bottom:12px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="display">Welcome<br>to Qbix</span>
+            <div class="row wrap g6"><span class="pill pri"><i data-lucide="shapes"></i>Your puzzles</span><span class="pill pri"><i data-lucide="graduation-cap"></i>Learn the others</span><span class="pill pri"><i data-lucide="timer"></i>Time and train</span></div>
+          </div>
+          <div class="sheet" style="gap:10px;padding-bottom:16px">
+            <div class="seg block"><span>Sign in</span><span class="on">Create account</span></div>
+            <div class="col g4"><span class="lbl">Username</span><div class="field" style="color:var(--fg)">lena_speed</div><span class="xs">3–24 letters, digits or underscores.</span></div>
+            <div class="col g4"><span class="lbl">Password</span><div class="field between" style="color:var(--fg)">••••••••••••<i data-lucide="eye-off" class="faint"></i></div><span class="xs">10 characters or more.</span></div>
+            <span class="xs">By creating an account, you accept the <b class="pri">terms of use</b> and the <b class="pri">privacy policy</b>.</span>
+            <button class="btn pri lg block">Create account</button>
+            <div class="grid2"><button class="btn" style="opacity:.6"><i data-lucide="chrome"></i>Google<span class="pill">Soon</span></button><button class="btn"><i data-lucide="user-round"></i>As a guest</button></div>
+            <span class="xs" style="text-align:center">Without an account, your times on this device will be kept.</span>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Réglage · feuille des temps · visite</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx"><span class="where">Set up <small>2 / 3</small></span><span class="grow"></span><span class="s b">Skip</span></div>
+          <div class="col g10 px16">
+            <span class="h1">What can you solve?</span>
+            <div class="grid3" style="gap:8px">
+              <div class="pz" style="height:64px"><i data-lucide="ban"></i>None yet</div>
+              <div class="pz on" style="height:64px"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+              <div class="pz" style="height:64px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+              <div class="pz" style="height:64px"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+              <div class="pz on" style="height:64px"><i data-lucide="diamond"></i>Skewb</div>
+              <div class="pz" style="height:64px"><i data-lucide="triangle"></i>Pyraminx</div>
+            </div>
+            <div class="hscroll" style="gap:6px"><span class="chip">5×5</span><span class="chip">6×6</span><span class="chip">7×7</span><span class="chip">Square-1</span><span class="chip">Megaminx</span></div>
+            <div class="card" style="gap:8px;padding:12px">
+              <div class="row between"><b class="t b row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 methods</b><span class="field" style="height:34px;width:96px;color:var(--fg)">PB · 9.775</span></div>
+              <div class="row wrap g6"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div>
+            </div>
+          </div>
+          <div class="sheet" style="gap:10px;padding-bottom:16px">
+            <div class="row g10"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="h3">Bring your times</b><span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span></div></div>
+            <button class="btn block"><i data-lucide="file-up"></i>Choose files</button>
+            <div class="hr"></div>
+            <div class="row between"><div class="tdots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="xs num">1 / 8</span></div>
+            <div class="col g2"><b class="h3">A tour in 8 steps</b><span class="s">Scramble, timer, session, algorithms, training, duel, learn and your profile: one card at a time, above the bar.</span></div>
+            <div class="row g8"><button class="btn ghost">Skip the tour</button><span class="grow"></span><button class="btn pri lg">Start the tour<i data-lucide="arrow-right"></i></button></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Une affiche plein écran : le cube, le nom, deux grandes portes (débutant ou déjà cubeur) et le compte en dessous. Le réglage est un outil plein écran, une question à la fois ; la visite s'annonce dans la barre d'action, son étape en cours sur la carte.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Affiche d'accueil</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="col g12 px16 grow" style="padding-top:8px;padding-bottom:14px">
+            <div class="row center" style="padding-top:4px"><i class="iso lg" data-iso="yyyyyyyyy|rrrrrrrrr|ggggggggg"></i></div>
+            <div class="col center g4"><span class="display">Qbix</span><span class="s">Time your solves, learn algorithms, race in duels.</span></div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile hero" style="gap:4px;padding:14px;outline:2px solid var(--pri);outline-offset:-2px"><i data-lucide="sprout" class="pri"></i><b class="h3">I'm new</b><span class="xs">Qbix starts you on the 3×3 course</span></div>
+              <div class="tile" style="gap:4px;padding:14px"><i data-lucide="zap" class="pri"></i><b class="h3">I already cube</b><span class="xs">Your puzzles, methods and times</span></div>
+            </div>
+            <div class="tile" style="gap:8px;padding:12px 14px">
+              <div class="seg block"><span class="on">Sign in</span><span>Create account</span></div>
+              <div class="field" style="color:var(--fg)"><i data-lucide="at-sign" class="faint"></i>dev</div>
+              <div class="field" style="color:var(--fg)"><i data-lucide="key-round" class="faint"></i><span class="grow">••••••••••••</span><i data-lucide="eye" class="faint"></i></div>
+              <button class="btn pri block">Sign in</button>
+              <button class="btn block" style="opacity:.6"><i data-lucide="chrome"></i>Continue with Google<span class="pill">Soon</span></button>
+            </div>
+            <div class="col center g2"><b class="t b pri">Continue without an account</b><span class="xs">Your times on this device will be kept.</span></div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · réglage</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Set up Qbix<small>Puzzles · Times · Tour</small></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <span class="display" style="font-size:30px">What can<br>you solve?</span>
+            <div class="grid4" style="gap:6px">
+              <div class="pz" style="height:58px"><i data-lucide="ban"></i>None yet</div>
+              <div class="pz" style="height:58px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+              <div class="pz on" style="height:58px"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+              <div class="pz on" style="height:58px"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+              <div class="pz" style="height:58px"><span class="gl" style="--s:3.6px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+              <div class="pz" style="height:58px"><span class="gl" style="--s:3px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+              <div class="pz" style="height:58px"><span class="gl" style="--s:2.6px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+              <div class="pz" style="height:58px"><i data-lucide="square-asterisk"></i>Square-1</div>
+              <div class="pz" style="height:58px"><i data-lucide="triangle"></i>Pyraminx</div>
+              <div class="pz" style="height:58px"><i data-lucide="diamond"></i>Skewb</div>
+              <div class="pz" style="height:58px"><i data-lucide="pentagon"></i>Megaminx</div>
+            </div>
+            <div class="tile" style="gap:8px;padding:12px 14px">
+              <div class="row between"><b class="t b row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><span class="field" style="height:34px;width:100px;color:var(--fg)">PB · 9.775</span></div>
+              <div class="row wrap g6"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div>
+              <div class="hr"></div>
+              <div class="row between"><b class="t b row g6"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</b><span class="field" style="height:34px;width:100px">PB · 50.00</span></div>
+              <div class="row wrap g6"><span class="mchip on"><i data-lucide="check"></i>Reduction</span><span class="mchip"><i data-lucide="plus"></i>Yau</span></div>
+            </div>
+            <div class="tile dash" style="gap:4px;padding:12px 14px;flex-direction:row;align-items:center;background:transparent;border:1.5px dashed var(--border)">
+              <div class="col g0 grow"><b class="t b">Bring your times</b><span class="xs">From csTimer, Twisty Timer, CubeDesk and 6 more</span></div>
+              <button class="btn sm soft"><i data-lucide="file-up"></i>Choose files</button>
+            </div>
+          </div>
+          <div class="actionbar" style="align-items:center">
+            <div class="col g4 grow"><div class="tdots"><i class="d"></i><i class="on"></i><i></i></div><span class="xs">Then a tour in 8 steps</span></div>
+            <button class="btn ghost">Skip the tour</button>
+            <button class="btn pri">Start the tour</button>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>

@@ -26,3 +26,12 @@ desktop/*
 !desktop/assets/
 # The desktop installers the landing page gives (copied into the web build).
 !desktop/install/
+# The phone app, exported for the web with the web app (desktop/web.ts), and the case images it bundles.
+!assets/
+!mobile/
+mobile/node_modules/
+mobile/android/
+mobile/build/
+mobile/.expo/
+mobile/public/
+mobile/assets/cases/

@@ -1,0 +1,926 @@
+<style>
+#timer .menu, #session .menu, #stats .menu { position: absolute; z-index: 7; background: var(--pop); border-radius: 18px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); padding: 6px; display: flex; flex-direction: column; gap: 1px; }
+#timer .mi, #session .mi, #stats .mi { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 11px; font-size: 14px; font-weight: 600; white-space: nowrap; flex: none; }
+#timer .mi.on, #session .mi.on, #stats .mi.on { background: var(--acc); }
+#timer .mi > .grow, #session .mi > .grow, #stats .mi > .grow { overflow: hidden; text-overflow: ellipsis; }
+#timer .mi svg.lucide, #session .mi svg.lucide, #stats .mi svg.lucide { width: 16px; height: 16px; color: var(--mfg); }
+#timer .msep, #session .msep, #stats .msep { height: 1px; background: var(--border); margin: 4px 6px; flex: none; }
+#timer .mcap, #session .mcap, #stats .mcap { font-size: 11px; font-weight: 700; color: var(--faint); padding: 6px 10px 4px; text-transform: uppercase; letter-spacing: .08em; }
+#timer .pz, #session .pz, #stats .pz { --n: 3; width: 22px; height: 22px; flex: none; display: inline-block; background: currentColor; -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(23.5px / var(--n) - 1.5px), transparent 0 calc(23.5px / var(--n))), repeating-linear-gradient(#000 0 calc(23.5px / var(--n) - 1.5px), transparent 0 calc(23.5px / var(--n))); -webkit-mask-composite: source-in; mask-composite: intersect; }
+#timer .ev, #stats .ev { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 56px; border-radius: 14px; background: var(--muted); font-size: 11.5px; font-weight: 700; color: var(--mfg); min-width: 0; white-space: nowrap; flex: none; }
+#timer .ev svg.lucide, #stats .ev svg.lucide { width: 22px; height: 22px; }
+#timer .ev.on, #stats .ev.on { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); box-shadow: inset 0 0 0 1.5px var(--pri); }
+#timer .times > .x { color: var(--faint); }
+#timer .times > .new { box-shadow: inset 0 0 0 1.5px var(--faint); }
+#timer .ract { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--mfg); flex: 1; min-width: 0; }
+#timer .ract > span { width: 54px; height: 46px; border-radius: 16px; background: var(--card); display: grid; place-items: center; color: var(--fg); }
+#timer .ract.w > span { color: var(--warn); }
+#timer .ract.p > span { background: var(--pri); color: var(--pri-fg); }
+#timer .faded { opacity: .28; }
+#timer .ftile { border-radius: 16px; background: var(--card); padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#timer .ftile.edit { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); position: relative; }
+#timer .ftile.add { background: transparent; box-shadow: inset 0 0 0 1.5px dashed var(--border); border: 1.5px dashed var(--faint); align-items: center; justify-content: center; color: var(--faint); font-weight: 700; font-size: 13px; }
+#timer .glow { background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--ok) 14%, transparent), transparent 62%); }
+</style>
+
+<!-- =============================================================== 01 · Timer -->
+<section class="page" id="timer" data-short="Timer">
+  <div class="page-head">
+    <h2>01 · Timer <small>/timer</small></h2>
+    <p>L'écran le plus utilisé : le chrono doit dominer, rien entre le cubeur et sa résolution. Aujourd'hui le téléphone empile le mélange, le chrono, une rangée d'icônes minuscules et trois chiffres dans une carte ; les réglages du desktop (type de mélange, saisie, inspection, cube connecté) sont cachés ou absents. Ici, chaque proposition garde un grand chrono au centre, met les gestes de la dernière résolution sous le pouce et range les réglages dans un seul endroit.</p>
+    <div class="feats"><span>Mélange (gros, lisible)</span><span>Type de mélange : Normal, 2-gen, 3-gen, Half turns, Edges/Corners only, Last layer, OLL/PLL/F2L cases</span><span>Nouveau mélange</span><span>Copier le mélange</span><span>Aperçu du cube mélangé</span><span>Saisie : Timer / Typing / Casual</span><span>Inspection : None / Spoken / On screen / Both</span><span>Mélange du jour (calendrier)</span><span>Connect a cube (bluetooth)</span><span>Stackmat (expérimental)</span><span>Panneau de session</span><span>Choix du puzzle : 2×2 à 7×7, OH, BLD 3/4/5, Square-1, Pyraminx, Skewb, Megaminx</span><span>États : au repos, tenu (rouge), prêt (vert), en cours (tout s'efface)</span><span>Cinq derniers temps + Ao5 (extrêmes entre parenthèses)</span><span>+2 / DNF / Note / Delete</span><span>Bande de chiffres composée (Best, Ao5, Ao12, Mean… modifier, ajouter, retirer)</span><span>Buy me a coffee</span><span>Menu du compte</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Le desktop remis en colonne : réglages en pastilles sous les onglets, mélange en grand avec son aperçu, chrono au centre, gestes et chiffres en bas. La carte de session pousse l'écran des temps ; le puzzle ouvre un dialogue qui réunit puzzle, mélange, saisie et inspection.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Repos · menu du compte ouvert</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <span class="title">Timer</span>
+            <button class="btn icon ghost"><i data-lucide="calendar-days"></i></button>
+            <button class="btn icon ghost"><i data-lucide="bluetooth"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l" style="box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--pri)">DE</span>
+          </div>
+          <div class="utabs"><span class="on">Timer</span><span>Analysis</span></div>
+          <div class="hscroll px16" style="padding-top:10px;padding-bottom:4px">
+            <span class="chip">Scramble <span class="v">Normal</span><i data-lucide="chevron-down"></i></span>
+            <span class="chip">Entry <span class="v">Timer</span><i data-lucide="chevron-down"></i></span>
+            <span class="chip">Inspection <span class="v">None</span><i data-lucide="chevron-down"></i></span>
+            <span class="chip"><i data-lucide="timer"></i>Stackmat</span>
+          </div>
+          <div class="row start g10 px16" style="padding-top:8px">
+            <div class="alg grow" style="font-size:20px">F' B' U R' F D' R2 D F D2 B2 L2 D2 B2 L' F2 L2 D2 F2 L F2</div>
+            <div class="col g4" style="align-items:center">
+              <i class="iso sm" data-iso="ogyrwbygb|rwgbgoyrw|byorbwgyo" style="width:52px;height:52px"></i>
+              <div class="row g2"><button class="btn icon sm ghost"><i data-lucide="shuffle"></i></button></div>
+            </div>
+          </div>
+          <div class="col center grow g10">
+            <div class="timer xl">11.<span class="ms">482</span></div>
+            <span class="s faint">Hold, then release to start</span>
+          </div>
+          <div class="col g10 px16" style="padding-bottom:12px">
+            <div class="row g6">
+              <div class="times grow"><span>12.381</span><span class="x">(11.204)</span><span>13.019</span><span class="x">(14.552)</span><span class="new">11.482</span></div>
+            </div>
+            <div class="row g6">
+              <button class="btn sm grow">+2</button><button class="btn sm grow">DNF</button><button class="btn sm grow"><i data-lucide="message-square"></i>Note</button><button class="btn sm grow"><i data-lucide="trash-2"></i>Delete</button>
+            </div>
+            <div class="card tight g6">
+              <div class="row between"><span class="row g6 s b"><i data-lucide="list-ordered" style="width:16px;height:16px"></i>Oct 11 · 23 solves · <span class="lilac">Ao5 12.294</span></span><span class="row g2 faint"><i data-lucide="pencil" style="width:16px;height:16px"></i><i data-lucide="chevron-right"></i></span></div>
+              <div class="grid4">
+                <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+                <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+                <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>12.517</b></div>
+                <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span class="on"><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+          <div class="menu" style="top:50px;right:12px;width:246px">
+            <div class="col g6" style="padding:8px;border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--pri) 16%,var(--pop)),var(--pop))">
+              <div class="row g10"><span class="avatar sm l" style="border-radius:10px">DE</span><div class="col g0"><b class="h3">dev</b><span class="xs">34 of 120 achievements</span></div></div>
+              <div class="col g4"><div class="row between xs b"><span>Level 7</span><span class="num">1,240 / 1,500 XP</span></div><div class="bar thin"><i style="width:68%"></i></div></div>
+            </div>
+            <div class="mi"><i data-lucide="user-round"></i>Profile</div>
+            <div class="mi"><i data-lucide="settings"></i>Settings</div>
+            <div class="mi"><i data-lucide="book-open"></i>Guides</div>
+            <div class="mi"><i data-lucide="book-a"></i>Notation</div>
+            <div class="mi"><i data-lucide="upload"></i>Import times</div>
+            <div class="mi"><i data-lucide="bluetooth"></i>Connect a cube</div>
+            <div class="mi"><i data-lucide="timer"></i><span class="grow">Connect a Stackmat</span><span class="pill pri">Experimental</span></div>
+            <div class="mi pri b"><i data-lucide="coffee" style="color:var(--pri)"></i>Buy me a coffee</div>
+            <div class="msep"></div>
+            <div class="mi bad"><i data-lucide="log-out" style="color:var(--bad)"></i>Log out</div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Dialogue du puzzle</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title" style="font-size:20px">Puzzle and scramble</span>
+          </div>
+          <div class="col g12 px16 grow" style="padding-bottom:14px">
+            <span class="cap">Puzzle</span>
+            <div class="grid4">
+              <div class="ev"><i class="pz" style="--n:2"></i>2×2</div>
+              <div class="ev on"><i class="pz"></i>3×3</div>
+              <div class="ev"><i class="pz" style="--n:4"></i>4×4</div>
+              <div class="ev"><i class="pz" style="--n:5"></i>5×5</div>
+              <div class="ev"><i class="pz" style="--n:6"></i>6×6</div>
+              <div class="ev"><i class="pz" style="--n:7"></i>7×7</div>
+              <div class="ev"><i data-lucide="hand"></i>3×3 OH</div>
+              <div class="ev"><i data-lucide="eye-off"></i>3×3 BLD</div>
+              <div class="ev"><i data-lucide="eye-off"></i>4×4 BLD</div>
+              <div class="ev"><i data-lucide="eye-off"></i>5×5 BLD</div>
+              <div class="ev"><i data-lucide="hexagon"></i>Square-1</div>
+              <div class="ev"><i data-lucide="triangle"></i>Pyraminx</div>
+              <div class="ev"><i data-lucide="diamond"></i>Skewb</div>
+              <div class="ev"><i data-lucide="pentagon"></i>Megaminx</div>
+            </div>
+            <span class="cap">Scramble</span>
+            <div class="row wrap g6">
+              <span class="chip pri"><i data-lucide="check"></i>Normal</span><span class="chip">2-gen · R U</span><span class="chip">2-gen · L U</span><span class="chip">2-gen · R F</span><span class="chip">2-gen · M U</span><span class="chip">3-gen · R U L</span><span class="chip">3-gen · R U F</span><span class="chip">Half turns</span><span class="chip">Edges only</span><span class="chip">Corners only</span><span class="chip">Last layer</span><span class="chip">OLL cases</span><span class="chip">PLL cases</span><span class="chip">F2L cases</span>
+            </div>
+            <span class="cap">Entry</span>
+            <div class="seg block"><span class="on"><i data-lucide="timer"></i>Timer</span><span><i data-lucide="keyboard"></i>Typing</span><span>Casual</span></div>
+            <span class="cap">WCA inspection</span>
+            <div class="seg block"><span class="on">None</span><span>Spoken</span><span>On screen</span><span>Both</span></div>
+            <div class="row between" style="padding-top:2px"><span class="t b row g10"><i data-lucide="box"></i>Show the scrambled cube</span><span class="switch on"></span></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>Le mélange se lit en haut, tout ce qu'on touche est en bas : cinq gros gestes (dont le mélange suivant) et la session qui dépasse au-dessus de la barre. Toucher le mélange ouvre une seule feuille pour le puzzle, le type de mélange, la saisie et l'inspection. Le compte vit dans Me.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Prêt · le chrono passe au vert</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Timer <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="calendar-days"></i></button>
+            <button class="btn icon sm ghost"><i data-lucide="bluetooth"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="px12">
+            <div class="card g6" style="padding:14px 14px 10px">
+              <div class="row start g10">
+                <div class="alg grow" style="font-size:20px">F' B' U R' F D' R2 D F D2 B2 L2 D2 B2 L' F2 L2 D2 F2 L F2</div>
+                <i class="iso sm" data-iso="ogyrwbygb|rwgbgoyrw|byorbwgyo" style="width:48px;height:48px"></i>
+              </div>
+              <div class="row g6"><span class="pill">Normal</span><span class="pill">Timer</span><span class="pill">No inspection</span><span class="grow"></span><i data-lucide="sliders-horizontal" class="faint"></i></div>
+            </div>
+          </div>
+          <div class="col center grow g10 glow">
+            <div class="timer xl armed">0.<span class="ms" style="color:var(--ok)">000</span></div>
+            <span class="s ok b">Release to start</span>
+          </div>
+          <div class="col g12 px16" style="padding-bottom:132px">
+            <div class="times"><span>12.381</span><span class="x">(11.204)</span><span>13.019</span><span class="x">(14.552)</span><span class="new">11.482</span></div>
+            <div class="row g6">
+              <div class="ract w"><span><i data-lucide="plus"></i></span>+2</div>
+              <div class="ract"><span><i data-lucide="ban"></i></span>DNF</div>
+              <div class="ract"><span><i data-lucide="message-square"></i></span>Note</div>
+              <div class="ract"><span><i data-lucide="trash-2"></i></span>Delete</div>
+              <div class="ract p"><span><i data-lucide="shuffle"></i></span>Next</div>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:8px;padding-bottom:12px">
+            <div class="grid4">
+              <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+              <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+              <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>12.517</b></div>
+              <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+            </div>
+            <div class="row between s"><span class="b">Oct 11 · 23 solves</span><span class="row g4 faint"><i data-lucide="pencil" style="width:15px;height:15px"></i>Edit<i data-lucide="chevron-up"></i></span></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span class="on"><i data-lucide="timer"></i>Timer</span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Feuille du mélange</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Timer <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="calendar-days"></i></button>
+            <button class="btn icon sm ghost"><i data-lucide="bluetooth"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="px12"><div class="card"><div class="alg" style="font-size:20px">F' B' U R' F D' R2 D F D2 B2 L2 D2 B2 L' F2 L2 D2 F2 L F2</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:10px">
+            <div class="row between"><span class="h2">3×3 · Normal</span><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <div class="grid3" style="gap:6px">
+              <button class="btn sm soft"><i data-lucide="shuffle"></i>New</button>
+              <button class="btn sm"><i data-lucide="copy"></i>Copy</button>
+              <button class="btn sm"><i data-lucide="box"></i>Preview</button>
+            </div>
+            <span class="cap">Puzzle</span>
+            <div class="grid5">
+              <div class="ev" style="height:50px"><i class="pz" style="--n:2"></i>2×2</div>
+              <div class="ev on" style="height:50px"><i class="pz"></i>3×3</div>
+              <div class="ev" style="height:50px"><i class="pz" style="--n:4"></i>4×4</div>
+              <div class="ev" style="height:50px"><i class="pz" style="--n:5"></i>5×5</div>
+              <div class="ev" style="height:50px"><i class="pz" style="--n:6"></i>6×6</div>
+              <div class="ev" style="height:50px"><i class="pz" style="--n:7"></i>7×7</div>
+              <div class="ev" style="height:50px"><i data-lucide="hand"></i>OH</div>
+              <div class="ev" style="height:50px"><i data-lucide="eye-off"></i>3BLD</div>
+              <div class="ev" style="height:50px"><i data-lucide="eye-off"></i>4BLD</div>
+              <div class="ev" style="height:50px"><i data-lucide="eye-off"></i>5BLD</div>
+              <div class="ev" style="height:50px"><i data-lucide="hexagon"></i>Sq-1</div>
+              <div class="ev" style="height:50px"><i data-lucide="triangle"></i>Pyra</div>
+              <div class="ev" style="height:50px"><i data-lucide="diamond"></i>Skewb</div>
+              <div class="ev" style="height:50px"><i data-lucide="pentagon"></i>Mega</div>
+            </div>
+            <span class="cap">Scramble</span>
+            <div class="row wrap g6">
+              <span class="chip pri"><i data-lucide="check"></i>Normal</span><span class="chip">2-gen R U</span><span class="chip">2-gen L U</span><span class="chip">2-gen R F</span><span class="chip">2-gen M U</span><span class="chip">3-gen R U L</span><span class="chip">3-gen R U F</span><span class="chip">Half turns</span><span class="chip">Edges only</span><span class="chip">Corners only</span><span class="chip">Last layer</span><span class="chip">OLL</span><span class="chip">PLL</span><span class="chip">F2L</span>
+            </div>
+            <div class="row between"><span class="b">Entry</span><div class="seg"><span class="on">Timer</span><span>Typing</span><span>Casual</span></div></div>
+            <div class="row between"><span class="b">Inspection</span><div class="seg"><span class="on">None</span><span>Voice</span><span>Screen</span><span>Both</span></div></div>
+            <div class="row between"><span class="chip"><i data-lucide="timer"></i>Stackmat <span class="v">beta</span></span><span class="chip pri"><i data-lucide="coffee"></i>Buy me a coffee</span></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Le tableau Timer prépare la séance : puzzle, mélange du jour, cube connecté, session, statistiques. « Start » ouvre le chrono plein écran, sans barre : un mélange, un chrono énorme, les chiffres choisis et les gestes en bas. Le menu ⋯ garde les réglages du mélange.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Timer</span><button class="btn icon sm ghost"><i data-lucide="coffee" style="color:var(--pri)"></i></button><span class="avatar sm l">DE</span></div>
+          <div class="col g10 px16 grow" style="padding-bottom:12px">
+            <div class="tile hero g10">
+              <div class="row between"><span class="row g6 h3"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 · Normal</span><span class="pill">Timer · no inspection</span></div>
+              <div class="row start g10">
+                <span class="alg sm grow">F' B' U R' F D' R2 D F D2 B2 L2 D2 B2 L' F2 L2 D2 F2 L F2</span>
+                <i class="iso sm" data-iso="ogyrwbygb|rwgbgoyrw|byorbwgyo" style="width:48px;height:48px"></i>
+              </div>
+              <div class="row g8"><button class="btn lg pri grow"><i data-lucide="play"></i>Start</button><button class="btn lg icon" style="width:52px"><i data-lucide="shuffle"></i></button></div>
+            </div>
+            <div class="hscroll">
+              <div class="ev on" style="width:62px"><i class="pz"></i>3×3</div>
+              <div class="ev" style="width:62px"><i class="pz" style="--n:2"></i>2×2</div>
+              <div class="ev" style="width:62px"><i class="pz" style="--n:4"></i>4×4</div>
+              <div class="ev" style="width:62px"><i data-lucide="hand"></i>OH</div>
+              <div class="ev" style="width:62px"><i data-lucide="eye-off"></i>3BLD</div>
+              <div class="ev" style="width:62px"><i data-lucide="hexagon"></i>Sq-1</div>
+              <div class="ev" style="width:62px"><i data-lucide="triangle"></i>Pyra</div>
+            </div>
+            <div class="tile g10" style="padding:14px 16px">
+              <div class="row between"><span class="row g6 h3"><i data-lucide="list-ordered" class="pri"></i>Today's session</span><span class="row g4 s">23 solves<i data-lucide="chevron-right"></i></span></div>
+              <div class="grid4">
+                <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+                <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+                <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>12.517</b></div>
+                <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+              </div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile" style="padding:14px">
+                <span class="icon-tile pri"><i data-lucide="calendar-days"></i></span>
+                <b class="h3">Daily scramble</b>
+                <span class="s">One ranked attempt · Oct 11</span>
+              </div>
+              <div class="tile" style="padding:14px">
+                <span class="icon-tile"><i data-lucide="bluetooth"></i></span>
+                <b class="h3">Connect a cube</b>
+                <span class="s">Or a Stackmat · beta</span>
+              </div>
+            </div>
+            <div class="tile row g12" style="padding:12px 16px">
+              <svg viewBox="0 0 120 40" style="width:96px;height:36px;flex:none"><polyline fill="none" stroke="var(--pri)" stroke-width="1.6" vector-effect="non-scaling-stroke" points="0,22 10,18 20,26 30,14 40,20 50,24 60,12 70,16 80,10 90,18 100,8 110,12 120,9"/><polyline fill="none" stroke="var(--c2)" stroke-width="2.2" vector-effect="non-scaling-stroke" points="0,21 20,20 40,19 60,17 80,15 100,13 120,11"/></svg>
+              <div class="col g2 grow"><b class="h3">Statistics</b><span class="s">Ao5 −0.41 s this week</span></div>
+              <i data-lucide="chevron-right" class="faint"></i>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span class="on"><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Chrono plein écran · menu ⋯</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">3×3 · Normal<small>Oct 11 · 23 solves</small></span>
+            <button class="btn icon ghost" style="background:var(--acc)"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="px16 center" style="display:flex">
+            <div class="alg" style="font-size:21px;text-align:center">F' B' U R' F D' R2 D F D2 B2 L2 D2 B2 L' F2 L2 D2 F2 L F2</div>
+          </div>
+          <div class="col center grow g10">
+            <div class="timer xl" style="font-size:116px">11.<span class="ms">482</span></div>
+            <div class="row g6"><span class="pill">12.381</span><span class="pill faint">(11.204)</span><span class="pill">13.019</span><span class="pill faint">(14.552)</span><span class="pill" style="box-shadow:inset 0 0 0 1.5px var(--faint)">11.482</span></div>
+            <span class="b lilac">Ao5 12.294</span>
+          </div>
+          <div class="grid4 px16" style="padding-bottom:12px">
+            <div class="ftile"><span class="xs row g4"><i class="dot ok"></i>Best</span><b class="num">10.892</b></div>
+            <div class="ftile"><span class="xs row g4"><i class="dot"></i>Ao12</span><b class="num">12.517</b></div>
+            <div class="ftile"><span class="xs row g4"><i class="dot lilac"></i>Ao100</span><b class="num">12.904</b></div>
+            <div class="ftile"><span class="xs row g4"><i class="dot warn"></i>Mean</span><b class="num">12.648</b></div>
+          </div>
+          <div class="actionbar">
+            <button class="btn grow" style="color:var(--warn)">+2</button>
+            <button class="btn grow">DNF</button>
+            <button class="btn icon"><i data-lucide="message-square"></i></button>
+            <button class="btn icon"><i data-lucide="trash-2"></i></button>
+            <button class="btn pri grow"><i data-lucide="shuffle"></i>Next</button>
+          </div>
+          <div class="menu" style="top:48px;right:12px;width:292px">
+            <div class="mcap">Scramble</div>
+            <div class="row wrap g4" style="padding:0 6px 6px">
+              <span class="chip pri" style="height:28px">Normal</span><span class="chip" style="height:28px">2-gen R U</span><span class="chip" style="height:28px">2-gen L U</span><span class="chip" style="height:28px">2-gen R F</span><span class="chip" style="height:28px">2-gen M U</span><span class="chip" style="height:28px">3-gen R U L</span><span class="chip" style="height:28px">3-gen R U F</span><span class="chip" style="height:28px">Half turns</span><span class="chip" style="height:28px">Edges only</span><span class="chip" style="height:28px">Corners only</span><span class="chip" style="height:28px">Last layer</span><span class="chip" style="height:28px">OLL</span><span class="chip" style="height:28px">PLL</span><span class="chip" style="height:28px">F2L</span>
+            </div>
+            <div class="msep"></div>
+            <div class="mi"><i data-lucide="shuffle"></i>New scramble</div>
+            <div class="mi"><i data-lucide="copy"></i>Copy the scramble</div>
+            <div class="mi"><i data-lucide="box"></i><span class="grow">Scrambled cube</span><span class="switch on" style="transform:scale(.8)"></span></div>
+            <div class="msep"></div>
+            <div class="mi"><i data-lucide="keyboard"></i><span class="grow">Entry</span><span class="s pri b">Timer</span><i data-lucide="chevron-right"></i></div>
+            <div class="mi"><i data-lucide="eye"></i><span class="grow">Inspection</span><span class="s pri b">None</span><i data-lucide="chevron-right"></i></div>
+            <div class="mi"><i data-lucide="pencil"></i>Edit the figures</div>
+            <div class="mi"><i data-lucide="timer"></i><span class="grow">Connect a Stackmat</span><span class="pill pri">Beta</span></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 02 · Session -->
+<section class="page" id="session" data-short="Session">
+  <style>
+  #session .tr { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 12px; flex: none; min-width: 0; }
+  #session .tr.on { background: var(--acc); }
+  #session .tr .n { width: 22px; text-align: right; color: var(--faint); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
+  #session .tr > b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #session .tr svg.lucide { width: 14px; height: 14px; color: var(--mfg); }
+  #session .tr .d { margin-left: auto; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  #session .swipe { display: flex; height: 44px; flex: none; border-radius: 12px; overflow: hidden; gap: 2px; }
+  #session .swipe > .tr { flex: 1; background: var(--acc); border-radius: 12px 0 0 12px; }
+  #session .swipe > span { width: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11.5px; font-weight: 800; }
+  #session .swipe svg.lucide { width: 16px; height: 16px; }
+  #session .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  #session .cal > b { font-size: 11px; font-weight: 700; color: var(--faint); padding-bottom: 2px; }
+  #session .cal > span { height: 34px; display: grid; place-items: center; font-size: 13.5px; font-weight: 700; border-radius: 11px; position: relative; font-variant-numeric: tabular-nums; }
+  #session .cal > span.d::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--pri); }
+  #session .cal > span.on { background: var(--pri); color: var(--pri-fg); }
+  #session .cal > span.on::after { background: var(--pri-fg); }
+  #session .cal > span.f { color: var(--faint); opacity: .55; }
+  #session .wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  #session .wk > span { height: 54px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 800; font-size: 15px; position: relative; }
+  #session .wk > span small { font-size: 11px; font-weight: 700; color: var(--faint); }
+  #session .wk > span.d::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--pri); margin-top: 2px; }
+  #session .wk > span:not(.d)::after { content: ""; height: 7px; }
+  #session .wk > span.on { background: var(--pri); color: var(--pri-fg); }
+  #session .wk > span.on small { color: color-mix(in srgb, var(--pri-fg) 70%, transparent); }
+  #session .wk > span.on::after { background: var(--pri-fg); }
+  #session .tchip { height: 40px; border-radius: 12px; background: var(--card); display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+  #session .tchip svg.lucide { width: 12px; height: 12px; color: var(--mfg); }
+  #session .tchip.on { box-shadow: inset 0 0 0 2px var(--pri); background: var(--acc); }
+  #session .bigact { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--mfg); }
+  #session .bigact > span { width: 100%; height: 46px; border-radius: 16px; background: var(--muted); display: grid; place-items: center; color: var(--fg); }
+  </style>
+  <div class="page-head">
+    <h2>02 · Session <small>/timer · panneau des temps</small></h2>
+    <p>Le panneau de droite du desktop : les temps de la session, son nom, ses chiffres, l'historique des sessions et le détail d'une résolution. Aujourd'hui c'est une feuille de lignes serrées sans moyen de changer de session. Ici, l'historique devient un calendrier, chaque temps se touche (détail) ou se maintient / glisse (pénalités, suppression).</p>
+    <div class="feats"><span>Temps de la session, du plus récent (n°, temps, couleur du meilleur / du pire, +2, DNF)</span><span>Icône commentaire · cube connecté</span><span>Nom de la session modifiable · nombre de temps</span><span>Chiffres : Best, Worst, Mean, Ao5, Ao12, Solves</span><span>New session</span><span>Changer de session (les 50 dernières de l'épreuve)</span><span>Historique des sessions en calendrier</span><span>Détail d'une résolution : temps, épreuve, date et heure, mélange, cube et Show front, solution (Write the turns), commentaire</span><span>+2 / DNF / Comment / Share / Delete</span><span>Menu contextuel : No penalty, +2, DNF, Comment…, Details, Delete</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>La carte de session du chrono pousse cet écran : une semaine en bandeau pour remonter les sessions (le calendrier ouvre le mois), les six chiffres, puis la liste. Un appui long sur un temps ouvre son menu ; un appui simple, le dialogue plein écran de la résolution.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Écran poussé · appui long</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Session</span>
+            <button class="btn icon ghost"><i data-lucide="calendar-days"></i></button>
+            <button class="btn sm soft"><i data-lucide="plus"></i>New</button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="wk">
+              <span class="d"><small>Mon</small>5</span><span><small>Tue</small>6</span><span class="d"><small>Wed</small>7</span><span><small>Thu</small>8</span><span class="d"><small>Fri</small>9</span><span class="d"><small>Sat</small>10</span><span class="d on"><small>Sun</small>11</span>
+            </div>
+            <div class="row g6"><span class="h2">Oct 11 · 3×3</span><span class="b faint num">23</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i><span class="grow"></span><span class="chip" style="height:28px">2 today<i data-lucide="chevron-down"></i></span></div>
+            <div class="card tight">
+              <div class="grid3" style="row-gap:10px">
+                <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+                <div class="stat"><span><i class="dot bad"></i>Worst</span><b>15.370</b></div>
+                <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+                <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+                <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>12.517</b></div>
+                <div class="stat"><span><i class="dot faint"></i>Solves</span><b>23</b></div>
+              </div>
+            </div>
+            <div class="scroll g0">
+              <div class="tr"><span class="n">23</span><b>11.482</b><span class="d">12:31</span></div>
+              <div class="tr"><span class="n">22</span><b>14.552</b><span class="d">12:30</span></div>
+              <div class="tr"><span class="n">21</span><b>13.019</b><i data-lucide="message-square"></i><span class="d">12:29</span></div>
+              <div class="tr"><span class="n">20</span><b>11.204</b><i data-lucide="rotate-3d"></i><span class="d">12:28</span></div>
+              <div class="tr on"><span class="n">19</span><b class="warn">12.381+</b><span class="d">12:27</span></div>
+              <div class="tr"><span class="n">18</span><b>12.877</b><span class="d">12:26</span></div>
+              <div class="tr"><span class="n">17</span><b class="ok">10.892</b><span class="d">12:25</span></div>
+              <div class="tr"><span class="n">16</span><b class="bad">DNF</b><span class="faint s">(13.450)</span><span class="d">12:24</span></div>
+              <div class="tr"><span class="n">15</span><b>12.106</b><i data-lucide="message-square"></i><span class="d">12:23</span></div>
+              <div class="tr"><span class="n">14</span><b class="bad">15.370</b><span class="d">12:22</span></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span class="on"><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+          <div class="menu" style="top:164px;left:118px;width:220px">
+            <div class="mcap" style="text-transform:none;letter-spacing:0;font-size:12px">12.381+ · solve 19</div>
+            <div class="mi"><span class="grow">No penalty</span></div>
+            <div class="mi on"><span class="grow">+2</span><i data-lucide="check" style="color:var(--pri)"></i></div>
+            <div class="mi"><span class="grow">DNF</span></div>
+            <div class="msep"></div>
+            <div class="mi"><i data-lucide="message-square"></i>Comment…</div>
+            <div class="mi"><i data-lucide="info"></i>Details</div>
+            <div class="mi"><i data-lucide="share-2"></i>Share</div>
+            <div class="msep"></div>
+            <div class="mi bad"><i data-lucide="trash-2" style="color:var(--bad)"></i>Delete</div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Dialogue de la résolution</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title" style="font-size:20px">Solve 17</span>
+            <button class="btn icon ghost"><i data-lucide="share-2"></i></button>
+          </div>
+          <div class="col g12 px16 grow" style="padding-bottom:14px">
+            <div class="row between">
+              <div class="col g4"><div class="timer m ok">10.<span class="ms" style="color:var(--ok)">892</span></div><span class="s">3×3 · Oct 11, 2026 · 12:25:14 PM</span></div>
+              <span class="pill ok">Session best</span>
+            </div>
+            <div class="card hi row g12" style="padding:12px">
+              <i class="iso lg" data-iso="wbyrwogyb|gogbrwyrr|bwoyboygo" style="width:112px;height:112px"></i>
+              <div class="col g6 grow">
+                <span class="cap">Scramble</span>
+                <span class="alg sm">R2 F2 B U R2 L U D2 B2 L U2 F2 B2 L' D2 R' F2 L D F'</span>
+              </div>
+            </div>
+            <div class="row g8"><button class="btn sm"><i data-lucide="scan"></i>Show front</button><button class="btn sm"><i data-lucide="copy"></i>Copy scramble</button></div>
+            <div class="col g6">
+              <div class="row between"><span class="cap">Solution</span><button class="btn sm"><i data-lucide="pencil"></i>Write the turns</button></div>
+              <span class="s">No turns yet: write them to replay the solve.</span>
+            </div>
+            <div class="col g6">
+              <span class="cap">Comment</span>
+              <div class="field area" style="color:var(--fg)">Clean cross, lucky PLL skip.</div>
+            </div>
+            <div class="grow"></div>
+            <div class="row g8">
+              <button class="btn grow" style="color:var(--warn)">+2</button>
+              <button class="btn grow">DNF</button>
+              <button class="btn grow"><i data-lucide="share-2"></i>Share</button>
+              <button class="btn grow bad"><i data-lucide="trash-2"></i>Delete</button>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>La feuille de session qui dépassait sous le chrono, tirée en entier. Les sessions défilent en pastilles (« + » en crée une, le calendrier remonte plus loin) ; glisser un temps vers la gauche donne +2, DNF et Delete, le toucher ouvre sa feuille, avec ses gestes en bas.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Feuille de session tirée</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx"><span class="where">Timer <i data-lucide="chevron-down"></i></span><span class="grow"></span><button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button></div>
+          <div class="col center grow"><div class="timer xl">11.<span class="ms">482</span></div></div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span class="on"><i data-lucide="timer"></i>Timer</span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:40px;gap:10px">
+            <div class="row g6"><span class="h2">Oct 11 · 3×3</span><span class="b faint num">23</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i><span class="grow"></span><button class="btn icon sm ghost"><i data-lucide="calendar-days"></i></button></div>
+            <div class="hscroll">
+              <span class="chip pri"><i data-lucide="plus"></i>New</span>
+              <span class="chip on">Today <span class="v">23</span></span>
+              <span class="chip">This morning <span class="v">8</span></span>
+              <span class="chip">Evening grind · Oct 10 <span class="v">41</span></span>
+              <span class="chip">Oct 9 <span class="v">17</span></span>
+            </div>
+            <div class="grid3" style="row-gap:10px;padding:2px 4px">
+              <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+              <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+              <div class="stat"><span><i class="dot lilac"></i>Ao12</span><b>12.517</b></div>
+              <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+              <div class="stat"><span><i class="dot bad"></i>Worst</span><b>15.370</b></div>
+              <div class="stat"><span><i class="dot faint"></i>DNF</span><b>1</b></div>
+            </div>
+            <div class="hr"></div>
+            <div class="scroll g2">
+              <div class="tr"><span class="n">23</span><b>11.482</b><span class="d">12:31</span></div>
+              <div class="swipe">
+                <div class="tr"><span class="n">22</span><b>14.552</b><span class="d">12:30</span></div>
+                <span style="background:color-mix(in srgb,var(--warn) 22%,var(--card));color:var(--warn)"><i data-lucide="plus"></i>+2</span>
+                <span style="background:var(--muted)"><i data-lucide="ban"></i>DNF</span>
+                <span style="background:color-mix(in srgb,var(--bad) 24%,var(--card));color:var(--bad);border-radius:0 12px 12px 0"><i data-lucide="trash-2"></i>Delete</span>
+              </div>
+              <div class="tr"><span class="n">21</span><b>13.019</b><i data-lucide="message-square"></i><span class="d">12:29</span></div>
+              <div class="tr"><span class="n">20</span><b>11.204</b><i data-lucide="rotate-3d"></i><span class="d">12:28</span></div>
+              <div class="tr"><span class="n">19</span><b class="warn">12.381+</b><span class="d">12:27</span></div>
+              <div class="tr"><span class="n">18</span><b>12.877</b><span class="d">12:26</span></div>
+              <div class="tr"><span class="n">17</span><b class="ok">10.892</b><span class="d">12:25</span></div>
+              <div class="tr"><span class="n">16</span><b class="bad">DNF</b><span class="faint s">(13.450)</span><span class="d">12:24</span></div>
+              <div class="tr"><span class="n">15</span><b>12.106</b><i data-lucide="message-square"></i><span class="d">12:23</span></div>
+              <div class="tr"><span class="n">14</span><b class="bad">15.370</b><span class="d">12:22</span></div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Feuille d'une résolution</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="col g10 px16" style="padding-top:8px">
+            <div class="row g6"><span class="h2">Oct 11 · 3×3</span><span class="b faint num">23</span></div>
+            <div class="tr"><span class="n">23</span><b>11.482</b></div>
+            <div class="tr"><span class="n">22</span><b>14.552</b></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:12px;padding-bottom:16px">
+            <div class="row between">
+              <div class="col g4"><div class="timer m ok">10.<span class="ms" style="color:var(--ok)">892</span></div><span class="s">Solve 17 · 3×3 · Oct 11, 12:25 PM</span></div>
+              <div class="col g6" style="align-items:center"><i class="iso" data-iso="wbyrwogyb|gogbrwyrr|bwoyboygo" style="width:76px;height:76px"></i><span class="xs b row g4"><i data-lucide="scan" style="width:13px;height:13px"></i>Show front</span></div>
+            </div>
+            <div class="well"><span class="cap">Scramble</span><span class="alg sm">R2 F2 B U R2 L U D2 B2 L U2 F2 B2 L' D2 R' F2 L D F'</span></div>
+            <div class="well row between" style="flex-direction:row"><div class="col g2"><span class="cap">Solution</span><span class="s">No turns yet</span></div><button class="btn sm"><i data-lucide="pencil"></i>Write the turns</button></div>
+            <div class="field area" style="color:var(--fg);min-height:56px">Clean cross, lucky PLL skip.</div>
+            <div class="grid5" style="gap:8px">
+              <div class="bigact"><span style="color:var(--warn)"><i data-lucide="plus"></i></span>+2</div>
+              <div class="bigact"><span><i data-lucide="ban"></i></span>DNF</div>
+              <div class="bigact"><span><i data-lucide="message-square"></i></span>Comment</div>
+              <div class="bigact"><span><i data-lucide="share-2"></i></span>Share</div>
+              <div class="bigact"><span style="color:var(--bad)"><i data-lucide="trash-2"></i></span>Delete</div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Les sessions ont leur outil : un mois en calendrier (un point par jour de séance), les sessions du jour touché en tuiles, « New session » en bas. La session ouverte montre ses temps en grille de pastilles ; toucher un temps ouvre sa fiche par-dessus, avec toutes les actions du menu contextuel.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Historique · calendrier</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">Sessions<small>3×3 · 50 latest</small></span>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="tile g10" style="padding:14px">
+              <div class="row between"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><b class="h3">October 2026</b><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button></div>
+              <div class="cal">
+                <b>Mo</b><b>Tu</b><b>We</b><b>Th</b><b>Fr</b><b>Sa</b><b>Su</b>
+                <span></span><span></span><span></span><span class="d">1</span><span>2</span><span class="d">3</span><span class="d">4</span>
+                <span class="d">5</span><span>6</span><span class="d">7</span><span>8</span><span class="d">9</span><span class="d">10</span><span class="d on">11</span>
+                <span class="f">12</span><span class="f">13</span><span class="f">14</span><span class="f">15</span><span class="f">16</span><span class="f">17</span><span class="f">18</span>
+                <span class="f">19</span><span class="f">20</span><span class="f">21</span><span class="f">22</span><span class="f">23</span><span class="f">24</span><span class="f">25</span>
+                <span class="f">26</span><span class="f">27</span><span class="f">28</span><span class="f">29</span><span class="f">30</span><span class="f">31</span><span></span>
+              </div>
+            </div>
+            <span class="cap">Sunday, Oct 11</span>
+            <div class="tile hero g6" style="padding:14px 16px">
+              <div class="row between"><b class="h3">Oct 11 · 3×3</b><span class="pill pri">Current</span></div>
+              <div class="row g12 s"><span>23 solves</span><span>Mean <b class="num" style="color:var(--fg)">12.648</b></span><span>Best <b class="num ok">10.892</b></span></div>
+            </div>
+            <div class="tile g6" style="padding:14px 16px">
+              <div class="row between"><b class="h3">This morning</b><span class="s num">8:42 · 8 solves</span></div>
+              <div class="row g12 s"><span>Mean <b class="num" style="color:var(--fg)">13.105</b></span><span>Best <b class="num ok">11.760</b></span></div>
+            </div>
+            <div class="tile g6" style="padding:14px 16px;opacity:.75">
+              <div class="row between"><b class="h3">Evening grind</b><span class="s num">Oct 10 · 41 solves</span></div>
+            </div>
+          </div>
+          <div class="actionbar"><button class="btn lg pri grow"><i data-lucide="plus"></i>New session</button></div>
+        </div></div></div></div>
+
+        <div><div class="state">Session ouverte · fiche d'un temps</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Oct 11 · 3×3 <i data-lucide="pencil" class="faint" style="width:13px;height:13px"></i><small>23 solves</small></span>
+            <button class="btn icon ghost"><i data-lucide="ellipsis"></i></button>
+          </div>
+          <div class="col g10 px16 grow">
+            <div class="grid3 card tight" style="row-gap:10px;display:grid">
+              <div class="stat"><span><i class="dot ok"></i>Best</span><b>10.892</b></div>
+              <div class="stat"><span><i class="dot"></i>Ao5</span><b>12.294</b></div>
+              <div class="stat"><span><i class="dot warn"></i>Mean</span><b>12.648</b></div>
+            </div>
+            <div class="grid4" style="gap:6px">
+              <div class="tchip">11.482</div><div class="tchip">14.552</div><div class="tchip">13.019<i data-lucide="message-square"></i></div><div class="tchip">11.204<i data-lucide="rotate-3d"></i></div>
+              <div class="tchip warn">12.381+</div><div class="tchip">12.877</div><div class="tchip ok on">10.892</div><div class="tchip bad">DNF</div>
+              <div class="tchip">12.106</div><div class="tchip bad">15.370</div><div class="tchip">12.733</div><div class="tchip">11.958</div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:12px;padding-bottom:16px">
+            <div class="row g12">
+              <i class="iso" data-iso="wbyrwogyb|gogbrwyrr|bwoyboygo" style="width:84px;height:84px"></i>
+              <div class="col g4 grow"><div class="timer m ok">10.<span class="ms" style="color:var(--ok)">892</span></div><span class="s">Solve 17 · Oct 11, 12:25 PM</span><span class="row g6"><span class="pill ok">Session best</span><span class="pill"><i data-lucide="scan" style="width:12px;height:12px"></i>Show front</span></span></div>
+            </div>
+            <span class="alg sm">R2 F2 B U R2 L U D2 B2 L U2 F2 B2 L' D2 R' F2 L D F'</span>
+            <div class="row between"><span class="s">Solution · no turns yet</span><button class="btn sm"><i data-lucide="pencil"></i>Write the turns</button></div>
+            <div class="field area" style="color:var(--fg);min-height:52px">Clean cross, lucky PLL skip.</div>
+            <div class="seg block"><span class="on">No penalty</span><span>+2</span><span>DNF</span></div>
+            <div class="row g8">
+              <button class="btn grow"><i data-lucide="message-square"></i>Comment</button>
+              <button class="btn grow"><i data-lucide="share-2"></i>Share</button>
+              <button class="btn grow bad"><i data-lucide="trash-2"></i>Delete</button>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 03 · Statistics -->
+<section class="page" id="stats" data-short="Statistics">
+  <style>
+  #stats .ruler { position: relative; height: 28px; border-radius: 10px; background: var(--muted); display: flex; align-items: center; justify-content: space-around; font-size: 11px; font-weight: 700; color: var(--faint); flex: none; }
+  #stats .ruler > b { position: absolute; top: 0; bottom: 0; border-radius: 10px; box-shadow: inset 0 0 0 2px var(--pri); background: color-mix(in srgb, var(--pri) 12%, transparent); }
+  #stats .lg { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; font-weight: 600; color: var(--mfg); }
+  #stats .lg > span { display: inline-flex; align-items: center; gap: 5px; }
+  #stats .lg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pri); }
+  #stats .lg i.l { width: 14px; height: 2.5px; border-radius: 2px; background: var(--c2); }
+  #stats .lg i.ok { background: var(--ok); }
+  #stats .sr { display: grid; grid-template-columns: 22px 72px 46px 1fr auto; align-items: center; gap: 8px; height: 40px; padding: 0 6px; flex: none; font-variant-numeric: tabular-nums; }
+  #stats .sr .n { text-align: right; color: var(--faint); font-size: 12.5px; font-weight: 600; }
+  #stats .sr > b { font-size: 15.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+  #stats .sr .v { font-size: 12.5px; font-weight: 600; }
+  #stats .sr .a { font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #stats .sr .t { font-size: 12px; color: var(--faint); text-align: right; }
+  #stats .sr svg.lucide { width: 13px; height: 13px; color: var(--mfg); }
+  #stats .gh { font-size: 12px; font-weight: 600; color: var(--mfg); padding: 6px 6px 2px; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #stats .gh b { color: var(--fg); }
+  #stats .ft { display: grid; grid-template-columns: 1fr 64px 58px 74px; align-items: center; column-gap: 6px; min-height: 30px; font-variant-numeric: tabular-nums; flex: none; }
+  #stats .ft > :not(:first-child) { text-align: right; }
+  #stats .ft > b { font-size: 15px; }
+  #stats .ft small { display: block; font-size: 10.5px; color: var(--faint); font-weight: 600; line-height: 1.1; }
+  #stats .ft.h { min-height: 18px; font-size: 11.5px; color: var(--faint); font-weight: 700; }
+  #stats .fcard { width: 128px; background: var(--card); border-radius: 18px; padding: 11px 12px; display: flex; flex-direction: column; gap: 3px; }
+  #stats .fcard b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  #stats .rb { display: flex; align-items: center; gap: 10px; height: 30px; font-variant-numeric: tabular-nums; flex: none; }
+  #stats .rb b { color: var(--ok); width: 58px; }
+  </style>
+  <div class="page-head">
+    <h2>03 · Statistics <small>/profile/playground</small></h2>
+    <p>Les statistiques du chrono : la courbe de chaque résolution avec ses moyennes glissantes, la période choisie sur la courbe, le tableau des chiffres et la liste des temps. Aujourd'hui le téléphone empile la courbe et une carte à onglets dans une page qui défile, les colonnes du tableau tombent. Ici la courbe reste en haut, la période se choisit au pouce, et la liste garde ses colonnes utiles.</p>
+    <div class="feats"><span>Épreuve (avec le nombre de temps) + autres épreuves</span><span>Type de mélange</span><span>Per solve / Per session</span><span>Courbe : chaque temps, Ao5 (Ao50 sur les longues périodes), records, DNF, mémo (BLD)</span><span>Zoom et glisser sur la courbe</span><span>Périodes : All, 3 months, 30 days, Last session + réglette des mois</span><span>Valeur par session : Mean, Best, Best Ao5, Best Ao12</span><span>Chiffres : Single, Ao5, Ao12, Ao100, Mean, Solves, DNF × period / latest / record (+ date)</span><span>Records battus (gain ou « first »)</span><span>Liste des temps : n°, temps, écart à la session, Ao5 · Ao12, heure, commentaire, Record, analyse</span><span>Tri : Newest / Oldest / Fastest / Slowest first</span><span>Filtre Commented</span><span>Liste des sessions : solves, best, mean, Ao5, Ao12</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Onglets -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Onglets</b><span>Écran poussé depuis le profil (onglet Me) : l'épreuve dans la barre, mélange et Per solve / Per session dessous, la courbe et sa période, puis un sélecteur Solves · Figures · Records pour la carte du bas, comme le desktop étroit.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Par résolution · menu de tri</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Statistics</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 <span class="v">312</span><i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="row between"><span class="chip">Scramble <span class="v">Normal</span><i data-lucide="chevron-down"></i></span><div class="seg"><span class="on">Per solve</span><span>Per session</span></div></div>
+            <div class="card g6" style="padding:12px 14px">
+              <div class="row between"><b class="h3">All solves</b><div class="lg"><span><i></i>solve</span><span><i class="l"></i>Ao5</span><span><i class="ok"></i>record</span></div></div>
+              <svg viewBox="0 0 300 120" style="width:100%;height:112px;display:block;overflow:visible" preserveAspectRatio="none"><g stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"><line x1="14" x2="300" y1="34.3" y2="34.3"/><line x1="14" x2="300" y1="68.6" y2="68.6"/><line x1="14" x2="300" y1="102.9" y2="102.9"/></g><g font-size="8" font-weight="700" fill="var(--faint)" font-family="inherit"><text x="0" y="37">14</text><text x="0" y="71">12</text><text x="0" y="105">10</text></g><g fill="var(--pri)" fill-opacity=".75"><circle cx="4.0" cy="47.9" r="1.6"/> <circle cx="8.6" cy="38.3" r="1.6"/> <circle cx="13.3" cy="48.1" r="1.6"/> <circle cx="17.9" cy="49.6" r="1.6"/> <circle cx="22.5" cy="57.8" r="1.6"/> <circle cx="27.2" cy="48.9" r="1.6"/> <circle cx="31.8" cy="32.2" r="1.6"/> <circle cx="36.4" cy="41.4" r="1.6"/> <circle cx="41.1" cy="33.8" r="1.6"/> <circle cx="50.3" cy="42.7" r="1.6"/> <circle cx="55.0" cy="45.7" r="1.6"/> <circle cx="59.6" cy="69.8" r="1.6"/> <circle cx="64.3" cy="37.8" r="1.6"/> <circle cx="68.9" cy="42.6" r="1.6"/> <circle cx="73.5" cy="43.0" r="1.6"/> <circle cx="78.2" cy="71.5" r="1.6"/> <circle cx="82.8" cy="72.5" r="1.6"/> <circle cx="87.4" cy="61.8" r="1.6"/> <circle cx="92.1" cy="56.7" r="1.6"/> <circle cx="96.7" cy="47.1" r="1.6"/> <circle cx="101.3" cy="51.9" r="1.6"/> <circle cx="110.6" cy="60.2" r="1.6"/> <circle cx="115.2" cy="48.3" r="1.6"/> <circle cx="119.9" cy="47.5" r="1.6"/> <circle cx="124.5" cy="61.4" r="1.6"/> <circle cx="129.1" cy="31.2" r="1.6"/> <circle cx="133.8" cy="46.4" r="1.6"/> <circle cx="138.4" cy="38.5" r="1.6"/> <circle cx="147.7" cy="64.0" r="1.6"/> <circle cx="152.3" cy="59.3" r="1.6"/> <circle cx="157.0" cy="56.5" r="1.6"/> <circle cx="161.6" cy="47.4" r="1.6"/> <circle cx="166.2" cy="52.6" r="1.6"/> <circle cx="170.9" cy="61.9" r="1.6"/> <circle cx="175.5" cy="68.8" r="1.6"/> <circle cx="180.1" cy="63.5" r="1.6"/> <circle cx="184.8" cy="41.4" r="1.6"/> <circle cx="194.0" cy="54.6" r="1.6"/> <circle cx="198.7" cy="52.6" r="1.6"/> <circle cx="203.3" cy="77.5" r="1.6"/> <circle cx="207.9" cy="58.1" r="1.6"/> <circle cx="212.6" cy="42.2" r="1.6"/> <circle cx="217.2" cy="85.3" r="1.6"/> <circle cx="221.8" cy="63.8" r="1.6"/> <circle cx="226.5" cy="61.4" r="1.6"/> <circle cx="231.1" cy="70.8" r="1.6"/> <circle cx="235.7" cy="54.2" r="1.6"/> <circle cx="240.4" cy="61.8" r="1.6"/> <circle cx="245.0" cy="80.1" r="1.6"/> <circle cx="249.7" cy="51.0" r="1.6"/> <circle cx="254.3" cy="53.3" r="1.6"/> <circle cx="258.9" cy="50.1" r="1.6"/> <circle cx="263.6" cy="44.0" r="1.6"/> <circle cx="268.2" cy="58.2" r="1.6"/> <circle cx="272.8" cy="61.7" r="1.6"/> <circle cx="277.5" cy="80.2" r="1.6"/> <circle cx="282.1" cy="55.9" r="1.6"/> <circle cx="286.7" cy="72.0" r="1.6"/> <circle cx="291.4" cy="70.3" r="1.6"/> <circle cx="296.0" cy="81.1" r="1.6"/></g><polyline fill="none" stroke="var(--c2)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" points="22.5,48.5 27.2,48.9 31.8,48.9 36.4,46.6 41.1,41.4 45.7,41.4 50.3,39.3 55.0,43.3 59.6,52.8 64.3,52.8 68.9,43.7 73.5,43.8 78.2,51.8 82.8,52.3 87.4,58.7 92.1,63.3 96.7,63.3 101.3,56.8 106.0,56.8 110.6,56.3 115.2,53.5 119.9,53.5 124.5,56.7 129.1,52.0 133.8,47.4 138.4,44.2 143.0,48.8 147.7,49.0 152.3,56.0 157.0,59.3 161.6,59.3 166.2,56.2 170.9,56.2 175.5,57.0 180.1,59.3 184.8,59.3 189.4,64.7 194.0,62.3 198.7,56.9 203.3,61.6 207.9,63.4 212.6,55.1 217.2,62.7 221.8,66.5 226.5,61.1 231.1,65.3 235.7,65.3 240.4,62.3 245.0,64.7 249.7,62.3 254.3,56.4 258.9,55.4 263.6,51.5 268.2,51.5 272.8,53.9 277.5,56.7 282.1,58.6 286.7,64.0 291.4,68.0 296.0,74.2"/><g fill="var(--ok)"><circle cx="45.7" cy="87.4" r="3"/> <circle cx="106.0" cy="92.6" r="3"/> <circle cx="189.4" cy="99.4" r="3"/></g><text x="139" y="14" fill="var(--bad)" font-size="12" font-weight="800">×</text></svg>
+              <div class="seg" style="align-self:flex-start"><span>All</span><span>3 months</span><span class="on">30 days</span><span>Last session</span></div>
+              <div class="ruler"><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><b style="left:56%;right:0"></b></div>
+              <span class="s"><b style="color:var(--fg)">Sep 12 → Oct 11</b> · 148 solves</span>
+            </div>
+            <div class="seg block"><span class="on">Solves</span><span>Figures</span><span>Records</span></div>
+            <div class="row g6"><span class="chip on"><i data-lucide="arrow-down-up"></i>Newest first<i data-lucide="chevron-down"></i></span><span class="chip"><i data-lucide="message-square"></i>Commented <span class="v">4</span></span></div>
+            <div class="scroll g0">
+              <div class="gh"><b>Oct 11</b> · 23 solves · mean 12.648 · best 10.892</div>
+              <div class="sr"><span class="n">23</span><b>11.482</b><span class="v ok">−1.17</span><span class="a">12.294 · 12.517</span><span class="t">12:31</span></div>
+              <div class="sr"><span class="n">22</span><b>14.552</b><span class="v bad">+1.90</span><span class="a">12.581 · 12.640</span><span class="t">12:30</span></div>
+              <div class="sr"><span class="n">21</span><b>13.019<i data-lucide="message-square"></i></b><span class="v bad">+0.37</span><span class="a">12.380 · 12.602</span><span class="t">12:29</span></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+          <div class="menu" style="top:452px;left:16px;width:200px">
+            <div class="mi on"><span class="grow">Newest first</span><i data-lucide="check" style="color:var(--pri)"></i></div>
+            <div class="mi">Oldest first</div>
+            <div class="mi">Fastest first</div>
+            <div class="mi">Slowest first</div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="state">Par session · chiffres et records</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="appbar">
+            <button class="btn icon ghost"><i data-lucide="chevron-left"></i></button>
+            <span class="title">Statistics</span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 <span class="v">312</span><i data-lucide="chevron-down"></i></button>
+          </div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="row between"><span class="chip">Scramble <span class="v">Normal</span><i data-lucide="chevron-down"></i></span><div class="seg"><span>Per solve</span><span class="on">Per session</span></div></div>
+            <div class="card g6" style="padding:12px 14px">
+              <div class="row between"><b class="h3">One value per session</b><span class="chip" style="height:28px">Mean<i data-lucide="chevron-down"></i></span></div>
+              <svg viewBox="0 0 300 120" style="width:100%;height:84px;display:block;overflow:visible" preserveAspectRatio="none"><g stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"><line x1="14" x2="300" y1="34.3" y2="34.3"/><line x1="14" x2="300" y1="68.6" y2="68.6"/><line x1="14" x2="300" y1="102.9" y2="102.9"/></g><g font-size="8" font-weight="700" fill="var(--faint)" font-family="inherit"><text x="0" y="37">14</text><text x="0" y="71">12</text><text x="0" y="105">10</text></g><polyline fill="none" stroke="var(--pri)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" points="4.0,45.9 26.5,42.1 48.9,52.7 71.4,45.6 93.8,52.1 116.3,53.3 138.8,45.3 161.2,53.9 183.7,56.0 206.2,53.8 228.6,53.3 251.1,59.5 273.5,58.0 296.0,65.9"/><g fill="var(--pri)"><circle cx="4.0" cy="45.9" r="2.4"/> <circle cx="26.5" cy="42.1" r="2.4"/> <circle cx="48.9" cy="52.7" r="2.4"/> <circle cx="71.4" cy="45.6" r="2.4"/> <circle cx="93.8" cy="52.1" r="2.4"/> <circle cx="116.3" cy="53.3" r="2.4"/> <circle cx="138.8" cy="45.3" r="2.4"/> <circle cx="161.2" cy="53.9" r="2.4"/> <circle cx="183.7" cy="56.0" r="2.4"/> <circle cx="206.2" cy="53.8" r="2.4"/> <circle cx="228.6" cy="53.3" r="2.4"/> <circle cx="251.1" cy="59.5" r="2.4"/> <circle cx="273.5" cy="58.0" r="2.4"/></g><circle cx="296" cy="65.9" r="3.6" fill="var(--ok)"/></svg>
+              <div class="row between"><div class="lg"><span><i class="l" style="background:var(--pri)"></i>session mean</span><span><i class="ok"></i>best session</span></div><span class="s">14 sessions</span></div>
+            </div>
+            <div class="seg block"><span>Sessions</span><span class="on">Figures</span><span>Records</span></div>
+            <div class="card g4" style="padding:10px 14px">
+              <div class="ft h"><span>3×3 · Normal</span><span>period</span><span>latest</span><span>record</span></div>
+              <div class="ft"><span class="b">Single</span><b>10.214</b><span class="mfg">11.482</span><span class="ok b">10.214<small>Sep 28</small></span></div>
+              <div class="ft"><span class="b">Ao5</span><b>11.640</b><span class="mfg">12.294</span><span class="ok b">11.640<small>Oct 3</small></span></div>
+              <div class="ft"><span class="b">Ao12</span><b>12.082</b><span class="mfg">12.517</span><span class="ok b">12.082<small>Oct 3</small></span></div>
+              <div class="ft"><span class="b">Ao100</span><b>12.690</b><span class="mfg">12.804</span><span class="ok b">12.690<small>Oct 9</small></span></div>
+              <div class="ft"><span class="b">Mean</span><b>12.880</b><span class="faint">–</span><span class="mfg">13.240<small>all</small></span></div>
+              <div class="ft"><span class="b">Solves</span><b>148</b><span class="faint">–</span><span class="mfg">312<small>all</small></span></div>
+              <div class="ft"><span class="b">DNF</span><b>3</b><span class="faint">–</span><span class="mfg">7</span></div>
+            </div>
+            <div class="card g2 grow" style="padding:10px 14px;min-height:0;overflow:hidden">
+              <div class="row g6"><b class="h3">Records broken</b><span class="xs">single</span></div>
+              <div class="rb"><b>10.214</b><span class="s grow">Sep 28</span><span class="xs ok b">−0.320</span></div>
+              <div class="rb"><b>10.534</b><span class="s grow">Sep 19</span><span class="xs ok b">−0.176</span></div>
+            </div>
+          </div>
+          <nav class="tabbar">
+            <span><span><i data-lucide="timer"></i></span>Timer</span>
+            <span><span><i data-lucide="graduation-cap"></i></span>Learn</span>
+            <span><span><i data-lucide="boxes"></i></span>Algs</span>
+            <span><span><i data-lucide="swords"></i></span>Challenges</span>
+            <span class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</span>
+          </nav>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Pouce -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Pouce</b><span>La courbe en grand : la période se tire directement dessus, les périodes rapides juste dessous. Les chiffres défilent en cartes, les records en une ligne ; la liste des temps dépasse en feuille. Épreuve, mélange, par session, tri et filtre vivent dans une seule feuille de réglages.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Repos · période tirée sur la courbe</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Statistics <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost"><i data-lucide="sliders-horizontal"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="col g10 px12">
+            <div class="card g8" style="padding:12px 14px">
+              <div class="row between"><b class="h3">All solves <span class="pill" style="margin-left:4px">Normal</span></b><span class="s"><b style="color:var(--fg)">148</b> of 312</span></div>
+              <div class="lg"><span><i></i>one solve</span><span><i class="l"></i>average of 5</span><span><i class="ok"></i>single record</span><span class="bad b">× DNF</span></div>
+              <svg viewBox="0 0 300 120" style="width:100%;height:150px;display:block;overflow:visible" preserveAspectRatio="none"><g stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"><line x1="14" x2="300" y1="34.3" y2="34.3"/><line x1="14" x2="300" y1="68.6" y2="68.6"/><line x1="14" x2="300" y1="102.9" y2="102.9"/></g><g font-size="8" font-weight="700" fill="var(--faint)" font-family="inherit"><text x="0" y="37">14</text><text x="0" y="71">12</text><text x="0" y="105">10</text></g><rect x="165" y="1" width="134" height="118" rx="8" fill="var(--pri)" fill-opacity=".1" stroke="var(--pri)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><rect x="161" y="44" width="8" height="32" rx="4" fill="var(--pri)"/><rect x="295" y="44" width="8" height="32" rx="4" fill="var(--pri)"/><g fill="var(--pri)" fill-opacity=".75"><circle cx="4.0" cy="47.9" r="1.6"/> <circle cx="8.6" cy="38.3" r="1.6"/> <circle cx="13.3" cy="48.1" r="1.6"/> <circle cx="17.9" cy="49.6" r="1.6"/> <circle cx="22.5" cy="57.8" r="1.6"/> <circle cx="27.2" cy="48.9" r="1.6"/> <circle cx="31.8" cy="32.2" r="1.6"/> <circle cx="36.4" cy="41.4" r="1.6"/> <circle cx="41.1" cy="33.8" r="1.6"/> <circle cx="50.3" cy="42.7" r="1.6"/> <circle cx="55.0" cy="45.7" r="1.6"/> <circle cx="59.6" cy="69.8" r="1.6"/> <circle cx="64.3" cy="37.8" r="1.6"/> <circle cx="68.9" cy="42.6" r="1.6"/> <circle cx="73.5" cy="43.0" r="1.6"/> <circle cx="78.2" cy="71.5" r="1.6"/> <circle cx="82.8" cy="72.5" r="1.6"/> <circle cx="87.4" cy="61.8" r="1.6"/> <circle cx="92.1" cy="56.7" r="1.6"/> <circle cx="96.7" cy="47.1" r="1.6"/> <circle cx="101.3" cy="51.9" r="1.6"/> <circle cx="110.6" cy="60.2" r="1.6"/> <circle cx="115.2" cy="48.3" r="1.6"/> <circle cx="119.9" cy="47.5" r="1.6"/> <circle cx="124.5" cy="61.4" r="1.6"/> <circle cx="129.1" cy="31.2" r="1.6"/> <circle cx="133.8" cy="46.4" r="1.6"/> <circle cx="138.4" cy="38.5" r="1.6"/> <circle cx="147.7" cy="64.0" r="1.6"/> <circle cx="152.3" cy="59.3" r="1.6"/> <circle cx="157.0" cy="56.5" r="1.6"/> <circle cx="161.6" cy="47.4" r="1.6"/> <circle cx="166.2" cy="52.6" r="1.6"/> <circle cx="170.9" cy="61.9" r="1.6"/> <circle cx="175.5" cy="68.8" r="1.6"/> <circle cx="180.1" cy="63.5" r="1.6"/> <circle cx="184.8" cy="41.4" r="1.6"/> <circle cx="194.0" cy="54.6" r="1.6"/> <circle cx="198.7" cy="52.6" r="1.6"/> <circle cx="203.3" cy="77.5" r="1.6"/> <circle cx="207.9" cy="58.1" r="1.6"/> <circle cx="212.6" cy="42.2" r="1.6"/> <circle cx="217.2" cy="85.3" r="1.6"/> <circle cx="221.8" cy="63.8" r="1.6"/> <circle cx="226.5" cy="61.4" r="1.6"/> <circle cx="231.1" cy="70.8" r="1.6"/> <circle cx="235.7" cy="54.2" r="1.6"/> <circle cx="240.4" cy="61.8" r="1.6"/> <circle cx="245.0" cy="80.1" r="1.6"/> <circle cx="249.7" cy="51.0" r="1.6"/> <circle cx="254.3" cy="53.3" r="1.6"/> <circle cx="258.9" cy="50.1" r="1.6"/> <circle cx="263.6" cy="44.0" r="1.6"/> <circle cx="268.2" cy="58.2" r="1.6"/> <circle cx="272.8" cy="61.7" r="1.6"/> <circle cx="277.5" cy="80.2" r="1.6"/> <circle cx="282.1" cy="55.9" r="1.6"/> <circle cx="286.7" cy="72.0" r="1.6"/> <circle cx="291.4" cy="70.3" r="1.6"/> <circle cx="296.0" cy="81.1" r="1.6"/></g><polyline fill="none" stroke="var(--c2)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" points="22.5,48.5 27.2,48.9 31.8,48.9 36.4,46.6 41.1,41.4 45.7,41.4 50.3,39.3 55.0,43.3 59.6,52.8 64.3,52.8 68.9,43.7 73.5,43.8 78.2,51.8 82.8,52.3 87.4,58.7 92.1,63.3 96.7,63.3 101.3,56.8 106.0,56.8 110.6,56.3 115.2,53.5 119.9,53.5 124.5,56.7 129.1,52.0 133.8,47.4 138.4,44.2 143.0,48.8 147.7,49.0 152.3,56.0 157.0,59.3 161.6,59.3 166.2,56.2 170.9,56.2 175.5,57.0 180.1,59.3 184.8,59.3 189.4,64.7 194.0,62.3 198.7,56.9 203.3,61.6 207.9,63.4 212.6,55.1 217.2,62.7 221.8,66.5 226.5,61.1 231.1,65.3 235.7,65.3 240.4,62.3 245.0,64.7 249.7,62.3 254.3,56.4 258.9,55.4 263.6,51.5 268.2,51.5 272.8,53.9 277.5,56.7 282.1,58.6 286.7,64.0 291.4,68.0 296.0,74.2"/><g fill="var(--ok)"><circle cx="45.7" cy="87.4" r="3"/> <circle cx="106.0" cy="92.6" r="3"/> <circle cx="189.4" cy="99.4" r="3"/></g><text x="139" y="14" fill="var(--bad)" font-size="12" font-weight="800">×</text></svg>
+              <div class="row between"><span class="s"><b style="color:var(--fg)">Sep 12 → Oct 11</b></span><span class="chip" style="height:28px"><i data-lucide="rotate-ccw"></i>Reset zoom</span></div>
+              <div class="seg block"><span>All</span><span>3 mo</span><span class="on">30 days</span><span>Last session</span></div>
+            </div>
+            <div class="hscroll">
+              <div class="fcard"><span class="cap">Single</span><b>10.214</b><span class="xs">latest 11.482</span><span class="xs ok b">record · Sep 28</span></div>
+              <div class="fcard"><span class="cap">Ao5</span><b>11.640</b><span class="xs">latest 12.294</span><span class="xs ok b">record · Oct 3</span></div>
+              <div class="fcard"><span class="cap">Ao12</span><b>12.082</b><span class="xs">latest 12.517</span><span class="xs ok b">record · Oct 3</span></div>
+              <div class="fcard"><span class="cap">Ao100</span><b>12.690</b><span class="xs">latest 12.804</span><span class="xs ok b">record · Oct 9</span></div>
+            </div>
+            <div class="card tight row g10" style="padding:10px 12px">
+              <span class="icon-tile" style="width:34px;height:34px;color:var(--ok)"><i data-lucide="trophy"></i></span>
+              <div class="col g0 grow"><span class="s">Records broken · single</span><b class="num">10.214 <span class="xs ok">−0.320 · Sep 28</span></b></div>
+              <span class="pill">3 more</span>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:6px;padding-bottom:6px;height:150px;overflow:hidden">
+            <div class="row between"><b class="h3">148 solves</b><span class="row g6"><span class="chip" style="height:28px"><i data-lucide="arrow-down-up"></i>Newest</span><span class="chip" style="height:28px"><i data-lucide="message-square"></i>4</span></span></div>
+            <div class="gh" style="padding-top:0"><b>Oct 11</b> · 23 solves · mean 12.648</div>
+            <div class="sr"><span class="n">23</span><b>11.482</b><span class="v ok">−1.17</span><span class="a">12.294 · 12.517</span><span class="t">12:31</span></div>
+          </div>
+          <div class="fnav-space" style="margin-top:auto"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span class="on"><i data-lucide="user-round"></i>Me</span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Feuille des réglages</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="ctx">
+            <span class="where">Statistics <i data-lucide="chevron-down"></i></span>
+            <span class="grow"></span>
+            <button class="btn icon sm ghost" style="background:var(--acc)"><i data-lucide="sliders-horizontal"></i></button>
+            <button class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</button>
+          </div>
+          <div class="px12"><div class="card g6" style="padding:12px 14px"><b class="h3">One value per session</b><svg viewBox="0 0 300 120" style="width:100%;height:110px;display:block;overflow:visible" preserveAspectRatio="none"><g stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"><line x1="14" x2="300" y1="34.3" y2="34.3"/><line x1="14" x2="300" y1="68.6" y2="68.6"/><line x1="14" x2="300" y1="102.9" y2="102.9"/></g><g font-size="8" font-weight="700" fill="var(--faint)" font-family="inherit"><text x="0" y="37">14</text><text x="0" y="71">12</text><text x="0" y="105">10</text></g><polyline fill="none" stroke="var(--pri)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" points="4.0,45.9 26.5,42.1 48.9,52.7 71.4,45.6 93.8,52.1 116.3,53.3 138.8,45.3 161.2,53.9 183.7,56.0 206.2,53.8 228.6,53.3 251.1,59.5 273.5,58.0 296.0,65.9"/><g fill="var(--pri)"><circle cx="4.0" cy="45.9" r="2.4"/> <circle cx="26.5" cy="42.1" r="2.4"/> <circle cx="48.9" cy="52.7" r="2.4"/> <circle cx="71.4" cy="45.6" r="2.4"/> <circle cx="93.8" cy="52.1" r="2.4"/> <circle cx="116.3" cy="53.3" r="2.4"/> <circle cx="138.8" cy="45.3" r="2.4"/> <circle cx="161.2" cy="53.9" r="2.4"/> <circle cx="183.7" cy="56.0" r="2.4"/> <circle cx="206.2" cy="53.8" r="2.4"/> <circle cx="228.6" cy="53.3" r="2.4"/> <circle cx="251.1" cy="59.5" r="2.4"/> <circle cx="273.5" cy="58.0" r="2.4"/></g><circle cx="296" cy="65.9" r="3.6" fill="var(--ok)"/></svg></div></div>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:10px;padding-bottom:16px">
+            <div class="row between"><span class="h2">Show</span><button class="btn sm pri">Done</button></div>
+            <span class="cap">Event</span>
+            <div class="row wrap g6">
+              <span class="chip pri"><i data-lucide="check"></i>3×3 · 312</span><span class="chip">2×2 · 148</span><span class="chip">3×3 OH · 96</span><span class="chip">4×4 · 41</span><span class="chip">Pyraminx · 27</span><span class="chip">Skewb · 12</span><span class="chip"><i data-lucide="plus"></i>Other events</span>
+            </div>
+            <span class="cap">Scramble</span>
+            <div class="row wrap g6"><span class="chip pri"><i data-lucide="check"></i>Normal</span><span class="chip">2-gen R U</span><span class="chip">Last layer</span><span class="chip">OLL cases</span><span class="chip">PLL cases</span><span class="chip">F2L cases</span><span class="chip">+8</span></div>
+            <span class="cap">One point per</span>
+            <div class="seg block"><span>Solve</span><span class="on">Session</span></div>
+            <span class="cap">Value per session</span>
+            <div class="seg block"><span class="on">Mean</span><span>Best</span><span>Best Ao5</span><span>Best Ao12</span></div>
+            <span class="cap">Solves list</span>
+            <div class="seg block"><span class="on">Newest</span><span>Oldest</span><span>Fastest</span><span>Slowest</span></div>
+            <div class="row between"><span class="t b row g10"><i data-lucide="message-square"></i>Commented only <span class="faint">4</span></span><span class="switch"></span></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Hub -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Hub</b><span>Un tableau de tuiles vivantes : la courbe en héros avec sa période, les quatre chiffres clés (période, dernier, record), les records battus, puis deux portes vers les listes. La liste des temps s'ouvre en outil plein écran, tri et filtre en bas, les sessions en intertitres avec leurs chiffres.</span></figcaption>
+      <div class="stack">
+        <div><div class="state">Tableau</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="hubhead"><span class="display">Statistics</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 <span class="v">312</span></button></div>
+          <div class="col g10 px16 grow" style="padding-bottom:10px">
+            <div class="row between"><span class="chip">Normal<i data-lucide="chevron-down"></i></span><div class="seg"><span class="on">Per solve</span><span>Per session</span></div></div>
+            <div class="tile hero g6" style="padding:14px">
+              <div class="row between"><b class="h3">All solves</b><div class="lg"><span><i></i>solve</span><span><i class="l"></i>Ao5</span><span><i class="ok"></i>record</span></div></div>
+              <svg viewBox="0 0 300 120" style="width:100%;height:112px;display:block;overflow:visible" preserveAspectRatio="none"><g stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"><line x1="14" x2="300" y1="34.3" y2="34.3"/><line x1="14" x2="300" y1="68.6" y2="68.6"/><line x1="14" x2="300" y1="102.9" y2="102.9"/></g><g font-size="8" font-weight="700" fill="var(--faint)" font-family="inherit"><text x="0" y="37">14</text><text x="0" y="71">12</text><text x="0" y="105">10</text></g><g fill="var(--pri)" fill-opacity=".75"><circle cx="4.0" cy="47.9" r="1.6"/> <circle cx="8.6" cy="38.3" r="1.6"/> <circle cx="13.3" cy="48.1" r="1.6"/> <circle cx="17.9" cy="49.6" r="1.6"/> <circle cx="22.5" cy="57.8" r="1.6"/> <circle cx="27.2" cy="48.9" r="1.6"/> <circle cx="31.8" cy="32.2" r="1.6"/> <circle cx="36.4" cy="41.4" r="1.6"/> <circle cx="41.1" cy="33.8" r="1.6"/> <circle cx="50.3" cy="42.7" r="1.6"/> <circle cx="55.0" cy="45.7" r="1.6"/> <circle cx="59.6" cy="69.8" r="1.6"/> <circle cx="64.3" cy="37.8" r="1.6"/> <circle cx="68.9" cy="42.6" r="1.6"/> <circle cx="73.5" cy="43.0" r="1.6"/> <circle cx="78.2" cy="71.5" r="1.6"/> <circle cx="82.8" cy="72.5" r="1.6"/> <circle cx="87.4" cy="61.8" r="1.6"/> <circle cx="92.1" cy="56.7" r="1.6"/> <circle cx="96.7" cy="47.1" r="1.6"/> <circle cx="101.3" cy="51.9" r="1.6"/> <circle cx="110.6" cy="60.2" r="1.6"/> <circle cx="115.2" cy="48.3" r="1.6"/> <circle cx="119.9" cy="47.5" r="1.6"/> <circle cx="124.5" cy="61.4" r="1.6"/> <circle cx="129.1" cy="31.2" r="1.6"/> <circle cx="133.8" cy="46.4" r="1.6"/> <circle cx="138.4" cy="38.5" r="1.6"/> <circle cx="147.7" cy="64.0" r="1.6"/> <circle cx="152.3" cy="59.3" r="1.6"/> <circle cx="157.0" cy="56.5" r="1.6"/> <circle cx="161.6" cy="47.4" r="1.6"/> <circle cx="166.2" cy="52.6" r="1.6"/> <circle cx="170.9" cy="61.9" r="1.6"/> <circle cx="175.5" cy="68.8" r="1.6"/> <circle cx="180.1" cy="63.5" r="1.6"/> <circle cx="184.8" cy="41.4" r="1.6"/> <circle cx="194.0" cy="54.6" r="1.6"/> <circle cx="198.7" cy="52.6" r="1.6"/> <circle cx="203.3" cy="77.5" r="1.6"/> <circle cx="207.9" cy="58.1" r="1.6"/> <circle cx="212.6" cy="42.2" r="1.6"/> <circle cx="217.2" cy="85.3" r="1.6"/> <circle cx="221.8" cy="63.8" r="1.6"/> <circle cx="226.5" cy="61.4" r="1.6"/> <circle cx="231.1" cy="70.8" r="1.6"/> <circle cx="235.7" cy="54.2" r="1.6"/> <circle cx="240.4" cy="61.8" r="1.6"/> <circle cx="245.0" cy="80.1" r="1.6"/> <circle cx="249.7" cy="51.0" r="1.6"/> <circle cx="254.3" cy="53.3" r="1.6"/> <circle cx="258.9" cy="50.1" r="1.6"/> <circle cx="263.6" cy="44.0" r="1.6"/> <circle cx="268.2" cy="58.2" r="1.6"/> <circle cx="272.8" cy="61.7" r="1.6"/> <circle cx="277.5" cy="80.2" r="1.6"/> <circle cx="282.1" cy="55.9" r="1.6"/> <circle cx="286.7" cy="72.0" r="1.6"/> <circle cx="291.4" cy="70.3" r="1.6"/> <circle cx="296.0" cy="81.1" r="1.6"/></g><polyline fill="none" stroke="var(--c2)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" points="22.5,48.5 27.2,48.9 31.8,48.9 36.4,46.6 41.1,41.4 45.7,41.4 50.3,39.3 55.0,43.3 59.6,52.8 64.3,52.8 68.9,43.7 73.5,43.8 78.2,51.8 82.8,52.3 87.4,58.7 92.1,63.3 96.7,63.3 101.3,56.8 106.0,56.8 110.6,56.3 115.2,53.5 119.9,53.5 124.5,56.7 129.1,52.0 133.8,47.4 138.4,44.2 143.0,48.8 147.7,49.0 152.3,56.0 157.0,59.3 161.6,59.3 166.2,56.2 170.9,56.2 175.5,57.0 180.1,59.3 184.8,59.3 189.4,64.7 194.0,62.3 198.7,56.9 203.3,61.6 207.9,63.4 212.6,55.1 217.2,62.7 221.8,66.5 226.5,61.1 231.1,65.3 235.7,65.3 240.4,62.3 245.0,64.7 249.7,62.3 254.3,56.4 258.9,55.4 263.6,51.5 268.2,51.5 272.8,53.9 277.5,56.7 282.1,58.6 286.7,64.0 291.4,68.0 296.0,74.2"/><g fill="var(--ok)"><circle cx="45.7" cy="87.4" r="3"/> <circle cx="106.0" cy="92.6" r="3"/> <circle cx="189.4" cy="99.4" r="3"/></g><text x="139" y="14" fill="var(--bad)" font-size="12" font-weight="800">×</text></svg>
+              <div class="row between"><div class="seg"><span>All</span><span>3 mo</span><span class="on">30 d</span><span>Last</span></div><span class="s">148 solves</span></div>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile g2" style="padding:12px 14px"><span class="cap">Single</span><b class="big ok">10.214</b><span class="xs">latest 11.482 · PB Sep 28</span></div>
+              <div class="tile g2" style="padding:12px 14px"><span class="cap">Ao5</span><b class="big ok">11.640</b><span class="xs">latest 12.294 · PB Oct 3</span></div>
+              <div class="tile g2" style="padding:12px 14px"><span class="cap">Ao12</span><b class="big ok">12.082</b><span class="xs">latest 12.517 · PB Oct 3</span></div>
+              <div class="tile g2" style="padding:12px 14px"><span class="cap">Mean · Ao100</span><b class="big">12.880</b><span class="xs">Ao100 12.690 · 3 DNF</span></div>
+            </div>
+            <div class="tile row g10" style="padding:12px 14px">
+              <span class="icon-tile" style="color:var(--ok)"><i data-lucide="trophy"></i></span>
+              <div class="col g0 grow"><b class="h3">4 records broken</b><span class="s">10.214 on Sep 28 · −0.320</span></div>
+              <i data-lucide="chevron-right" class="faint"></i>
+            </div>
+            <div class="grid2" style="gap:10px">
+              <div class="tile row g8" style="padding:12px 14px"><i data-lucide="list-ordered" class="pri"></i><b class="grow">148 solves</b><i data-lucide="chevron-right" class="faint"></i></div>
+              <div class="tile row g8" style="padding:12px 14px"><i data-lucide="calendar-days" class="pri"></i><b class="grow">14 sessions</b><i data-lucide="chevron-right" class="faint"></i></div>
+            </div>
+          </div>
+          <nav class="ibar">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div></div>
+
+        <div><div class="state">Outil · liste des temps</div>
+        <div class="phone"><div class="scr"><div class="body">
+          <div class="tool">
+            <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            <span class="title">148 solves<small>3×3 · Normal · Sep 12 → Oct 11</small></span>
+            <button class="btn icon ghost"><i data-lucide="calendar-days"></i></button>
+          </div>
+          <div class="col g4 px12 grow">
+            <div class="sr" style="height:22px"><span class="n">#</span><span class="xs b">Time</span><span class="xs b">vs sess.</span><span class="xs b">Ao5 · Ao12</span><span class="xs b">At</span></div>
+            <div class="scroll g0">
+              <div class="card tight g0" style="padding:4px 4px 6px">
+                <div class="gh"><b>Oct 11 · 3×3</b> · 23 solves · mean 12.648 · best 10.892 · Ao5 12.294</div>
+                <div class="sr"><span class="n">23</span><b>11.482</b><span class="v ok">−1.17</span><span class="a">12.294 · 12.517</span><span class="t">12:31</span></div>
+                <div class="sr"><span class="n">22</span><b>14.552</b><span class="v bad">+1.90</span><span class="a">12.581 · 12.640</span><span class="t">12:30</span></div>
+                <div class="sr"><span class="n">21</span><b>13.019<i data-lucide="message-square"></i></b><span class="v bad">+0.37</span><span class="a">12.380 · 12.602</span><span class="t">12:29</span></div>
+                <div class="sr"><span class="n">20</span><b>11.204<i data-lucide="rotate-3d"></i></b><span class="v ok">−1.44</span><span class="a">12.471 · 12.655</span><span class="t">12:28</span></div>
+                <div class="sr"><span class="n">19</span><b class="warn">12.381<small class="xs warn">+2</small></b><span class="v ok">−0.27</span><span class="a">12.603 · 12.710</span><span class="t">12:27</span></div>
+                <div class="sr"><span class="n">17</span><b class="ok">10.892</b><span class="v ok">−1.76</span><span class="a">12.402 · 12.698</span><span class="t">12:25</span></div>
+                <div class="sr"><span class="n">16</span><b class="bad">DNF</b><span class="v faint">–</span><span class="a">12.640 · 12.744</span><span class="t">12:24</span></div>
+              </div>
+              <div class="card tight g0" style="padding:4px 4px 6px">
+                <div class="gh"><b>Sep 28 · 3×3</b> · 36 solves · mean 12.951 · best 10.214</div>
+                <div class="sr"><span class="n">36</span><b>12.744</b><span class="v ok">−0.21</span><span class="a">12.860 · 12.951</span><span class="t">21:48</span></div>
+                <div class="sr"><span class="n">35</span><b class="ok">10.214</b><span class="v ok">−2.74</span><span class="a"><span class="pill ok">Record</span> 12.733</span><span class="t">21:47</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="actionbar" style="flex-direction:column;gap:8px">
+            <div class="seg block"><span class="on">Newest</span><span>Oldest</span><span>Fastest</span><span>Slowest</span></div>
+            <div class="row between"><span class="chip"><i data-lucide="message-square"></i>Commented <span class="v">4</span></span><div class="seg"><span class="on">Solves</span><span>Sessions</span></div></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>

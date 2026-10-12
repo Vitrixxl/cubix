@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { createStore, Provider } from "jotai";
+import { atom, createStore, Provider } from "jotai";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { mockLucide } from "../tests/lucide-mock";
 import { createElement } from "react";
@@ -11,7 +11,7 @@ class Value {
   interpolate(config: unknown) { return config; }
 }
 mock.module("react-native", () => ({
-  View: "View", Pressable: "Pressable", Animated: { View: "AnimatedView", Value, timing, spring: () => ({ start() {}, stop() {} }) },
+  View: "View", Pressable: "Pressable", ScrollView: "ScrollView", Animated: { View: "AnimatedView", Value, timing, spring: () => ({ start() {}, stop() {} }) },
   Easing: { bezier: () => (v: number) => v }, StyleSheet: { create: (s: unknown) => s, absoluteFill: {} },
 }));
 mock.module("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
@@ -23,6 +23,10 @@ mock.module("../src/hooks/useReducedMotion", () => ({ useReducedMotion: () => fa
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
+// The app bar (whose section names the bar shows) without its sheets and the social clients.
+mock.module("../src/components/AccountMenu", () => ({ AccountMenu: "AccountMenu" }));
+mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: "PuzzleIcon", sessionSheetAtom: atom(null) }));
+mock.module("../src/lib/social", () => ({ coaching: {}, community: {}, useSocial: () => 0 }));
 mockLucide();
 const { TabBar } = await import("../src/components/TabBar");
 const { PageStack } = await import("../src/components/PageStack");
@@ -36,28 +40,28 @@ afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timin
 
 test("tab presses navigate synchronously, including consecutive taps", async () => {
   const navigate = mock();
-  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ coaching: 2 }} onNavigate={navigate} /></Provider>); });
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ me: 2 }} onNavigate={navigate} /></Provider>); });
   const press = (label: string) => renderer.root.findAllByType("Pressable" as any).find(n => n.props.accessibilityLabel === label)!.props.onPress();
   await act(() => {
-    press("Account");
-    expect(navigate.mock.calls).toEqual([["profile"]]);
+    press("Me");
+    expect(navigate.mock.calls).toEqual([["me"]]);
     press("Algs");
-    expect(navigate.mock.calls).toEqual([["profile"], ["algorithms"]]);
+    expect(navigate.mock.calls).toEqual([["me"], ["algorithms"]]);
   });
 });
 
-test("the web phone's seven tabs, named under their icons, with a dot where something waits", async () => {
-  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ coaching: 2 }} onNavigate={() => {}} /></Provider>); });
+test("the five sections, the current one named, with a dot where something waits", async () => {
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ me: 2 }} onNavigate={() => {}} /></Provider>); });
   const tabs = renderer.root.findAllByType("Pressable" as any);
-  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Algs", "Learn", "Train", "Duel", "Coach", "Account"]);
-  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, null, null, "2 unread", null]);
+  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Learn", "Algs", "Challenges", "Me"]);
+  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, null, "2 unread"]);
 });
 
 test("switching tabs shows only the destination immediately and settles the guided tour", async () => {
   const store = createStore();
   const page = (route: Route) => <PageStack route={route} render={r => createElement("screen", { name: r.page })} />;
   await act(() => { renderer = create(<Provider store={store}>{page({ page: "playground" })}</Provider>); });
-  for (const name of ["profile", "learn", "training", "playground"] as const) {
+  for (const name of ["profile", "learn", "algorithms", "duel", "playground"] as const) {
     await act(() => renderer.update(<Provider store={store}>{page({ page: name })}</Provider>));
     expect(renderer.root.findAllByType("screen" as any).map(n => n.props.name)).toEqual([name]);
     expect(store.get(settledPageAtom)).toBe(name);
@@ -69,7 +73,7 @@ test("a tab press interrupts a detail transition without leaving the old screen 
   const store = createStore();
   const page = (route: Route) => <Provider store={store}><PageStack route={route} render={r => createElement("screen", { name: r.page })} /></Provider>;
   await act(() => { renderer = create(page({ page: "profile" })); });
-  await act(() => renderer.update(page({ page: "community" })));
+  await act(() => renderer.update(page({ page: "profile", mode: "achievements" })));
   expect(timing).toHaveBeenCalledTimes(1);
   expect(renderer.root.findAllByType("screen" as any)).toHaveLength(2);
   await act(() => renderer.update(page({ page: "learn" })));

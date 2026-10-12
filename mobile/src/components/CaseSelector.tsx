@@ -1,5 +1,5 @@
 import { Check } from "lucide-react-native";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState, type ReactElement } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
@@ -11,6 +11,7 @@ import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
 import { Empty, GroupToggle, Numeric } from "./layout";
+import { SheetFlatList } from "./Sheet";
 import { tr } from "../../../src/client/i18n";
 
 /** Open sets survive leaving the setup screen, per catalogue. */
@@ -24,12 +25,12 @@ type Row = { key: string } & (
 );
 
 /**
- * The free practice catalogue (web `CasesSetup`): one row per set (chevron, stage, name, selected count and Select
+ * The cases to pick by hand (web `CasesPicker`): one row per set (chevron, stage, name, selected count and Select
  * all); an open set lists its groups (a tap selects the group) and a grid of case pictures, the chosen ones lit and
- * ticked. A long press on a picture opens the case.
+ * ticked. A long press on a picture opens the case. `header` scrolls above the sets; `inSheet` lists them in a sheet.
  */
-export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, onChange, query, onOpenCase }: {
-  cases: CaseDto[]; sets: SetDto[]; selected: string[]; onChange: (ids: string[]) => void; query: string; onOpenCase?: (id: string) => void;
+export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, onChange, query, onOpenCase, header, inSheet = false }: {
+  cases: CaseDto[]; sets: SetDto[]; selected: string[]; onChange: (ids: string[]) => void; query: string; onOpenCase?: (id: string) => void; header?: ReactElement; inSheet?: boolean;
 }) {
   const selectorKey = sets.map(s => s.id).join(":");
   const [open, setOpen] = useState<Record<string, boolean>>(() => selectorExpansion.get(selectorKey) ?? {});
@@ -59,10 +60,11 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   }, [sets, cases, q, sel, open, columns]);
   const scroll = usePreservedList<Row>(`case-selector:${selectorKey}:${q}`);
   const tileWidth = width > 0 ? (width - TILE_GAP * (columns - 1)) / columns : TILE_MIN;
-  return <View className="min-h-0 flex-1" onLayout={event => setWidth(event.nativeEvent.layout.width - 24)}>
-    {width > 0 && <FlatList key={`${selectorKey}:${q}:${columns}`} {...scroll} data={rows} keyExtractor={row => row.key}
+  const List = (inSheet ? SheetFlatList : FlatList) as unknown as typeof FlatList;
+  return <View className={inSheet ? "min-h-0 shrink" : "min-h-0 flex-1"} onLayout={event => setWidth(event.nativeEvent.layout.width - 24)}>
+    {width > 0 && <List key={`${selectorKey}:${q}:${columns}`} {...(inSheet ? {} : scroll)} data={rows} keyExtractor={row => row.key}
       initialNumToRender={12} maxToRenderPerBatch={8} windowSize={7} scrollEventThrottle={64} keyboardShouldPersistTaps="handled"
-      className="flex-1" contentContainerClassName="px-3 pt-1 pb-4"
+      style={inSheet ? undefined : { flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16 }} ListHeaderComponent={header}
       ListEmptyComponent={<Empty>{tr("No cases match.")}</Empty>}
       renderItem={({ item: row }) => {
         if (row.kind === "set") {
