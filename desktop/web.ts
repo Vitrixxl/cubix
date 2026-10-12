@@ -4,8 +4,7 @@
  *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker); its public
  *                          pages written ahead of time in every language under pages/ (desktop/prerender.tsx)
  *   /install.sh, .ps1      the desktop installers (desktop/install); robots.txt, sitemap.xml, llms.txt
- *   /build/*               bundles and fonts with a content hash in their name, immutable
- *   /vendor/cubing-<v>/*   cubing.js modules for the scramblers, immutable per version
+ *   /build/*               bundles, fonts and the scrambler (scrambler/) with a content hash in their name, immutable
  *   /assets/*              icons and case diagrams
  */
 import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
@@ -14,7 +13,6 @@ import { brotliCompressSync, gzipSync, constants } from "node:zlib";
 import type { BuildOutput, BunPlugin } from "bun";
 import { compile, Features } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
-import { copyCubing } from "./vendor";
 import { buildPages } from "./prerender";
 
 const root = resolve(import.meta.dir, "..");
@@ -87,19 +85,13 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
     const entry = result.outputs.find((output) => output.kind === "entry-point" && output.path.endsWith(".js"))!;
     return { files: result.outputs.map(url), entry: url(entry), meta: result.metafile! };
   };
-  const { version: cubingVersion } = JSON.parse(await readFile("node_modules/cubing/package.json", "utf8"));
-  const vendor = `/vendor/cubing-${cubingVersion}`;
-  await copyCubing(join(out, vendor));
-  const vendorFiles: string[] = [];
-  for (const file of await readdir(join(out, vendor), { recursive: true, withFileTypes: true })) {
-    if (!file.isFile()) continue;
-    const path = join(file.parentPath, file.name);
-    if (!file.name.endsWith(".js")) await rm(path);
-    else vendorFiles.push("/" + relative(out, path).replaceAll("\\", "/"));
-  }
-  const { entry: worker } = await bundle("desktop/renderer/worker.ts", { CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) });
+  // The scrambler (scrambler/, WebAssembly), which the engine worker runs.
+  const wasm = await readFile("scrambler/scrambler.wasm");
+  const scrambler = `/build/scrambler-${new Bun.CryptoHasher("sha256").update(wasm).digest("hex").slice(0, 8)}.wasm`;
+  await writeFile(join(out, scrambler), wasm);
+  const { entry: worker } = await bundle("desktop/renderer/worker.ts", { CUBIX_SCRAMBLER: JSON.stringify(scrambler) });
   // Split: the app and the administration (/admin) are chunks of their own, each page loads only its own code.
-  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker), CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) }, true);
+  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker) }, true);
   // Each language's dictionary, a chunk of its own (src/client/i18n).
   const dictionaries = Object.fromEntries(Object.entries(app.meta.outputs).flatMap(([file, { entryPoint }]) => {
     const language = /i18n\/(\w+)\.json$/.exec(entryPoint ?? "")?.[1];
@@ -146,7 +138,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // The administration is never used offline.
   const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
   // The app's own page, without any page written in it: the one every address opens offline (sw.ts).
-  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, ...shell, ...fonts.values(), ...icons, ...vendorFiles];
+  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, ...shell, ...fonts.values(), ...icons, scrambler];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
   for (const url of [...precache, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url)));
@@ -238,8 +230,9 @@ async function exportPhone(out: string): Promise<string> {
   // React Native for the web's reset (the page's height, no scrolling of the body), its stylesheet and its bundle.
   const tags = page.match(/<style id="expo-reset">[\s\S]*?<\/style>|<link rel="stylesheet"[^>]*>|<script src="[^"]*"[^>]*><\/script>/g) ?? [];
   if (!tags.some((tag) => tag.startsWith("<script"))) throw new Error("The phone app's index.html has no script");
-  // A page written ahead of time is never shown on a phone (pageDocument.ts hides it only up to the layout's width).
-  return [...tags, "<style>#prerendered{display:none}</style>"].join("\n");
+  // A page written ahead of time is never shown under the phone app, at any width (pageDocument.ts hides it, and shows the
+  // app it covers, only up to a phone's width): the app is in view at once.
+  return [...tags, "<style>#prerendered{display:none}#prerendered~#root{position:static;visibility:visible;pointer-events:auto}</style>"].join("\n");
 }
 
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */
@@ -250,7 +243,7 @@ async function compress(directory: string): Promise<void> {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) await compress(path);
-    else if (/\.(js|css|html|svg|json|webmanifest|ttf|xml|txt)$/.test(entry.name)) {
+    else if (/\.(js|css|html|svg|json|webmanifest|ttf|xml|txt|wasm)$/.test(entry.name)) {
       const bytes = await readFile(path);
       if (bytes.length < 1024) continue;
       await writeFile(path + ".br", brotliCompressSync(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }));

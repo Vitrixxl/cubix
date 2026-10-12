@@ -11,9 +11,8 @@ moteur de données, ni lanceur, ni système de mise à jour.
 - `engine/core.ts` : moteur de données (stockage local d'abord, synchronisation
   HTTP/WebSocket, mélanges, statistiques). Le worker le fait tourner sur IndexedDB
   (`renderer/idbStorage.ts`).
-- `web.ts` : construit `dist/web` avec `bun build` — `index.html`, bundles nommés par
-  leur contenu sous `/build/`, cubing.js en modules séparés sous
-  `/vendor/cubing-<version>/` (ses mélangeurs démarrent leurs propres workers), icônes
+- `web.ts` : construit `dist/web` avec `bun build` — `index.html`, bundles et
+  mélangeur WebAssembly (`../scrambler`) nommés par leur contenu sous `/build/`, icônes
   et schémas sous `/assets/`, copies brotli et gzip.
 - `electron/` : fenêtre (`main.ts`), pont minimal (`preload.ts`) et page d'attente du
   premier lancement hors ligne (`offline.html`), construits dans `dist/` par `build.ts`.

@@ -62,7 +62,8 @@ ne montrent que cette session ; les temps sont tout de même synchronisés et co
 profil, où l’historique reste global.
 Le paramètre historique `cubeSize` reste accepté. Les identifiants et compatibilités sont définis
 dans `../data/puzzles.json`, partagé avec le serveur.
-L’application web sert cubing.js et ses workers sous `/vendor/cubing-<version>/`, sans dépendre d’un CDN.
+Les mélanges sont tirés sur l’appareil, hors ligne aussi, par le mélangeur WebAssembly de `../scrambler`
+(Rust, construit par `bun run build:scrambler`), que l’application web sert sous `/build/`.
 
 ## Un seul catalogue : `data/catalog.json`
 

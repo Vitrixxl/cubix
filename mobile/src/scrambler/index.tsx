@@ -7,7 +7,7 @@ import { msg } from "../../../src/client/i18n/msg";
 import type { CrossTarget } from "../../../src/shared/crossTraining";
 
 /**
- * cubing.js runs in a hidden WebView (Hermes has neither WebAssembly nor module workers).
+ * The scrambler (scrambler/, WebAssembly) runs in a hidden WebView: Hermes has no WebAssembly.
  * Requests are queued until the page reports it is ready; each has a timeout so a crashed
  * page surfaces as a retryable error instead of a hang.
  */

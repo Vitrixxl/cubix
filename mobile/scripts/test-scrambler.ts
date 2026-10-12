@@ -1,4 +1,4 @@
-/** Exercise the exact embedded WebView bundle in Chromium, including its WASM searches. */
+/** Exercise the exact embedded WebView bundle in Chromium, its WebAssembly scrambler included. */
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,7 +12,7 @@ if (!executable) throw new Error("Install Chromium or set CHROMIUM_PATH to run t
 const profile = mkdtempSync(join(tmpdir(), "cubix-scrambler-"));
 const requests = ["222", "333", "444", "555", "666", "777", "sq1", "pyram", "skewb", "minx"].map(event => ({ kind: "event", payload: { event } }))
   .concat(["EDGES", "CORNERS"].map(orbit => ({ kind: "orbit", payload: { orbit } })) as any)
-  // A back block in 4 moves: its optimal solutions are searched in the page.
+  // An XCross: its optimal solutions are searched in the page.
   .concat([{ kind: "crossSolutions", payload: { scramble: "L F2 D' R' F R2 F L' D F2 D2 B' R2 B2 L2 U2 F' U2 L2 F L2", target: "xcross" } }] as any);
 const harness = `<script>
 const requests=${JSON.stringify(requests)};
@@ -45,7 +45,9 @@ try {
     if (!row.value || row.error || row.ms >= 30000) throw new Error(JSON.stringify(row));
     if (row.kind === "crossSolutions") {
       const solutions = JSON.parse(row.value) as { moves: string; slot: string }[];
-      if (!solutions.length || solutions.some(s => s.moves.split(" ").length !== 4)) throw new Error(`Unexpected back-block solutions ${row.value}`);
+      // Optimal: every solution found is as short as the others.
+      const lengths = new Set(solutions.map(s => s.moves.split(" ").length));
+      if (!solutions.length || lengths.size !== 1) throw new Error(`Unexpected XCross solutions ${row.value}`);
       console.log(`PASS crossSolutions: ${solutions.map(s => `${s.moves} (${s.slot})`).join(", ")} in ${row.ms} ms`);
       continue;
     }

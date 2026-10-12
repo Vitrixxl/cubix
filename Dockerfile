@@ -30,6 +30,7 @@ COPY mobile/package.json mobile/bun.lock ./mobile/
 COPY mobile/patches ./mobile/patches
 RUN cd mobile && bun install --frozen-lockfile --ignore-scripts
 COPY data ./data
+COPY scrambler/scrambler.wasm ./scrambler/
 COPY src ./src
 COPY assets ./assets
 COPY mobile ./mobile

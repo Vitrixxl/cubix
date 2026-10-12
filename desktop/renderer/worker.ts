@@ -3,14 +3,14 @@
  * worker, one engine serves every tab of the app, which see each other's changes; browsers without shared workers
  * run it as a dedicated worker of a single tab. */
 import { createEngine, type EngineMessage, type EngineRequest } from "../engine/core";
-import { cubingScrambleEngine } from "../../src/client/lib/cubingScrambleEngine";
-import type { ScrambleEngine } from "../../src/client/lib/practiceScrambleCore";
+import { wasmScrambleEngine } from "../../src/client/lib/wasmScrambleEngine";
 import { openStorage } from "./idbStorage";
 import type { LiveMessage } from "../../src/client/live";
 
 type Port = { postMessage(message: unknown): void; onmessage: ((event: MessageEvent) => void) | null };
 type Start = { type: "start"; legacy: Record<string, string> | null };
-declare const CUBIX_VENDOR: string;
+/** The scrambler's WebAssembly module (scrambler/, desktop/web.ts). */
+declare const CUBIX_SCRAMBLER: string;
 const scope = self as unknown as WorkerGlobalScope & typeof globalThis;
 const shared = "onconnect" in scope;
 /** Requests that change data: the other tabs refresh once they are done. */
@@ -22,34 +22,11 @@ let sequence = 0;
 let engine: ReturnType<typeof createEngine> | undefined;
 let starting: Promise<{ imported: boolean; displaced: boolean }> | undefined;
 
-/** The tab that asked last: it draws the scrambles the engine needs. */
-let active: Port | undefined;
-const drawing = new Map<number, { port: Port; resolve: (value: string) => void; reject: (error: Error) => void }>();
-let drawn = 0;
-function draw(method: keyof ScrambleEngine, args: unknown[], tried = new Set<Port>()): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const port = [active, ...[...ports].reverse()].find((p): p is Port => !!p && ports.has(p) && !tried.has(p));
-    if (!port) return reject(new Error("No open tab can draw scrambles."));
-    const id = ++drawn;
-    drawing.set(id, { port, resolve, reject });
-    port.postMessage({ scramble: id, method, args });
-    // A tab that crashed never answers: another one draws it.
-    setTimeout(() => {
-      if (!drawing.delete(id)) return;
-      tried.add(port);
-      draw(method, args, tried).then(resolve, reject);
-    }, 20000);
-  });
-}
-/** cubing.js is served as separate modules: its scramblers start their own workers from them. A shared worker
- * cannot start workers, so there the tabs draw the scrambles. */
-const scrambles: ScrambleEngine = shared
-  ? {
-      randomScrambleForEvent: (event) => draw("randomScrambleForEvent", [event]),
-      orbitScramble: (orbit) => draw("orbitScramble", [orbit]),
-      patternScramble: (pattern) => draw("patternScramble", [pattern]),
-    }
-  : cubingScrambleEngine(name => import(new URL(`${CUBIX_VENDOR}/${name}/index.js`, scope.location.origin).href));
+/** Scrambles are drawn here, offline too: the module is precached by the service worker. */
+const scrambles = wasmScrambleEngine(() => fetch(CUBIX_SCRAMBLER).then(response => {
+  if (!response.ok) throw new Error(`The scrambler did not load (${response.status}).`);
+  return response.arrayBuffer();
+}));
 const broadcast = (message: unknown) => { for (const port of ports) port.postMessage(message); };
 function route(message: EngineMessage) {
   if (!("id" in message)) return broadcast(message);
@@ -99,24 +76,14 @@ function start({ legacy }: Start) {
 }
 function connect(port: Port) {
   ports.add(port);
-  port.onmessage = async ({ data }: MessageEvent<Start | EngineRequest | { type: "close" } | { scrambled: number; value?: string; error?: string } | { socket: LiveMessage }>) => {
+  port.onmessage = async ({ data }: MessageEvent<Start | EngineRequest | { type: "close" } | { socket: LiveMessage }>) => {
     if ("socket" in data) engine?.send(data.socket);
-    else if ("scrambled" in data) {
-      const call = drawing.get(data.scrambled);
-      drawing.delete(data.scrambled);
-      if (data.error !== undefined) call?.reject(new Error(data.error));
-      else call?.resolve(data.value!);
-    } else if ("id" in data) {
-      active = port;
+    else if ("id" in data) {
       const id = ++sequence;
       if (retired) return port.postMessage({ id: data.id, error: "Cubix was updated. Reloading…" });
       owners.set(id, { port, id: data.id, method: data.method });
       engine?.request({ ...data, id });
-    } else if (data.type === "close") {
-      ports.delete(port);
-      if (active === port) active = undefined;
-      for (const [id, call] of drawing) if (call.port === port) { drawing.delete(id); call.reject(new Error("The tab drawing the scramble closed.")); }
-    }
+    } else if (data.type === "close") ports.delete(port);
     else if (data.type === "start") {
       try {
         const value = await start(data);

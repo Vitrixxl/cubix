@@ -11,6 +11,7 @@
     "start": "go-api/cubix-api",
     "build:api": "sh go-api/build.sh",
     "build:web": "bun desktop/web.ts",
+    "build:scrambler": "bun scrambler/build.ts",
     "build:desktop": "bun desktop/package.ts",
     "build:android": "bun run --cwd mobile apk",
     "build:assets": "bun desktop/scripts/export-assets.tsx",
@@ -22,7 +23,7 @@
     "import:history": "go-api/cubix-api --import-history",
     "stress": "tsx scripts/stress-api.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
-    "test": "bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
+    "test": "bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && (cd scrambler && cargo test --release -q) && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/server.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "test:ui": "bun run build:api && bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts && bun desktop/testing/prerender.ts"
   },

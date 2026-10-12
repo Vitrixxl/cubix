@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test";
-import { cubingScrambleEngine } from "../src/client/lib/cubingScrambleEngine";
+import { scrambler } from "./scrambler";
 import { bucketOf, dailyDay, dailyStats, dailyPattern, dailyScramble } from "../src/client/lib/daily";
 
-const cubing = cubingScrambleEngine(name => import(`cubing/${name}`));
 
 test("the day changes at midnight UTC", () => {
   expect(dailyDay(Date.UTC(2026, 9, 10, 23, 59))).toBe("2026-10-10");
@@ -11,10 +10,10 @@ test("the day changes at midnight UTC", () => {
 
 test("the daily scramble is the same for everyone, per day and event, and reaches the day's state", async () => {
   const day = "2026-10-10";
-  const first = await dailyScramble(day, "333", cubing);
-  expect(await dailyScramble(day, "333", cubing)).toBe(first);
-  expect(await dailyScramble(day, "333oh", cubing)).not.toBe(first);
-  expect(await dailyScramble("2026-10-11", "333", cubing)).not.toBe(first);
+  const first = await dailyScramble(day, "333", scrambler);
+  expect(await dailyScramble(day, "333", scrambler)).toBe(first);
+  expect(await dailyScramble(day, "333oh", scrambler)).not.toBe(first);
+  expect(await dailyScramble("2026-10-11", "333", scrambler)).not.toBe(first);
   const { cube3x3x3 } = await import("cubing/puzzles");
   const reached = (await cube3x3x3.kpuzzle()).defaultPattern().applyAlg(first).patternData;
   const target = dailyPattern(day, "333");

@@ -1,5 +1,4 @@
 import { toast } from "sonner";
-import { cubingScrambleEngine } from "../../src/client/lib/cubingScrambleEngine";
 import { tr } from "../../src/client/i18n";
 import type { LiveLink } from "../../src/client/live";
 
@@ -20,9 +19,6 @@ declare global {
 }
 /** The engine worker's bundle, named after its content (desktop/web.ts). */
 declare const CUBIX_WORKER: string;
-/** Where cubing.js is served, for the scrambles a shared engine asks this tab to draw. */
-declare const CUBIX_VENDOR: string;
-let scrambler: ReturnType<typeof cubingScrambleEngine> | undefined;
 const desktop = window.cubixDesktop;
 const listeners = new Set<(event: any) => void>();
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
@@ -95,13 +91,7 @@ const worker = (async () => {
   const { promise: started, resolve, reject } = Promise.withResolvers<Port>();
   let port: Port, ready = false;
   const receive = ({ data }: MessageEvent) => {
-    if ("scramble" in data) {
-      scrambler ??= cubingScrambleEngine(name => import(new URL(`${CUBIX_VENDOR}/${name}/index.js`, location.origin).href));
-      void (scrambler as any)[data.method](...data.args).then(
-        (value: string) => port.postMessage({ scrambled: data.scramble, value }),
-        (error: Error) => port.postMessage({ scrambled: data.scramble, error: error?.message ?? String(error) }),
-      );
-    } else if ("id" in data) {
+    if ("id" in data) {
       const request = pending.get(data.id);
       if (!request) return;
       pending.delete(data.id);

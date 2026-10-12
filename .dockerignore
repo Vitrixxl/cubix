@@ -18,7 +18,6 @@ data/*
 desktop/*
 !desktop/web.ts
 !desktop/prerender.tsx
-!desktop/vendor.ts
 !desktop/appearance.ts
 !desktop/engine/
 !desktop/guides/
@@ -26,6 +25,10 @@ desktop/*
 !desktop/assets/
 # The desktop installers the landing page gives (copied into the web build).
 !desktop/install/
+# The scrambler, built to WebAssembly (scrambler/build.ts).
+!scrambler/
+scrambler/*
+!scrambler/scrambler.wasm
 # The phone app, exported for the web with the web app (desktop/web.ts), and the case images it bundles.
 !assets/
 !mobile/
