@@ -9,7 +9,7 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
   if (view !== "iso") return (
     <svg className={className} width={size} height={size} viewBox={TOP_VIEWBOX} role="img" aria-labelledby={titleId} focusable="false">
       <title id={titleId}>{mask === "OLL" || mask === "EO" ? "OLL top-layer case preview" : mask === "PLL" ? "PLL top-layer case preview" : "Case preview seen from above"}</title>
-      <g {...TILE_STROKE}>
+      <g {...TILE_STROKE} className="diagram-top">
         {topLayerCells(state, mask, view, held).map(({ key, ...polygon }) => <polygon key={key} {...polygon} />)}
       </g>
     </svg>

@@ -214,9 +214,8 @@ test("every theme tints the surfaces and keeps its inks readable", () => {
     const t = themeTokens(id, mode);
     backgrounds.add(t.background!);
     const inks = mode === "light" ? ["foreground", "muted-foreground", "faint", "destructive", "success", "warning"] : ["foreground", "muted-foreground"];
-    for (const surface of ["background", "card", "muted", "popover"]) for (const ink of inks)
+    for (const surface of ["background", "card", "muted", "popover", "accent"]) for (const ink of inks)
       expect(contrast(t[ink]!, t[surface]!), `${id} ${mode} ${ink} on ${surface}`).toBeGreaterThanOrEqual(4.5);
-    if (mode === "light") for (const surface of ["background", "card"]) expect(contrast(t.edge!, t[surface]!), `${id} edge on ${surface}`).toBeGreaterThanOrEqual(3);
   }
   expect(backgrounds.size).toBe(THEMES.length * 2);
 });

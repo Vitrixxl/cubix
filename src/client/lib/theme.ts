@@ -1,6 +1,6 @@
 export type ThemeId = "peach" | "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
-/** The theme until the user picks one: pink (T3 Chat). */
-export const DEFAULT_THEME: ThemeId = "t3-chat";
+/** The theme until the user picks one: peach, the app's orange. */
+export const DEFAULT_THEME: ThemeId = "peach";
 
 type Rgb = [number, number, number];
 function parse(color: string): Rgb {
@@ -61,8 +61,7 @@ export function luminance(hex: string) {
 /**
  * The surfaces, inks and status colours of each mode, before the accent tints them. `background` is the page, `card`
  * the quiet panels (bg-2), `muted`/`secondary`/`input` the filled controls (surface), `accent` their hover (surface-2),
- * `popover` the floating ones. `faint` is the third ink (AA on the light surfaces, decorative only at night). `edge`
- * outlines the filled controls by day (3:1 against the page and the cards, WCAG 1.4.11), none at night. Status: errors,
+ * `popover` the floating ones. `faint` is the third ink (AA on the light surfaces, decorative only at night). Status: errors,
  * the worst time and DNF in soft red, the best in mint, +2 in butter; `lilac` the fourth colour of figures.
  */
 const PALETTE: Record<"dark" | "light", Record<string, string>> = {
@@ -72,18 +71,24 @@ const PALETTE: Record<"dark" | "light", Record<string, string>> = {
     foreground: "#f3f0f1", "muted-foreground": "#b8b1b4", faint: "#80787c", "timer-ink": "#fbf9fa",
     destructive: "#ff8f80", success: "#8fe0c2", warning: "#ffd98a", lilac: "#c9b4ff",
   },
-  // Light: a pale page, white cards above it, controls filled a shade darker and outlined in `edge`. Every ink reaches
-  // 4.5:1 on the page, the cards and the controls (status inks on the hover fill `accent` too), whatever the accent.
+  // Light: its surfaces are `LIGHT_SURFACES`. Every ink reaches 4.5:1 on all of them, whatever the accent.
   light: {
-    background: "#f3f1f2", card: "#fdfcfd", sidebar: "#fdfcfd", popover: "#ffffff",
-    muted: "#e8e5e7", secondary: "#e8e5e7", accent: "#dcd8db", input: "#e8e5e7",
-    foreground: "#1a1619", "muted-foreground": "#4b4549", faint: "#5d565b", edge: "#857d82", "timer-ink": "#1a1619",
-    destructive: "#a52a18", success: "#156045", warning: "#734d00", lilac: "#5c41b0",
+    foreground: "#1a1619", "muted-foreground": "#4b4549", faint: "#575055", "timer-ink": "#1a1619",
+    destructive: "#9c2716", success: "#156045", warning: "#734d00", lilac: "#5c41b0",
   },
 };
 /** How much of the accent goes into the surfaces and into the inks: the whole app takes the theme's hue. */
-const TINT = { surface: { dark: 9, light: 9 }, ink: { dark: 6, light: 6 } };
-const SURFACES = ["background", "card", "sidebar", "popover", "muted", "secondary", "accent", "input", "edge"];
+const TINT = { surface: 9, ink: 6 };
+const SURFACES = ["background", "card", "sidebar", "popover", "muted", "secondary", "accent", "input"];
+/**
+ * By day, never a grey: each surface is the theme's pale accent (the night's) on white, [percent of it, percent of the
+ * deep accent darkening it]. Cards and popovers the lightest, the page under them, the filled controls a deeper sand of
+ * the hue, what is chosen or hovered (`accent`) the brightest tint.
+ */
+const LIGHT_SURFACES: Record<string, [number, number]> = {
+  background: [26, 3], card: [16, 0], sidebar: [16, 0], popover: [8, 0],
+  muted: [30, 9], secondary: [30, 9], input: [30, 9], accent: [45, 0],
+};
 const INKS = ["foreground", "muted-foreground", "faint", "timer-ink"];
 
 /**
@@ -93,10 +98,14 @@ const INKS = ["foreground", "muted-foreground", "faint", "timer-ink"];
 export function themeTokens(id: ThemeId, mode: "light" | "dark", _format: "oklch" | "rgb" = "oklch"): Record<string, string> {
   const t = buildTheme(id, mode) ?? buildTheme(DEFAULT_THEME, mode);
   const p = { ...PALETTE[mode] };
-  for (const key of SURFACES) if (p[key]) p[key] = mix(t.accent, TINT.surface[mode], p[key]);
-  for (const key of INKS) p[key] = mix(t.accent, TINT.ink[mode], p[key]!);
+  const hue = (buildTheme(id, "dark") ?? buildTheme(DEFAULT_THEME, "dark")).accent;
+  if (mode === "light") for (const [key, [pale, deep]] of Object.entries(LIGHT_SURFACES)) p[key] = mix(t.accent, deep, mix(hue, pale, "#ffffff"));
+  else for (const key of SURFACES) p[key] = mix(hue, TINT.surface, p[key]!);
+  for (const key of INKS) p[key] = mix(t.accent, TINT.ink, p[key]!);
   p.border = alpha(p.foreground!, mode === "dark" ? 8 : 14);
-  p.edge ??= "transparent";
+  p.edge = "transparent";
+  // By day the pale stickers of a diagram seen from above (yellow, white) melt into the page: a dark rim holds them.
+  p.rim = mode === "light" ? alpha(p.foreground!, 60) : "transparent";
   // The page's ink on the pale accents, cream on the dark ones.
   const onAccent = 1.05 / (luminance(t.accent) + 0.05) >= 4.5 ? "#fff8f3" : "#1c1317";
   return {
