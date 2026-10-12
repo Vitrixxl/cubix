@@ -448,7 +448,7 @@ export function Practice() {
         setup={training ? s.training.setup : s.scramble}
         cubeSize={training ? c.cube_size ?? 3 : cubeSize}
         mask={training ? maskForStage(c.stage) : undefined}
-        hints={training && hintsForStage(c.stage)}
+        hints={training && (!recognition || s.recognitionBack) && hintsForStage(c.stage)}
         size={previewSize}
         replay={s.replay}
         held={!training && heldScramble(s.context().scrambleType)}

@@ -291,10 +291,15 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
         <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
           {tr("Random AUF")}
         </ActionToggle>
+        {chosen && hintsForStage(chosen.set.stage) && (
+          <ActionToggle action="recognitionBack" pressed={s.recognitionBack} icon={Rotate3d} tip={tr("Show the top layer's stickers hidden at the back")}>
+            {tr("Back stickers")}
+          </ActionToggle>
+        )}
         {cube ? (
           <span className="flex-1 text-sm text-muted-foreground">{tr("Set each case up on the cube: its time is saved")}</span>
         ) : (
-          <span className="flex flex-1 items-center gap-2">
+          <span className="flex min-w-max grow items-center gap-2">
             <Timer className="size-4 text-muted-foreground" aria-hidden="true" />
             <Choice prefix="recognitionSeconds:" label={tr("Seconds per case")} value={String(s.recognitionSeconds)} options={RECOGNITION_SECONDS.map((n) => ({ id: String(n), label: tr("{0} s", { 0: n }) }))} />
           </span>
@@ -411,7 +416,7 @@ function RecognitionCase({ c }: { c: any }) {
     bar = useRef<HTMLDivElement>(null),
     size = Math.round(Math.max(160, Math.min(h * 0.55, w * 0.8, 480))),
     next = () => void s.action("next"),
-    // Every cube's case in 3D, its hidden stickers shown; other puzzles their diagram.
+    // Every cube's case in 3D, its hidden stickers shown unless turned off; other puzzles their diagram.
     cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize;
   useEffect(() => {
     const animation = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
@@ -430,7 +435,7 @@ function RecognitionCase({ c }: { c: any }) {
   return (
     <button type="button" onClick={next} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-[26px]", FOCUS)} aria-label={tr("Next case")}>
       {cubeSize ? (
-        <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={hintsForStage(c.stage)} />
+        <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={s.recognitionBack && hintsForStage(c.stage)} />
       ) : s.training?.svg ? (
         <div style={{ width: size, height: size }} className="[&_svg]:block [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: s.training.svg }} />
       ) : (

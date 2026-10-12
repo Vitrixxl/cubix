@@ -29,7 +29,7 @@ import { LastSolveBar, SolveMenu } from "../components/SolveMenus";
 import { ask } from "../components/Confirm";
 import { SlideSwitch } from "../components/SlideSwitch";
 import {
-  LearnedSetup, TrainHome, freePicksAtom, recognitionSecondsAtom, trainPicksAtom, trainSetsAtom, useTrainingData,
+  LearnedSetup, TrainHome, freePicksAtom, recognitionBackAtom, recognitionSecondsAtom, trainPicksAtom, trainSetsAtom, useTrainingData,
 } from "../components/TrainingSetup";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
@@ -359,6 +359,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
   const cases = useAtomValue(casesAtom);
   const data = useTrainingData();
   const seconds = useAtomValue(recognitionSecondsAtom);
+  const back = useAtomValue(recognitionBackAtom);
   const useAuf = useAtomValue(randomAufAtom);
   const set = data.recognition?.set;
   // The run: its cases, fixed at its start, the one shown with its AUF, how many were done, and where it stands.
@@ -392,7 +393,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
       </View>
       : <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={next} className="min-h-0 flex-1 items-center justify-center gap-6 px-4">
         {c && (cube && !c.diagram
-          ? <CubePreview key={"cube" + state.done} alg={combineAuf(c.setup, state.auf)} cube={cube} size={size} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} />
+          ? <CubePreview key={"cube" + state.done} alg={combineAuf(c.setup, state.auf)} cube={cube} size={size} mask={maskForStage(c.stage)} view={!back && viewForStage(c.stage) === "top" ? "iso" : viewForStage(c.stage)} />
           : <CaseDiagram c={c} size={size} />)}
         <Countdown key={"bar" + state.done} seconds={seconds} onDone={next} />
       </Pressable>}

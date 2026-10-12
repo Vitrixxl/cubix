@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
 import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS, type CrossTarget } from "../../../src/shared/crossTraining";
+import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { METHODS } from "../../../src/shared/methods";
 import { puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
@@ -35,6 +36,8 @@ export const freePicksAtom = perPuzzleAtom<string[]>("cubix.training.freeByCube"
 /** The set the recognition goes through, per puzzle, and the seconds each case is shown. */
 const recognitionChoiceAtom = perPuzzleAtom<string>("cubix.training.recognitionByCube", "");
 export const recognitionSecondsAtom = persisted<number>("cubix.training.recognitionSeconds", 3);
+/** Whether the recognition draws a last layer case from above with all its sides, or as held, its back unseen. */
+export const recognitionBackAtom = persisted<boolean>("cubix.training.recognitionBack", true);
 const RECOGNITION_SECONDS = [1, 2, 3, 5, 8];
 
 /** The course that teaches a set, if one does. */
@@ -129,6 +132,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const setRecognition = useSetAtom(recognitionChoiceAtom);
   const [seconds, setSeconds] = useAtom(recognitionSecondsAtom);
   const [auf, setAuf] = useAtom(randomAufAtom);
+  const [back, setBack] = useAtom(recognitionBackAtom);
   const freePicks = useAtomValue(freePicksAtom);
   const [picking, setPicking] = useState(false);
   const cube = !!puzzleInfo(data.puzzle).cubeSize;
@@ -161,6 +165,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
             </ChipMenu>
             <ChipMenu label={tr("Seconds per case")} icon={Timer} value={String(seconds)} onChange={n => setSeconds(Number(n))} options={RECOGNITION_SECONDS.map(n => ({ id: String(n), label: tr("{0} s", { 0: n }) }))}>{tr("{0} s", { 0: seconds })}</ChipMenu>
             {cube && <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)} accessibilityLabel={tr("Random AUF")}>{tr("AUF")}</Chip>}
+            {cube && chosen && viewForStage(chosen.set.stage) === "top" && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the top layer's stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
             <View className="flex-1" />
             <StartChip onPress={() => onStart("recognition")} disabled={!chosen} />
           </View>

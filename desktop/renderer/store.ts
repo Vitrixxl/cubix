@@ -340,6 +340,8 @@ export class Store {
     return chosen && learned(chosen) ? chosen : (this.allSets().find((set: any) => learned(set.id))?.id ?? "");
   }
   get recognitionSeconds(): number { return this.prefs["cubix.training.recognitionSeconds"] ?? 3; }
+  /** Whether the recognition draws the top layer's stickers hidden at the back (`cubeShapes` hints). */
+  get recognitionBack(): boolean { return this.prefs["cubix.training.recognitionBack"] ?? true; }
   /** The cases free practice drills, learned or not, per puzzle. */
   get freePicks(): string[] { return this.prefs["cubix.training.freeByCube"]?.[this.puzzle] ?? []; }
   /** The recommended cases picked, per puzzle; until the player picks, the four first recommended. */
@@ -990,6 +992,9 @@ export class Store {
           break;
         case "recognitionSeconds":
           this.pref("cubix.training.recognitionSeconds", Number(arg));
+          break;
+        case "recognitionBack":
+          this.pref("cubix.training.recognitionBack", !this.recognitionBack);
           break;
         case "trainSet":
           this.per("cubix.training.setsByCube", [...toggleSelection(new Set(this.trainSets), [arg])]);
