@@ -1,7 +1,6 @@
 /**
  * Draw the app logo, the 3×3 mark of the app (desktop/renderer/logo.tsx `puzzleMark`): nine rounded stickers, the top
- * right one in the default theme's pink. Rasterise the mobile and desktop icons from it (needs rsvg-convert) and pack
- * the macOS one.
+ * right one in the default theme's pink. Rasterise the mobile icons from it (needs rsvg-convert).
  */
 import { $ } from "bun";
 import { puzzleMark } from "../desktop/renderer/logo";
@@ -40,23 +39,6 @@ await Bun.write("mobile/assets/adaptive-foreground.svg", foreground);
 const raster = (svg: string, out: string, size: number) => $`rsvg-convert -w ${size} -h ${size} ${svg} -o ${out}`;
 await raster("assets/cubix.svg", "mobile/assets/icon.png", 1024);
 await raster("assets/cubix.svg", "mobile/assets/favicon.png", 48);
-await raster("assets/cubix.svg", "desktop/linux/fr.vitrixxl.cubix.png", 512);
 await raster("mobile/assets/adaptive-foreground.svg", "mobile/assets/android-icon-foreground.png", 1024);
 await raster("mobile/assets/adaptive-foreground.svg", "mobile/assets/splash-icon.png", 1024);
-
-// macOS: an .icns of PNG images, each entry its type, its length (header included) and the image.
-const ICNS: [type: string, size: number][] = [["ic07", 128], ["ic08", 256], ["ic09", 512], ["ic10", 1024], ["ic11", 32], ["ic12", 64], ["ic13", 256], ["ic14", 512]];
-const entries = await Promise.all(ICNS.map(async ([type, size]) => {
-  const png = new Uint8Array(await $`rsvg-convert -w ${size} -h ${size} assets/cubix.svg`.arrayBuffer());
-  const entry = new Uint8Array(8 + png.length);
-  entry.set(new TextEncoder().encode(type));
-  new DataView(entry.buffer).setUint32(4, entry.length);
-  entry.set(png, 8);
-  return entry;
-}));
-const icns = new Uint8Array(8 + entries.reduce((sum, e) => sum + e.length, 0));
-icns.set(new TextEncoder().encode("icns"));
-new DataView(icns.buffer).setUint32(4, icns.length);
-entries.reduce((offset, e) => (icns.set(e, offset), offset + e.length), 8);
-await Bun.write("desktop/macos/cubix.icns", icns);
 console.log("Logo and icons written");

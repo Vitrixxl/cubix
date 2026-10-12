@@ -1,11 +1,10 @@
 /**
- * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through
- * pihost (the image also builds the web app, which the desktop app loads), upload the desktop
- * packages when the Electron shell changed (desktop/package-release.ts: the landing page's
- * install commands download them), then ship the phone build. Two things can reach phones:
+ * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through pihost (the image also builds
+ * the web app), then ship the phone build. Two things can reach phones:
  *
  *   - an over-the-air update: the JavaScript bundle exported by `expo export`, which
- *     installed applications fetch by themselves at their next launch. Published every time.
+ *     installed applications fetch by themselves at their next launch. Published every time; exported on this machine
+ *     while the Pi builds the server, uploaded once the server answers.
  *   - an APK, only needed when the native code changed, that is when the runtime version
  *     computed by mobile/app.config.ts differs from the one of the APK the server stores.
  *     Phones then show a "Download update" button.
@@ -15,7 +14,6 @@
  *   bun scripts/deploy.ts --apk        also rebuild the APK when the runtime version did not change
  *   bun scripts/deploy.ts --apk-only   rebuild and upload the APK for the deployed commit
  *   bun scripts/deploy.ts --update-only  export and publish the over-the-air update only
- *   bun scripts/deploy.ts --skip-desktop   leave the desktop packages as the server has them
  *   bun scripts/deploy.ts --no-push    main is pushed already (scripts/deploy-background.ts deploys a copy of it)
  *
  * The APK is not built on the Pi: Gradle needs more memory than the board has and Google
@@ -24,14 +22,12 @@
  * `CUBIX_DEPLOY_PASSWORD` (the server's admin password) authorises the uploads; when unset it
  * is read over SSH from the server's `.env`. The local `.env`, which Bun loads automatically,
  * holds the development password and must not be used here. `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
- * The password only lets the server store files: phones and the install scripts check the over-the-air manifest and
- * the desktop packages against keys kept in ~/.config/cubix/keys on this machine (mobile/README.md, desktop/README.md).
+ * The password only lets the server store files: phones check the over-the-air manifest against a key kept in
+ * ~/.config/cubix/keys on this machine (mobile/README.md).
  */
-import { spawnSync } from "node:child_process";
-import { sign, verify } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { mkdirSync, openSync, readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 import { runtimeVersion } from "../mobile/app.config";
 import { validateProductionUpdate } from "../mobile/scripts/validate-update";
 import { assertReleaseSigned } from "../mobile/scripts/release-signing";
@@ -44,12 +40,9 @@ const skipApk = process.argv.includes("--skip-apk");
 const forceApk = process.argv.includes("--apk");
 const apkOnly = process.argv.includes("--apk-only");
 const updateOnly = process.argv.includes("--update-only");
-const skipDesktop = process.argv.includes("--skip-desktop");
 const noPush = process.argv.includes("--no-push");
 const APK = resolve(root, "mobile/build/cubix-android-arm64.apk");
 const UPDATE_DIR = resolve(root, "mobile/build/updates");
-/** Signs the desktop packages; like the expo-updates key (mobile/scripts/export-update.ts), it never leaves this machine. */
-const DESKTOP_KEY = process.env.CUBIX_DESKTOP_SIGNING_KEY ?? join(homedir(), ".config/cubix/keys/desktop-private-key.pem");
 
 const run = (command: string, args: string[], options: { cwd?: string; capture?: boolean } = {}) => {
   console.log(`$ ${command} ${args.join(" ")}`);
@@ -67,6 +60,22 @@ if (git("status", "--porcelain")) console.warn("Warning: the working tree has un
 if (!noPush && git("rev-parse", "--abbrev-ref", "HEAD") !== "main") console.warn("Warning: not on main.");
 console.log(`Deploying ${head.slice(0, 7)} (build ${build}, runtime ${runtime})`);
 
+/**
+ * The over-the-air export (several minutes of Metro) starts at once, beside the Pi's build of the server: only its
+ * upload needs the new server. Its output goes to a log, so it does not interleave with the build's.
+ */
+const EXPORT_LOG = resolve(root, "mobile/build/export-update.log");
+let exporter: ChildProcess | undefined;
+const exported = apkOnly ? null : new Promise<number>((done) => {
+  mkdirSync(resolve(root, "mobile/build"), { recursive: true });
+  const log = openSync(EXPORT_LOG, "w");
+  console.log(`Exporting the over-the-air update in the background: ${EXPORT_LOG}`);
+  exporter = spawn("bun", ["scripts/export-update.ts", `--output=${UPDATE_DIR}`], { cwd: resolve(root, "mobile"), stdio: ["ignore", log, log] });
+  exporter.on("exit", (code) => done(code ?? 1));
+});
+// A deployment that stops early leaves no export running behind it.
+process.on("exit", () => exporter?.kill());
+
 async function release(): Promise<Record<string, unknown> | null> {
   try {
     const response = await fetch(`${ORIGIN}/api/mobile/release`, { signal: AbortSignal.timeout(10000) });
@@ -76,7 +85,8 @@ async function release(): Promise<Record<string, unknown> | null> {
 
 if (!apkOnly && !updateOnly) {
   if (!noPush) run("git", ["push"]);
-  run("ssh", [PI, "pihost", "update", APP]);
+  // The build number and the commit go to the image as build arguments (compose.yaml): it reads no git history.
+  run("ssh", [PI, `CUBIX_BUILD_NUMBER=${build}`, `CUBIX_COMMIT=${head}`, "pihost", "update", APP]);
   // pihost returns once compose is up; wait until the new binary answers with this commit.
   const deadline = Date.now() + 5 * 60 * 1000;
   for (;;) {
@@ -102,8 +112,8 @@ const adminPassword = () => {
 };
 /** PUTs a file with curl: Bun's fetch stalls on bodies of tens of MiB over a slow link (the APK never got through). */
 const send = async (path: string, headers: Record<string, string>, file: string) => {
-  // Ten minutes, or as long as the file takes at 8 KiB/s: the desktop packages weigh over 100 MiB and the link to the
-  // server has carried them below 32 KiB/s.
+  // Ten minutes, or as long as the file takes at 8 KiB/s: the APK weighs tens of MiB and the link to the server has
+  // carried files below 32 KiB/s.
   const seconds = Math.ceil(Math.max(10 * 60, statSync(file).size / (8 * 1024)));
   // The headers go through stdin, so the admin password never shows in the process list.
   const lines = Object.entries({ Authorization: `Bearer ${adminPassword()}`, ...headers }).map(([name, value]) => `${name}: ${value}`).join("\n");
@@ -118,9 +128,13 @@ const send = async (path: string, headers: Record<string, string>, file: string)
 // --- Over-the-air update: the JavaScript every installed application fetches by itself. ---
 if (!apkOnly) {
   const published = (deployed.updates as Record<string, { commit?: string }> | undefined)?.[runtime];
-  if (published?.commit === head) console.log(`The server already publishes this commit for runtime ${runtime}.`);
+  if (published?.commit === head) {
+    exporter?.kill();
+    console.log(`The server already publishes this commit for runtime ${runtime}.`);
+  }
   else {
-    run("bun", ["scripts/export-update.ts", `--output=${UPDATE_DIR}`], { cwd: resolve(root, "mobile") });
+    const code = await exported;
+    if (code !== 0) { console.error(`The over-the-air export failed (${code}): ${EXPORT_LOG}\n${readFileSync(EXPORT_LOG, "utf8").slice(-4000)}`); process.exit(1); }
     const update = JSON.parse(readFileSync(resolve(UPDATE_DIR, "update.json"), "utf8")) as { runtimeVersion: string; expoClient: { updates: { url: string } }; launchAsset: { path: string; hash: string }; assets: { path: string; hash: string }[]; signature?: string };
     // Phones built with the certificate refuse an unsigned manifest: publishing one would only stall them.
     if (!update.signature) { console.error("The update is not signed: the expo-updates key is missing (see mobile/README.md)."); process.exit(1); }
@@ -136,30 +150,6 @@ if (!apkOnly) {
     }
     const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, resolve(UPDATE_DIR, "update.json"));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
-  }
-}
-// --- Desktop packages: the Electron shell for Linux and Windows, only when it changed (its version digests it). ---
-if (!apkOnly && !updateOnly && !skipDesktop) {
-  const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string; signature?: string }>;
-  for (const script of ["desktop/package-release.ts"]) {
-    const { desktopVersion, OUT, PACKAGES } = await import(`../${script}`);
-    const version = await desktopVersion();
-    // Packages stored before they were signed are uploaded again, with their signature.
-    const stale = (Object.values(PACKAGES) as string[]).filter((name) => served[name]?.version !== version || !served[name]?.signature);
-    if (!stale.length) { console.log(`The server already serves ${script}'s ${version}.`); continue; }
-    if (!existsSync(DESKTOP_KEY)) { console.error(`No desktop signing key at ${DESKTOP_KEY} (see desktop/README.md).`); process.exit(1); }
-    run("bun", [script]);
-    // The key the install scripts trust: a package signed with another would be refused by every install.
-    const trusted = readFileSync(resolve(root, "desktop/install/install.sh"), "utf8").match(/-----BEGIN PUBLIC KEY-----[^-]+-----END PUBLIC KEY-----/)![0];
-    for (const name of stale) {
-      const file = resolve(OUT, name);
-      console.log(`Uploading ${name} (${(statSync(file).size / 1048576).toFixed(1)} MiB)`);
-      // RSA PKCS#1 v1.5 over SHA-256: what openssl (install.sh) and .NET (install.ps1) check.
-      const data = readFileSync(file), signature = sign("sha256", data, readFileSync(DESKTOP_KEY));
-      if (!verify("sha256", data, trusted, signature)) { console.error(`${DESKTOP_KEY} is not the key desktop/install/install.sh trusts.`); process.exit(1); }
-      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "X-Cubix-Signature": signature.toString("base64"), "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, file);
-    }
-    console.log(`${script}'s ${version} is now served by ${ORIGIN}/api/desktop`);
   }
 }
 if (updateOnly || skipApk) process.exit(0);

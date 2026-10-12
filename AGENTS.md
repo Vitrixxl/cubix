@@ -11,9 +11,9 @@ bun run deploy:bg --status   # le déploiement en cours et le dernier log
 `scripts/deploy-background.ts` pousse `main`, extrait le commit dans un worktree
 sous `~/.cache/cubix-deploy`, puis y lance `bun run deploy` (`scripts/deploy.ts`,
 avec `--no-push`) détaché : `ssh vitrix@82.67.236.74 pihost update cubix`, la
-publication de la mise à jour OTA, les paquets desktop s'ils ont changé et, si le
-natif a changé, l'APK ARM64 compilé en local puis envoyé à l'API. On peut
-continuer à modifier, commiter ou pousser pendant ce temps. Le log est dans
+publication de la mise à jour OTA et, si le natif a changé, l'APK ARM64 compilé
+en local puis envoyé à l'API. On peut continuer à modifier, commiter ou pousser
+pendant ce temps. Le log est dans
 `~/.cache/cubix-deploy/logs/` et une notification bureau dit comment il s'est
 terminé. Lire le log à la fin, vérifier que le déploiement a réussi et signaler
 toute erreur. `bun run deploy` reste disponible pour un déploiement au premier plan.
@@ -23,7 +23,6 @@ dans Docker et laisser l’utilisateur valider lui-même la modification :
 
 ```sh
 bun run dev:docker             # API seedée dans Docker + site local sur http://127.0.0.1:5181
-bun run dev:docker --electron  # la même chose dans la fenêtre Electron
 ```
 
 Si la stack tourne déjà (conteneur `cubix-dev-api-1`, site sur le port 5181),
@@ -39,8 +38,8 @@ défilement de la page. Placer les textes explicatifs dans les pages de guides
 accessibles via l’aide, jamais sous l’espace de pratique.
 
 Tous les tests doivent être exécutés en headless, sans ouvrir de fenêtre sur le
-bureau utilisateur. Pour Electron sous Linux, utiliser `xvfb-run -a`; pour
-l’émulateur Android, utiliser `-no-window` avec des données de test isolées.
+bureau utilisateur. Pour l’émulateur Android, utiliser `-no-window` avec des
+données de test isolées.
 
 Le PC de l’utilisateur peut être utilisé à pleine puissance : pas de `nice`
 ni de priorité basse, et les tâches lourdes indépendantes peuvent tourner en

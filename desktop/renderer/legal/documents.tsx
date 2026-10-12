@@ -24,7 +24,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
   legal: {
     fr: {
       title: "Mentions légales",
-      intro: <p>Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), voici les informations sur l'éditeur et l'hébergeur de Qbix ({site}), de ses applications pour ordinateur et Android et de leur API.</p>,
+      intro: <p>Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), voici les informations sur l'éditeur et l'hébergeur de Qbix ({site}), de son application Android et de leur API.</p>,
       sections: [
         { title: "Éditeur", body: <p>{I.editor}, {I.status}<br />{I.address}<br />Contact : {mail}</p> },
         { title: "Directeur de la publication", body: <p>{I.director}</p> },
@@ -45,7 +45,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
     },
     en: {
       title: "Legal notice",
-      intro: <p>As required by article 6 of French law no. 2004-575 of 21 June 2004 on confidence in the digital economy (LCEN), here is who publishes and who hosts Qbix ({site}), its desktop and Android apps and their API.</p>,
+      intro: <p>As required by article 6 of French law no. 2004-575 of 21 June 2004 on confidence in the digital economy (LCEN), here is who publishes and who hosts Qbix ({site}), its Android app and their API.</p>,
       sections: [
         { title: "Publisher", body: <p>{I.editor}, {I.status === "personne physique" ? "an individual" : I.status}<br />{I.address}<br />Contact: {mail}</p> },
         { title: "Publication director", body: <p>{I.director}</p> },
@@ -227,7 +227,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
   terms: {
     fr: {
       title: "Conditions d'utilisation",
-      intro: <p>Ces conditions encadrent l'utilisation de Qbix : le site {site}, ses applications pour ordinateur et Android et leur API. En créant un compte, tu les acceptes.</p>,
+      intro: <p>Ces conditions encadrent l'utilisation de Qbix : le site {site}, son application Android et leur API. En créant un compte, tu les acceptes.</p>,
       sections: [
         { title: "Le service", body: <p>Qbix est une application gratuite pour chronométrer ses résolutions, apprendre et s'entraîner sur les puzzles des épreuves de la WCA, affronter d'autres joueurs, échanger avec eux et se faire coacher. L'éditeur peut faire évoluer, suspendre ou arrêter tout ou partie du service, en prévenant ses utilisateurs lorsque c'est possible.</p> },
         { title: "Ton compte", body: <p>Un compte se crée avec un pseudo et un mot de passe. Ton pseudo est visible des autres joueurs : il ne doit ni usurper l'identité de quelqu'un, ni être injurieux ou trompeur. Tu es responsable de ton mot de passe et de ce qui est fait depuis ton compte. Si tu as moins de 15 ans, demande l'accord d'un parent.</p> },
@@ -265,7 +265,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
     },
     en: {
       title: "Terms of use",
-      intro: <p>These terms govern the use of Qbix: the site {site}, its desktop and Android apps and their API. By creating an account, you accept them.</p>,
+      intro: <p>These terms govern the use of Qbix: the site {site}, its Android app and their API. By creating an account, you accept them.</p>,
       sections: [
         { title: "The service", body: <p>Qbix is a free app to time your solves, learn and train on the puzzles of the WCA events, race other players, talk with them and get coached. The publisher may change, suspend or stop all or part of the service, warning its users when possible.</p> },
         { title: "Your account", body: <p>An account is created with a username and a password. Your username is visible to other players: it must not impersonate anyone, nor be offensive or misleading. You are responsible for your password and for what is done from your account. If you are under 15, ask a parent first.</p> },

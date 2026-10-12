@@ -3,7 +3,6 @@
   "include": [
     "*.ts",
     "engine/*.ts",
-    "electron/*.ts",
     "scripts/*.tsx",
     "testing/*.ts",
     "tests/*.ts",

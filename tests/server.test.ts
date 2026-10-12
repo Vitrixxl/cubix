@@ -325,18 +325,6 @@ test("the server publishes over-the-air updates following the expo-updates proto
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z" });
 });
 
-test("desktop packages are stored with their signature, served beside them", async () => {
-  const app = startApi(fixture());
-  const origin = `http://127.0.0.1:${app.server.port}`;
-  const gzip = new Uint8Array(2048); gzip.set([0x1f, 0x8b]);
-  const put = (headers: Record<string, string>) => fetch(`${origin}/api/desktop/cubix-linux-x64.tar.gz`, { method: "PUT", headers: { Authorization: "Bearer synthetic-admin-test-password", "X-Cubix-Version": "abc", "X-Cubix-Commit": "0123abcd", ...headers }, body: new Blob([gzip]) });
-  expect((await put({})).status).toBe(422);
-  expect((await put({ "X-Cubix-Signature": "c2lnbmF0dXJl" })).status).toBe(200);
-  expect((await (await fetch(`${origin}/api/desktop`)).json())["cubix-linux-x64.tar.gz"]).toMatchObject({ version: "abc", signature: "/api/desktop/cubix-linux-x64.tar.gz.sig" });
-  expect(await (await fetch(`${origin}/api/desktop/cubix-linux-x64.tar.gz.sig`)).text()).toBe("signature");
-  expect((await fetch(`${origin}/api/desktop/cubix-windows-x64.zip.sig`)).status).toBe(404);
-});
-
 test("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {
   const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
   const app = startApi(path), call = client(app);

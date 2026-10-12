@@ -29,21 +29,23 @@ test('the API serves the built web app next to /api, with immutable bundles', as
     expect(bundle.status).toBe(200);
     expect(bundle.headers.get('cache-control')).toContain('immutable');
     expect(bundle.headers.get('content-encoding')).toBe('gzip');
-    // The app's pages written ahead of time, in their language, compressed as the browser accepts; else the app's page.
+    // The app's pages written ahead of time, in their language, stored with Brotli only; else the app's page.
     mkdirSync(join(web, 'pages/fr/algorithms'), { recursive: true });
     mkdirSync(join(web, 'pages/en'), { recursive: true });
     writeFileSync(join(web, 'pages/fr/algorithms/OLL 21.html.br'), brotliCompressSync('<title>OLL 21 fr</title>'));
-    writeFileSync(join(web, 'pages/fr/algorithms/OLL 21.html.gz'), gzipSync('<title>OLL 21 fr</title>'));
-    writeFileSync(join(web, 'pages/en/timer@444.html.gz'), gzipSync('<title>4x4 timer</title>'));
+    writeFileSync(join(web, 'pages/en/timer@444.html.br'), brotliCompressSync('<title>4x4 timer</title>'));
     const prerendered = await get('/fr/algorithms/OLL%2021?puzzle=333', { 'accept-encoding': 'gzip, deflate, br' });
     expect(prerendered.status).toBe(200);
     expect(prerendered.headers.get('content-encoding')).toBe('br');
     expect(prerendered.headers.get('content-type')).toContain('text/html');
     // fetch decompresses the body itself.
     expect(await prerendered.text()).toContain('OLL 21 fr');
-    const timer = await get('/timer?puzzle=444&step=2', { 'accept-encoding': 'gzip' });
-    expect(timer.headers.get('content-encoding')).toBe('gzip');
+    const timer = await get('/timer?puzzle=444&step=2', { 'accept-encoding': 'gzip, br' });
+    expect(timer.headers.get('content-encoding')).toBe('br');
     expect(await timer.text()).toContain('4x4 timer');
+    // A client without Brotli gets the app's page, which draws the same page itself.
+    const gzipOnly = await get('/timer?puzzle=444', { 'accept-encoding': 'gzip' });
+    expect(await gzipOnly.text()).toContain('id="root"');
     for (const path of ['/timer', '/de/community/groups', '/login?redirect=%2Fprofile', '/algorithms/OLL%2021']) {
       const shell = await get(path);
       expect(shell.status, path).toBe(200);

@@ -9,7 +9,7 @@ export const NAME = "Qbix";
 export const SOURCE = "https://github.com/Vitrixxl/cubix";
 export const TITLE = "Qbix: the free speedcubing timer and algorithm trainer";
 export const DESCRIPTION =
-  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. Web, Windows, Linux, macOS and Android. No ads, no premium tier.";
+  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. Web (installable on Windows, Linux and macOS) and Android. No ads, no premium tier.";
 export const TAGLINE = "One app to time, learn and get faster on every WCA puzzle, from your first solve to competition. Free, without ads or premium tier.";
 
 export const PUZZLES = ["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "3×3 One-Handed", "3×3 Blindfolded", "4×4 and 5×5 Blindfolded", "Square-1", "Pyraminx", "Skewb", "Megaminx"];
@@ -106,7 +106,7 @@ export const FEATURES: Feature[] = [
     title: "Your times everywhere, even offline",
     summary: "Install Qbix on your computer or phone, or use it in the browser: your account follows you.",
     points: [
-      "Web (installable, works offline), Windows, Linux, macOS and Android",
+      "Web (installable on Windows, Linux and macOS, works offline) and Android",
       "Every solve saved on the device first, then synced to your other devices",
       `Bring your history from ${IMPORTS.slice(0, 5).join(", ")} and more, in one step`,
     ],

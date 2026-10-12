@@ -1,6 +1,11 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      # scripts/deploy.ts sets them for `pihost update` (the image reads no git history).
+      args:
+        CUBIX_BUILD_NUMBER: "${CUBIX_BUILD_NUMBER:-0}"
+        CUBIX_COMMIT: "${CUBIX_COMMIT:-}"
     ports:
       - "${CUBIX_PORT:-3000}:3000"
     environment:

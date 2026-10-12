@@ -2,24 +2,14 @@ import { toast } from "sonner";
 import { tr } from "../../src/client/i18n";
 import type { LiveLink } from "../../src/client/live";
 
-/** What the Electron shell adds to the web app (desktop/electron/preload.ts). */
-export interface DesktopBridge {
-  /** The storage.json of the former desktop engine, until its content has been imported. */
-  legacyStorage: () => Promise<string | null>;
-  legacyImported: () => Promise<void>;
-  open: (url: string) => Promise<void>;
-  onEvent: (callback: (event: any) => void) => () => void;
-}
 declare global {
   interface Window {
-    cubixDesktop?: DesktopBridge;
     /** The engine, reachable from the console and from integration tests. */
     cubix: { call: typeof call };
   }
 }
 /** The engine worker's bundle, named after its content (desktop/web.ts). */
 declare const CUBIX_WORKER: string;
-const desktop = window.cubixDesktop;
 const listeners = new Set<(event: any) => void>();
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let sequence = 0;
@@ -87,7 +77,6 @@ type Port = { postMessage(message: unknown): void };
 const shared = typeof SharedWorker !== "undefined";
 const worker = (async () => {
   if (!shared) await exclusive();
-  const legacy = desktop ? await desktop.legacyStorage().catch(() => null) : null;
   const { promise: started, resolve, reject } = Promise.withResolvers<Port>();
   let port: Port, ready = false;
   const receive = ({ data }: MessageEvent) => {
@@ -100,7 +89,6 @@ const worker = (async () => {
     } else if (data.event === "started") {
       ready = true;
       online = data.value.online;
-      if (data.value.imported) void desktop?.legacyImported();
       if (data.value.displaced) void stale();
       resolve(port);
     } else if (data.event === "failed") reject(new Error(data.value));
@@ -130,7 +118,7 @@ const worker = (async () => {
     engine.onerror = stopped;
     port = engine;
   }
-  port.postMessage({ type: "start", legacy: legacy ? JSON.parse(legacy) : null });
+  port.postMessage({ type: "start" });
   void navigator.storage?.persist?.().catch(() => false);
   return started;
 })();
@@ -167,13 +155,11 @@ export const socket: LiveLink = {
   },
   connected: () => online,
 };
-/** Engine events (`changed`, `sync`, `live`, `error`), plus the desktop's mouse back/forward buttons. */
+/** Engine events (`changed`, `sync`, `live`, `error`). */
 export function onEvent(callback: (event: any) => void) {
   listeners.add(callback);
-  const unsubscribe = desktop?.onEvent(callback);
-  return () => { listeners.delete(callback); unsubscribe?.(); };
+  return () => { listeners.delete(callback); };
 }
 export function openExternal(url: string) {
-  if (desktop) return desktop.open(url);
   window.open(url, "_blank", "noopener");
 }

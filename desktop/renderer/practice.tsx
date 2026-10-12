@@ -269,7 +269,7 @@ export const LiveDigits = memo(function LiveDigits({ startedAt, text, digitsRef,
 
 /**
  * The inspection's sound. Speech alone stayed silent where the system has no voice (Linux without speech-dispatcher,
- * so Electron and Chromium there): the calls are beeps made on the device, the words added where a voice speaks the
+ * so Chromium there): the calls are beeps made on the device, the words added where a voice speaks the
  * app's language.
  */
 let audio: AudioContext | undefined, spoken: SpeechSynthesisUtterance | undefined;

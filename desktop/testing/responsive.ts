@@ -1,5 +1,5 @@
 /** Every screen at phone and desktop window sizes: the page never scrolls, nothing leaves the window,
- * the practice prompt, timer and metrics never overlap. Screenshots go to artifacts/electron/testing. */
+ * the practice prompt, timer and metrics never overlap. Screenshots go to artifacts/testing. */
 import { SHOTS, act, launchApp, resize, scrambled, signIn, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";

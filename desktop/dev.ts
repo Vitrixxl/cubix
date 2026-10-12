@@ -1,14 +1,9 @@
-/** Development: builds the web app and the Electron shell, serves the web app on 127.0.0.1:5180 with the
- * API proxied to CUBIX_API_ORIGIN (production by default), then opens Electron on it.
- * `bun desktop/dev.ts --web` serves it without opening Electron, for a browser. */
-delete process.env.ELECTRON_RUN_AS_NODE;
-import { join, resolve } from "node:path";
-import { homedir } from "node:os";
+/** Development: builds the web app and serves it on 127.0.0.1:5180, for a browser, with the API proxied to
+ * CUBIX_API_ORIGIN (production by default). */
+import { resolve } from "node:path";
 import { buildWeb, WEB_DIR } from "./web";
 import { splitLanguage } from "../src/client/lib/route";
 process.chdir(resolve(import.meta.dir, ".."));
-// Separate from the installed app: its own window lock, browser storage and former storage.json.
-process.env.CUBIX_DESKTOP_DATA ??= join(process.env.XDG_DATA_HOME ?? join(homedir(), ".local/share"), "cubix-desktop-dev");
 const upstream = (process.env.CUBIX_API_ORIGIN ?? "https://cubix.vitrixxl.fr").replace(/\/$/, "");
 // Its own build directory when given, so two development servers (a test one beside the one in use) do not clash.
 const WEB = process.env.CUBIX_DEV_WEB_DIR ? resolve(process.env.CUBIX_DEV_WEB_DIR) : WEB_DIR;
@@ -95,22 +90,3 @@ const server = Bun.serve<Socket>({
 });
 const origin = `http://127.0.0.1:${server.port}`;
 console.log(`Cubix web: ${origin} (API: ${upstream})\nVirtual smart cube: ${origin}/dev/cube`);
-if (process.argv.includes("--web")) await new Promise(() => {});
-const build = Bun.spawn(["bun", "desktop/build.ts"], { stdout: "inherit", stderr: "inherit" });
-if (await build.exited) process.exit(1);
-if (!(await Bun.file("node_modules/electron/path.txt").exists())) {
-  const install = Bun.spawn(["bun", "node_modules/electron/install.js"], { stdout: "inherit", stderr: "inherit" });
-  if (await install.exited) process.exit(1);
-}
-const electron = resolve(
-  "node_modules/electron/dist",
-  process.platform === "win32" ? "electron.exe" : process.platform === "darwin" ? "Electron.app/Contents/MacOS/Electron" : "electron",
-);
-const child = Bun.spawn([electron, "desktop/dist"], {
-  env: { ...process.env, CUBIX_WEB_ORIGIN: origin },
-  stdout: "inherit",
-  stderr: "inherit",
-});
-const code = await child.exited;
-server.stop(true);
-process.exit(code);

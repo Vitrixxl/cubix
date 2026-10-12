@@ -1,6 +1,6 @@
 package main
 
-// The web application built by `desktop/web.ts`, which the desktop app loads too.
+// The web application built by `desktop/web.ts`.
 // Only files that exist are served, the administration's pages (`/admin`, `/admin/…`) and the app's: each of its
 // addresses, under the prefix of its language but English's (`/fr/timer`), is its page written ahead of time
 // (`desktop/prerender.tsx`) when it has one, else the single-page app's `index.html`. The site's root is the landing
@@ -113,8 +113,9 @@ func webAppPath(path string) (string, string, bool) {
 }
 
 // webPage: the app's address `path`: its page in its language (`pages/<language>/<path>[@<puzzle>[~<step>]].html`,
-// compressed as the browser accepts it), trying without the step, then without the puzzle; else the app's
-// `index.html`. Any other address is a file of the build.
+// stored compressed with Brotli only, which every current browser and search engine accepts), trying without the step,
+// then without the puzzle; else, or for a client without Brotli, the app's `index.html`. Any other address is a file of
+// the build.
 func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 	language, path, ok := webAppPath(r.URL.EscapedPath())
 	if !ok {
@@ -147,16 +148,12 @@ func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 		names = append(names, path+"@"+puzzle)
 	}
 	names = append(names, path)
-	if encoding := webAccepted(r); encoding != "" {
-		extension := "gz"
-		if encoding == "br" {
-			extension = "br"
-		}
+	if webAccepted(r) == "br" {
 		for _, name := range names {
-			if bytes, err := os.ReadFile(filepath.Join(dir, "pages", language, name+".html."+extension)); err == nil {
+			if bytes, err := os.ReadFile(filepath.Join(dir, "pages", language, name+".html.br")); err == nil {
 				h := w.Header()
 				h.Set("Content-Type", "text/html; charset=utf-8")
-				h.Set("Content-Encoding", encoding)
+				h.Set("Content-Encoding", "br")
 				h.Set("Vary", "accept-encoding")
 				w.WriteHeader(200)
 				if r.Method != "HEAD" {

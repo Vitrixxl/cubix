@@ -8,7 +8,7 @@ import { fmtTime, INSPECTIONS, plural, shortDate, TIME_ENTRIES } from "../../../
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, practiceSummary, sessionFigures } from "../../../src/client/lib/practiceSummary";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
-import { contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { contextKey, eventOf, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -26,10 +26,9 @@ import {
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome,
 } from "../components/Practice";
 import { AppBar, SectionTabs } from "../components/AppBar";
-import { Caption, inspectionAtom, Pill, scrambleCubeShownAtom, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
+import { Caption, inspectionAtom, Pill, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
 import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet, useTimerSessions } from "../components/TimesSheet";
 import { LastSolveBar, PillAction } from "../components/SolveMenus";
-import { ScrambleCube } from "../components/ScrambleCube";
 import { Sheet, SheetInput } from "../components/Sheet";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
@@ -53,7 +52,6 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const info = puzzleInfo(context.puzzle);
   const entry = useAtomValue(timeEntryAtom);
   const inspection = useAtomValue(inspectionAtom);
-  const cubeShown = useAtomValue(scrambleCubeShownAtom);
   const figureIds = useAtomValue(timerFiguresAtom);
   const openSheet = useSetAtom(sessionSheetAtom), openGuide = useSetAtom(guidesAtom);
   const [saving, setSaving] = useState(false);
@@ -101,8 +99,6 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const copyScramble = () => void Clipboard.setStringAsync(scramble).then(() => showNotice(tr("Scramble copied"), Copy)).catch(() => {});
 
   // The scramble played on its 3D puzzle, beside it.
-  const held = heldScramble(context.scrambleType);
-  const previewSize = tablet ? (height < 600 ? 72 : wide ? 104 : 140) : height < 700 ? 0 : height < 780 ? 60 : 72;
   // Long scrambles get smaller moves, Megaminx ones (R++ D--) the smallest; a tablet reads them from further away.
   const promptFont = Math.round((/\+\+|--/.test(scramble) ? 13 : scramble.length > 90 ? 16 : 20) * (tablet ? (wide ? 1.15 : 1.5) : 1));
   // The digits grow with a tablet's room (the mockup's 190 px in portrait, 150 px sideways).
@@ -124,7 +120,6 @@ function TimerSession({ context }: { context: PracticeContext }) {
   </View>;
   const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;
   const visual = <View className="items-center gap-1">
-    {cubeShown && previewSize > 0 && scramble && !loading ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={held} size={previewSize} still={busy} /> : null}
     <View className="flex-row">
       <IconButton icon={Shuffle} label={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
       <IconButton icon={Copy} label={tr("Copy the scramble")} disabled={!scramble || loading} onPress={copyScramble} />

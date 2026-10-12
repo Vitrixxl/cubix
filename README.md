@@ -2,10 +2,10 @@
 
 Application native de speedcubing : chronomètre, algorithmes, entraînement,
 statistiques et succès. Un compte sert uniquement à synchroniser ses temps entre
-appareils. Application web (PWA) servie par l'API, desktop **Electron** qui ouvre
-cette même application, Android en **React Native**, API en **Go / SQLite**.
+appareils. Application web (PWA) servie par l'API, Android en **React Native**, API en
+**Go / SQLite**.
 
-## Web et desktop
+## Web
 
 L'application web est construite par `bun build` dans `dist/web` et servie par l'API
 (`https://cubix.vitrixxl.fr`). Elle s'installe comme PWA et fonctionne hors ligne :
@@ -24,37 +24,14 @@ L'application démarre à côté, invisible, et prend sa place dès qu'elle dess
 `CUBIX_PRERENDER_JOBS` règle le nombre de processus (par défaut un par cœur, 3 dans
 l'image Docker).
 
-Le desktop Electron ne contient que sa fenêtre : il ouvre l'application servie par
-l'API, comme une PWA. Il n'y a ni lanceur ni mise à jour : chaque lancement en ligne
-ouvre la dernière version déployée, et hors ligne la version en cache.
-
 ```sh
 bun install --frozen-lockfile
-bun run dev             # site sur http://127.0.0.1:5180 (API de production) et Electron
-bun run dev:web         # le même site, sans Electron, pour un navigateur
+bun run dev             # site sur http://127.0.0.1:5180 (API de production)
 bun run build:web       # dist/web, servi par l'API quand il existe
-bun run build:desktop   # paquet Electron pour Linux ou macOS, selon la machine
-make                    # Linux : construit le paquet, puis l'installe
 ```
 
-Sur macOS, après un clone ou un pull, installer **Bun 1.4+** et **Node.js 24+**, puis :
-
-```sh
-bun install --frozen-lockfile
-bun run build:desktop
-open artifacts/electron/Cubix-darwin-*/Cubix.app
-```
-
-Le build crée `artifacts/electron/Cubix-darwin-arm64/Cubix.app` sur Apple Silicon,
-ou `Cubix-darwin-x64/Cubix.app` sur Intel. Copier `Cubix.app` dans `/Applications`
-pour l'installer. Le build s'exécute sur le Mac cible ; aucun build du serveur ou Android
-n'est nécessaire, la fenêtre ouvre l'API de production. L'application est signée
-localement (ad hoc), sans certificat Apple ; elle n'est pas notariée pour une
-distribution publique.
-
-Sous Linux, `make` installe le desktop dans `~/.local/share/cubix-electron` avec l'entrée de menu
-Cubix et la commande `~/.local/bin/cubix`, sans sudo ; il ne sert qu'à mettre à jour la
-fenêtre Electron elle-même. Voir [le guide desktop](desktop/README.md).
+Sur ordinateur, l'application s'installe depuis le navigateur (Chrome, Edge, Safari) :
+c'est la même PWA, dans sa propre fenêtre. Voir [le guide web](desktop/README.md).
 
 ## Android
 
@@ -66,8 +43,8 @@ bun run build:android   # construire mobile/build/cubix-release.apk
 L'APK release fonctionne sans Metro. Installation, prérequis Android et
 validation : [guide mobile](mobile/README.md).
 
-`bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
-`pihost update cubix` (l'image construit aussi l'application web, donc le desktop),
+`bun run deploy` pousse `main`, met à jour le serveur avec
+`pihost update cubix` (l'image construit aussi l'application web),
 puis livre le mobile de deux façons (`CUBIX_ADMIN_PASSWORD` du serveur, lu par SSH, ou
 `CUBIX_DEPLOY_PASSWORD` ; ce mot de passe ne sert qu'aux envois mobiles) :
 
@@ -127,7 +104,6 @@ CUBIX_API_ORIGIN=http://127.0.0.1:47129 bun run dev
 
 ```sh
 bun run dev:docker              # API seedée dans Docker + site local sur http://127.0.0.1:5181
-bun run dev:docker --electron   # la même chose dans la fenêtre Electron
 bun run dev:docker --reset      # repart d'une base vide, seedée à nouveau
 bun run dev:docker --stop       # arrête le conteneur, la base est conservée
 ```
@@ -140,7 +116,7 @@ appris et entraînements, 6 coachs avec disponibilités, séances passées et à
 messages non lus, candidatures de coach en attente, duels et trafic pour l'administration.
 Le générateur a une graine fixe : chaque `--reset` redonne les mêmes données, datées
 d'aujourd'hui. Le site local (sources de `desktop/renderer`, port 5181) garde son propre
-stockage navigateur et Electron, séparé du compte de production.
+stockage navigateur, séparé du compte de production.
 
 | Accès | Identifiant | Mot de passe / jeton |
 | --- | --- | --- |
@@ -218,13 +194,6 @@ ne supprime pas les temps en attente. Les marques « appris / à apprendre » de
 le même mécanisme. Tant qu'un appareil est connecté, il reçoit en direct les changements
 faits sur les autres appareils du compte. Les guides et le catalogue sont embarqués.
 
-Le desktop garde le profil de navigateur de l'application (IndexedDB, cache hors
-ligne) dans `$XDG_DATA_HOME/cubix-desktop/electron` ou `~/.local/share/cubix-desktop/electron`
-(`CUBIX_DESKTOP_DATA` pour changer le dossier). Au premier lancement, les données de
-l'ancien moteur desktop (`storage.json` du même dossier : temps non synchronisés,
-préférences, session) sont importées une fois, puis le fichier est renommé
-`storage.imported.json`.
-
 ## Développement et vérification
 
 Bun **1.4+**, Node.js **24+** pour les outils de catalogue/stress et Go **1.27+** (avec un compilateur C, pour SQLite).
@@ -232,16 +201,15 @@ Bun **1.4+**, Node.js **24+** pour les outils de catalogue/stress et Go **1.27+*
 ```sh
 bun install --frozen-lockfile
 bun run typecheck
-bun run test            # clients partagés, API HTTP/WS, catalogue, desktop et tests Go
-bun run test:ui         # parcours réels du site dans Electron/Chromium headless
+bun run test            # clients partagés, API HTTP/WS, catalogue, site et tests Go
+bun run test:ui         # parcours réels du site dans Chromium headless
 bun run build:api       # serveur seul
 bun run build:web       # application web
-bun run build:desktop   # fenêtre Electron autonome
 bun run stress          # API isolée, base et résultats temporaires sous artifacts/
 ```
 
 ```text
-desktop/        application web (renderer/, engine/, guides/), fenêtre Electron et builds
+desktop/        application web (renderer/, engine/, guides/) et ses builds
 mobile/         application Android React Native
 src/client/     client HTTP/WS, stockage/sync, statistiques et schémas partagés
 src/shared/     contrats TypeScript et modèle du cube
@@ -250,7 +218,6 @@ data/           catalogues embarqués (catalog.json généré par `bun run build
 assets/cases/   schémas sources des puzzles
 scripts/        catalogue, déploiement, tests de charge
 docs/           sources du catalogue et modes de pratique
-Makefile        dépendances, compilation et installation du desktop
 tests/          tests des clients et de l'API réelle
 ```
 
@@ -263,7 +230,7 @@ La logique de pratique commune au mobile et au desktop se trouve dans
 sélections (`practiceCatalog`), indicateurs et regroupement des temps
 (`practiceSummary`), sessions du lancement (`launchSessions`) et représentation
 des cas (`caseState`). Ces modules TypeScript ne dépendent ni de React Native,
-ni d’Electron, ni d’un stockage spécifique. Les interfaces les consomment via
+ni du navigateur, ni d’un stockage spécifique. Les interfaces les consomment via
 leurs adaptateurs : clavier/RAF côté desktop, tactile/AppState côté mobile.
 Les composants, la navigation et les mises à jour restent propres à chaque plateforme.
 
@@ -272,4 +239,4 @@ Les composants, la navigation et les mises à jour restent propres à chaque pla
 `bun run --cwd mobile test` vérifie aussi leur intégration au chrono mobile.
 Les parcours réels de l'interface sont dans `desktop/testing/` (`bun run test:ui` les
 construit et les enchaîne) : chaque script lance une API temporaire qui sert `dist/web`
-et ouvre Electron dessus sans fenêtre. Voir [le guide desktop](desktop/README.md#validation).
+et ouvre Chromium headless dessus. Voir [le guide web](desktop/README.md#validation).

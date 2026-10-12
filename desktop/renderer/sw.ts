@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-/** Offline shell of the web app, which the desktop app loads too. Online, every launch asks the server
+/** Offline shell of the web app. Online, every launch asks the server
  * for the page first, so it always opens the latest deployed version without any update step. */
 const worker = self as unknown as ServiceWorkerGlobalScope;
 declare const CUBIX_VERSION: string;

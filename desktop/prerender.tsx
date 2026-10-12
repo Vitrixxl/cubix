@@ -11,7 +11,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
-import { brotliCompressSync, constants, gzipSync } from "node:zlib";
+import { brotliCompressSync, constants } from "node:zlib";
 
 /** What the app reads of a browser while it is drawn, before any of its modules is loaded. */
 function browser() {
@@ -83,13 +83,15 @@ async function renderShare(out: string, template: string, index: number, count: 
         if (body.includes("<!--$!-->")) throw new Error(`${url}: a part of the page did not load`);
       }
       const seo = seoOf(pathname, search)!;
-      // Only compressed: thousands of pages would take a gigabyte as they are (web.rs serves the one the browser takes).
+      // Only compressed: thousands of pages would take a gigabyte as they are.
       const html = pageDocument(template, { language, seo, body, theme, localePath });
-      const br = brotliCompressSync(html, { params: { [constants.BROTLI_PARAM_QUALITY]: QUALITY, [constants.BROTLI_PARAM_SIZE_HINT]: html.length } }), gz = gzipSync(html, { level: 6 });
+      // Brotli alone: a second, gzip copy of every page doubled the files to write and to copy into the image, for
+      // clients that do not exist any more (go-api/web.go serves the app's index.html to one without Brotli).
+      const br = brotliCompressSync(html, { params: { [constants.BROTLI_PARAM_QUALITY]: QUALITY, [constants.BROTLI_PARAM_SIZE_HINT]: html.length } });
       for (const file of files) {
         const path = join(out, "pages", language, file);
         await mkdir(dirname(path), { recursive: true });
-        await Promise.all([writeFile(path + ".br", br), writeFile(path + ".gz", gz)]);
+        await writeFile(path + ".br", br);
       }
     }
   }

@@ -1,4 +1,4 @@
-/** Chart gestures against a deterministic history (a guest's, taken over by the account) in the real Electron app. */
+/** Chart gestures against a deterministic history (a guest's, taken over by the account) in the web app. */
 import { SHOTS, act as click, launchApp, signIn, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
@@ -15,15 +15,15 @@ const solves = Array.from({ length: 608 }, (_, i) => ({
   scramble: "R U R'", comment: null,
   created_at: new Date(Date.UTC(2026, 8, 1) + i * 3600000).toISOString(),
 }));
-await Bun.write(join(dir, "storage.json"), JSON.stringify({
+const storage = {
   "cubix.local.v1:workspace:guest": JSON.stringify({
     version: 1, normalScrambles: true, sessions: {},
     solves: Object.fromEntries(solves.map(s => [s.id, s])), learned: {}, outbox: [], cursor: 0,
   }),
   "cubix.playground.scrambleByContext": JSON.stringify({ "333:standard:normal": "R U R'" }),
-}));
+};
 const { origin, server } = await startServer(join(dir, "server"));
-const { app, page, errors } = await launchApp({ dir, origin });
+const { app, page, errors } = await launchApp({ dir, origin, storage });
 try {
   const act = (action: string) => click(page, action);
   // The app is used signed in: the new account takes the guest history over.

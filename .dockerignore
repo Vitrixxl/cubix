@@ -1,6 +1,5 @@
 **
 !Dockerfile
-!.git
 # The API, without its local build.
 !go-api/
 go-api/cubix-api
@@ -23,8 +22,6 @@ desktop/*
 !desktop/guides/
 !desktop/renderer/
 !desktop/assets/
-# The desktop installers the landing page gives (copied into the web build).
-!desktop/install/
 # The scrambler, built to WebAssembly (scrambler/build.ts).
 !scrambler/
 scrambler/*

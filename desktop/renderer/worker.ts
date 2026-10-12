@@ -8,7 +8,7 @@ import { openStorage } from "./idbStorage";
 import type { LiveMessage } from "../../src/client/live";
 
 type Port = { postMessage(message: unknown): void; onmessage: ((event: MessageEvent) => void) | null };
-type Start = { type: "start"; legacy: Record<string, string> | null };
+type Start = { type: "start" };
 /** The scrambler's WebAssembly module (scrambler/, desktop/web.ts). */
 declare const CUBIX_SCRAMBLER: string;
 const scope = self as unknown as WorkerGlobalScope & typeof globalThis;
@@ -20,7 +20,7 @@ const ports = new Set<Port>();
 const owners = new Map<number, { port: Port; id: number; method: string }>();
 let sequence = 0;
 let engine: ReturnType<typeof createEngine> | undefined;
-let starting: Promise<{ imported: boolean; displaced: boolean }> | undefined;
+let starting: Promise<{ displaced: boolean }> | undefined;
 
 /** Scrambles are drawn here, offline too: the module is precached by the service worker. */
 const scrambles = wasmScrambleEngine(() => fetch(CUBIX_SCRAMBLER).then(response => {
@@ -61,17 +61,14 @@ function retire() {
   broadcast({ event: "replaced" });
 }
 let frozen: (() => void) | undefined;
-function start({ legacy }: Start) {
+function start() {
   return (starting ??= (async () => {
     const displaced = await exclusive();
     const storage = await openStorage(value => broadcast({ event: "error", value }));
     frozen = storage.freeze;
     if (retired) storage.freeze();
-    // The desktop app kept its data in a file before it became this web app: bring it in once.
-    const imported = !!legacy && Object.keys(storage.all()).length === 0;
-    if (imported) await storage.importAll(legacy!);
     if (!retired) engine = createEngine({ origin: scope.location.origin, storage, scrambles, emit: route });
-    return { imported, displaced };
+    return { displaced };
   })());
 }
 function connect(port: Port) {
@@ -86,7 +83,7 @@ function connect(port: Port) {
     } else if (data.type === "close") ports.delete(port);
     else if (data.type === "start") {
       try {
-        const value = await start(data);
+        const value = await start();
         port.postMessage(retired ? { event: "replaced" } : { event: "started", value: { ...value, online: engine?.online() ?? false } });
       } catch (error) {
         starting = undefined;

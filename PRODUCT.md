@@ -36,8 +36,8 @@ Trois choses à la fois, qu'aucun voisin (csTimer, Twisty Timer, Cubeast…) ne 
 
 - Une séance, c'est un cube en main et des dizaines de solves d'affilée : mélanger, maintenir, lâcher, résoudre,
   arrêter. Clavier (espace) sur ordinateur, écran tactile sur téléphone.
-- La même application sur le web (PWA installable), dans une fenêtre desktop (Electron : Windows, Linux,
-  macOS) et sur Android (React Native, écrans natifs). Le web est la
+- La même application sur le web (PWA, installable sur ordinateur depuis le navigateur) et sur Android
+  (React Native, écrans natifs). Le web est la
   référence de design ; Android reprend le même langage visuel, adapté au tactile.
 - Hors ligne d'abord : chaque solve est enregistré sur l'appareil, puis synchronisé.
 - On arrive souvent d'un autre timer avec des années d'historique à importer.
@@ -63,7 +63,7 @@ Trois choses à la fois, qu'aucun voisin (csTimer, Twisty Timer, Cubeast…) ne 
 - Les contrôles de l'interface sont les composants shadcn du projet.
 - Interface en anglais.
 - Pas d'application iOS : sur iPhone et iPad, Qbix s'utilise dans Safari.
-- Desktop Linux : x64 seulement. macOS : compilé depuis les sources.
+- Pas d'application de bureau : sur ordinateur, la PWA s'installe depuis le navigateur.
 
 ## Brand Commitments
 

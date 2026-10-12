@@ -350,9 +350,6 @@ func (s *AppState) routes() http.Handler {
 	route(true, "/api/avatars/{file}", json, get(coachingAvatar))
 	// The APK upload carries a whole Android build, far above the JSON limit below.
 	route(true, "/api/mobile/apk", 256*1024*1024, map[string]handler{"GET": releaseApk, "PUT": releaseUpload})
-	// The desktop packages the landing page's install commands download.
-	route(true, "/api/desktop", json, get(desktopInfo))
-	route(true, "/api/desktop/{name}", 512*1024*1024, map[string]handler{"GET": desktopDownload, "PUT": desktopUpload})
 	// Over-the-air JavaScript updates: the bundle weighs a few megabytes.
 	route(true, "/api/mobile/updates/assets/{hash}", 64*1024*1024, map[string]handler{"GET": releaseAsset, "PUT": releaseUploadAsset})
 	route(true, "/api/mobile/updates", json, map[string]handler{"PUT": releasePublish})

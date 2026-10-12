@@ -1,6 +1,6 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { Box, Check, ChevronDown, Keyboard, Timer, type LucideIcon } from "lucide-react-native";
+import { Check, ChevronDown, Keyboard, Timer, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { INSPECTIONS, TIME_ENTRIES, type Inspection, type TimeEntry } from "../../../src/client/lib/format";
@@ -106,8 +106,6 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
 const json = createJSONStorage<any>(() => storage);
 /** The WCA inspection before a timer solve (the web's `cubix.timer.inspection`). */
 export const inspectionAtom = atomWithStorage<Inspection>("cubix.timer.inspection", "off", json, { getOnInit: true });
-/** Whether the timer shows the scrambled puzzle beside its scramble. */
-export const scrambleCubeShownAtom = atomWithStorage("cubix.timer.scrambleCube", true, json, { getOnInit: true });
 /** The figures of the timer's session card, chosen by the player (see `sessionFigures`). */
 export const timerFiguresAtom = atomWithStorage<string[]>("cubix.practice.figures", DEFAULT_FIGURES, json, { getOnInit: true });
 /** "Spoken and on screen" in a segment of four. */
@@ -126,7 +124,6 @@ export function SessionSheet() {
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const [inspection, setInspection] = useAtom(inspectionAtom);
-  const [cubeShown, setCubeShown] = useAtom(scrambleCubeShownAtom);
   const puzzle = useAtomValue(puzzleAtom), blind = useAtomValue(solveModeAtom) === "blindfolded";
   const { tablet } = useLayout();
   const close = () => setMode(null);
@@ -155,11 +152,6 @@ export function SessionSheet() {
             options={INSPECTIONS.map(i => ({ id: i.id, label: INSPECTION_SHORT[i.id] ?? i.label }))} />
         </View>}
       </View>
-      <Pressable accessibilityRole="switch" accessibilityState={{ checked: cubeShown }} onPress={() => setCubeShown(!cubeShown)} className="min-h-12 flex-row items-center gap-3">
-        <Icon as={Box} size={20} className="text-foreground" />
-        <Text className="flex-1 text-base font-bold">{tr("Show the scrambled cube")}</Text>
-        <Switch on={cubeShown} />
-      </Pressable>
     </>}
   </Sheet>;
 }
@@ -169,12 +161,6 @@ export function Caption({ children }: { children: ReactNode }) {
   return <Text className="pt-1 text-xs font-bold tracking-[0.09em] text-muted-foreground uppercase">{children}</Text>;
 }
 
-/** An on/off switch drawn in the accent (its row is the touch target). */
-export function Switch({ on }: { on: boolean }) {
-  return <View className={cn("h-6 w-10 justify-center rounded-full px-[3px]", on ? "bg-primary" : "bg-accent")}>
-    <View className={cn("size-[18px] rounded-full", on ? "self-end bg-primary-foreground" : "bg-muted-foreground")} />
-  </View>;
-}
 
 /**
  * A filled pill: a setting with its value in the accent (`label` + `value`), a filter, a choice. `on` raises it,

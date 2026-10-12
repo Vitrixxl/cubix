@@ -1,16 +1,16 @@
 /**
  * The landing page at the site's root. The build renders it to HTML (desktop/web.ts), so search engines and language
  * models read it whole without JavaScript; the browser then hydrates it for what needs the visitor's device: the
- * platform it runs on, the install command to copy, the APK's size, the cube that solves itself at the top
+ * platform it runs on, the APK's size, the cube that solves itself at the top
  * (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
  */
 import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, Check, Coffee, Copy, Download, Globe, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowRight, ArrowUpRight, Coffee, Download, Globe, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Brand, Logo } from "../logo";
-import { FAQ, FEATURES, IMPORTS, NAME, SITE, SOURCE, type Feature } from "./content";
+import { FAQ, FEATURES, IMPORTS, NAME, SOURCE, type Feature } from "./content";
 import { CubeStill, HeroCube } from "./HeroCube";
 import { AlgDemo, DuelDemo, LessonDemo, TimerDemo, TrainDemo } from "./Demos";
 import { EVENTS } from "../../../src/shared/puzzles";
@@ -19,19 +19,17 @@ import { LanguagePicker, said, useLanguage } from "../base";
 import { language, preferred, setLanguage } from "../../../src/client/i18n";
 import { localePath } from "../../../src/client/lib/route";
 
-export type Platform = "linux" | "windows" | "macos" | "android" | "ios" | "web";
+/** A computer installs the web app from its browser, so only phones are told apart. */
+export type Platform = "android" | "ios" | "web";
 /** The visitor's platform, from the browser's user agent; iPads present themselves as Macs with touch. */
 export function detectPlatform(agent: string, touch = 0): Platform {
   if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && touch > 1)) return "ios";
   if (/Android/.test(agent)) return "android";
-  if (/Windows/.test(agent)) return "windows";
-  if (/Macintosh|Mac OS X/.test(agent)) return "macos";
-  if (/Linux|X11|CrOS/.test(agent)) return "linux";
   return "web";
 }
 
 /** What the download button says once the visitor's platform is known, where there is something to install. */
-const GET: Partial<Record<Platform, string>> = { windows: "Download for Windows", linux: "Install on Linux", macos: "Get it for macOS", android: "Download for Android" };
+const GET: Partial<Record<Platform, string>> = { android: "Download for Android" };
 const COFFEE = "https://buymeacoffee.com/vitrixxl";
 
 /** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
@@ -44,41 +42,7 @@ function LinkButton({ href, size = "default", variant = "default", download, cla
   );
 }
 
-/** A command to paste in a terminal, with a button that copies it. */
-function Command({ lines, label }: { lines: string[]; label: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    // Concentric with the copy button: its 12px corners 8px in.
-    <div className="flex items-start gap-3 rounded-[20px] bg-background p-2 pl-4">
-      {/* A long command wraps rather than scrolls out of sight: the copy takes it whole. */}
-      <pre aria-label={said(label)} className="min-w-0 flex-1 py-1.5 font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">
-        {lines.map((line) => (
-          <div key={line}>
-            <span className="text-primary select-none">$ </span>
-            {said(line)}
-          </div>
-        ))}
-      </pre>
-      <Button
-        variant="secondary"
-        onClick={() => {
-          void navigator.clipboard?.writeText(lines.join("\n")).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          });
-        }}
-      >
-        {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
-        {copied ? tr("Copied") : tr("Copy")}
-      </Button>
-    </div>
-  );
-}
-
 const PLATFORMS: { id: Platform; label: string }[] = [
-  { id: "windows", label: "Windows" },
-  { id: "linux", label: "Linux" },
-  { id: "macos", label: "macOS" },
   { id: "android", label: "Android" },
   { id: "ios", label: "iPhone & iPad" },
   { id: "web", label: "Web" },
@@ -89,10 +53,8 @@ const megabytes = (bytes?: number) => (bytes ? ` · ${Math.round(bytes / 1048576
 function Install({ detected }: { detected?: Platform }) {
   const [chosen, setPlatform] = useState<Platform>(),
     platform = chosen ?? detected ?? "web",
-    [origin, setOrigin] = useState(SITE),
     [apk, setApk] = useState<number>();
   useEffect(() => {
-    setOrigin(location.origin);
     void fetch("/api/mobile/release")
       .then((r) => (r.ok ? r.json() : null))
       .then((release) => release?.apkSize && setApk(release.apkSize))
@@ -109,27 +71,6 @@ function Install({ detected }: { detected?: Platform }) {
           </TabsTrigger>
         ))}
       </TabsList>
-      <TabsContent keepMounted value="windows" className="flex flex-col gap-3">
-        <p className={note}>{tr("Open PowerShell and paste this line: it installs Qbix for you, with a Start menu shortcut. No administrator rights needed.")}</p>
-        <Command label={tr("Install on Windows")} lines={[`irm ${origin}/install.ps1 | iex`]} />
-        <p className="text-xs text-muted-foreground">{tr("Windows 10 and 11, 64-bit. Run it again to update.")}</p>
-      </TabsContent>
-      <TabsContent keepMounted value="linux" className="flex flex-col gap-3">
-        <p className={note}>{tr("Paste this in a terminal: Qbix goes to your applications menu and the")}{" "}<code className="font-mono">{tr("cubix")}</code> {" "}{tr("command. No sudo needed.")}</p>
-        <Command label={tr("Install on Linux")} lines={[`curl -fsSL ${origin}/install.sh | sh`]} />
-        <p className="text-xs text-muted-foreground">
-          {tr("Linux x64. Run it again to update; add")}{" "}<code className="font-mono">-s -- --uninstall</code> {" "}{tr("after")}{" "}<code className="font-mono">sh</code> {" "}{tr("to remove it.")}</p>
-      </TabsContent>
-      <TabsContent keepMounted value="macos" className="flex flex-col gap-3">
-        <p className={note}>
-          {tr("The macOS app is built on your Mac from the source code, with")}{" "}
-          <a className="text-foreground underline underline-offset-4" href="https://bun.sh">{tr("Bun")}</a> {" "}
-          {tr("installed. Or use Qbix in Safari or Chrome, nothing to install.")}</p>
-        <Command
-          label={tr("Build on macOS")}
-          lines={[`git clone ${SOURCE}.git && cd cubix`, "bun install --frozen-lockfile && bun run build:desktop", "cp -R artifacts/electron/Cubix-darwin-*/Cubix.app /Applications/"]}
-        />
-      </TabsContent>
       <TabsContent keepMounted value="android" className="flex flex-col items-start gap-3">
         <p className={note}>{tr("Download the app and open the file to install it; your phone may ask you to allow installs from your browser once. It updates itself afterwards.")}</p>
         <LinkButton href="/api/mobile/apk" download>
@@ -271,7 +212,7 @@ export function Landing() {
                 {tr("Open Qbix in your browser")}
                 <ArrowRight data-icon="inline-end" />
               </LinkButton>
-              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline · Web, Windows, Linux, macOS and Android")}</p>
+              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline · Web and Android")}</p>
             </div>
             {/* Or install it right here, the visitor's platform chosen for them. */}
             <div id="download" className="landing-in w-full scroll-mt-20 rounded-3xl bg-card p-3 [--i:3]">

@@ -134,8 +134,6 @@ function App() {
         const reload = () => (s.running ? setTimeout(reload, 500) : window.location.reload());
         reload();
       }
-      else if (event.event === "browser-backward") go(-1);
-      else if (event.event === "browser-forward") go(1);
     });
     const key = (e: KeyboardEvent) => {
       if (s.expired || /^\/onboarding$/.test(splitLanguage(window.location.pathname).path) || s.overlay === "tour" || s.overlay === "signin") return;
@@ -193,11 +191,11 @@ function App() {
         );
       }
     };
-    // Mouse back/forward buttons; Windows reports them as app commands instead (see electron/main.ts).
+    // Mouse back/forward buttons: the app's own history, the browser's navigation prevented.
     const mouse = (e: MouseEvent) => {
       if (e.button !== 3 && e.button !== 4) return;
       e.preventDefault();
-      if (!navigator.userAgent.includes("Windows")) go(e.button === 3 ? -1 : 1);
+      go(e.button === 3 ? -1 : 1);
     };
     addEventListener("keydown", key);
     addEventListener("mouseup", mouse);

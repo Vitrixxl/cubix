@@ -58,7 +58,7 @@ const server = Bun.serve({ port: 0, fetch(req) {
   if (!name) return new Response(`<html><head><link rel="stylesheet" href="/${css.path.split('/').at(-1)}"></head><body><div id="root"></div><script type="module" src="/${js.path.split('/').at(-1)}"></script></body></html>`, { headers: { "Content-Type": "text/html" } });
   return assets.has(name) ? new Response(assets.get(name)) : new Response("Missing", { status: 404 });
 } });
-const browser = await chromium.launch({ headless: true, executablePath: process.env.CUBIX_CHROMIUM ?? "/usr/bin/chromium" });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium" });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors: string[] = [];
@@ -80,15 +80,15 @@ try {
     assert.equal(await toast.count(), 1, "Repeated failures stay actionable without duplicates");
     assert.ok((await toast.textContent())?.includes(message));
   }
-  await mkdir('artifacts/electron/testing', { recursive: true });
-  await page.screenshot({ path: 'artifacts/electron/testing/error-toast-desktop.png' });
+  await mkdir('artifacts/testing', { recursive: true });
+  await page.screenshot({ path: 'artifacts/testing/error-toast-desktop.png' });
   await page.setViewportSize({ width: 320, height: 568 });
   await page.evaluate(() => { (window as any).testToast.light(); (window as any).testToast.error('Long error: ' + 'unbroken-message'.repeat(100)); });
   await page.waitForTimeout(400);
   const compact = await toast.boundingBox();
   assert.ok(compact && compact.x >= 0 && compact.x + compact.width <= 320 && compact.y >= 0 && compact.y + compact.height <= 568);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight), "No page scrolling");
-  await page.screenshot({ path: 'artifacts/electron/testing/error-toast-compact.png' });
+  await page.screenshot({ path: 'artifacts/testing/error-toast-compact.png' });
   await page.evaluate(() => (window as any).testToast.succeed());
   await toast.getByRole('button', { name: 'Try again' }).click();
   await toast.waitFor({ state: 'detached' });

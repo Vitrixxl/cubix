@@ -4,7 +4,7 @@ const request = <T>(r: IDBRequest<T>) => new Promise<T>((resolve, reject) => { r
 
 /** Preferences and the local-first workspace, kept in memory for the engine's synchronous reads
  * and written through to IndexedDB, which has room for years of solves. */
-export async function openStorage(failed: (message: string) => void): Promise<EngineStorage & { importAll(values: Record<string, string>): Promise<void>; freeze(): void }> {
+export async function openStorage(failed: (message: string) => void): Promise<EngineStorage & { freeze(): void }> {
   const open = indexedDB.open("cubix", 1);
   open.onupgradeneeded = () => open.result.createObjectStore("storage");
   const db = await request(open);
@@ -28,9 +28,5 @@ export async function openStorage(failed: (message: string) => void): Promise<En
     removeItem(key) { delete values[key]; void write(store => store.delete(key)).catch(() => {}); },
     all: () => ({ ...values }),
     freeze() { frozen = true; },
-    async importAll(next) {
-      Object.assign(values, next);
-      await write(store => { for (const [key, value] of Object.entries(next)) store.put(value, key); });
-    },
   };
 }

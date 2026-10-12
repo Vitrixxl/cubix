@@ -18,8 +18,8 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked --mount=type=cache,targ
     CGO_ENABLED=1 ./build.sh -tags "sqlite_omit_load_extension $GO_TAGS" -trimpath -ldflags '-s -w -extldflags "-static"' \
     && cp cubix-api /cubix-api
 
-# The web app, which the desktop app loads too. Only runtime dependencies are installed: Bun bundles
-# TypeScript itself, and no install script (Electron, Playwright) is needed to build.
+# The web app. Only runtime dependencies are installed: Bun bundles TypeScript itself, and no install script
+# (Playwright) is needed to build.
 FROM oven/bun:1.4 AS web
 WORKDIR /app
 COPY package.json bun.lock tsconfig.json ./
@@ -42,18 +42,6 @@ ARG CUBIX_PRERENDER_JOBS=3
 ENV CUBIX_PRERENDER_JOBS=$CUBIX_PRERENDER_JOBS
 RUN bun desktop/web.ts
 
-# The build number identifies the commit to the mobile application. It is derived from the
-# committer date so shallow clones (pihost) work; the arguments override it when set.
-FROM alpine/git AS buildinfo
-WORKDIR /src
-ARG CUBIX_BUILD_NUMBER
-ARG CUBIX_COMMIT
-COPY .git ./.git
-RUN build="${CUBIX_BUILD_NUMBER:-$(( $(git log -1 --format=%ct 2>/dev/null || echo 0) / 60 ))}" \
-    && commit="${CUBIX_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}" \
-    && printf 'CUBIX_BUILD_NUMBER=%s\nCUBIX_COMMIT=%s\n' "$build" "$commit" > /build.env \
-    && cat /build.env
-
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -65,9 +53,12 @@ ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db CUBIX_WEB_DIR=
 ENV GOMEMLIMIT=256MiB
 COPY --from=backend /cubix-api /usr/local/bin/cubix-api
 COPY --from=web /app/dist/web /app/web
-# The server loads /app/.env at start-up; keeping the number outside the compiled layer
-# means a commit that only touches the mobile application does not recompile the API.
-COPY --from=buildinfo /build.env /app/.env
+# The build number identifies the commit to the mobile application: scripts/deploy.ts passes it with the commit
+# (compose.yaml's build arguments), rather than the image reading a copy of the repository's history. The server
+# loads /app/.env at start-up; written last, a new number recompiles nothing.
+ARG CUBIX_BUILD_NUMBER=0
+ARG CUBIX_COMMIT=
+RUN printf 'CUBIX_BUILD_NUMBER=%s\nCUBIX_COMMIT=%s\n' "$CUBIX_BUILD_NUMBER" "$CUBIX_COMMIT" > /app/.env && cat /app/.env
 USER cubix
 EXPOSE 3000
 CMD ["cubix-api"]

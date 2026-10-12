@@ -4,16 +4,15 @@ import { renderToString } from "react-dom/server";
 import { detectPlatform, Landing } from "../renderer/landing/Landing";
 import { FAQ, FEATURES, SITE } from "../renderer/landing/content";
 import { landingDocument, llms, llmsFull, robots, sitemap, structuredData } from "../renderer/landing/document";
-import { desktopVersion } from "../package-release";
 import { applyAlg, colorOf, solved, type CubeState } from "../../src/shared/cube";
 import { INSPECTION, SCRAMBLE, SOLUTION, TURN_BACK, TURNS, loopScene, solveScene } from "../renderer/landing/solve";
 import { setLanguage } from "../../src/client/i18n";
 
 describe("the landing page", () => {
   test("knows the visitor's platform from the user agent", () => {
-    expect(detectPlatform("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0")).toBe("windows");
-    expect(detectPlatform("Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0")).toBe("linux");
-    expect(detectPlatform("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15")).toBe("macos");
+    // A computer installs the web app from its browser.
+    for (const agent of ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0", "Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0", "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15"])
+      expect(detectPlatform(agent)).toBe("web");
     expect(detectPlatform("Mozilla/5.0 (Linux; Android 14; Pixel 7) Chrome/130.0 Mobile")).toBe("android");
     expect(detectPlatform("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)")).toBe("ios");
     // An iPad asks for the desktop site: a Mac with touch.
@@ -34,7 +33,6 @@ describe("the landing page", () => {
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
     expect(html).toContain("buymeacoffee.com");
     expect(html).toContain('href="/timer?puzzle=333"');
-    expect(html).toContain("install.ps1");
     expect(html).toContain("/api/mobile/apk");
     expect(html).not.toContain("smartCube");
   });
@@ -91,11 +89,5 @@ describe("the landing page", () => {
     expect(html).toContain("data-still");
     expect(html.match(/<polygon/g)!.length).toBeGreaterThan(27);
     for (const demo of ["timer", "learn", "algorithms", "training", "duel"]) expect(html).toContain(`data-demo="${demo}"`);
-  });
-
-  test("the desktop version digests the shell: the same sources, the same version", async () => {
-    const version = await desktopVersion();
-    expect(version).toMatch(/^[0-9a-f]{16}$/);
-    expect(await desktopVersion()).toBe(version);
   });
 });

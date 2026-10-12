@@ -73,12 +73,10 @@ les écritures vérifient l’origine. Le journal est écrit par lots en arrièr
 90 jours, activité quotidienne des comptes 400 jours (`activity.go`).
 
 `CUBIX_ADMIN_PASSWORD` sert uniquement aux envois de l’APK et des mises à jour mobiles
-(`PUT /api/mobile/apk`, `Authorization: Bearer …`) et des paquets desktop. Il ne suffit pas à
-pousser du code : le manifeste des mises à jour à la volée arrive signé (servi tel quel avec
-`expo-signature`, `release.go`) et chaque paquet desktop avec sa signature (`X-Cubix-Signature`,
-servie à `/api/desktop/<paquet>.sig`, `desktop.go`). Les clés privées restent sur la machine de
-déploiement (`~/.config/cubix/keys`, voir mobile/README.md et desktop/README.md) ; le serveur ne
-vérifie rien, les téléphones et les scripts d’installation si. Le numéro de build (`CUBIX_BUILD_NUMBER`, date
+(`PUT /api/mobile/apk`, `Authorization: Bearer …`). Il ne suffit pas à pousser du code : le
+manifeste des mises à jour à la volée arrive signé (servi tel quel avec `expo-signature`,
+`release.go`). La clé privée reste sur la machine de déploiement (`~/.config/cubix/keys`, voir
+mobile/README.md) ; le serveur ne vérifie rien, les téléphones si. Le numéro de build (`CUBIX_BUILD_NUMBER`, date
 du commit en minutes) et `CUBIX_COMMIT` viennent de `/app/.env`, écrit par le `Dockerfile`.
 
 Sauvegardes (`backup.go`) : dix minutes après le démarrage puis toutes les 24 h, le serveur copie la

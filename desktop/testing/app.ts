@@ -1,12 +1,11 @@
-/** Test harness: a disposable API serving the web build (dist/web, or $CUBIX_TEST_WEB_DIR) and the Electron shell pointed at it,
- * without any window (Chromium's headless Ozone backend). Build first: `bun desktop/build.ts && bun desktop/web.ts`. */
-import { _electron as electron, type Browser, type BrowserContextOptions, type Page } from "playwright";
+/** Test harness: a disposable API serving the web build (dist/web, or $CUBIX_TEST_WEB_DIR) and headless Chromium
+ * pointed at it, without any window. Build first: `bun desktop/web.ts`. */
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { PUZZLES } from "../../src/shared/puzzles";
-delete process.env.ELECTRON_RUN_AS_NODE;
 
-export const SHOTS = "artifacts/electron/testing";
+export const SHOTS = "artifacts/testing";
 
 export async function startServer(dir: string, env: Record<string, string> = {}) {
   await mkdir(dir, { recursive: true });
@@ -30,19 +29,37 @@ export async function startServer(dir: string, env: Record<string, string> = {})
   throw Error("The test API did not start");
 }
 
-/** Opens the app on `origin` with its data in `dir`; page errors are collected in `errors`. */
-export async function launchApp({ dir, origin, width = 1280, height = 800 }: { dir: string; origin: string; width?: number; height?: number }) {
-  const app = await electron.launch({
-    executablePath: process.env.CUBIX_TEST_ELECTRON ?? resolve("node_modules/electron/dist/electron"),
-    args: [`--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "headless"}`, resolve("desktop/dist")],
-    env: { ...process.env, CUBIX_DESKTOP_DATA: dir, CUBIX_WEB_ORIGIN: origin },
-    timeout: 30000,
+/**
+ * Opens the app on `origin` in headless Chromium, its browser profile in `dir`: a second launch on the same `dir` finds
+ * the first one's data and offline cache. `storage` is written to the engine's IndexedDB (idbStorage.ts) before the app
+ * starts. Page errors are collected in `errors`.
+ */
+export async function launchApp({ dir, origin, width = 1280, height = 800, storage }: { dir: string; origin: string; width?: number; height?: number; storage?: Record<string, string> }) {
+  const app = await chromium.launchPersistentContext(join(dir, "browser"), {
+    executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium",
+    headless: true,
+    viewport: { width, height },
   });
-  const page = await app.firstWindow();
+  await keepDesktopApp(app);
+  const page = app.pages()[0] ?? (await app.newPage());
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  // A headless window has no size of its own: emulate the viewport.
-  await resize(page, width, height);
+  if (storage) {
+    // Any page of the origin reaches its IndexedDB; the health check loads nothing of the app.
+    await page.goto(origin + "/api/health");
+    await page.evaluate((values) => new Promise<void>((done, fail) => {
+      const open = indexedDB.open("cubix", 1);
+      open.onupgradeneeded = () => open.result.createObjectStore("storage");
+      open.onerror = () => fail(open.error);
+      open.onsuccess = () => {
+        const transaction = open.result.transaction("storage", "readwrite"), store = transaction.objectStore("storage");
+        for (const [key, value] of Object.entries(values)) store.put(value, key);
+        transaction.oncomplete = () => (open.result.close(), done());
+        transaction.onerror = () => fail(transaction.error);
+      };
+    }), storage);
+  }
+  await page.goto(origin + "/timer");
   await live(page);
   return { app, page, errors };
 }
@@ -159,7 +176,9 @@ export async function signIn(page: Page, username: string, password = "a-long-te
  * phone app (boot.ts), while these tests check the desktop app and its own phone layout.
  */
 export async function desktopContext(browser: Browser, options?: BrowserContextOptions) {
-  const context = await browser.newContext(options);
+  return keepDesktopApp(await browser.newContext(options));
+}
+async function keepDesktopApp(context: BrowserContext) {
   await context.addInitScript(() => localStorage.setItem("cubix.phoneApp", "off"));
   return context;
 }

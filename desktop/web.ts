@@ -1,9 +1,9 @@
-/** Builds the web app into dist/web: the API serves it, the desktop app loads it from there.
+/** Builds the web app into dist/web, which the API serves.
  *
  *   /                      landing.html: the landing page, rendered here (desktop/renderer/landing)
  *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker); its public
  *                          pages written ahead of time in every language under pages/ (desktop/prerender.tsx)
- *   /install.sh, .ps1      the desktop installers (desktop/install); robots.txt, sitemap.xml, llms.txt
+ *   /robots.txt…           with sitemap.xml, llms.txt and llms-full.txt, for search engines and language models
  *   /build/*               bundles, fonts and the scrambler (scrambler/) with a content hash in their name, immutable
  *   /assets/*              icons and case diagrams
  */
@@ -163,8 +163,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
 
 /**
  * The landing page at the root, rendered to HTML here so it reads whole without JavaScript, then hydrated; the files
- * search engines and language models look for beside it; the desktop installers it gives; its screenshots and its
- * social image.
+ * search engines and language models look for beside it; its screenshots and its social image.
  */
 async function landing(out: string, bundle: (entry: string, define?: Record<string, string>, splitting?: boolean) => Promise<Bundle>, preloads: string[], pages: string[], app: string[]) {
   const { createElement } = await import("react");
@@ -194,7 +193,6 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
   await writeFile(join(out, "sitemap.xml"), sitemap(pages));
   await writeFile(join(out, "llms.txt"), llms());
   await writeFile(join(out, "llms-full.txt"), llmsFull());
-  for (const name of ["install.sh", "install.ps1"]) await cp(join("desktop/install", name), join(out, name));
   // Screenshots and the social image, taken by desktop/scripts/landing-shots.ts (the image build has no sharp).
   await cp("desktop/assets/landing", join(out, "assets/landing"), { recursive: true });
   await cp("desktop/assets/landing/og.png", join(out, "og.png"));
