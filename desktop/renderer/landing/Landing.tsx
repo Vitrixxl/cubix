@@ -164,13 +164,13 @@ function Install({ detected }: { detected?: Platform }) {
       <TabsContent keepMounted value="ios" className="flex flex-col items-start gap-3">
         <p className={note}>
           {tr("There is no iPhone or iPad app yet. Qbix runs in Safari: open it, then")}{" "}<strong className="font-semibold text-foreground">{tr("Share → Add to Home Screen")}</strong>{tr(". It opens full screen like an app and works offline.")}</p>
-        <LinkButton href="/timer">
+        <LinkButton href="/timer?puzzle=333">
           <Globe data-icon="inline-start" />
           {tr("Open Qbix in Safari")}</LinkButton>
       </TabsContent>
       <TabsContent keepMounted value="web" className="flex flex-col items-start gap-3">
         <p className={note}>{tr("Nothing to install: Qbix runs in any recent browser and works offline. Chrome and Edge also offer to install it as an app.")}</p>
-        <LinkButton href="/timer">
+        <LinkButton href="/timer?puzzle=333">
           <Globe data-icon="inline-start" />
           {tr("Open Qbix in your browser")}</LinkButton>
       </TabsContent>
@@ -194,9 +194,9 @@ const TITLE = "text-[clamp(2.25rem,5.5vw,4rem)] leading-[0.95] font-extrabold tr
  * screen. The order is a cuber's: time, learn the first solve, the algorithms, drill them, race.
  */
 const TOUR: { id: string; label: string; dot: string; demo: () => React.ReactNode; open?: [string, string] }[] = [
-  { id: "timer", label: "Timer", dot: "bg-primary", demo: TimerDemo, open: ["/timer", "Open the timer"] },
-  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn", "Start the course"] },
-  { id: "algorithms", label: "Algorithms", dot: "bg-lilac", demo: AlgDemo, open: ["/algorithms", "Browse the algorithms"] },
+  { id: "timer", label: "Timer", dot: "bg-primary", demo: TimerDemo, open: ["/timer?puzzle=333", "Open the timer"] },
+  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn?puzzle=333", "Start the course"] },
+  { id: "algorithms", label: "Algorithms", dot: "bg-lilac", demo: AlgDemo, open: ["/algorithms?puzzle=333", "Browse the algorithms"] },
   { id: "training", label: "Training", dot: "bg-warning", demo: TrainDemo },
   { id: "duel", label: "Duels", dot: "bg-destructive", demo: DuelDemo, open: ["/duel", "Find an opponent"] },
 ];
@@ -275,7 +275,7 @@ export function Landing() {
           </nav>
           <span className="flex-1" />
           <LanguagePicker className="h-10 w-auto max-sm:hidden" />
-          <LinkButton href="/timer">{tr("Open Qbix")}</LinkButton>
+          <LinkButton href="/timer?puzzle=333">{tr("Open Qbix")}</LinkButton>
         </div>
       </header>
 
@@ -290,7 +290,7 @@ export function Landing() {
             </h1>
             <p className="landing-in max-w-[48ch] text-lg leading-relaxed text-muted-foreground [--i:1]">{tr("Time your solves, learn your first one step by step, play every algorithm in 3D, drill what you learned and race your friends. Free, without ads or premium tier.")}</p>
             <div className="landing-in flex w-full flex-wrap items-center gap-x-5 gap-y-3 [--i:2]">
-              <LinkButton href="/timer">
+              <LinkButton href="/timer?puzzle=333">
                 {tr("Open Qbix in your browser")}
                 <ArrowRight data-icon="inline-end" />
               </LinkButton>
@@ -365,7 +365,7 @@ export function Landing() {
           <div className="flex flex-col items-start gap-8">
             <h2 className={cn(TITLE, "max-w-[12ch]")}>{tr("Ready for your next PB?")}</h2>
             <div className="flex flex-wrap gap-3">
-              <LinkButton href="/timer">
+              <LinkButton href="/timer?puzzle=333">
                 {tr("Open Qbix in your browser")}
                 <ArrowRight data-icon="inline-end" />
               </LinkButton>

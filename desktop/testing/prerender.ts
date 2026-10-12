@@ -96,7 +96,7 @@ try {
 
   // The sitemap lists the pages in every language.
   const sitemap = await (await fetch(origin + "/sitemap.xml")).text();
-  assert.ok(sitemap.includes("/fr/algorithms/OLL%2021</loc>") && sitemap.includes('hreflang="it"'));
+  assert.ok(sitemap.includes("/fr/algorithms/OLL%2021?puzzle=333</loc>") && sitemap.includes('hreflang="it"'));
   assert.deepEqual(errors, []);
   console.log("Prerendered pages and the app without an account passed");
 } finally {

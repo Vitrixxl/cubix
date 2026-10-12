@@ -67,16 +67,18 @@ export function pageSeo(route: AppRoute | null, puzzle: PuzzleId = "333"): PageS
           trail: [home, [tr("{0} algorithms", { 0: name }), list]],
         };
       }
+      // The case's address as the app links it, its puzzle named: a big cube's copy, the 3×3 case's.
+      const page = (id: string) => pageUrl("algorithms", { caseId: id, puzzle: puzzleOf(catalog.cases.find((x: any) => x.id === id)) });
       const algs = (c.algorithms ?? []).slice(0, 3).map((a: any) => a.alg);
       const label = c.name && c.name !== c.id ? `${c.id} (${tr(c.name)})` : c.id;
       return {
-        path: pageUrl("algorithms", { caseId: canonicalCase(c.id) }),
+        path: page(canonicalCase(c.id)),
         title: tr("{0} algorithm", { 0: label }),
         description: short(
           tr("The best algorithms for {0}, a {1} case of the {2}:", { 0: c.id, 1: tr(c.setLabel ?? c.stage), 2: searched(puzzleOf(c)) }) +
             " " + algs.join(" · ") + (c.setup ? ". " + tr("Setup: {0}.", { 0: c.setup }) : "."),
         ),
-        trail: [home, [tr("{0} algorithms", { 0: searched(puzzleOf(c)) }), list], [tr(c.setLabel ?? c.stage), list], [c.id, pageUrl("algorithms", { caseId: c.id })]],
+        trail: [home, [tr("{0} algorithms", { 0: searched(puzzleOf(c)) }), list], [tr(c.setLabel ?? c.stage), list], [c.id, page(c.id)]],
       };
     }
     case "learn": {
@@ -127,14 +129,14 @@ export function pageFile(path: string) {
 
 /**
  * Every page built ahead of time, by address: each puzzle's timer, algorithms, courses and trainer, every course step
- * and every case (a big cube's copies of the 3×3 cases aside). The 3×3's pages but its course steps also answer without
- * a puzzle (`/timer`).
+ * and every case (a big cube's copies of the 3×3 cases aside). The 3×3's pages but its course steps, and every case, also
+ * answer without a puzzle (`/timer`, `/algorithms/OLL%2021`).
  */
 export function prerenderedPages(): { url: string; files: string[] }[] {
   const pages: { url: string; files: string[] }[] = [];
   const add = (url: string, bare = false) => {
     const file = pageFile(url);
-    pages.push({ url, files: bare && !file.includes("~") ? [file, file.replace("@333.", ".")] : [file] });
+    pages.push({ url, files: bare && !file.includes("~") ? [file, file.replace(/@\w+\.html$/, ".html")] : [file] });
   };
   for (const puzzle of PUZZLES) {
     const main = puzzle === "333";
@@ -147,6 +149,6 @@ export function prerenderedPages(): { url: string; files: string[] }[] {
     for (const method of METHODS[puzzle])
       method.steps.forEach((_, step) => add(pageUrl("learn", { puzzle, learnMethod: method.id, ...(step ? { learnStep: step } : {}) }), main));
   }
-  for (const c of catalog.cases) if (canonicalCase(c.id) === c.id) add(pageUrl("algorithms", { caseId: c.id }));
+  for (const c of catalog.cases) if (canonicalCase(c.id) === c.id) add(pageUrl("algorithms", { caseId: c.id, puzzle: puzzleOf(c) }), true);
   return pages;
 }

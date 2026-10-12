@@ -1,0 +1,8522 @@
+[
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.1",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.2",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U R U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.3",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R B U' B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R F2 U F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F2 r U r' F",
+    "votes": 0
+   },
+   {
+    "alg": "y' U2 R2 F R F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.4",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "R' U' F U R U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U F' L' U' L F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U2 B U B' U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.5",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "R' U' F U R2 U' R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' U2 R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' U2 M' U R U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.6",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "M U R U' R' U' M'",
+    "votes": 0
+   },
+   {
+    "alg": "U S' R U' R' S",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' B U' B' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.7",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "R' F R2 U R' U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 1.8",
+  "subgroup": "F2L 1",
+  "alts": [
+   {
+    "alg": "M' U R U' r2 U2 R U R' U r",
+    "votes": 0
+   },
+   {
+    "alg": "y R' F' R U2 M' U' M",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R F' U2 R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.1",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "y U' L' U L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.2",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "F R' F' R",
+    "votes": 0
+   },
+   {
+    "alg": "r U R' U' M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.3",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "U' r U' r' U r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R2 B' R' B R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 l R U' R' U l'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.4",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "U' R B U B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "d' F R U R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U' R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.5",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "U R' D' r U' r' D R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R2 D r' U r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.6",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "U' R' D' r U r' D R",
+    "votes": 0
+   },
+   {
+    "alg": "U' F2 r U r' U F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.7",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "R U2 R D r' U' r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 2.8",
+  "subgroup": "F2L 2",
+  "alts": [
+   {
+    "alg": "U' R U' R2 D' r U r' D R",
+    "votes": 0
+   },
+   {
+    "alg": "r U r' U2 M' U M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.1",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "y L' U' L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.2",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "S U R U' R' S'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' F' r U' r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "M y' R' U' R U S'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.3",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "F' r U' r' F2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.4",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "U' R' F R U R U' R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.5",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "y' S' R' U' R S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.6",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "U R2 D r' U' r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.7",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "U2 R' D' r U' r' D R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 3.8",
+  "subgroup": "F2L 3",
+  "alts": [
+   {
+    "alg": "R' F R2 U' M' U2 r' U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.1",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.2",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "U M U' R U R' M'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F R U R' U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.3",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "U' F' U2 F U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F U R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.4",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "U2 r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U2 R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.5",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "R U R' U' F R U R' U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U y R U R' U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "S' R U R' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.6",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "R U2 B U' B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F U R U' R2 F' R",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' r' U2 R U R' U r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.7",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "R U' R2 F R F' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' F2 r U r' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 4.8",
+  "subgroup": "F2L 4",
+  "alts": [
+   {
+    "alg": "R' D' r U' r' D R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' r' U r U2 r' U' r U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 F R F' U2 R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.1",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U' R U R' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.2",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U2 R U' R' U2 R U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R B2 r' U' r B' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.3",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "y' U r' U R U' R' U' r",
+    "votes": 0
+   },
+   {
+    "alg": "r U' r' U' r U r' F' r U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.4",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "R' D' R U R' D F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.5",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U' R U R' U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.6",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U' r U R' U' R2 r' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.7",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U' F R U R' U' F' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' U' R' F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 5.8",
+  "subgroup": "F2L 5",
+  "alts": [
+   {
+    "alg": "U2 R2 D r' U' r D' R' U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' r U' r' U2 r U r' U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.1",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "y' U R' U' R U R' U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "y F2 R U R' U' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.2",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "U R U' R' y' U' R' U R U' R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F' U' F U R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' R U R' U' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.3",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "U' r U' R' U R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.4",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "R' D' F r U2 r' F D R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.5",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "y U L' U' L U' L F' L' F",
+    "votes": 0
+   },
+   {
+    "alg": "F R U' R' U' R U R' F2 U F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.6",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "U' R' F R F' R U2 R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R2 D r' U' r D' R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.7",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "U2 y' R' F' U' F U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F2 R U' F U' R U2 R' F2",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F' L' U' L U2 F",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R2 F R F' r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 6.8",
+  "subgroup": "F2L 6",
+  "alts": [
+   {
+    "alg": "U M' U M U2 r U R' U M",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R D r' U' r D' R2 U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' d' L' U L2 F' L' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.1",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "U' R U2 R' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.2",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "R U R' U R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R F' R U' R' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R F U R U' R' F' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.3",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "R' D' R U2 R' D F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.4",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "R' D' r U2 r' D F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "y' R2 F R F' U R U2 R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "F2 r U r' F R U R' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.5",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "U' R U2 R' U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.6",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "F R' F' R U2 R U' R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "r' F' R2 U R' U2 R U' R2 F r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.7",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "U R U' R' U R' F R F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R B r' U r B2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 7.8",
+  "subgroup": "F2L 7",
+  "alts": [
+   {
+    "alg": "M' U' M U2 r U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.1",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "y' U R' U2 R U2 R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.2",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "B' R' U' R2 U R' B",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' F' U' F U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.3",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "r' U2 R2 U R2 U r",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r' D' r U r' D r2 U' R' U R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.4",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "U R U' R' d R' U R U' R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "r' U2 R2 U R' U' R' U2 r",
+    "votes": 0
+   },
+   {
+    "alg": "R l U' R' U F' l' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.5",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "U y L' U2 L U' L F' L' F",
+    "votes": 0
+   },
+   {
+    "alg": "r' U2 R2 U R2 F' U F r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.6",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "F R' F' R U' R U R' U' F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R2 D R' U' R r' U' r D' R' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "x' R2 U' R' U F' l' U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.7",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "U2 r' U r2 U' r2 U' r U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U' r' F' r U r U' r2 F2 r F",
+    "votes": 0
+   },
+   {
+    "alg": "r' U2 R U R' U r2 U' R' U' R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 8.8",
+  "subgroup": "F2L 8",
+  "alts": [
+   {
+    "alg": "r U r' U' R U' M' U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.1",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "y' U2 R' U R U R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U y' R' U' R U' R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U' R' D R F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.2",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "F R U R' U' F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.3",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "U' R U' R' d R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "F2 r U r' U' r' F r U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.4",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "U r U R' U' M R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R U2 r U2 r' U2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.5",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "F R U R' U' F' U' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U R2 r' U2 M' U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.6",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "U' r U2 r' U' r U' r' U r U2 r'",
+    "votes": 0
+   },
+   {
+    "alg": "U r U' r' U2 r U r' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.7",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "U r U r' S' r U' r' S r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R2 U' R' U' r U2 r' U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "F' U r' F' r U r' F r F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 9.8",
+  "subgroup": "F2L 9",
+  "alts": [
+   {
+    "alg": "U r U r' U2 M' U M R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U' R' F R F' R U2 R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R D r' U' r D' R' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F2 R2 U' R' U' R' F' R2 U R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.1",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "U' R U R' U R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.2",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "F R' F' R U R' F R F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "r' D' r U r' D R r U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.3",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "R U R2 F R F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U' R' U' R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.4",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "U' r' D' r U' r' D r2 U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F' U' F r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D2 r U' r2 D r D2 R",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' U2 R U R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.5",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "U F R' F' R U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F' U F U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.6",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "U2 R U' R' U r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R B' R' U' R U B U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.7",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "U' R U R' U' r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F' R U R U' R' F' r U r' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 10.8",
+  "subgroup": "F2L 10",
+  "alts": [
+   {
+    "alg": "r U' r' U' r U r' U2 R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R D r' U' r D' R' U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U M' U r' D R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.1",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "y' R U2 R2 U' R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U R U R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.2",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "U' R U R' U' R U' R' U' F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U R U' R2 F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.3",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "R U R' U' R U' R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.4",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "U' R U2 R' U F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.5",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "F' U r' F2 r U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.6",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "R U2 R' U' r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "r' U' R2 U' R2 U2 r F' U F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U' R U' R2 F R F2 U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.7",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "F' L' U' L U' L' U L U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' r U r U R U' r2 D",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 11.8",
+  "subgroup": "F2L 11",
+  "alts": [
+   {
+    "alg": "F R' F' R U' R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U2 R' F R F2 U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U y r' F2 r2 U' r' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.1",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R U' R' U R U' R' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.2",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R U' r' U R U' R' U' r U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.3",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R U' R' U R U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U r U' R' U' R U r' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.4",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "U F' U2 F U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.5",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R d' R U2 R' U2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.6",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R U M' U' M U2 M' U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F2 r U r' F R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.7",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R U R' U R' F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 12.8",
+  "subgroup": "F2L 12",
+  "alts": [
+   {
+    "alg": "R' D' R U2 M' U r' D R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U' M' U' M U2 r U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.1",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "U y' R' U R U' R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U R' D R F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.2",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "R2 D R' U R D' R2 F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' U R U' R' U' y' R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.3",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "M' U' R U R' U2 R U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U R' F R F' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U R U' R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.4",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "R' F' r U R U2 r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.5",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "R' D' r U r' D R U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' U' R' F R F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' S' U' R B U B' U2 R' U' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.6",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "M' U' R U' r' U2 r U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.7",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "R' F R U2 r U' r' U2 F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U2 r' U' r U r' U r U2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 13.8",
+  "subgroup": "F2L 13",
+  "alts": [
+   {
+    "alg": "U2 R U R D r' U r D' R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.1",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "U' R U' R' U R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.2",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "U' R' F R2 U R' U' R' F' R",
+    "votes": 0
+   },
+   {
+    "alg": "r' D' r U' r' D r R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F R U R' D R2 U' R2 D' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.3",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "M' U' R U' R' U R U R' U' M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.4",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "U2 R U R' U R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.5",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "R U R' U' R' F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.6",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "R U R' U' F' U' F U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U R' U R U2 r' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R B r' U r B2 U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.7",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "F' r U' r' F2 U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' U' r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 14.8",
+  "subgroup": "F2L 14",
+  "alts": [
+   {
+    "alg": "U2 r U' r' U M' U2 R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' R U' R' U R U2 R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U' r' U2 r U r' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R2 D r' U r D' R2 U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.1",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "R' D' R U' R' D R U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U R U R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U2 R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.2",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "M U r U' r' U' M'",
+    "votes": 0
+   },
+   {
+    "alg": "F D R U R U' R2 D' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.3",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "F' U L' U L U2 F",
+    "votes": 0
+   },
+   {
+    "alg": "F' U F U2 R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R F' U R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.4",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "R U2 R' U R U R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U' R' D F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F R F' R U R' U2 R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' R2 F R F' R U2 R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.5",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "R U R' U2 R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.6",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "R U2 R2 F R F' U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.7",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "M U R U R' U' r U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 15.8",
+  "subgroup": "F2L 15",
+  "alts": [
+   {
+    "alg": "l U r U' r2 F r U2 l'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R D r' U r D' R' U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "r' U' R U M' U' R' F U R U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.1",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "U M' U R U' r' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "r U r' U r U2 r' U' r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "U F R' F' R2 U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "F' U R U R' U R U2 R' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.2",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "R U R' U2 R U' R' U' F' U F",
+    "votes": 0
+   },
+   {
+    "alg": "U F R U R' U' F' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' M' U' r' U r U M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.3",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "F' U2 L' U' L U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U2 F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.4",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "U F U R U' R' F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "l R U' R' U l' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U R' D R F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.5",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "r U' r' U l' U2 R U' R' U2 l",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r' F' r U' r' F2 r2 U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U r U' r' U2 r U r' U r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.6",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "U2 R' D' r U' M U' R' D R",
+    "votes": 0
+   },
+   {
+    "alg": "U r U' r' U2 r U r' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.7",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "F' U R U R' U' R' F2 R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' r U' r' U2 r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 16.8",
+  "subgroup": "F2L 16",
+  "alts": [
+   {
+    "alg": "U' r U' R' U' M U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U2 R' r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U2 R' F' L' U2 L F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 D' r U' r' D R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.1",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "R U2 R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.2",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "F' U' F U R U' R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.3",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "R U R' U' F R' F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.4",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "F' U2 F R U R' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' M U' R' U2 R U' R' U R U2 M'",
+    "votes": 0
+   },
+   {
+    "alg": "R U l' U R' U' R U R' U' l",
+    "votes": 0
+   },
+   {
+    "alg": "B' R U' R U R' U' R2 U B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.5",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "U R U2 R' U' R U R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F R U R' U' F2 r U' r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U2 R' U' F' U' F R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U' F R' F' R U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.6",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "R U2 R' F U R U' R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.7",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "R U' R' r U' R' U' R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' M' U' R' U' R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 17.8",
+  "subgroup": "F2L 17",
+  "alts": [
+   {
+    "alg": "r' D' r U2 r' D r2 U' R' U2 R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "F' r U' r' F2 R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.1",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R' F R F' R U' R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' R' U2 R U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.2",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R U' R' F' U' F U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' d' L' U L U' L' U L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.3",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R U' R' F' U F U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R2 F R F' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R F' R U' R' U F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.4",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R' F R F' R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' R U2 R' F' U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.5",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "r U R' U R U r' U M' U2 R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R2 D' r U' r' D r U R2 U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U2 R' D R r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U2 r' F2 R U2 r U' r' U2 F",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' r U r' U2 r U R' U R r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.6",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R U' R2 F R F' r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D R2 U2 r' U2 R U r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.7",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "R U R' d' r' F r2 U' r' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F' L' U2 L U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R D r' U' r D' R2 U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F2 r U r' U F R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 18.8",
+  "subgroup": "F2L 18",
+  "alts": [
+   {
+    "alg": "F R' F' R2 U' R' U R U2 R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "F R U R' U' F' R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.1",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U R U2 R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.2",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "R' U R U' R2 F R2 U R' U' R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' U r U' R' U2 R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.3",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U R' F R F' R U' R' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "F' U R U R' U' R' F R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U2 r' U R U' R' U' M'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.4",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "F' U' F U2 R U' R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' r U' R' U' R U r' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U2 R' U R U R' U2 R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.5",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U' l R U' R' U x U' R' U2 R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F R' F' R r U' R' U R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "F R' F' R2 U2 R' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.6",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U F R U R' U' F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.7",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 19.8",
+  "subgroup": "F2L 19",
+  "alts": [
+   {
+    "alg": "U2 R U R2 r U' M U2 r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' F' U F2 R2 U R' U' R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.1",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "y' U' R' U2 R U' R' U R y",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.2",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "R' U' R' F R F' U R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U' R' U R U r' F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "x R' U R U' R' U R U2 x' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U F' r U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.3",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "U' R U' R' U R U' R' d R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "R' F2 r U2 R U' r2 F r F",
+    "votes": 0
+   },
+   {
+    "alg": "S R U2 R' U' R U R' U S'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.4",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "U' R U' R2 F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.5",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "R' F2 R U' F U R' F2 R",
+    "votes": 0
+   },
+   {
+    "alg": "U' r U' r' U2 r U r' R U R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.6",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "r' D' r U r' D r2 U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' r' U r U2 r' U' r U R'",
+    "votes": 0
+   },
+   {
+    "alg": "F D R2 U' R' U2 R U R2 D' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.7",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "U' F' U' r U' r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "y U' L' U2 L2 F' L' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 20.8",
+  "subgroup": "F2L 20",
+  "alts": [
+   {
+    "alg": "U' R U' R2 F R F' U' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U R' U r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U' r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R2 F R F2 U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.1",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U2 R U R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.2",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U R' F R F' U' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F' U' F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.3",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U2 R U R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R B' R B R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.4",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U R U' R' U2 R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' F' U F R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F' r U R' U' r' F2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.5",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "r U' R' U2 R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.6",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U2 F R U R' U' F' U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.7",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U F R' F' R2 U' R' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U r' U R U' R' U' M'",
+    "votes": 0
+   },
+   {
+    "alg": "r' U2 R' U R2 U' R U2 r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 21.8",
+  "subgroup": "F2L 21",
+  "alts": [
+   {
+    "alg": "U2 F' r' F2 r2 U' r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R F2 U' F R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "U M' U R U' r' U R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.1",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "y' R' U R U2 R' U' R y",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R F' R U R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.2",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U2 R U R' F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "y' R' F' U F U R y",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.3",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U2 F' r U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.4",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U R U' R' U' R U' R' y' R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "R2 U2 R2 F R F' R U2 R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.5",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "F' L' U2 L F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.6",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U2 R' F R F2 U' F R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' r U' r' U' r U r' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.7",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' R U R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "r U' r' U2 y' R U R U' R' y",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 22.8",
+  "subgroup": "F2L 22",
+  "alts": [
+   {
+    "alg": "U' R U2 r' U r U2 r' U' r U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F R' F' R U2 r U' r' U r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U R U' r' F2 r U r' U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.1",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U2 R2 U2 R' U' R U' R2",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 D' R U2 R' D R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.2",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U2 R U2 R' U' R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U' R U' R' U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.3",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U R U' R' U' R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "F' U' F U' R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.4",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U R' F R F' R U R' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "F U R U' R' F' U' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.5",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U F R' F' R U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F' U F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.6",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "R U2 R' U r U' R' U' R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' F' U F U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.7",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U2 r U' r' U r U r' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "M U2 R U R' U r U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 23.8",
+  "subgroup": "F2L 23",
+  "alts": [
+   {
+    "alg": "U F R' F' R U S' R U R' S",
+    "votes": 0
+   },
+   {
+    "alg": "F' U' F U' R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F R F' U2 R U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U F R' F' R2 r' U R U R' U' M'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F2 r U r' U' r' F' r2 U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.1",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "U' R U R2 F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.2",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "R U' R' U r U' R' U R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.3",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "R U R' d R' U R U' R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "y U' L' U L U L' U L2 F' L' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 F' U' F U R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U R' U R U' l U' R' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F' r' F r F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.4",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "F U R U' R' F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.5",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "U' R U' R' U r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "F U R U' R' F2 U' F R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.6",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "y' R' U' R' F R F' U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "r U' r' U' r U r2 D' r U2 r' D r",
+    "votes": 0
+   },
+   {
+    "alg": "r U R' U R U r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "r U' r' U' r U r' F' U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.7",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "y' M' U2 R' U' R U' r' U R",
+    "votes": 0
+   },
+   {
+    "alg": "U r U' r' U2 r U r' R U2 R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "F' U' r U2 R' U' R U' r' U2 F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R y' R U2 R U R' U R2",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' F' L' U' L U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U' F' U r' F r U r' F r U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 24.8",
+  "subgroup": "F2L 24",
+  "alts": [
+   {
+    "alg": "R U' R2 D' r U r' R U R' D R",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' d R' U R l U' R' U x",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U2 F' r' F2 r U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U' r U2 r' U' r U' r' U r U2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.1",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "R' F' R U R U' R' F",
+    "votes": 0
+   },
+   {
+    "alg": "U' F' R U R' U' R' F R",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' R' U' R' U R U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.2",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U' M' U R U' r' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.3",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U' F' U F U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L D R' F R F' D' L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.4",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U' F' U' F U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R2 U R U' R' U F R2 F' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.5",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "r U r' U2 r U R' U2 R U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "F2 r U2 R' U' r' F2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.6",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U2 r U2 R' U R U' R' U2 R U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "r' U' R' U' R' U R U r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.7",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U2 r U' r' R U' R' U' r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "U r U r' U R U M' U r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F' L' U' L U R U R' U' R' F R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 25.8",
+  "subgroup": "F2L 25",
+  "alts": [
+   {
+    "alg": "U R2 D r' U r D' R' U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "r U r' U2 r U R' U' R U2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.1",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "L E' L' U L E L'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 L E' L' U' L E L'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U' r U' R' U R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "r2 U2 R2 F R2 U2 r2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.2",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "U R U' R' F R' F' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' M' U R' U' M",
+    "votes": 0
+   },
+   {
+    "alg": "R2 U R' U' R' F R F' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.3",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "U R U' R' U' F' U F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.4",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "U R U R' U' y' R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "F U' r U M U' R' U F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.5",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "r U R' U2 R U r' U2 r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U M' U' r' D R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.6",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "r U r' U2 r U' R' U2 R U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U' M' U r' D R",
+    "votes": 0
+   },
+   {
+    "alg": "y' r U R U R U' R' U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "r U2 B U' B' U2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.7",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "r U2 f R f' U2 r'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' r U r' D R U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U F R U' R' r U2 r' U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D r2 U r' U' r U' r2 D' R",
+    "votes": 0
+   },
+   {
+    "alg": "F2 R U' R2 F R2 U R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 26.8",
+  "subgroup": "F2L 26",
+  "alts": [
+   {
+    "alg": "r U2 R' U R U' r' U2 r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R D r' U' r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.1",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.2",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R U' R2 F R2 U R' U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.3",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R' F2 r U' R U r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U' R' D R U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' R U R' D R U' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.4",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R U' r' U R U' R' U' M'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.5",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.6",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "U2 r U' r' U r U r' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 U' F U R2 U' R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U R U R' U2 R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.7",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "R U' R2 U' F U R U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 27.8",
+  "subgroup": "F2L 27",
+  "alts": [
+   {
+    "alg": "U' R U' R2 r U' M U2 r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' y R' F' R U2 M' U' M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.1",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "y' R' U R U' R' U R y",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.2",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "R U R' d R' U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' r' D' r U' r' D r",
+    "votes": 0
+   },
+   {
+    "alg": "F U R U' R2 F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.3",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "R U2 l U' R' U l'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.4",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "R U2 R' y' R' U2 R y",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R F' r U' r' U2 r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.5",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "y r' F r2 U' r' F",
+    "votes": 0
+   },
+   {
+    "alg": "F' U2 r U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.6",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "R U2 R' U R2 D r' U r D' R2",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F R U R' U' F2 U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.7",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "y L' U L U' F R U R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R' U' F R U R' U' F2 U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' r U' R' U' R r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 28.8",
+  "subgroup": "F2L 28",
+  "alts": [
+   {
+    "alg": "U r U r' U2 M' U M R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 R2 F R F2 U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.1",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "y' R' U' R U R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U R U' r' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.2",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "U2 R U' R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.3",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "R' F R F' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "x R' U R U' R' U R U' x'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.4",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "R' F R F' U R U R' U2 R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F R' F' R2 U' R2 D' R U2 R' D R",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U' R' F R U R U' R2 F' R",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 D' r U' r' D F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "r U2 R' U' R U' r' R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.5",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "U R' F R F2 U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.6",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "U R2 D r' U' r D' R2 U' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "F' r2 D2 r' U r D2 r' U2 r' F2",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U' r' U2 r U r' U' R U2 R' U R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.7",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "U' R U R' U' r U' r' U2 r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 29.8",
+  "subgroup": "F2L 29",
+  "alts": [
+   {
+    "alg": "M' U' M U2 r U' R' U R U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.1",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "R U R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.2",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "U2 F' U F R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F U R U' R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.3",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "x U R' U' R U R' U' l",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.4",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' R U' R' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.5",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "U' F R' F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.6",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "R U r' U' R U R2 r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.7",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "R U R' U r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 30.8",
+  "subgroup": "F2L 30",
+  "alts": [
+   {
+    "alg": "R U R' U' R' D' r U r' D R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "r U R' U' R U r' U2 M' U M",
+    "votes": 0
+   },
+   {
+    "alg": "U' F' U2 r' F r2 U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.1",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "R U' R' U F' U F",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U y' R' U R y",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.2",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "U' R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.3",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "R U2 R' U' F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.4",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "F' U F R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F' R U R U' R' U2 F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.5",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "r U' r' U M' U R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.6",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "U' R' F R F' U' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "F2 r U r' U2 F R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.7",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "R U2 R2 D' r U' r' D R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 31.8",
+  "subgroup": "F2L 31",
+  "alts": [
+   {
+    "alg": "r U' R' U' M U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.1",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U R U' R' U R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.2",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U' F' U L' U2 L U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U S' r' U r S U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U r' U R U R' U' r U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2 F2 r U r' F R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' U R U' r' U R U' R' U' M'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.3",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U R U' R' U R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.4",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U' R U R' U' R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.5",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U R' F R F' d R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U2 F' U r' F' r U' F",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R F2 r U' r' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.6",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U2 R U' f R f' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F R' F' R U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' r U r' R' F R F' r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "r U' R2 U' R U' R' U2 R2 U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.7",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U2 F R' F' R2 U R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U2 R' U2 R U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U F' U F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 32.8",
+  "subgroup": "F2L 32",
+  "alts": [
+   {
+    "alg": "U2 r U2 r' U2 r U' r' U2 r U2 r'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F R F' U2 r U' r' U2 r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "y U2 R' F2 R U2 R' F R U2 R' F2 R",
+    "votes": 0
+   },
+   {
+    "alg": "r U M U2 r R2 U2 R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.1",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U' R U' R' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.2",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "R U M U' R' U r U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.3",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U' R U' R' U2 R U R' U2 R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' R2 U R' U' R' F R F' R'",
+    "votes": 0
+   },
+   {
+    "alg": "r2 D r2 U' R2 r' U r2 D' R2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.4",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U R U' R2 F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.5",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U r U' r' U r U r' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "M' U' R U r' U2 r U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.6",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U' R U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' U M' U R U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.7",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "y U2 F R U2 R' U2 F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' F' U' F U' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' F' U2 L' U2 L F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 33.8",
+  "subgroup": "F2L 33",
+  "alts": [
+   {
+    "alg": "U' F R' F' R2 U2 R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "D' r U' r' F2 U R' F R F2 D",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.1",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U R' D' R U' R' D R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' D' R U R' D R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.2",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U' R U' R' F' U' F R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.3",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U R U' R' F R' F' R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U2 R' U' r U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U' R' F R F' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "r U r' U R U2 R' U r U' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.4",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U r U' R' U R U r' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' U R2 F R F' R U' R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' U' F' U F R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "F U R2 D2 R' U' R D2 R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.5",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "y U L' U L U' L F' L' F",
+    "votes": 0
+   },
+   {
+    "alg": "U r U R' U' M U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "r' D' r U2 r' U' F2 U F2 D r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.6",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U R U M' U' r' U' r U r'",
+    "votes": 0
+   },
+   {
+    "alg": "F U' R2 D2 R' U' R D2 R2 U F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.7",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "R U R' U2 R' F R F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U' R' U r U' R' U' R U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 34.8",
+  "subgroup": "F2L 34",
+  "alts": [
+   {
+    "alg": "U r U2 r' U2 r U r' U2 r U2 r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R D r' U r D' R' U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.1",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U2 R U R' y' U' R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "R' D' r U' r' D F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.2",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U' R U R' d R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U M' U R U' M U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R2 F R F' R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' l' U R U' R' U R U' x'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.3",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U2 R U' R' U' F' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R U R2 F R F' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.4",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U2 R U R' F R' F' R",
+    "votes": 0
+   },
+   {
+    "alg": "R2 D R' U2 R D' R2 F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.5",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "R2 D r' U' r D' R2 U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 r U' r' U R' F R F' r U2 r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.6",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U2 R U' R D r' U' r D' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.7",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "R' D' r U' r' D R U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 35.8",
+  "subgroup": "F2L 35",
+  "alts": [
+   {
+    "alg": "U R' D' r U r' D R2 U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' U2 R' F R F' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.1",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "U F' U' F U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.2",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "U2 F' U' F U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U R U' R' d' r' F r",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F U2 r U r' U2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.3",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' U2 R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' F R S R' F' R S' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R2 U' R F' R' U R F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.4",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "F' U' F R U R' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R U R' U' R' F R F' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.5",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "R2 D r' U r D' R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.6",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' r U' r' U' r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.7",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "U2 R2 D r' U' r D' R2 U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F' r U2 r' F2 R2 U2 R' U' F",
+    "votes": 0
+   },
+   {
+    "alg": "F' U2 r' F2 r2 U' r' F U' F",
+    "votes": 0
+   },
+   {
+    "alg": "R2 D R' U2 R r' U' r D' R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 36.8",
+  "subgroup": "F2L 36",
+  "alts": [
+   {
+    "alg": "R U M' U2 f R f' U2 r'",
+    "votes": 0
+   },
+   {
+    "alg": "U F' U' F2 U R U' R2 F' R",
+    "votes": 0
+   },
+   {
+    "alg": "R U R2 D' r U r' D R U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R2 D' r U' r' D R U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F2 D' F' D R U R U' R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 37.1",
+  "subgroup": "F2L 37",
+  "alts": [
+   {
+    "alg": "U' R' F R F' R U' R' U R U' R' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F R F' R' U2 R2 U R2 U R",
+    "votes": 0
+   },
+   {
+    "alg": "R U M' U2 M U R' F' R S R' F R S' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U L E' L' U' L E L2 E2 L U L' E2 L",
+    "votes": 0
+   },
+   {
+    "alg": "U' L E' L' U L E L2 E2 L U' L' E2 L",
+    "votes": 0
+   },
+   {
+    "alg": "U R2 U R' U' R' U2 r U R U' r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' B' R' U' R2 U R' B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 37.5",
+  "subgroup": "F2L 37",
+  "alts": [
+   {
+    "alg": "U' r U' r' R U R' U r U' r' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F' U F' U2 F U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R F2 U' F U' R U R' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U R' F R F2 U2 F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 38.1",
+  "subgroup": "F2L 38",
+  "alts": [
+   {
+    "alg": "R2 U2 R' U' R U' R' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 38.2",
+  "subgroup": "F2L 38",
+  "alts": [
+   {
+    "alg": "U R U' R' U' R U R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R U R U' R2 F' R U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 38.5",
+  "subgroup": "F2L 38",
+  "alts": [
+   {
+    "alg": "F R' F' R2 U2 R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 38.6",
+  "subgroup": "F2L 38",
+  "alts": [
+   {
+    "alg": "M' U R U' R' U' R U' r' U2 r U' r'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U' r U' r' U2 r U r' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U2 B2 r' U' r B' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U2 R2 D r' U' r D' R' U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 39.1",
+  "subgroup": "F2L 39",
+  "alts": [
+   {
+    "alg": "R U2 R' U R U' R' U R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 39.2",
+  "subgroup": "F2L 39",
+  "alts": [
+   {
+    "alg": "R U2 R' U R' F R2 U R' U' R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 39.5",
+  "subgroup": "F2L 39",
+  "alts": [
+   {
+    "alg": "R U' R' U R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 39.6",
+  "subgroup": "F2L 39",
+  "alts": [
+   {
+    "alg": "R U2 R' r U' r' U M' U2 R U r'",
+    "votes": 0
+   },
+   {
+    "alg": "r' U' R2 U' R2 U2 r F' r' F2 r F",
+    "votes": 0
+   },
+   {
+    "alg": "R U R D r' U r D' R2 U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 40.1",
+  "subgroup": "F2L 40",
+  "alts": [
+   {
+    "alg": "U R U' R' F R U R' U' F' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "F2 r U r' F U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 40.5",
+  "subgroup": "F2L 40",
+  "alts": [
+   {
+    "alg": "r U' r' U2 r U r' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R D R U R U' R2 D' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 41.1",
+  "subgroup": "F2L 41",
+  "alts": [
+   {
+    "alg": "U' R U R' F U R U' R' F' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' R U' R' U2 F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "zbls",
+  "source": "https://jsr.io/@moishy/algsets/0.3.3/src/zbls/index.ts",
+  "name": "ZBLS 41.5",
+  "subgroup": "F2L 41",
+  "alts": [
+   {
+    "alg": "R U' M' U' r' U2 r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T1 Ja",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "R' D R2 D' R' U R D R' U' R' D' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T2 Ra",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U2) (R' D' R U2 R' D R) U2 (R U' R' U R U R' U R U' R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T3 Jb",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "R F' R U R2' U' R' F R' S R2 S'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T4 Gd",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "F R U R' U' R' F' R2 U2 R' U2 R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T5 F",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U2) R' F R2 U' R' U R U R' F' R U' R2' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T6 Gc",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U) R U2 R' S U R' F R F' R U' R2 F R f'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T7 T",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U') R U2' R' U R U2' R D R' U2 R D' R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T8 Ab",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(R U2 R' U2) (R U' R' U2) (r' F R F' r U2 R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T9 Rb",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U') (R U R' U') (R U' R2' D' R U' R' D R) U2 (R U' R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T10 Aa",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U'D) R' U R' D' R U2 R' D R U2 R U R' U2 R (D')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T11 Gb",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(U2) R2 D R' U2 R D' R2' U2' R U R' U2' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T12 Ga",
+  "subgroup": "Front Bar",
+  "alts": [
+   {
+    "alg": "(R U R' U') (R U' R' U') (R U R' U') R' D' (R U R') D R",
+    "votes": 0
+   },
+   {
+    "alg": "F U' R' F R2 U R' U R U2' R' F' R U R' F' \"",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T13 Jb",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "x' D' R U' R' D2 R U R' D' x",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T14 Gb",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(U) (R U R' U2) (R' D' R U R' D R2 U R') U (R U' R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T15 Ja",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(U) S R2' S' D' R2 U R2' U' R2 D",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T16 Rb",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(R' D' R U' R' D R) U (R U' R' U R U R' U R U' R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T17 F",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "R' U R' U'D R2 U' R U' R' U R' U R2 UD' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T18 T",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(U) R' D' R U R U' R' U2 R' D' r U2 r' D2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T19 Aa",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "R U2 r' F R' F' r U2 R U R' U2 R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T20 Ra",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(U) (R U2' R') U2 (R U2' R2' F R U R U' R' F')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T21 Ga",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(R U2 R' U2) (R U' R' U2) (R2 D r' U2 r D' R2)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T22 Ab",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "R U' (R D R' U2 R D' R') U2 R' U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T23 Gd",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(R U2 R' U2) (R U' R' U2) (R2 D R' U2 R D' R2)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T24 Gc",
+  "subgroup": "Right Bar",
+  "alts": [
+   {
+    "alg": "(R U' R F2' R2') U (R U2 R') U' (R U R F2' R2')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T25 Ua1",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "R' UD' R U' R' D * R2' U' R U' R U R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T26 Z1",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(U) R U F R U R' U' F' R2 F R F' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U2 R U' R' F R2 U' R' U' R U R' F' R U R2 U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "\"",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T27 Ub0",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "R U' R U' R' UD R' U R D' R2 U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T28 Ub3",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(U') R' U'D' R2 U R' D R U'D' R2 D R U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T29 Ua3",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "R2 U (R U R' U' R' F R2 U' R' U' R U R' F') U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T30 Z0",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "^ R2' U2 R2 U' R2' U' r U r' B2' r U' r' B2' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T31 Ub2",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(R' D' R U R' D R) U' (R U' R' U R U R' U R U' R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T32 Ua0",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(U) R U R' U' R' B2' R2 U' R' U R' B2' R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T33 O",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "R2' U R2 U' R2' D R2 U' R2' U R2 D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T34 H",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(U2) (R U2 R' U) (R U2 R' U) (R U2 R2 D' R U2 R' D R)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T35 Ua2",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "R U' R2' U' R U R U R' U R D R' U2 R D' R2 U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T36 Ub1",
+  "subgroup": "Double Bar",
+  "alts": [
+   {
+    "alg": "(U) R U R2 B2 R U' R U R2 B2 R U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T37 Ab",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U') R2' U2' R2 U' R2' U R2 U' R2' U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T38 F",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U') (R2 U R' U') (R' U R U2) (R' U' R U R U2' R2')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T39 Jb",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U2) R2' U R2 U R2' U2' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T40 Rb",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U) (R U' R' U) (R2 U R' U R') U' (R2' U' R' U2 R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T41 Gb",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(R U' R' U' R U2' R') U2 (R U2' R' U R U R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T42 Gd",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U2) (R U' R' U2) (R' U2 R2 U R') (U' R' U2 R)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T43 Ja",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U) (R U' R' U) (R U2' R' U' R U R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T44 Ga",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(R U2 R' U' R U2) (R2 U2 R U R' U R2 U R')",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T45 Gc",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U2) (R U2 R' U') (R' U2 R2 U R2' U R)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T46 Ra",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "R U' R' U' R U' R' U2 R U' R' U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T47 Aa",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "(U) R' U' R2 U' R2' U2' R U R U2' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T48 T",
+  "subgroup": "Front Opp",
+  "alts": [
+   {
+    "alg": "R2' U2' R2 U' R2' U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T49 Gc",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U) D R' U' R U D' R2 U R' U R U' R' U R2' U2 R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T50 Ga",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U') R U2' R' U2 R U2' R2' F' R U R U' R' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T51 Rb",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U') D R' U R U R' U R U2 R' U R U R' U R D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T52 Aa",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U2) D R U R U' R' U2 R' U2 R2 U R' U' R' D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T53 Jb",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U2) D R' U R U' R' U2 R U R' U' R D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T54 T",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U') D R2' U2 R2 U R2' U R2 D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T55 Gd",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U2) R U' R' F' U' L' U2 L U F R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T56 Gb",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "D R U R U' R2 U2 R U2 R U R' U' R' D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T57 F",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "R2' F2 U2 R2 U' R2' U' F2 R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T58 Ra",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U2) R2' F2 U R2 U R2' U2' F2 R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T59 Ja",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U) D R2' U' R2 U' R2' U2 R2 D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T60 Ab",
+  "subgroup": "Right Opp",
+  "alts": [
+   {
+    "alg": "(U') F' R U R' U' R' F R2 U2' R' U2 R U2' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T61 V1",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "(U2) R' F R F' R' F R F' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T62 V3",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "R U2 R' U2 R' U' R2 U' R2 U2 F R U R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T63 Y0",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "R' D R U' R D' R' U2 R D R' U R' D' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T64 V0",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "(U') R2 U' F2 U' F2 R2 U2 R2 D R2 D'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T65 Nb",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "F2 U' r2 U' r2' U r2 U r2' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T66 V2",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "z UD R U' R2' D' R2 U R2' D R U'D' z'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T67 Na",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "R2' D r2 U r2' U' r2 U' r2' UD' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T68 E0",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "R2 D R2' U'D' F2 R2 U' R2' U' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T69 Y3",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "F2 U' (R2 U2 R2' U' R2 U' R2') U' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T70 E1",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "(U') R U' R' U R' U' F' U F R U R U' R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T71 Y1",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "F2 r2 U' r2' U' r2 U r2' U F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "ttll",
+  "source": "https://docs.google.com/spreadsheets/d/1QA9o1lW02AqV6XaMAPPGT24tz1P4vwsiVYyu045SexQ",
+  "name": "T72 Y2",
+  "subgroup": "Double Opp",
+  "alts": [
+   {
+    "alg": "R' D R2 U' R' U R U' R D' R' U2 R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 1",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "R' F R F' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 2",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "y' R' U2 R U' F R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "(U) F R' F' R U R U2 R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 3",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "F R' F' R2 U' R' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 4",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U2) R' F' R U2 R U R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 5",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U) R' U R U' R U' R2 F R2 F'",
+    "votes": 0
+   },
+   {
+    "alg": "(U) R' F' R U2 R U' R2 F2 R F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Hammer 6",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U) R U R' F R F' R U R' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 1",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "y' (U2) R' U' R U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 2",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U) R' F R F' R' F R U R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 3",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U) R U' R' U R2 U' R' F R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 4",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U) R U' R2 F R U R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 5",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U) R U2' R' U R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Spaceship 6",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U2) R' U' R U' R' F R F' R' F R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 1",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "R U R' U F' R U' R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 2",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U2) R' F R U' F' R U2 R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 3",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U) R U' R' U' R U' R' U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 4",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "R U R' F R U R' U' R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 5",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U') R2 F R F' U R U' R U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Stollery 6",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "R' U' F R F' U R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel 1",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "y' F' R U R U2 R2 F' U R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel 2",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "R' F' U' F R2 U' R U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel 3",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "F R F' U2 R U' R2 F R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Two-Face 1",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "y' (U) R2 U' R2 U R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Two-Face 2",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "y' (U) R' U2 R' F R F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Two-Face 3",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "R U' R' U F' R' F' R F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Two-Face 4",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "(U) R U R' U2 R' F R F' U R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 1",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 2",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U') R U R' F' R2 F' R2 F R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 3",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U) F R' F' R U' R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 4",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U2) y' R' U' R U' y R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 5",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U2) R' F R F' U2 R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Turtle 6",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U2) R U R2 F R F' U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 1",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "(U') R2 F R2 F' R' U' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 2",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "(U') R' F R2 F' R U R' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 3",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "R U R' U2 R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 4",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "y (U2) F' R U R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 5",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Pinwheel Poser 6",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "(U2) F' U R' F2 R F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 1",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "R U' R' U2 R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 2",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "y (U') F' R' F2 R F' R' F R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 3",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "R' F R F' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 4",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "R U' R' U R U2 R' F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 5",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U2) R U R' U R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL+/tcll+.html",
+  "name": "TCLL+ Gun 6",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U) R U2 R' F R F' R U R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 1",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U') x U R' U' R U R' U' R x'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 2",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "y' (U') F R2 F' U R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 3",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U2) R U R' U2 F R' F' R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 4",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "(U') R U R' F R' F' R U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 5",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "R' U2 R' U2 R U' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Hammer 6",
+  "subgroup": "Hammer",
+  "alts": [
+   {
+    "alg": "R U' R U' R' F R' F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 1",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "R U R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 2",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U2) R U R' U R' F R F' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 3",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U') R U R' F R' F' R U R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 4",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "(U') R' F R F' U R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 5",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "y' (U) R' U R U R' F R' F' R U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Spaceship 6",
+  "subgroup": "Spaceship",
+  "alts": [
+   {
+    "alg": "y (U') R' F U' R' F R2 U' R' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 1",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U) R2 U R2 U' R U2 R' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 2",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "y' R2 F R' F' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 3",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "F R' F' U R2 U R2' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 4",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U2) R U' R' U' R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 5",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "y' R2 F' R U2 R U2 R' F R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Stollery 6",
+  "subgroup": "Stollery",
+  "alts": [
+   {
+    "alg": "(U2) R U' R' U R U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel 1",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "R2 U R' U R' U2 R U2 R' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel 2",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "R' U2 R' U2 R2 F R' F' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel 3",
+  "subgroup": "Pinwheel",
+  "alts": [
+   {
+    "alg": "y' R2 F' R U2 R U R' F2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Two-Face 1",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "R2 U R' U R U2 R' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Two-Face 2",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "(U2) R2 U' R' F R' F' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Two-Face 3",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "(U) F' R' F R F U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Two-Face 4",
+  "subgroup": "Two-Face",
+  "alts": [
+   {
+    "alg": "(U') R' F R F' R U2 R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 1",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "y (U') L' U L U' L' U L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 2",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "R U2 R' U R' U' F R F' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 3",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "y' (U2) R' U' R U R' U R' F R F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 4",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U) R U R' U y L' U2 L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 5",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "(U') R U2 R' U2 F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Turtle 6",
+  "subgroup": "Turtle",
+  "alts": [
+   {
+    "alg": "R U' R' U2 R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 1",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "y (U') R U' R' U F R U2 R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 2",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "R U2 R U' R' F R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 3",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "y' (U') R' U2' F R' F' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 4",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "(U) F R' F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 5",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "(U) R U R' F R' F' R U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Pinwheel Poser 6",
+  "subgroup": "Pinwheel Poser",
+  "alts": [
+   {
+    "alg": "F' R' F2 R U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 1",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U) R U2 R' U2 R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 2",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U2) F R U2 R' F R U' R2 F R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 3",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U) R U R' U' F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 4",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "(U2) F R' F' R2 U' R' U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 5",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "y' (U') R' F R' F' R U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL-",
+  "source": "https://redblaze908.github.io/SpeedCubeTrainer/2x2/TCLL/TCLL-/tcll-.html",
+  "name": "TCLL- Gun 6",
+  "subgroup": "Gun",
+  "alts": [
+   {
+    "alg": "R2 U R' F R F' R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Twisty CLL 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F R F' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Hammer 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' R' U2 R U' y R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Hammer 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F2 R' F2 R2 U' R' U2 F",
+    "votes": 0
+   },
+   {
+    "alg": "F R' F' U R U' R2 U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Hammer 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 L' U' L F' L' U L U2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Hammer 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R' U R U' R U' R2 F R2 F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F R U2 y' R2 U' R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y (F' L' U' L U) (L F L2' U' L)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Hammer 6",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U R' F R F' R U R' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' F R U R' y' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' U2 R' U' R U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship diag",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R' F R F' R' F R U R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship bar left",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U' R' U R2 U' R' F R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship bar front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U' R2 F R U R U' R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U2 R U' R' U' R' F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship bar back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U2' R' U R' F R F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Spaceship bar right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R' F' R U2 R' F' R2 U R' F2",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R' F2 R U' R' F2 R2 U R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Twisty CLL 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U F' R U' R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Stollery 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R' F R U' F' R U2 R' F2",
+    "votes": 0
+   },
+   {
+    "alg": "R U F R' F' U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Stollery 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U' R' U' R U' R' U R' F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U F R F' R U R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Stollery 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' F R U R' U' R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Stollery 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y U R' U' R U2 R' F2 R' F R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Stollery 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' U' F R F' U R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Twisty CLL 7",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y2 R U' R U' x' U R' U' R U R' U' R2 x",
+    "votes": 0
+   },
+   {
+    "alg": "x R2 U' R' U R U' R' U x' U' R U' R",
+    "votes": 0
+   },
+   {
+    "alg": "y L2 U L' U2 L U L' U L' U L U' L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F' U' F R2 U' R U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "(U2) R U' R2' y R U' R' U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Two face 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R U R' U' R2 U R2 U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Two face 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' U R' U2 R' F R F' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R' F R U' R U2 R' U' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Two face 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "x R U R' U' R' F R' F' U x'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Two face 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U R' U' y' R2 U' R2 U R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Twisty CLL 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Turtle 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y R U' R' F2 R U R' F' R' F R",
+    "votes": 0
+   },
+   {
+    "alg": "F R' F' R F' R' F R U F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Turtle 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F R2 U R' F' R U' R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Turtle 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' U' R U R' U' R' U2 F R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Turtle 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R' F R F' U2 R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' R U2 R U' R' U' R' y R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Turtle 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R U2 F' U' F2 R2 F' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y R U R' U' R U2 R' F' R U R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' F R U R' F U' R U R' U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R' F R F' R' F R2 U R' U' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R' U2 R2 U' F R F' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R' F R F2 U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Pinwheel poser 6 bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 F' U R' F2 R F",
+    "votes": 0
+   },
+   {
+    "alg": "U' R F R2 F' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R' U2 R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U' R U' R' U2 R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U2 R' F' R U' R' F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun diag",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y U' F' R' F2 R F' R' F R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun bar on left",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F R F' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun bar in front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R' U R U2 R' (F R' F' R)",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun bar on right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R' F' R2 U' R2 F R U' F'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R U R' U R U R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "y' R2' F R F' R U R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL+ pool",
+  "source": "https://cyotheking.squarespace.com/tcll",
+  "name": "Gun bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U2 R' F R F' R U R2",
+    "votes": 0
+   },
+   {
+    "alg": "U2 R F' U F R' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Hammer no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "x U R' U' R U R' U' R x'",
+    "votes": 0
+   },
+   {
+    "alg": "y L F' L' F L F' L' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Hammer diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R U' R' F R' F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Hammer bar on left",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R U R' F R' F' R U' R U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Hammer bar in front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R U2 R' y' U R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- hammer bar on right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "(U') R2' F R F' R U2 R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' F R F U' y' R2 U R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Hammer bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' F R U R' U' R' F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Spaceship no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- spaceship diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 F R U R' U' R' F' R F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Spaceship bar in front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R U R' U' F R' F R U R' F R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Spaceship bar on left",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y U R' F R2 U' R' U' R' F R F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Spaceship bar on right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U F U2 L' U' L F L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "y L' U2 L U' L F' L' F L' U L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Spaceship bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U' F R' F2 R U' R' F2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Stollery no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 F2 R U R' F U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Stollery diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F2 R U2 R' F U L' U' L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Stollery 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F R' F' U R2 U R2' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Stollery bar in front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F R U R U' R' F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Stollery bar on right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 F R' F' R2 U R2' F' R U' R' F2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Stollery bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R2 U' R' F R' F' U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Twoface no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U R2 U' R2 U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Twoface diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R F R F' R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Two face 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R' U2 R U' F R F' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Turtle no swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' y L' U L U' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "y' U' R' U' R U' R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Turtle diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' U R' U R U' R2' F R F' R U' R' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Turtle 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R F' R' F' U R' U2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Turtle 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R U R' U y L' U2 L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Turtle 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' R U2 R' U2 F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Turtle bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U' R' U2 R U R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Pinwheel poser 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 F U' R U F2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Pinwheel poser diag swap",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U F U R U' R2 F' R F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Pinwheel poser bar on left",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y' U' x' R' F R2 U' R' U",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- pinwheel power bar in front",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U F R' F' R2 U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Pinwheelposer bar on right",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U R U R' F R' F' R U2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "TCLL- Pinwheel poser bar in back",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F' R' F2 R U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/TCLL- pool",
+  "source": "https://cyotheking.squarespace.com/tcll-1",
+  "name": "Gun diag",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 R F2 R F2 R' F2 R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 1",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U2) R' F R2 F' R2 U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 5",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U2) R' U F' R2 F' U2 R F'",
+    "votes": 0
+   },
+   {
+    "alg": "(U') R U R2' F' U F2 R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 2",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U2) F R' F' R2 U2 R U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 4",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U) R2 U' R2' F' R U2 R' U2 R' F",
+    "votes": 0
+   },
+   {
+    "alg": "(U') R2 F' U' R U' R U' R2 F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 6",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U2) F2 R F' U R' F U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Sune 3",
+  "subgroup": "Sune",
+  "alts": [
+   {
+    "alg": "(U') R U2 R U' R2 F R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 1",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "(U2) L U' R2 U R2 B2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "(U2) R F' R2 U2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 6",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "(U) R2 U R2 U' R U2 R' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "(U') F' U F2 R2 F' R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 3",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "(U') F R2 F' R2 U R' U2 R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 4",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "(U') F' R U2 R U2' R' F R2 U R2'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 5",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "F' U R' U' R U F2 R2 F' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' F' U R' U R F2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Antisune 2",
+  "subgroup": "Antisune",
+  "alts": [
+   {
+    "alg": "(U2) R2 U R' U2 R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 1",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "(U2) F R F' R' F R2 F' R' U2 R",
+    "votes": 0
+   },
+   {
+    "alg": "(U') R F R' F' U R U' R2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 2",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "(U') R U R' U' R U2 R U' R2",
+    "votes": 0
+   },
+   {
+    "alg": "(U') R2 U R' U2 R' U R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 3",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "(U2) R F' U R' F2 U R F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 4",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "(U') R2 U R' F R F' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 5",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "R U' F R2 F' R' F R F' R'",
+    "votes": 0
+   },
+   {
+    "alg": "(U) R U' R' F R F' R2' U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "Pi 6",
+  "subgroup": "Pi",
+  "alts": [
+   {
+    "alg": "(U) R U R' U R2 U' R2 F R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 1",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U') R2 U' R' U' R U' R' U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U R' U' R U' R' U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 2",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U2) R2 U R2 F' R2 F' R2 F R2",
+    "votes": 0
+   },
+   {
+    "alg": "(U) R' F R2 F' U2' R U' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 3",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U) R U R' F R2 F' R U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 4",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U') F' U' F R2 U' R' U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "(U2) R' F R F' U2 R2' U' R U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 5",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U') R2 U R' U2 R' F' U' F",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "U 6",
+  "subgroup": "U",
+  "alts": [
+   {
+    "alg": "(U) R2 U' R U2 R F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U F R2 F' R U2 R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 1",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "R2 U R' U' F R2 F' U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 2",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "(U2) R U' R' U' R2 U' R2 F R F'",
+    "votes": 0
+   },
+   {
+    "alg": "(U') R' F2 R2 F' R U2 R B2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 3",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "R' U R' U R2 U' R U2 R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' y U' R U R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 4",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "(U') R' U R' U' R U L' U R2 U' L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 5",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "F' U F R U2 R U' R2'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "L 6",
+  "subgroup": "L",
+  "alts": [
+   {
+    "alg": "(U2) R' U2' R' F R2 F' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "(U') F R' F' R' U2 R' U R2",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' y U' R U R2 F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 1",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "(U) R U R' U' F' R' U2 R U' F",
+    "votes": 0
+   },
+   {
+    "alg": "(U2) R' U R' U' R' F U2 R2 B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 2",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "(U) R U' F R2 F' U R U' R2(",
+    "votes": 0
+   },
+   {
+    "alg": "(U) F' R2 U R F' R' U R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 3",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "F' R' U2 R U' F2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 4",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "F R F' R' F R2 F' U R' U R",
+    "votes": 0
+   },
+   {
+    "alg": "x R U2 R' U2 L U2 R U' R2 F2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 5",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "(U2) F2 R2 F R2 U R2 U' F2 R",
+    "votes": 0
+   },
+   {
+    "alg": "(U2) R' U2 R' U' R U R' F R' F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "T 6",
+  "subgroup": "T",
+  "alts": [
+   {
+    "alg": "(U') R' F R2 F' R' U2 F R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "H 1",
+  "subgroup": "H",
+  "alts": [
+   {
+    "alg": "R F2 R F' R' F U' F",
+    "votes": 0
+   },
+   {
+    "alg": "F R' F R' U' R F2 R",
+    "votes": 0
+   },
+   {
+    "alg": "R' F' U F R F' U' F2 R F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "H 2",
+  "subgroup": "H",
+  "alts": [
+   {
+    "alg": "R2 U' R U' R' U R' U' R U' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "H 3",
+  "subgroup": "H",
+  "alts": [
+   {
+    "alg": "F' R' U' F2 R U' F R'",
+    "votes": 0
+   },
+   {
+    "alg": "R2 B2 R U R' F' R U R' U' R U R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "2x2/LEG1",
+  "source": "https://cyotheking.squarespace.com/leg1",
+  "name": "H 4",
+  "subgroup": "H",
+  "alts": [
+   {
+    "alg": "R U2 R U' F R F' R",
+    "votes": 0
+   }
+  ]
+ }
+]

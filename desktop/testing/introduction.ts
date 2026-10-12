@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { startServer, signIn } from "./app";
+import { live, startServer, signIn } from "./app";
 import { TOUR_STEPS } from "../../src/client/lib/journey";
 
 const SHOTS = "artifacts/onboarding";
@@ -151,17 +151,26 @@ try {
   await tour("phone", { desktop: false });
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  // Every section is open on every puzzle, whatever its course: a puzzle picked opens on its timer, wherever the player was.
+  // Every section is open on every puzzle, whatever its course: a puzzle picked keeps the page, on the new puzzle; Back
+  // goes to the page before.
   const puzzlePick = async (label: string) => {
     await page.locator('.rail [data-action="menu:puzzles"]').click();
     await page.getByRole("menuitemradio", { name: label, exact: true }).click();
   };
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await puzzlePick("4×4");
-  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "444");
+  await page.waitForURL(url => url.pathname === "/algorithms" && url.searchParams.get("puzzle") === "444");
   await page.keyboard.press("Alt+4"); await page.waitForURL("**/training?*");
   await puzzlePick("2×2");
-  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
+  await page.waitForURL(url => url.pathname === "/training" && url.searchParams.get("puzzle") === "222");
+  await page.goBack(); await page.waitForURL(url => url.pathname === "/algorithms" && url.searchParams.get("puzzle") === "444");
+  // A course follows to the same method of the new puzzle, else to the puzzle's courses.
+  await page.goto(origin + "/learn/beginner?puzzle=333&step=1"); await live(page);
+  await puzzlePick("2×2");
+  await page.waitForURL(url => url.pathname === "/learn/beginner" && url.searchParams.get("puzzle") === "222");
+  await page.goto(origin + "/learn/cfop?puzzle=333"); await live(page);
+  await puzzlePick("Pyraminx");
+  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "pyram");
   // Finishing a course makes its puzzle a known one.
   await page.goto(origin + "/learn/reduction?puzzle=555&step=3");
   await page.locator('[data-action="learnFinish"]').click();

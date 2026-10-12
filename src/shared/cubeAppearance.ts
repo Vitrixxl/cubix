@@ -3,8 +3,10 @@ import { colorOf, cubeSize, FACES, slotsFor, type CubeState, type Face } from '.
 /**
  * What a case shows: the whole cube, a last-layer stage (`EO` the top edges alone: the yellow cross), the first two
  * layers, or the first layer alone (`F1L`, with the side centres). `CMLL` shows the top corners alone, the M slice left grey.
+ * The steps of a method also show the cross (`cross`: the bottom edges and the centres), the centres alone, the centres
+ * and edges (`edges`), or Roux's two blocks (`blocks`).
  */
-export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'CMLL' | 'F2L' | 'F1L';
+export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'CMLL' | 'F2L' | 'F1L' | 'cross' | 'centres' | 'edges' | 'blocks';
 // Fixed viewing references: blue front, red right, yellow top.
 // Softened to sit with the app's warm palette, same hue for each face.
 export const FACE_HEX: Record<Face, number> = {
@@ -68,6 +70,10 @@ export function stickerColors(final: CubeState, mask: CubeMask, held = false): n
       : mask === 'CMLL' ? (top && (corner(origin) || center(origin)) ? palette[face] : top ? GREY : DIM)
       : mask === 'F2L' && originOnTop(origin) ? GREY
       : mask === 'F1L' && height(origin) !== -(size - 1) / 2 && !(center(origin) && !originOnTop(origin)) ? GREY
+      : mask === 'cross' && !center(origin) && (corner(origin) || height(origin) !== -(size - 1) / 2) ? GREY
+      : mask === 'centres' && !center(origin) ? GREY
+      : mask === 'edges' && corner(origin) ? GREY
+      : mask === 'blocks' && (originOnTop(origin) || Math.abs(slots[origin].p[0]) !== (size - 1) / 2) ? GREY
       : palette[face];
   }
   return colors;

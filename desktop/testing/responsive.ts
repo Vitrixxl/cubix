@@ -119,6 +119,8 @@ try {
   await act(page, "learn:F2L 1");
 
   await act(page, "nav:training");
+  // Whole sets lists the sets with learned cases (setup.tsx).
+  await act(page, "trainingMode:sets");
   await page.waitForSelector('[data-action^="trainSet:"]');
   await check("training-setup");
   await act(page, "trainSet:f2l");
@@ -126,6 +128,7 @@ try {
   await page.waitForSelector('[data-action="solution"]');
   await check("training");
   await act(page, "trainingSetup");
+  await act(page, "trainingMode:cross");
   await act(page, "trainingStart:cross");
   await scrambled(page);
   await check("cross-training");

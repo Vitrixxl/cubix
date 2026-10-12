@@ -33,7 +33,7 @@ describe("the landing page", () => {
     expect(text).not.toMatch(/6,500|1,737/);
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
     expect(html).toContain("buymeacoffee.com");
-    expect(html).toContain('href="/timer"');
+    expect(html).toContain('href="/timer?puzzle=333"');
     expect(html).toContain("install.ps1");
     expect(html).toContain("Tauri");
     expect(html).toContain("/api/mobile/apk");
@@ -50,7 +50,8 @@ describe("the landing page", () => {
     expect((structuredData()[0] as { featureList: string[] }).featureList.length).toBeGreaterThan(20);
     expect(robots()).toContain(`Sitemap: ${SITE}/sitemap.xml`);
     expect(robots()).toContain("Disallow: /api/");
-    expect(sitemap("2026-10-06")).toContain(`<loc>${SITE}/</loc><lastmod>2026-10-06</lastmod>`);
+    expect(sitemap()).toContain(`<loc>${SITE}/</loc>`);
+    expect(sitemap(["/timer?puzzle=333"])).not.toContain("lastmod");
     expect(llms()).toMatch(/^# Qbix\n\n> /);
     expect(llms()).toContain(`(${SITE}/llms-full.txt)`);
     for (const feature of FEATURES) expect(llmsFull()).toContain(`## ${feature.title}`);
@@ -64,7 +65,7 @@ describe("the landing page", () => {
       expect(page).toContain(`<link rel="canonical" href="${SITE}/fr/" />`);
       expect(page).toContain(`<link rel="alternate" hreflang="x-default" href="${SITE}/" />`);
       expect(page).toContain("<title>Qbix : le chrono de speedcubing");
-      expect(sitemap("2026-10-06")).toContain(`<loc>${SITE}/de/</loc>`);
+      expect(sitemap()).toContain(`<loc>${SITE}/de/</loc>`);
     } finally {
       await setLanguage("en", false);
     }

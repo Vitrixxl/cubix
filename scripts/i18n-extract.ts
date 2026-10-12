@@ -58,7 +58,7 @@ for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("
 }
 
 /** Every string of a data structure, but the fields that are notation, identifiers or addresses. */
-function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url", "train"])) {
+function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url", "train", "picture"])) {
   if (typeof value === "string") return add(value);
   if (Array.isArray(value)) return value.forEach((v) => walk(v, skip));
   if (value && typeof value === "object") for (const [key, v] of Object.entries(value)) if (!skip.has(key)) walk(v, skip);
@@ -81,11 +81,13 @@ for (const s of catalog.sets) {
   if (s.stage !== "ZBLL") (add(s.label), add(s.label.replace(/^F2L /, "")));
 }
 for (const c of catalog.cases) {
+  // Blindfolded cases are named by stickers ("UB UR") and noted by their commutator: notation, but for a sentence.
+  const notation = c.stage === "BLD";
   add(c.stage);
-  add(c.notes);
+  if (!notation || /[a-z]{3}/.test(c.notes ?? "")) add(c.notes);
   if (!/^[A-Z][a-z]?[A-Z]?\d$/.test(c.group)) add(c.group);
   const nickname = (/^oll|^pll/.test(c.set.replace(/^\d+x\d+-/, "")) && !/Shape$/.test(c.name)) || /^(F2L|PLL \(|Pi$|Sune$|Antisune$)/.test(c.name);
-  if (c.name !== c.id && !nickname) add(c.name.replace(/\d+/, "{0}"));
+  if (c.name !== c.id && !nickname && !notation) add(c.name.replace(/\d+/, "{0}"));
 }
 const { TOUR_STEPS } = await import("../src/client/lib/journey");
 walk(TOUR_STEPS.map(({ title, body }) => ({ title, body })));

@@ -70,6 +70,16 @@ func webRouter(dir string) http.Handler {
 			webServeFile(w, r, filepath.Join(dir, admin))
 			return
 		}
+		// An app's address with a trailing slash (`/timer/`) is moved for good to the one without.
+		if trimmed, ok := strings.CutSuffix(path, "/"); ok && trimmed != "" {
+			if _, _, ok := webAppPath(trimmed); ok {
+				if r.URL.RawQuery != "" {
+					trimmed += "?" + r.URL.RawQuery
+				}
+				http.Redirect(w, r, trimmed, http.StatusMovedPermanently)
+				return
+			}
+		}
 		webPage(dir, w, r)
 	})
 }

@@ -4,7 +4,7 @@
  * time (its algorithm hidden until asked for in Review, then how the try went), and the step's sheet.
  * Phones get the course with its steps in a sheet and its actions under the thumb.
  */
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
 import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Route, Timer, type LucideIcon } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
@@ -14,7 +14,7 @@ import { Link } from "react-router";
 import { pageUrl } from "./navigation";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
 import { StaticCubeSvg, type CubeMask } from "../../src/client/diagrams/StaticCubeSvg";
@@ -23,7 +23,7 @@ import { PhoneSheet } from "./phone";
 import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Figure, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
 import { FootBar, PlayDiagram } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
-import { casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
+import { caseTitle, casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
 import { fmtTime } from "../../src/client/lib/format";
 import { Kbd } from "@/components/ui/kbd";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
@@ -323,10 +323,10 @@ function casePiece(c: any, group: string, index: number, count: number): Piece {
     algs = [...all.filter((a) => mine.includes(a)), ...all.filter((a) => !mine.includes(a))].slice(0, Math.max(3, mine.length));
   return {
     key: c.id,
-    name: c.id,
+    name: caseTitle(c) === c.id ? c.id : said(c.name),
     short: shortId(c),
     context: `${tr(group)} · ${tr("{0} of {1}", { 0: index + 1, 1: count })}`,
-    sub: [c.name !== c.id && said(c.name), c.subgroup && c.subgroup !== group && said(c.subgroup)].filter(Boolean).join(" · ") || undefined,
+    sub: [c.name !== caseTitle(c) && said(c.name), c.subgroup && c.subgroup !== group && said(c.subgroup)].filter(Boolean).join(" · ") || undefined,
     algs,
     mine,
     use: (alg) => `learnAlg:${c.id}:${all.indexOf(alg)}`,
@@ -380,17 +380,12 @@ function trainAction(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry
   return chosen ? "train:" + chosen.id : "";
 }
 
-/** The pieces a step solves, as a cube mask: its own, else the one its sets teach (F2L, OLL, PLL…); the whole cube otherwise. */
-function goalMask(step: MethodStep): CubeMask {
-  if (step.mask) return step.mask;
-  const sets = step.sets?.join(" ") ?? "";
-  return /cmll/.test(sets) ? "CMLL" : /oll/.test(sets) ? "OLL" : /pll/.test(sets) ? "PLL" : /f2l/.test(sets) ? "F2L" : "full";
-}
-/** A step pictured by what it solves: a solved cube showing only the pieces of its mask; other puzzles their icon. */
-function StepCube({ puzzle, step, size, faded = false }: { puzzle: PuzzleId; step: MethodStep | undefined; size: number; faded?: boolean }) {
-  const cube = puzzleInfo(puzzle).cubeSize;
-  if (!cube || !step) return <span className={cn("flex shrink-0 items-center justify-center text-muted-foreground", faded && "opacity-40")} style={{ width: size, height: size }}><Icon name={"Puzzle" + puzzle} size={size * 0.7} /></span>;
-  return <StaticCubeSvg state={solved(cube)} size={size} mask={goalMask(step)} view="iso" className={cn("shrink-0", faded && "opacity-35 grayscale")} />;
+/** The cube before or after a step (see `stepPicture`), showing the pieces of its mask; other puzzles their icon. */
+function StepCube({ puzzle, setup, mask, size }: { puzzle: PuzzleId; setup: string; mask: CubeMask; size: number }) {
+  const cube = puzzleInfo(puzzle).cubeSize,
+    state = useMemo(() => (cube ? applyAlg(solved(cube), setup) : undefined), [cube, setup]);
+  if (!state) return <span className="flex shrink-0 items-center justify-center text-muted-foreground" style={{ width: size, height: size }}><Icon name={"Puzzle" + puzzle} size={size * 0.7} /></span>;
+  return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
 }
 
 /** How a try on the workbench went: missed, hesitated or got it. */
@@ -834,7 +829,7 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
  */
 function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
   const step = method.steps[entry.step]!,
-    previous = method.steps[entry.step - 1],
+    picture = stepPicture(method, entry.step),
     count = stepLearned(step, s.cases(), s.learned, entry),
     train = trainAction(puzzle, method, entry),
     learnedInSet = train ? s.cases().filter((c: any) => c.set === train.slice("train:".length) && s.learned.has(c.id)).length : 0;
@@ -848,13 +843,9 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
       )}
       {puzzleInfo(puzzle).cubeSize && (
         <figure className="flex items-center justify-center gap-2 rounded-2xl bg-muted p-3" aria-label={tr("Before and after this step")}>
-          {previous && (
-            <>
-              <StepCube puzzle={puzzle} step={previous} size={touch ? 56 : 66} />
-              <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-            </>
-          )}
-          <StepCube puzzle={puzzle} step={step} size={touch ? 56 : 66} />
+          <StepCube puzzle={puzzle} setup={picture.before} mask={picture.mask} size={touch ? 56 : 66} />
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+          <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={touch ? 56 : 66} />
         </figure>
       )}
       <p className="text-[15px] leading-relaxed text-muted-foreground">{said(step.text)}</p>
@@ -1011,11 +1002,12 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
     <section className="flex min-h-0 flex-col gap-2" aria-label={tr("Steps")}>
       <SectionHead title={tr("What you learned")} meta={tr("{0} of {1} steps learned", { 0: method.steps.length, 1: method.steps.length })} className="min-h-0 px-1" />
       <ol className="-m-1 flex min-h-0 flex-col gap-1.5 overflow-y-auto p-1">
-        {method.steps.map((st) => {
-          const learned = stepLearned(st, cases, s.learned, entry);
+        {method.steps.map((st, i) => {
+          const learned = stepLearned(st, cases, s.learned, entry),
+            picture = stepPicture(method, i);
           return (
             <li key={st.title} className="flex items-center gap-3 rounded-2xl bg-muted px-3 py-2.5">
-              <StepCube puzzle={puzzle} step={st} size={34} />
+              <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={34} />
               <span className="min-w-0 flex-1 truncate text-[15px] font-bold">{said(st.title)}</span>
               <span className={cn(NUMERIC, "shrink-0 text-[13px] font-semibold text-muted-foreground")}>
                 {learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : stepMastered(st, entry) ? tr("Mastered") : tr("Intuitive")}

@@ -48,14 +48,14 @@ export function trainingPool(cases: readonly PoolCase[], learned: ReadonlySet<st
   return cases.filter((c) => learned.has(c.id) && (chosen.has(c.id) || whole.has(c.set))).map((c) => c.id);
 }
 
-/** A recognition run: the learned cases of a set, each once, in a random order. */
-export function recognitionRun(cases: readonly PoolCase[], learned: ReadonlySet<string>, set: string, random = Math.random): string[] {
-  const ids = cases.filter((c) => c.set === set && learned.has(c.id)).map((c) => c.id);
-  for (let i = ids.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
-  }
-  return ids;
+/** The cases a recognition run draws from: the learned cases of a set. */
+export const recognitionCases = (cases: readonly PoolCase[], learned: ReadonlySet<string>, set: string) =>
+  cases.filter((c) => c.set === set && learned.has(c.id)).map((c) => c.id);
+
+/** A recognition run's next case: any of its cases at random, never the one just shown (unless it is the only one). */
+export function nextRecognition(ids: readonly string[], last: string | undefined, random = Math.random): string | undefined {
+  const pool = ids.length > 1 ? ids.filter((id) => id !== last) : ids;
+  return pool[Math.floor(random() * pool.length)];
 }
 
 /** Of each set, its learned cases timed enough that are slower than the set's usual (the mean of them all). */

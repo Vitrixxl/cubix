@@ -6,6 +6,7 @@ import { history } from "../src/client/local/stats";
 import type { SolveDto } from "../src/shared/types";
 import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
 import { cases } from "../src/client/local/catalog";
+import { puzzleOf } from "../src/shared/puzzles";
 import type { JourneyProfile } from "../src/client/lib/journey";
 
 const trackGroups = (track: LearningTrack) => orderedGroups(learningCases(cases,track));
@@ -104,7 +105,7 @@ test("anonymous practice is entirely local and survives reopening offline",async
   await a.api.setPenalty(solve.id,"+2");
   expect(a.control.requests).toBe(0);
   const reopened = device(remote,a.storage); reopened.control.offline=true;
-  expect((await reopened.api.cases()).length).toBe(1327);
+  expect((await reopened.api.cases()).length).toBe(cases.filter((c) => puzzleOf(c) === "333").length);
   expect((await reopened.api.solves("training"))[0].id).toBe(solve.id);
   expect((await reopened.api.caseHistory("PLL Aa")).summary.best).toBe(3234);
   expect((await reopened.api.profile("Guest")).trainingSolves).toBe(1);

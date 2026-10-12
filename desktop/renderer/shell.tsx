@@ -62,9 +62,9 @@ const waiting: Record<string, () => number> = {
 };
 const sectionWaiting = (id: string) => SECTIONS.find((x) => x.id === id)!.pages.reduce((n, [page]) => n + (waiting[page]?.() ?? 0), 0);
 
-/** All the header and the tab bar show of the app; they are drawn again when it changes, not at every change of the page. */
+/** All the header and the tab bar show of the app (the account menu's level too); they are drawn again when it changes, not at every change of the page. */
 const shellKey = () =>
-  [s.ready, s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, s.user.isGuest, waiting.coaching!(), waiting.community!(), waiting.people!(), s.view.startsWith("people"), language()].join("|");
+  [s.ready, s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, s.user.isGuest, waiting.coaching!(), waiting.community!(), waiting.people!(), s.view.startsWith("people"), language(), s.xp, s.unlocked.count, s.unlocked.total].join("|");
 const useShell = () => useSyncExternalStore(s.subscribe, shellKey, shellKey);
 
 /** A dot on a section while something waits there. */
@@ -131,8 +131,9 @@ function Item({ action, icon: I, children, shortcut }: { action: string; icon: L
 }
 
 /**
- * The account's menu, on its face: the profile, the settings, the guides and the notation, importing times, the
- * connected cube, a coffee for the author, then signing out (or in, for a guest).
+ * The account's menu, on its face: a card of the account in the accent's tint (its face and name, its level for an
+ * account, the way in for a guest), the profile, the settings, the guides and the notation, importing times, the
+ * connected cube, a coffee for the author, then signing out.
  */
 export function AccountMenu() {
   const cube = useCube(),
@@ -143,28 +144,41 @@ export function AccountMenu() {
       <DropdownMenuTrigger
         data-action="menu:account"
         aria-label={guest ? tr("Account") : tr("{0} · account", { 0: s.user.username })}
-        render={<UiButton variant="secondary" size="icon" className="shrink-0 font-bold text-lilac" />}
+        render={<UiButton variant="secondary" size="icon" className="shrink-0 font-bold text-primary" />}
       >
         {guest ? <UserRound className="text-muted-foreground" /> : <span className="text-sm tracking-tight">{s.user.username.slice(0, 2).toUpperCase()}</span>}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-60">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="flex items-center gap-3 py-2">
-            <Avatar name={guest ? "?" : s.user.username} size={guest ? 28 : 40} className={cn(!guest && "rounded-xl")} />
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-bold text-foreground">{guest ? tr("Guest") : s.user.username}</span>
-              <span className="truncate text-xs font-normal">
+      <DropdownMenuContent align="end" className="w-auto min-w-64">
+        <DropdownMenuGroup className="mb-1.5 flex flex-col gap-2 rounded-[calc(var(--radius)-2px)] bg-primary/10 p-2">
+          <DropdownMenuLabel className="flex items-center gap-3.5 p-1.5">
+            {guest ? (
+              <span className="flex size-13 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary" aria-hidden="true">
+                <UserRound className="size-6" />
+              </span>
+            ) : (
+              // The account's own face in the accent, as on its button.
+              <Avatar name={s.user.username} size={52} className="rounded-2xl bg-primary" />
+            )}
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="truncate text-lg leading-tight font-extrabold tracking-tight text-foreground">{guest ? tr("Guest") : s.user.username}</span>
+              <span className="truncate text-xs font-medium text-muted-foreground">
                 {guest ? tr("Times stay on this device") : tr("{0} of {1} achievements unlocked", { 0: s.unlocked.count, 1: s.unlocked.total })}
               </span>
             </span>
           </DropdownMenuLabel>
           {!guest && s.xp !== null && (
-            <DropdownMenuItem data-action="nav:achievements" className="mx-1 mb-1 block rounded-xl bg-muted px-3 py-2.5" render={<Link to={pageUrl("profile", { profileMode: "achievements" })} />}>
+            <DropdownMenuItem data-action="nav:achievements" className="block px-1.5 py-2 [&_[role=progressbar]]:h-2" render={<Link to={pageUrl("profile", { profileMode: "achievements" })} />}>
               <LevelBar xp={s.xp} />
             </DropdownMenuItem>
           )}
+          {/* A guest's way in, filled with the accent at the foot of the card. */}
+          {guest && (
+            <DropdownMenuItem data-action="nav:login" variant="primary" className="justify-center" onClick={() => s.askSignIn()}>
+              <LogIn />
+              {tr("Sign in")}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {!guest && (
             <DropdownMenuItem data-action="nav:profile" render={<Link to={pageUrl("profile", { puzzle: s.puzzle as PuzzleId })} />}>
@@ -187,28 +201,25 @@ export function AccountMenu() {
           <DropdownMenuItem data-action="smartCube" data-status={cube.status} onClick={run("smartCube")}>
             <cube.Icon className={cn(cube.status === "on" && "text-success", cube.status === "connecting" && "animate-pulse text-primary")} />
             <span className="min-w-0 flex-1 truncate">{cube.status === "on" ? cube.name : cube.status === "connecting" ? tr("Connecting…") : tr("Connect a cube")}</span>
-            {cube.status === "on" && cube.battery !== undefined && <DropdownMenuShortcut>{cube.battery}%</DropdownMenuShortcut>}
+            {cube.status === "on" && cube.battery !== undefined && <span className="ml-auto text-xs font-semibold text-muted-foreground tabular-nums">{cube.battery}%</span>}
           </DropdownMenuItem>
           <StackmatItem />
         </DropdownMenuGroup>
         {/* Phones have no header: the coffee, in plain view here. */}
         {phone && (
-          <DropdownMenuItem data-action="coffee" className="font-bold text-primary focus:text-primary" render={<a href={COFFEE} target="_blank" rel="noreferrer" />}>
+          <DropdownMenuItem data-action="coffee" className="font-bold text-primary data-highlighted:text-foreground" render={<a href={COFFEE} target="_blank" rel="noreferrer" />}>
             <Coffee className="text-primary" />
             {tr("Buy me a coffee")}
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        {guest ? (
-          <DropdownMenuItem data-action="nav:login" onClick={() => s.askSignIn()}>
-            <LogIn />
-            {tr("Sign in")}
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem data-action="logout" variant="destructive" onClick={run("logout")}>
-            <LogOut />
-            {tr("Log out")}
-          </DropdownMenuItem>
+        {!guest && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem data-action="logout" variant="destructive" onClick={run("logout")}>
+              <LogOut />
+              {tr("Log out")}
+            </DropdownMenuItem>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -222,7 +233,12 @@ function StackmatItem() {
     <DropdownMenuItem data-action="stackmat" data-status={link} onClick={run("stackmat")}>
       <Timer className={cn(link === "on" && "text-success", link === "connecting" && "animate-pulse text-primary")} />
       <span className="min-w-0 flex-1 truncate">{link === "on" ? tr("Stackmat connected") : link === "connecting" ? tr("Waiting for the Stackmat…") : tr("Connect a Stackmat")}</span>
-      <DropdownMenuShortcut>{link === "off" ? tr("Experimental") : tr("Stop")}</DropdownMenuShortcut>
+      {link === "off" ? (
+        // Opaque, so the accent on it stays at 4.5:1 on a highlighted row too.
+        <span className="ml-auto rounded-full bg-[color-mix(in_srgb,var(--primary)_6%,var(--popover))] px-2 py-0.5 text-[11px] font-bold text-primary ring-1 ring-primary/25">{tr("Experimental")}</span>
+      ) : (
+        <span className="ml-auto text-xs font-semibold text-muted-foreground">{tr("Stop")}</span>
+      )}
     </DropdownMenuItem>
   );
 }

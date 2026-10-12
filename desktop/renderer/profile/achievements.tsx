@@ -65,7 +65,7 @@ function next(a: A): { label: string; icon: LucideIcon; action: string; go: () =
   if (kind === "drills") return { label: tr("Train"), icon: Target, action: "nav:training", go: () => void s.action("nav:training") };
   if (!puzzle) return { label: tr("Timer"), icon: Timer, action: "nav:playground", go: () => void s.action("nav:playground") };
   const event = eventOf(puzzle, kind === "oh" ? "one-handed" : kind === "bld" ? "blindfolded" : "standard");
-  return { label: `${tr("Timer")} · ${said(event?.label ?? a.group)}`, icon: Timer, action: "puzzle:" + event?.id, go: () => void s.action("puzzle:" + (event?.id ?? puzzle)) };
+  return { label: `${tr("Timer")} · ${said(event?.label ?? a.group)}`, icon: Timer, action: "puzzle:" + event?.id, go: () => void s.action("puzzle:" + (event?.id ?? puzzle)).then(() => goPage("playground", { puzzle })) };
 }
 
 const closest = (list: A[]) => list.filter((a) => !a.unlocked && a.ratio > 0).sort((x, y) => y.ratio - x.ratio);

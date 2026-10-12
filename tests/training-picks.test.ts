@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { recognitionRun, recommend, trainingPool } from "../src/client/lib/trainingPicks";
+import { nextRecognition, recognitionCases, recommend, trainingPool } from "../src/client/lib/trainingPicks";
 
 const cases = [
   { id: "OLL 1", set: "oll" },
@@ -48,11 +48,13 @@ test("cases slow in the smart cube solves come with their recognition; a case sl
   expect(recommend(cases, learned, [stat("T", 1000), stat("Y", 1500), stat("Ga", 1100)], solves, 1)).toHaveLength(1);
 });
 
-test("a recognition run goes through every learned case of its set once, in a random order", () => {
+test("a recognition run draws the learned cases of its set at random, never the same twice in a row", () => {
   const learned = new Set(["OLL 1", "OLL 3", "T", "Y", "Ga"]);
-  const run = recognitionRun(cases, learned, "pll");
-  expect([...run].sort()).toEqual(["Ga", "T", "Y"]);
-  // Another draw, another order.
-  expect(recognitionRun(cases, learned, "pll", () => 0)).not.toEqual(recognitionRun(cases, learned, "pll", () => 0.99));
-  expect(recognitionRun(cases, new Set(), "oll")).toEqual([]);
+  const ids = recognitionCases(cases, learned, "pll");
+  expect(ids).toEqual(["T", "Y", "Ga"]);
+  expect(nextRecognition(ids, undefined, () => 0)).toBe("T");
+  expect(nextRecognition(ids, "T", () => 0)).toBe("Y");
+  expect(nextRecognition(ids, "Ga", () => 0.99)).toBe("Y");
+  expect(nextRecognition(["T"], "T")).toBe("T");
+  expect(nextRecognition(recognitionCases(cases, new Set(), "oll"), undefined)).toBeUndefined();
 });

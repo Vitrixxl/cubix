@@ -142,7 +142,7 @@ export function TimerDemo() {
 // ---------------------------------------------------------------------------
 /** The 3×3 beginner method's steps (src/shared/methods.ts), each with a move or an algorithm it teaches. */
 const LESSON: { title: string; alg: string; mask: CubeMask }[] = [
-  { title: "White cross", alg: "U' F2", mask: "full" },
+  { title: "White cross", alg: "U' F2", mask: "cross" },
   { title: "First-layer corners", alg: "U R U' R'", mask: "F1L" },
   { title: "Second-layer edges", alg: "U R U' R' U' F' U F", mask: "F2L" },
   { title: "Yellow cross", alg: "F R U R' U' F'", mask: "EO" },

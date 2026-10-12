@@ -1,7 +1,7 @@
 /** HTTP and WebSocket contracts for the API and native clients. */
 
 import type { CubeSize, EventId, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
-export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials" | "Last slot" | "OLLCP" | "COLL" | "CMLL" | "CLL" | "EG";
+export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials" | "Last slot" | "OLLCP" | "COLL" | "CMLL" | "CLL" | "EG" | "TCLL" | "ELL" | "TTLL" | "LSE" | "BLD";
 
 export type LearningGroupOrder = Partial<Record<"F2L" | "OLL" | "PLL", string[]>>;
 export interface LearningGroupOrderDto {

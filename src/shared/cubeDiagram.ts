@@ -152,11 +152,11 @@ export function isoCells(state: CubeState, mask: CubeMask, held = false): IsoCel
 
 /**
  * Which picture explains a case best. Last-layer cases (OLL, PLL, parities) are read from above with the side
- * stickers folded out around the U face; PBL needs both layers, so the side faces are folded out whole; everything
+ * stickers folded out around the U face; PBL needs both layers and blindfolded targets lie anywhere, so the side faces are folded out whole; everything
  * else keeps the isometric cube.
  */
 export type DiagramView = "iso" | "top" | "unfolded";
-export const viewForStage = (stage: string): DiagramView => ["OLL", "PLL", "ZBLL", "Parity", "Last slot", "OLLCP", "COLL", "CMLL", "CLL"].includes(stage) ? "top" : stage === "PBL" || stage === "EG" ? "unfolded" : "iso";
+export const viewForStage = (stage: string): DiagramView => ["OLL", "PLL", "ZBLL", "Parity", "Last slot", "OLLCP", "COLL", "CMLL", "CLL", "ELL"].includes(stage) ? "top" : stage === "PBL" || stage === "EG" || stage === "TCLL" || stage === "BLD" ? "unfolded" : "iso";
 /** Without a stage, the mask alone tells a last-layer case. */
 export const viewForMask = (mask: CubeMask): DiagramView => mask === "OLL" || mask === "EO" || mask === "PLL" || mask === "CMLL" ? "top" : "iso";
 export type TopCell = IsoCell;

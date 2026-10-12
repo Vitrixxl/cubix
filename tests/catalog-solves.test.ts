@@ -8,16 +8,17 @@ import { polyAlgScene, readAlg } from "../src/client/lib/algPlayer";
 
 /**
  * The stickers a stage's algorithm must bring home: all of them, but for F2L the last layer's, for OLL (and the last
- * slot) the last layer's sides (its top only has to be of its colour, which `colorOf` checks), for OLLCP and COLL the
- * top edges' sides, for CMLL the M slice and the top edges.
+ * slot) the last layer's sides (its top only has to be of its colour, which `colorOf` checks), for ZBLS the top corners
+ * too, for OLLCP and COLL the top edges' sides, for CMLL the M slice and the top edges.
  */
-function goal(stage: string, size: number) {
+function goal(stage: string, size: number, set: string) {
   const top = (size - 1) / 2,
     slots = slotsFor(size).map((s, i) => ({ i, s }));
+  const corner = (p: readonly number[]) => p.every((v) => Math.abs(v) === top);
   if (stage === "F2L") return slots.filter(({ s }) => s.p[1] !== top).map(({ i }) => i);
+  if (set === "zbls") return slots.filter(({ s }) => s.p[1] !== top || (s.n[1] === 1 && !corner(s.p))).map(({ i }) => i);
   if (stage === "OLL" || stage === "Last slot") return slots.filter(({ s }) => s.p[1] !== top || s.n[1] === 1).map(({ i }) => i);
   // OLLCP and COLL leave the top edges' sides; CMLL, the M slice and the top edges.
-  const corner = (p: readonly number[]) => p.every((v) => Math.abs(v) === top);
   if (stage === "OLLCP" || stage === "COLL") return slots.filter(({ s }) => s.p[1] !== top || s.n[1] === 1 || corner(s.p)).map(({ i }) => i);
   if (stage === "CMLL") return slots.filter(({ s }) => s.p[0] !== 0 && (s.p[1] !== top || corner(s.p))).map(({ i }) => i);
   return slots.map(({ i }) => i);
@@ -30,6 +31,20 @@ const cubeSolves = (state: CubeState, size: number, slots: number[]) =>
     const end = applyAlg(state, `${hold} ${auf}`);
     return slots.every((slot) => colorOf(end, slot) === faceOfSlot(slot, size));
   }));
+
+/**
+ * Roux's edge orientation: the corners and both blocks in place, and the last six edges' stickers facing up or down of
+ * the top or bottom colour, however the cube is held, the last layer and the M slice turned.
+ */
+const lseOriented = (state: CubeState) =>
+  HOLDS.some((hold) => CUBE_AUF.some((auf) => ["", "M", "M2", "M'"].some((m) => {
+    const end = applyAlg(state, `${hold} ${auf} ${m}`);
+    return slotsFor(3).every(({ p, n }, slot) => {
+      const colour = colorOf(end, slot);
+      if ((p[0] !== 0 && p[1] !== 1) || p.every((v) => Math.abs(v) === 1)) return colour === faceOfSlot(slot);
+      return n[1] === 0 || colour === "U" || colour === "D";
+    });
+  })));
 
 /** Each face of one colour: stickers grouped by where they face now. */
 function polyLooksSolved(puzzle: PolyPuzzle, alg: string) {
@@ -65,7 +80,7 @@ test("every catalogue algorithm can be played in 3D and solves its case's setup,
       }
       const size = c.cube_size ?? 3,
         state = applyAlg(applyAlg(solved(size), c.setup), alg);
-      if (!cubeSolves(state, size, goal(c.stage, size))) failures.push(`${c.id}: ${c.setup} | ${alg}`);
+      if (!(c.stage === "LSE" ? lseOriented(state) : cubeSolves(state, size, goal(c.stage, size, c.set)))) failures.push(`${c.id}: ${c.setup} | ${alg}`);
     }
   }
   expect(checked).toBeGreaterThan(1500);

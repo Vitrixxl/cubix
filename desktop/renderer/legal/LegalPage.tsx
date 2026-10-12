@@ -77,7 +77,7 @@ export function LegalPage({ id, initial = "fr" }: { id: DocumentId; initial?: Do
       </main>
       <footer className="border-t">
         <div className="mx-auto flex w-full max-w-3xl items-center px-5 py-6 text-sm">
-          <a href="/timer" className="flex items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground">
+          <a href="/timer?puzzle=333" className="flex items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" />
             {BACK[language]}
           </a>

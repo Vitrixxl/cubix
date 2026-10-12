@@ -117,18 +117,19 @@ Sitemap: ${SITE}/sitemap.xml
 `;
 
 /** The app's public pages (desktop/prerender.tsx) in every language, each naming the others (hreflang). */
-const appPages = (date: string, pages: string[]) =>
+const appPages = (pages: string[]) =>
   pages
     .flatMap((path) => {
       const at = (language: Language) => SITE + (language === "en" ? path : `/${language}${path}`).replace(/&/g, "&amp;");
       const alternates = LANGUAGES.map(({ id }) => `<xhtml:link rel="alternate" hreflang="${id}" href="${at(id)}"/>`).join("");
-      return LANGUAGES.map(({ id }) => `  <url><loc>${at(id)}</loc><lastmod>${date}</lastmod>${alternates}</url>\n`);
+      return LANGUAGES.map(({ id }) => `  <url><loc>${at(id)}</loc>${alternates}</url>\n`);
     })
     .join("");
 
-export const sitemap = (date: string, pages: string[] = []) => `<?xml version="1.0" encoding="UTF-8"?>
+/** No `lastmod`: the build's date on every page, true of none, would teach search engines to ignore it. */
+export const sitemap = (pages: string[] = []) => `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${LANGUAGES.map(({ id }) => `  <url><loc>${SITE}${landingPath(id)}</loc><lastmod>${date}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`).join("")}${LEGAL_DOCUMENTS.map(({ path }) => `  <url><loc>${SITE}${path}</loc><lastmod>${date}</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>\n`).join("")}${appPages(date, pages)}</urlset>
+${LANGUAGES.map(({ id }) => `  <url><loc>${SITE}${landingPath(id)}</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`).join("")}${LEGAL_DOCUMENTS.map(({ path }) => `  <url><loc>${SITE}${path}</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>\n`).join("")}${appPages(pages)}</urlset>
 `;
 
 /** https://llmstxt.org: what the site is, in a few lines, and where to read more. */

@@ -177,6 +177,88 @@
   }
 }
 
+/* The floating surfaces (menus, context menus, selects, popovers): the popover's colour, opaque so the page never shows
+   through, a hairline edge and a shadow warmed by the accent; they scale in briefly, at once when motion is reduced. */
+@layer components {
+  .menu-surface {
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 4px);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--foreground) 5%, transparent),
+      0 2px 6px -2px rgb(0 0 0 / 0.16),
+      0 24px 48px -20px rgb(0 0 0 / 0.5);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .menu-surface {
+      transition: opacity 120ms ease-out, scale 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .menu-surface:is([data-starting-style], [data-ending-style]) {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+  /* A menu's rows, 6px in so their 10px corners follow the surface's 16px: the accent tints the one under the pointer or
+     the keys and lights its icon; the keys add the accent's ring (at least 3:1 on the surface and on the tint). Phones
+     and touch screens get 44px rows. A destructive row turns red when reached, a `primary` row is filled with the accent. */
+  .menu-list {
+    padding: 6px;
+  }
+  .menu-list :is([data-slot$="-item"], [data-slot$="-sub-trigger"]) {
+    min-height: 2.25rem;
+    border-radius: calc(var(--radius) - 2px);
+    font-weight: 500;
+    outline: none;
+    transition: background-color 120ms, color 120ms;
+    > svg {
+      color: var(--muted-foreground);
+    }
+    &:is([data-highlighted], [data-popup-open]) {
+      background: color-mix(in srgb, var(--primary) 14%, transparent);
+      > svg {
+        color: var(--primary);
+      }
+    }
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: -2px;
+    }
+    &[data-checked] {
+      font-weight: 650;
+    }
+    &[data-variant="destructive"] > svg,
+    &[data-variant="destructive"][data-highlighted] > svg {
+      color: var(--destructive);
+    }
+    &[data-variant="destructive"][data-highlighted] {
+      background: color-mix(in srgb, var(--destructive) 12%, transparent);
+      color: var(--destructive);
+    }
+    &[data-variant="primary"] {
+      margin-top: 2px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-weight: 700;
+      > svg {
+        color: currentColor;
+      }
+      &[data-highlighted] {
+        background: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+      }
+      &:focus-visible {
+        outline-offset: 2px;
+      }
+    }
+    @media (pointer: coarse), (width < 43.8125rem) {
+      min-height: 2.75rem;
+    }
+  }
+  .menu-list [data-slot$="-indicator"] svg {
+    color: var(--primary);
+  }
+}
+
 /* The landing page (the site's root) scrolls, unlike the app's screens. */
 html.landing,
 html.landing body,

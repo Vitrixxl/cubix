@@ -457,7 +457,7 @@ export function CaseTile({
             <LearnedMark id={c.id} learned={learned} touch={false} />
           </span>
         )}
-        <span className={cn("min-w-0 truncate font-bold", small ? "text-[11px]" : "text-[13px]")}>{plain ? c.id : shortId(c)}</span>
+        <span className={cn("min-w-0 truncate font-bold", small ? "text-[11px]" : "text-[13px]")}>{plain ? c.id : said(shortId(c))}</span>
       </span>
       {!small && <span className={cn(NUMERIC, "text-[11.5px] leading-none font-semibold", st ? "text-success" : "text-faint")}>{st ? fmtTime(st.best) : "–"}</span>}
       {marks && play && !small && (

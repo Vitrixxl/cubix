@@ -49,7 +49,11 @@ test('the API serves the built web app next to /api, with immutable bundles', as
       expect(shell.status, path).toBe(200);
       expect(await shell.text(), path).toContain('id="root"');
     }
-    for (const path of ['/algorithms/', '/aaaaadmin', '/build/missing.js', '/algorithms/..%2F..%2Findex.html', '/fr/nothing']) {
+    // An app address with a trailing slash moves for good to the one without (go-api/web.go).
+    const slash = await api.handle(new Request('http://localhost/algorithms/', { redirect: 'manual' }));
+    expect(slash.status).toBe(301);
+    expect(slash.headers.get('location')).toBe('/algorithms');
+    for (const path of ['/aaaaadmin', '/build/missing.js', '/algorithms/..%2F..%2Findex.html', '/fr/nothing']) {
       const response = await get(path);
       expect(response.status, path).toBe(404);
       expect(response.headers.get('content-type') ?? '', path).not.toContain('text/html');

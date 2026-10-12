@@ -39,7 +39,7 @@ test("all new drills solve their displayed setup, including random AUF", () => {
       const end = applyAlg(start, compensateAuf(c.algorithms[0].alg, auf));
       expect(end, c.id).toEqual(solved(size));
     }
-    if (c.stage === "Centers") {
+    if (c.group === "Center commutators") {
       const state = applyAlg(solved(size), c.setup);
       const changed = slotsFor(size).flatMap((g, i) => colorOf(state, i) !== g.face ? [g] : []);
       expect(changed, c.id).toHaveLength(3);

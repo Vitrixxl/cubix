@@ -13,7 +13,7 @@ export const CASES: CaseDto[] = sets.flatMap(set => {
   return data.cases.map((c: any) => ({ id:c.id,name:c.name,stage:set.stage,set:set.id,setLabel:set.label,group:c.group,
     ...(c.subgroup ? {subgroup:c.subgroup} : {}), ...(c.probability ? {probability:c.probability} : {}),
     setup:c.setup,setups_alt:c.setups_alt??[],algorithms:c.algorithms.map(({verified, ...alg}: any)=>alg) }));
-}).concat((JSON.parse(readFileSync(resolve('data/algsets.json'), 'utf8')).cases as CaseDto[]).filter(c => !c.cube_size));
+}).concat(...['algsets', 'bld'].map(file => (JSON.parse(readFileSync(resolve(`data/${file}.json`), 'utf8')).cases as CaseDto[]).filter(c => !c.cube_size && !c.puzzle_id)));
 const temporary: string[] = [];
 const children: ChildProcess[] = [];
 afterEach(async () => {
@@ -63,7 +63,7 @@ export function startApi(path: string, settings: Record<string,string> = {}) {
     listen(_options?:unknown){return app},
     async handle(request:Request){
       const url=new URL(request.url);
-      return fetch(origin+url.pathname+url.search, { method:request.method, headers:request.headers,
+      return fetch(origin+url.pathname+url.search, { method:request.method, headers:request.headers, redirect:request.redirect,
         body:['GET','HEAD'].includes(request.method)?undefined:new Uint8Array(await request.arrayBuffer()) });
     },
   };

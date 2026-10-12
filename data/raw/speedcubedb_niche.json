@@ -1,0 +1,8484 @@
+[
+ {
+  "page": "4x4/OLLParity",
+  "name": "Basic",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+    "votes": 38
+   },
+   {
+    "alg": "Rw' U2' Rw U2 Rw U2' Rw2' F2 Rw' U2 Rw' U2' F2 Rw2 F2",
+    "votes": 29
+   },
+   {
+    "alg": "Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2",
+    "votes": 10
+   },
+   {
+    "alg": "Rw2 B2 Rw' U2 Rw' U2 x' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 x",
+    "votes": 7
+   }
+  ]
+ },
+ {
+  "page": "4x4/OLLParity",
+  "name": "Pure",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+    "votes": 30
+   },
+   {
+    "alg": "y2 F R U R' U' F' U Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+    "votes": 14
+   },
+   {
+    "alg": "R' U2 Rw' U2 Rw U2 Rw2 U2 x' U2 Rw' U2 Rw U2 l' U2 Rw U2 Rw R",
+    "votes": 3
+   },
+   {
+    "alg": "R U2 R' U' Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw' F R' F' R",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "4x4/OLLParity",
+  "name": "M",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "M Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw' M'",
+    "votes": 8
+   },
+   {
+    "alg": "y2 2R2 U2 2R2 Uw2 2R2 Uw2 Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+    "votes": 3
+   },
+   {
+    "alg": "M Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2 M'",
+    "votes": 2
+   },
+   {
+    "alg": "M Rw' U2' Rw U2 Rw U2' Rw2' F2 Rw' U2 Rw' U2' F2 Rw2 F2 M'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "OPP Parity",
+  "subgroup": "Edge Swap",
+  "alts": [
+   {
+    "alg": "2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 21
+   },
+   {
+    "alg": "Rw2' F2 U2 Rw2 R2' U2 F2 Rw2",
+    "votes": 16
+   },
+   {
+    "alg": "Uw2 Rw2 U2 2R2 U2 Rw2 Uw2",
+    "votes": 6
+   },
+   {
+    "alg": "2L2 U2 2L2 Uw2 2L2 Uw2",
+    "votes": 5
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Adj Parity",
+  "subgroup": "Edge Swap",
+  "alts": [
+   {
+    "alg": "R' U R U' 2R2 U2' 2R2 Uw2' 2R2 Uw2' U' R' U' R",
+    "votes": 17
+   },
+   {
+    "alg": "R' U R U' Parity Alg (2R2) U' R' U' RR' U R U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R' U' R",
+    "votes": 5
+   },
+   {
+    "alg": "R U R' U' Parity Alg (2R2) U' R U' R'R U R' U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R U' R'",
+    "votes": 4
+   },
+   {
+    "alg": "R U R' U' 2L2 U2 2L2 Uw2 2L2 Uw2 U' R U' R'",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "CwO",
+  "subgroup": "Edge Swap",
+  "alts": [
+   {
+    "alg": "M2 U' M2 U' M' U2 M2 U2 M' Parity Alg (2R2)M2 U' M2 U' M' U2 M2 U2 M' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 5
+   },
+   {
+    "alg": "u2 2R2 u2 2R2 U2 2R2 U R' U' R U' R U R U' R' U R U R2 U' R'",
+    "votes": 2
+   },
+   {
+    "alg": "M2 U M2 U M' U2 M2 U2 M' U 2L2 U2 2L2 Uw2 2L2 Uw2",
+    "votes": 2
+   },
+   {
+    "alg": "M2 U' M2 U' M' U2 M2 U2 M' Uw2' Rw2 U2 Lw2 3Lw2' U2 Rw2 Uw2'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "CcwO",
+  "subgroup": "Edge Swap",
+  "alts": [
+   {
+    "alg": "Uw2 2L2 Uw2 2L2 U2 3Rw' Rw2 R' U2 M2 U2 M' U M2 U M2",
+    "votes": 2
+   },
+   {
+    "alg": "u2 2R2 u2 2R2 U2 2R2 R' U' R U' R U R U' R' U R U R2 U' R'",
+    "votes": 1
+   },
+   {
+    "alg": "M2' U2 M' U M2' U M2' U M' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   },
+   {
+    "alg": "M2 U' M2 U' M' U2 M2 U2 M' U' Parity Alg (2R2)M2 U' M2 U' M' U2 M2 U2 M' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "W",
+  "subgroup": "Edge Swap",
+  "alts": [
+   {
+    "alg": "R' U R' U' R' U' R' U R U Rw2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 3
+   },
+   {
+    "alg": "U' R U' R U R U R U' R' U' R2 Parity Alg (2R2)U' R U' R U R U R U' R' U' R2 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 2
+   },
+   {
+    "alg": "R' U R' U' R' U' R' U R U R2 Uw2' Rw2 U2 Lw2 3Lw2' U2 Rw2 Uw2'",
+    "votes": 1
+   },
+   {
+    "alg": "y' R U' R U R U R U' R' U' R2 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Pj",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 2L2 U2 2L2 Uw2 2L2 Uw2",
+    "votes": 4
+   },
+   {
+    "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' Parity Alg (2R2)R U R' U' R' F R2 U' R' U' R U R' F' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 2
+   },
+   {
+    "alg": "Rw' R2 U' R' U 2R U' R U2 R' U' 2R U 2R' U' Rw' F Rw2 U' Rw' U' Rw U Rw' F'",
+    "votes": 1
+   },
+   {
+    "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Ba",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "Uw2 2L2 Uw2 2L2 U2 2L2 U R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 3
+   },
+   {
+    "alg": "x' Rw2 U2 Rw2 Uw2 2R2 Uw2 F 3Rw U' R U2 L' U R'",
+    "votes": 1
+   },
+   {
+    "alg": "Parity Alg (2R2) U R U R' F' R U R' U' R' F R2 U' R'2R2 U2 2R2 Uw2 2R2 Uw2 U R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "2R2 U2 2R2 u2 2R2 u2 U R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Bb",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "y x Rw2 U2 Rw2 Uw2 2R2 Uw2 B 3Rw' U R' U2 L U' R",
+    "votes": 2
+   },
+   {
+    "alg": "y 2R2 U2 2R2 u2 2R2 u2 R' U L' U2 R U' R' U2 L R",
+    "votes": 1
+   },
+   {
+    "alg": "R U R' U' R' F R2 U' R' Parity Alg (2R2) U R U R' F'R U R' U' R' F R2 U' R' 2R2 U2 2R2 Uw2 2R2 Uw2 U R U R' F'",
+    "votes": 0
+   },
+   {
+    "alg": "y' 2R2 U2 2R2 u2 2R2 u2 L' U R' U2 L U' L' U2 L R U",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Ca",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "y2 Uw2 2R2 Uw2 2R2 U2 Rw2 F R U R U' R' F' R U2 R' U2 R",
+    "votes": 2
+   },
+   {
+    "alg": "Parity Alg (2R2) U R' U2 R U2 R' F R U R' U' R' F' R22R2 U2 2R2 Uw2 2R2 Uw2 U R' U2 R U2 R' F R U R' U' R' F' R2",
+    "votes": 1
+   },
+   {
+    "alg": "U2 2R2 U2 2R2 u2 2R2 u2 R2 F R U R U' R' F' R U2 R' U2 R U",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Cb",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "y R' U2 R U2 R' F R U R' U' R' F' Rw2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 2
+   },
+   {
+    "alg": "Parity Alg (2R2) R U R' F' R U2 R' U2 R' F R U R U2 R'2R2 U2 2R2 Uw2 2R2 Uw2 R U R' F' R U2 R' U2 R' F R U R U2 R'",
+    "votes": 1
+   },
+   {
+    "alg": "2R2 U2 2R2 u2 2R2 u2 R U' R' U' R U R D R' U' R D' R' U2 R'",
+    "votes": 1
+   },
+   {
+    "alg": "y2 u2 2R2 u2 2R2 U2 2R2 U2 R U' R' U' R U R D R' U' R D' R' U2 R' U2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Da",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "R' U L' U2 R U' 3Rw B Rw2 U2 Rw2 Uw2 2R2 Uw2 x'",
+    "votes": 2
+   },
+   {
+    "alg": "y2 L' U R' U2 L U' L' U2 L R U' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   },
+   {
+    "alg": "y F R U' R' U' 2R2 U2 2R2 u2 2R2 u2 R U R2 F' R U R U' R' U2",
+    "votes": 1
+   },
+   {
+    "alg": "R' U L' U2 R U' R' U2 R L U' Parity Alg (2R2)R' U L' U2 R U' R' U2 R L U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Db",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R' u2 2R2 u2 2R2 U2 2R2",
+    "votes": 1
+   },
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R' Parity Alg (2R2)R U R' F' R U R' U' R' F R2 U' R' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   },
+   {
+    "alg": "y R U' L U2 R' U 3Rw' F Rw2 U2 Rw2 Uw2 2R2 Uw2 x",
+    "votes": 1
+   },
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Ka",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "y 3Lw' U R' D2 R U' R' D2 x' Rw2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   },
+   {
+    "alg": "Parity Alg (2R2) x R2 D2 R U R' D2 R U' R x'2R2 U2 2R2 Uw2 2R2 Uw2 x R2 D2 R U R' D2 R U' R x'",
+    "votes": 0
+   },
+   {
+    "alg": "2R2 U2 2R2 u2 2R2 u2 y x' R U' R D2 R' U R D2 R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Kb",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "r2 F2 U2 r2 R2 U2 x R' D' R U2 R' D R r2 x' U'",
+    "votes": 1
+   },
+   {
+    "alg": "y' 3Rw U' L D2 L' U L D2 x' Lw2 U2 2L2 Uw2 2L2 Uw2",
+    "votes": 1
+   },
+   {
+    "alg": "Parity Alg (2R2) U x R' U R' D2 R U' R' D2 R2 x'2R2 U2 2R2 Uw2 2R2 Uw2 U x R' U R' D2 R U' R' D2 R2 x'",
+    "votes": 0
+   },
+   {
+    "alg": "y' 2R2 U2 2R2 u2 2R2 u2 x' R U' R D2 R' U R D2 R2 F'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "M",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "y2 Rw2 F2 U2 2R2 U R' U' R U R' D R D' R F2 U Rw2",
+    "votes": 3
+   },
+   {
+    "alg": "R U R' U' R' F R2 U' R' U' R U R' F' Parity Alg (2R2)R U R' U' R' F R2 U' R' U' R U R' F' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Pa",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R' U' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 2
+   },
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R' U' Parity Alg (2R2)R U R' F' R U R' U' R' F R2 U' R' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   },
+   {
+    "alg": "y R U' L U2 R' U 3Rw' Rw2 U2 Rw2 Uw2 2R2 Uw2 x",
+    "votes": 1
+   },
+   {
+    "alg": "y2 U2 R U R' F' R U R' U' R' F R2 U' R' U' Parity Alg (2R2)y2 U2 R U R' F' R U R' U' R' F R2 U' R' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Pb",
+  "subgroup": "Adj Corner Swap",
+  "alts": [
+   {
+    "alg": "2R2 U2 2R2 u2 2R2 u2 R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 2
+   },
+   {
+    "alg": "Parity Alg (2R2) R U R' F' R U R' U' R' F R2 U' R'2R2 U2 2R2 Uw2 2R2 Uw2 R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 1
+   },
+   {
+    "alg": "y R' U L' U2 R U' 3Rw Rw2 U2 Rw2 Uw2 2R2 Uw2 x'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Diag C",
+  "subgroup": "Diag Corner Swap",
+  "alts": [
+   {
+    "alg": "F R U' R' U' R U R' F' U' 2R2 U2 2R2 u2 2R2 u2 U' R U R' U' R' F R F'",
+    "votes": 7
+   },
+   {
+    "alg": "2R U 2R' U' Rw' F Rw2 U' Rw' U' Rw U Rw' F' R U R' U' Rw' D' Rw U2 Rw' D Rw",
+    "votes": 2
+   },
+   {
+    "alg": "F R U' R' U' R U R' F' U' Parity Alg (2R2) U' R U R' U' R' F R F'F R U' R' U' R U R' F' U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R U R' U' R' F R F'",
+    "votes": 1
+   },
+   {
+    "alg": "F R U' R' U' R U R' F' U' 2L2 U2 2L2 Uw2 2L2 Uw2 U' R U R' U' R' F R F'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Q",
+  "subgroup": "Diag Corner Swap",
+  "alts": [
+   {
+    "alg": "z Rw2 Uw2' R2' Uw2' F R U R' U' R U R' U' R U R' U' F' U2' R2 Uw2' Rw2' z'",
+    "votes": 3
+   },
+   {
+    "alg": "y x' R U' R' D R U R' D' R U R' D R U' R' D' x U' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 0
+   },
+   {
+    "alg": "x' R U' R' D R U R' D' R U R' D R U' R' D' x U Parity Alg (2R2)x' R U' R' D R U R' D' R U R' D R U' R' D' x U 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 0
+   },
+   {
+    "alg": "z Rw2 Uw2 R2 Uw2 F R U R' U' R U R' U' R U R' U' F' U2 R2 Uw2 Rw2 z'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Sa",
+  "subgroup": "Diag Corner Swap",
+  "alts": [
+   {
+    "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' U' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   },
+   {
+    "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' U' Parity Alg (2R2)F R U' R' U' R U R' F' R U R' U' R' F R F' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "Sb",
+  "subgroup": "Diag Corner Swap",
+  "alts": [
+   {
+    "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 1
+   },
+   {
+    "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' Parity Alg (2R2)F R U' R' U' R U R' F' R U R' U' R' F R F' 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "4x4/PLLParity",
+  "name": "X",
+  "subgroup": "Diag Corner Swap",
+  "alts": [
+   {
+    "alg": "Rw2 F2 U2 Rw2 F' U' R' U R U' R' U R U' R' U R F R2 U2 F2 Rw2",
+    "votes": 2
+   },
+   {
+    "alg": "r2 B2 U2 r2 B R U R' U' R U R' U' R U R' U' B' R2 U2 B2 r2",
+    "votes": 1
+   },
+   {
+    "alg": "x' R U' R' D R U R' D' R U R' D R U' R' D' x 2R2 U2 2R2 u2 2R2 u2",
+    "votes": 0
+   },
+   {
+    "alg": "x' R U' R' D R U R' D' R U R' D R U' R' D' x Parity Alg (2R2)x' R U' R' D R U R' D' R U R' D R U' R' D' x 2R2 U2 2R2 Uw2 2R2 Uw2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 Rw U Rw' U Rw U2 Rw'",
+    "votes": 9
+   },
+   {
+    "alg": "Rw U2 Rw' U' Rw U' Rw'",
+    "votes": 3
+   },
+   {
+    "alg": "U2 r U r' U r U2 r'",
+    "votes": 3
+   },
+   {
+    "alg": "U Rw U' Lw' U Rw' U' Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U M' U2 M U Rw'",
+    "votes": 6
+   },
+   {
+    "alg": "Rw U' Rw' U2 Rw U2 Rw' U Rw U2 Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "U Rw U Rw' U' Rw U Rw' U Rw U2' Rw'",
+    "votes": 0
+   },
+   {
+    "alg": "U2 Rw U' M' U Rw' U' M",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw'",
+    "votes": 4
+   },
+   {
+    "alg": "r U r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U' Rw U' Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "U' r U r' U r U' r'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw' U' Rw U' Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "U 3Rw U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 6",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw' U Rw U2 Rw'",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 7",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw'",
+    "votes": 1
+   },
+   {
+    "alg": "r U' r'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 8",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw' U Rw U Rw'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 9",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U Rw U Rw'",
+    "votes": 1
+   },
+   {
+    "alg": "U' 3Rw U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 10",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw' U' Rw U2 Rw'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 11",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 Rw U Rw' U' Rw U Rw' U' Rw U Rw' U'",
+    "votes": 4
+   },
+   {
+    "alg": "Rw U M' U2 M U' Rw'",
+    "votes": 3
+   },
+   {
+    "alg": "U2 Rw U' Rw' U Rw U' Rw' U Rw U' Rw'",
+    "votes": 1
+   },
+   {
+    "alg": "U Rw U' Rw' U' Rw U' Rw' U Rw U2 Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 12",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw' U2 Rw U' Rw'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 13",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 14",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U' Rw U2 Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 15",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U Rw U2 Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "Rw U' Rw' U Rw U2 Rw'",
+    "votes": 1
+   },
+   {
+    "alg": "U' F r U' r' U' r U2 r'",
+    "votes": 1
+   },
+   {
+    "alg": "U' Rw U' Lw' U Rw' U' Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 16",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw' U Rw U' Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "U2 Rw U Lw' U Rw' U' Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 17",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U' Rw U Rw'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2C",
+  "name": "L2C 18",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "M' U2 M U Rw U2 Rw'",
+    "votes": 3
+   },
+   {
+    "alg": "r U2 r' U2 r U' r'",
+    "votes": 1
+   },
+   {
+    "alg": "U2 r U2 r' U2 r U r'",
+    "votes": 1
+   },
+   {
+    "alg": "U' Rw U' M' U' Rw' U M",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw' U' R' U R' F R F' Rw",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Lw U' R' U R' F R F' Lw'",
+    "votes": 1
+   },
+   {
+    "alg": "z y Uw F' D' F D' L D L' Uw' y' z'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "x' M' U' R' U R' F R F' M x",
+    "votes": 9
+   },
+   {
+    "alg": "r' l U' R' U R' F R F' r l'",
+    "votes": 2
+   },
+   {
+    "alg": "x' z' E' L' U' L U' F U F' E z x",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw2 F2 U2 Rw2 U2 F2 Rw2",
+    "votes": 6
+   },
+   {
+    "alg": "Rw2 F2 U2 r2 U2 F2 Rw2",
+    "votes": 1
+   },
+   {
+    "alg": "z' y' Uw2' R2 F2 Uw2' F2 R2' Uw2'",
+    "votes": 1
+   },
+   {
+    "alg": "y x' Uw2 L2 F2 Uw2 F2 L2 Uw2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw2 B2 Rw' U2 Rw' U2' x' U2 Rw' U2' Rw U2 Rw' U2' Rw2 U2 x",
+    "votes": 2
+   },
+   {
+    "alg": "r2 B2 r' U2 r' U2 x' U2 r' U2 r U2 r' U2 r2 U2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 6",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw' U2 3Rw U2 3Rw' F2 Rw2 U2 Rw U2 Rw' U2 F2 Rw2 F2",
+    "votes": 13
+   },
+   {
+    "alg": "Rw U2 x Rw U2 Rw U2 3Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+    "votes": 6
+   },
+   {
+    "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 3Rw' U2 Rw U2 Rw' U2 Rw'",
+    "votes": 4
+   },
+   {
+    "alg": "Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 7",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "y2 Rw U2 Rw U2' x U2 Rw U2' 3Rw' U2 Lw U2' Rw2",
+    "votes": 6
+   },
+   {
+    "alg": "Lw' U2 Lw' U2 F2 Lw' F2 Rw U2 Rw' U2 Lw2",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 8",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Lw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Lw2 U2 F2 Lw' F2",
+    "votes": 2
+   },
+   {
+    "alg": "l2 F2 U2 r U2 r2 F2 r U2 l2 U2 F2 l' F2",
+    "votes": 0
+   },
+   {
+    "alg": "F2 Rw U2 Rw U2' Rw' F2 Rw' U2 Rw' U2' Rw U2 Rw' U2' Rw2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 9",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "B2 Rw' U2 Rw' U2' Rw B2 Rw U2 Rw U2' Rw' U2 Rw U2' Rw2",
+    "votes": 1
+   },
+   {
+    "alg": "r2 F2 U2 r U2 r2 F2 r U2 r2 U2 F2 r F2",
+    "votes": 0
+   },
+   {
+    "alg": "x' U2 Rw U2 Rw U2' Rw' F2 Rw' U2 Rw' U2' Rw U2 Rw' U2' Rw2 U2 F2 U2 F2 x",
+    "votes": -2
+   },
+   {
+    "alg": "Rw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Rw2 U2 F2 Rw F2",
+    "votes": -6
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 10",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 Rw2 U2 Rw'",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 11",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 Rw",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 12",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw' U2 Rw U2 3Lw' U2 Rw U2 Rw U2' Rw' U2 Rw U2' Rw2 D2 F2 U2 D2",
+    "votes": 2
+   },
+   {
+    "alg": "Rw' U2 Rw' U2 B2 Rw' B2 Rw' F2 Lw2 F2 Rw U2 Rw2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "5x5/L2E",
+  "name": "L2E 13",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U R U' Rw2 U' R U Rw2 U R U' Rw'",
+    "votes": 2
+   },
+   {
+    "alg": "r U R' U' r2 U' R' U r2 U R' U' r'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Inner Center",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3L' U 3R U' 3L U 3R'",
+    "votes": 3
+   },
+   {
+    "alg": "3L' U 3R U' 3L U 3R' U'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Outer center",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U F Rw U' 3L' U Rw' U' 3L",
+    "votes": 4
+   },
+   {
+    "alg": "3L' U 2R U' 3L U 2R'",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Front 3 Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U 3R U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Back 3 Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U' 3R U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and Split",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U' Rw' U' 3R U Rw U' Rw' U Rw U' 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair And Split",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U Rw' U 3R U' Rw U Rw' U' Rw U 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Two Splits",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U Lw' 3R U Rw' U' Lw 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Two Pairs",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U 3Lw' U Rw' U' 3Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Split and a Pair",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U2 Rw U' 3Lw' U Rw' U' 3Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Split and a bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U Rw' U2 Rw U 3R U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Split and a bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U' Rw' U2 Rw U' 3R U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 Rw U Rw' U2 Rw U' 3R U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 Rw U' Rw' U2 Rw U 3R U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Split and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U Rw' U Rw 3L' U' Rw' U 3L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Split and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U' Rw' U' Rw 3L' U Rw' U' 3L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U Rw' U 3Rw U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U' Rw' U' 3Rw U Rw' U' 3R'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Stray Obliques",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3Rw U' Rw' U' Rw U2 3Rw' U Rw U Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a Nice 3 Ba",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3R U' Rw U 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "L and a Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3R U' Rw U 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "L and a Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' 3Rw U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 3Lw' U' Lw U 3L U Rw U Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and a bad Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U 3Lw' U Lw U' 3L U' Rw U' Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Bar and Scatter",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw' 3L F' Rw F 3L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Bar and Scatter",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' 3L F Rw' F' 3L' Rw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Front 3 Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' 3R U Rw U' Rw' U Rw U' 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Right 3 Bar",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3R U' Rw U Rw' U' Rw U 3Rw'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Two Pairs",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 3Lw' U Rw' U' 3Lw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Kite",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw' U Rw 3L' U' Rw' U 3L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Triangle",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U2 Rw U' Rw' U2 3Rw U Rw' U' 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Triangle",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U Rw U Rw' U2 3Rw U' Rw' U 3R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and Shape",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "U' Rw U2 Rw' U' 3R' F Rw' F' 3Rw",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2C",
+  "name": "Pair and Shape",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "Rw U2 Rw' U 3R' F' Rw' F 3Rw",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2E",
+  "name": "Wing Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+    "votes": 3
+   },
+   {
+    "alg": "2R2 B2 U2 2L U2 2R' U2 2R U2 F2 2R F2 2L' B2 2R2",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2E",
+  "name": "Middle Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3R' U2 3L F2 3L' F2 3R2 U2 3R U2 3R' U2 F2 3R2 F2",
+    "votes": 3
+   },
+   {
+    "alg": "3R2 B2 U2 3L U2 3R' U2 3R U2 F2 3R F2 3L' B2 3R2",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "6x6/6x6L2E",
+  "name": "Swap single piece",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "3L' U2 3L' U2 F2 3L' F2 3R U2 3R' U2 3L2",
+    "votes": 4
+   },
+   {
+    "alg": "3L' U2 3L' U2 3L' 3R U2 3L' U2 3L U2 3R' U2 3L2",
+    "votes": 1
+   },
+   {
+    "alg": "U2 3R U2 3R U2 F2 3R F2 3L' U2 3L U2 3R2 U2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Kite",
+  "subgroup": "1 Slice",
+  "alts": [
+   {
+    "alg": "/",
+    "votes": 19
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Right fist",
+  "subgroup": "2 Slices",
+  "alts": [
+   {
+    "alg": "/3,0/-1,1",
+    "votes": 1
+   },
+   {
+    "alg": "/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Left fist",
+  "subgroup": "2 Slices",
+  "alts": [
+   {
+    "alg": "/3,0/",
+    "votes": 0
+   },
+   {
+    "alg": "/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Barrel",
+  "subgroup": "2 Slices",
+  "alts": [
+   {
+    "alg": "/3,3/",
+    "votes": 1
+   },
+   {
+    "alg": "/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Square",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/3,0/",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Muffin",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Square",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Shield",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Left paw",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-4,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Right paw",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-1,4/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Muffin",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Shield",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Scallop",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/1,2/-3,-3/",
+    "votes": 0
+   },
+   {
+    "alg": "/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Kite",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-3,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Barrel",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/0,3/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Kite",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Scallop",
+  "subgroup": "3 Slices",
+  "alts": [
+   {
+    "alg": "/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Star / 6-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,4/-4,1/0,3/",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "6-2 / Star",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-4,-2/-1,4/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Star / 8",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-4,-2/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "8 / Star",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,4/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Star / 4-4",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,-2/1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "4-4 / Star",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,2/0,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left 4-2 / Parallel Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / Left 4-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 4-2 / Parallel Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,-3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / Right 4-2 ",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/2,-3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 5-1 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-4/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / Right 5-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-4,0/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left 5-1 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/1,2/0,3/-1,1",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / Left 5-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "4-1-1 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 4-1-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-2-1 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 3-2-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-1-2 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-1,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 3-1-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-3 / Perpendicular Edges",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/-1,4/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 3-3",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/-5,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 5-1 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/3,-2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / Right 5-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left 5-1 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-3,2/-2,-1/0,-3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / Left 5-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,3/-2,-1/-3,0 /-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "4-1-1 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/4,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 4-1-1",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-4,0/4,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "2-2-2 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/0,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 2-2-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/-1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left 4-2 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / Left 4-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/2,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 4-2 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / Right 4-2",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "6 / Pair",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 6",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-4,0/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Left paw",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-4/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Right fist",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Right paw",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Left fist",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Right paw",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/-1,2/2,2/0,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Shield",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/3,0/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Muffin",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-3/2,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Barrel",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/-1,0/-3,-3/",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Scallop",
+  "subgroup": "4 Slices",
+  "alts": [
+   {
+    "alg": "/0,-4/0,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Square",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "0,-1/1,0/-2,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "1,0/0,-1/0,2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Square",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,-3/-2,0/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,-2/0,2/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Square",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/-4,0/1,2/3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/0,4/-2,-1/0,-3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "4-1-1 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,-2/0,4/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 4-1-1",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,3/4,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "6 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/2,4/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 6",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/2,4/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-2-1 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/2,-3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 3-2-1",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,-2/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-1-2 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 3-1-2",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-3 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,1/-2,0/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 3-3",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,-2/0,-2/-1,-2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left 5-1 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,0/0,-4/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / Left 5-1",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-4,1/0,-4/0,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 5-1 / Parallel Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,0/0,4/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / Right 5-1",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,3/4,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 4-2 / Perpendicular Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-4,3/-3,2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / Right 4-2",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-4,3/-3,2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right 4-2 / Perpendicular Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,4/-2,3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / Left 4-2",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-3/-4,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "6 / Perpendicular Edges",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,-4/-2,3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 6",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,-2/2,-3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-2-1 / Pair",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,5/-3,2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 3-2-1",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-5,0/-2,3/2,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-1-2 / Pair",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-5/-3,4/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 3-1-2",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "0,2/-2,2/0,-4/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "3-3 / Pair",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/3,0/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Pair / 3-3",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/0,-3/2,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/-2,-2/-1,-2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/0,-4/5,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Left fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/4,0/2,-5/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Right fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Muffin",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/2,0/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/0,2/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Muffin",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/-2,0/2,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/0,2/-1,-2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/2,-3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/3,-2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/-2,3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/-3,2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,-2/0,2/-5,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Right fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,-2/0,2/-5,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/0,2/-5,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Left fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/-2,0/-2,5/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/-3,4/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Muffin",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/-4,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/0,-4/-1,4/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Left fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/4,0/-4,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/0,4/1,-4/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Right fist",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/-4,0/4,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/-3,2/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,-3/-2,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-3,-2/3,-2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,3/2,-3/2,1/3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Scallop",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/0,-4/-1,-2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Scallop / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/4,0/2,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Barrel",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,-1/-4,3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,-2/-3,4/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Barrel",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/2,-1/3,-4/1,2/0,3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,-2/4,-3/-2,-1/-3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Barrel",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/2,0/-1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/0,-2/0,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left paw / Kite",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/2,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Left paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/1,0/-1,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Shield / Kite",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/-1,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Shield",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/2,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right paw / Kite",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/2,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Right paw",
+  "subgroup": "5 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/0,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Square",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-4,0/1,2/-2,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Left fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/-2,-1/0,2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Square",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "0,-1/0,1/4,0/-2,-1/2,0/-1,-2/-3,0/",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Right fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "1,0/-1,0/0,-4/1,2/0,-2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Square",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,2/-2,-1/2,2/-1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Barrel",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,2/-1,2/2,2/0,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Star / 7-1",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/-2,-1/-3,2/-1,-2/0,-3/",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "7-1 / Star",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "1,0/0,-2/-1,-2/ 2,-3/-2,-1/-3,0/-1,1",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Star / 5-3",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "0,3/-4,0/-2,-1/-3,2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "5-3 / Star",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,4/1,2/-2,3/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "2-2-2 / Parallel Edges",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/6,-3/2,0/2,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Parallel Edges / 2-2-2",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,3/2,0/2,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "2-2-2 / Perpendicular Edges",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/2,0/0,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Perpendicular Edges / 2-2-2",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,-1/0,2/2,1/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Left fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/0,2/0,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Right fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/-2,0/2,0/-1,0/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Muffin",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/-2,-1/2,0/-1,4/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Right fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,-4/1,2/0,-2/-4,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Muffin",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/4,0/0,-1/2,0/-1,4/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Left fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,-4/1,0/0,-2/-4,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Barrel",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/-1,0/2,0/1,2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Right fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/0,1/0,-2/-2,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Barrel",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,0/1,0/-2,0/-1,-2/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Left fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,-2/0,-1/0,2/2,1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Barrel",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,3/2,0/-2,0/1,0/3,0/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Barrel / Muffin",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-3,-2/0,-2/0,2/0,-1/0,-3/-1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Left fist / Kite",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/0,-1/2,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Left fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/1,0/0,-2/-1,-2/0,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Right fist / Kite",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/-2,0/0,-1/2,0/-1,-2/-3,0/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Right fist",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/0,2/1,0/0,-2/2,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Muffin / Kite",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/2,3/-2,0/2,0/-1,0/-3,-3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Muffin",
+  "subgroup": "6 Slices",
+  "alts": [
+   {
+    "alg": "/3,2/0,-2/0,2/0,-1/3,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Kite / Square",
+  "subgroup": "7 Slices",
+  "alts": [
+   {
+    "alg": "/-1,0/2,0/-2,0/2,0/-1,0/-3,0/",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Kite",
+  "subgroup": "7 Slices",
+  "alts": [
+   {
+    "alg": "/0,1/0,-2/0,2/0,-2/0,1/0,3/",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CS",
+  "name": "Square / Square",
+  "subgroup": "Solved",
+  "alts": []
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "2-2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,0",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "3-1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,0 / -1,0",
+    "votes": 1
+   },
+   {
+    "alg": "1,0 / -3,0 / -1,0",
+    "votes": 0
+   },
+   {
+    "alg": "1,0 / 0,3 / -1,0",
+    "votes": 0
+   },
+   {
+    "alg": "1,0 / 0,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "Opp / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,3 / -1,0",
+    "votes": 1
+   },
+   {
+    "alg": "1,0 / -3,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "Adj / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / 0,3 / -1,0",
+    "votes": 0
+   },
+   {
+    "alg": "1,0 / 0,-3 / 0,-3 / 1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "Opp / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -3,0 / -3,0 / -1,0",
+    "votes": 1
+   },
+   {
+    "alg": "1,0 / 3,0 / 3,0 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "1-3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,6 / -1,0",
+    "votes": 1
+   },
+   {
+    "alg": "1,0 / -3,6 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CO",
+  "name": "0-4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 6,6 / -1,1",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "1-1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,0 / 3,0 / -1,-1 / -2,1 / -3,0 / -1,0",
+    "votes": 5
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "I-I",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / 0,1",
+    "votes": 0
+   },
+   {
+    "alg": "0,-1 / 1,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "L-L",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -4,-1 / 1,1 / 3,0 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "L-I",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,0 / 3,0 / -1,-1 / -2,1 / -4,-1 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "3-3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,0 / 3,0 / -1,-1 / -3,0 / -3,0 / 0,1",
+    "votes": 0
+   },
+   {
+    "alg": "0,-1 / 3,0 / 3,0 / 1,1 / -3,0 / -3,0 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "4-4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / -2,4 / -1,-1 / 1,0",
+    "votes": 1
+   },
+   {
+    "alg": "1,0 / -1,-1 / 3,3 / 1,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EO",
+  "name": "I-L",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -3,0 / 3,0 / -1,-1 / -3,0 / 3,0 / 0,1",
+    "votes": -1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Adj / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,3 / 3,0 / 0,-3 / 0,3 / 0,-3 /",
+    "votes": 6
+   },
+   {
+    "alg": "/ 3,-3 / -3,0 / 0,3 / 0,-3 / 0,3 /",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Opp / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,3 / -3,0 / 3,3 / -3,0 / 3,3 /",
+    "votes": 1
+   },
+   {
+    "alg": "/ -3,-3 / 3,0 / -3,-3 / 3,0 / -3,-3 /",
+    "votes": 0
+   },
+   {
+    "alg": "/ -3,-3 / -3,0 / -3,-3 / -3,0 / -3,-3 /",
+    "votes": 0
+   },
+   {
+    "alg": "/ 3,3 / -3,0 / 3,3 / -3,0 / 3,3 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Solved / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,3 / 0,-3 / 3,0 / -3,0 / 3,0 /",
+    "votes": 1
+   },
+   {
+    "alg": "/ 3,-3 / 0,3 / -3,0 / 3,0 / -3,0 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Solved / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,3 / 0,3 / 3,3 / 0,3 / 3,3 /",
+    "votes": 2
+   },
+   {
+    "alg": "/ -3,-3 / 0,-3 / -3,-3 / 0,-3 / -3,-3 /",
+    "votes": 0
+   },
+   {
+    "alg": "/ 3,3 / 0,-3 / 3,3 / 0,-3 / 3,3 /",
+    "votes": 0
+   },
+   {
+    "alg": "/ -3,-3 / 0,3 / -3,-3 / 0,3 / -3,-3 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Adj / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,0 / 3,3 / 0,-3 /",
+    "votes": 3
+   },
+   {
+    "alg": "/ 0,-3 / 3,3 / -3,0 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Opp / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,0 / -3,0 / 3,0 / -3,0 /",
+    "votes": 1
+   },
+   {
+    "alg": "/ -3,0 / 3,0 / -3,0 / 3,0 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Adj / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 0,-3 / 0,3 / 0,-3 / 0,3 /",
+    "votes": 2
+   },
+   {
+    "alg": "/ 0,3 / 0,-3 / 0,3 / 0,-3 /",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1CP",
+  "name": "Opp / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,3 / 3,-3 /",
+    "votes": 2
+   },
+   {
+    "alg": "/ 3,-3 / -3,3 /",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Adj / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "-2,0 / 0,3 / -1,-1 / 1,-2 / 2,0",
+    "votes": 2
+   },
+   {
+    "alg": "1,0 / 3,0 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Adj / O+",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 3,0 / -3,0 / 1,-2 / -4,-1 / 1,-2 / -1,2 / 3,3 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Adj / O-",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -3,0 / 3,0 / -1,2 / 4,1 / -1,2 / 1,-2 / -3,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Adj / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,0 / -3,0 / 0,-1 / 6,0 / 1,0 / 3,0 / 0,1 / 5,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Adj / W",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-1 / 0,3 / 0,-3 / 1,1 / 0,-3/ -1,0",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "H / H",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 5,-1 / -2,-2 / -1,-1 / -2,4 / -1,0",
+    "votes": 1
+   },
+   {
+    "alg": "/ 3,-3 / -3,3 / 1,-1 / 3,-3 / -3,3 / -1,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "H / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,-3 / 3,-3 / 0,1 / -3,3 / -3,3 / -1,0",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "H / Ua",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 0,-3 / 4,1 / -1,-4 / -5,1 / -1,-4 / 4,1 / 0,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "H / Ub",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -4,-1 / 1,4 / 5,-1 / 1,4 / -4,-1 / 0,3 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "H / Z",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / 0,3 / 1,1 / 0,3 / 3,-3 / -1,-1 / -3,3 / 0,1",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O+ / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1/-3,0/1,1/2,-1/1,4/5,-1/-2,1/-1,-1/-2,1/-1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O+ / O+",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/5,-1/-3,0/1,1/-4,2/1,1/0,-3/-1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O+ / O-",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/-1,-1/-3,0/1,1/-3,-3/-1,-1/1,4/-1,-1/0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O+ / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/-1,-1/-3,0/1,1/-3,0/-1,-1/0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O+ / W",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 2,-4 / 0,3 / 1,4 / 0,3 / 3,-3 / -4,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O- / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/0,3/-1,-1/1,-2/0,3/2,-1/1,1/2,-1/-5,1/-1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O- / O+",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/-1,-1/3,0/1,1/3,3/-1,-1/1,-2/-1,-1/0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O- / O-",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/0,3/-1,-1/4,-2/-1,-1/3,0/-5,1/-1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O- / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/-1,-1/3,0/1,1/3,0/-1,-1/0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "O- / W",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,-3 / 0,3 / -1,-1 / 1,-2 / 3,0 / 5,-1 / -2,1 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Opp / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 0,-3 / 0,3 / 1,-2 / -1,-1 / 0,3 / 0,-3 / 0,3 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Opp / O+",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / 1,-2 / -1,-1 / 1,-2 / -1,-1 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Opp / O-",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / 1,4 / -1,-1 / 1,4 / -1,-1 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Opp / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / -5,1 / -1,-1 / 0,1",
+    "votes": 0
+   },
+   {
+    "alg": "1,0 / 5,-1 / -5,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Opp / W",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0/-1,2/-5,1/3,0/0,-3/-4,-1/0,3/-5,1/-1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Solved / H",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,-3 / 3,-3 / -1,0 / -3,3 / -3,3 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Solved / Ua",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 3,0 / 0,1 / 0,-3 / 0,-1 / -3,0 / 0,1 / 0,3 /",
+    "votes": -1
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Solved / Ub",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 0,-3 / 0,-1 / 3,0 / 0,1 / 0,3 / 0,-1 / -3,0 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Solved / Z",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 1,1 / 0,3 / -1,-1 / 0,-3 / 1,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ua / H",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-4 / 1,4 / 5,-1 / 4,1 / -1,-4 / 3,0 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ua / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -3,0 / -1,0 / 0,3 / 1,0 / 3,0 / -1,0 / 0,-3 /",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ua / Ua",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,0 / -1,-1 / 3,0 / -5,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ua / Ub",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 5,-1 / -5,1 / 3,0 / 0,3 / -1,-1 / 1,-2 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ua / Z",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-1 / 1,-2 / 3,0 / 3,0 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ub / H",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / -3,0 / 1,4 / -4,-1 / -5,1 / -1,-4 / 1,4 / 0,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ub / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 0,3 / 1,0 / -3,0 / -1,0 / 0,-3 / 1,0 / 3,0 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ub / Ua",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "-2,0 / 3,0 / -1,-1 / 3,0 / -2,1 / -1,-1 / 3,0 / -5,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ub / Ub",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 5,-1 / -2,1 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Ub / Z",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-1 / 1,-2 / -3,0 / 3,0 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "W / Adj",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 2,-1 / 1,1 / 2,-1 / -2,1 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "W / O+",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 2,-4 / 0,3 / 4,1 / 0,3 / 3,-3 / -1,-4 / 1,-2 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "W / O-",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / -2,4 / 0,-3 / -4,-1 / 0,-3 / -3,3 / 1,4 / -1,2 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "W / Opp",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 5,-1 / -3,0 / 4,1 / 3,0 / -3,0 / 5,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "W / W",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 5,-1 / -3,0 / 1,1 / 0,-3 / -1,-1 / -2,4 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Z / H",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 3,3 / 2,-1 / -3,3 / 4,-2 / 3,0 / -3,-3 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Z / Solved",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / -1,-1 / -3,0 / 1,1 / 3,0 / -1,-1 / 0,1",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Z / Ua",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-1 / 1,-2 / 0,3 / 3,0 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Z / Ub",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "1,0 / 0,3 / -1,-1 / 1,-2 / 0,-3 / 3,0 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1EP",
+  "name": "Z / Z",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "-2,0 / 0,3 / -1,-1 / 4,-2 / -1,-1 / -2,1 / -1,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1Parity",
+  "name": "Adj Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,0 / 0,3 / 0,-3 / 0,3 / 2,0 / 0,2 / -2,0 / 4,0 / 0,-2 / 0,2 / -1,4 / 0,-3 / 0,3",
+    "votes": 14
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1Parity",
+  "name": "Opp Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ 3,3 / -1,0 / 2,-4 / 4,-2 / 0,-2 / -4,2 / 1,-5 / 3,0 / 3,3 / 3,0",
+    "votes": 5
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1Parity",
+  "name": "O+ Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / -2,-2 / 2,0 / -3,-3 / 0,1 / -2,-2 / 0,-2 / 2,2 / 0,-1 / 3,3 / 3,3",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1Parity",
+  "name": "O- Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "/ -3,-3 / 0,1 / -2,-2 / 0,2 / 2,2 / 0,-1 / 3,3 / -2,0 / 2,2 / -3,-2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "SQ1/SQ1Parity",
+  "name": "W Parity",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "0,-1 / 1,-2 / -4,0 / 0,3 / 1,0 / 3,-2 / -4,0 / -4,0 / -2,2 / -1,0 / 0,-3 / -3,0",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Sune",
+  "subgroup": "Last Layer",
+  "alts": [
+   {
+    "alg": "R U R' U R U R'",
+    "votes": 2
+   },
+   {
+    "alg": "L U L' U L U L'",
+    "votes": 0
+   },
+   {
+    "alg": "L' U L U L' U L",
+    "votes": -4
+   },
+   {
+    "alg": "R' U R U R' U R",
+    "votes": -11
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "AntiSune",
+  "subgroup": "Last Layer",
+  "alts": [
+   {
+    "alg": "R U' R' U' R U' R'",
+    "votes": 2
+   },
+   {
+    "alg": "L' U' L U' L' U' L",
+    "votes": 1
+   },
+   {
+    "alg": "L U' L' U' L U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' R U' R' U' R",
+    "votes": -2
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Lefty Bars",
+  "subgroup": "Last Layer",
+  "alts": [
+   {
+    "alg": "R' U' L' U L R",
+    "votes": 8
+   },
+   {
+    "alg": "U L R U R' U' L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Righty Bars",
+  "subgroup": "Last Layer",
+  "alts": [
+   {
+    "alg": "L U R U' R' L'",
+    "votes": 8
+   },
+   {
+    "alg": "U' R' L' U' L U R",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Sledge",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "R' L R L'",
+    "votes": 6
+   },
+   {
+    "alg": "L U' R' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R U' R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' U L' U' L R",
+    "votes": 0
+   },
+   {
+    "alg": "U R2' L R L' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Hedge",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "L R' L' R",
+    "votes": 5
+   },
+   {
+    "alg": "U' L U' R U R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L2 R' L' R U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U L R' L' R2",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L' U L U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Clockwise",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "L R' L' R2 U' R'",
+    "votes": 5
+   },
+   {
+    "alg": "R U' R' U' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U L' U' L2 R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' L2 R' L' R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L U' R U' R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R' L' R2",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L' U' L U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Counterclockwise",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "R' L R L2' U L",
+    "votes": 2
+   },
+   {
+    "alg": "U L' U L R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U R' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R L' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "L U R U R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U R2' L R L' R",
+    "votes": 0
+   },
+   {
+    "alg": "R' U L' U L U R",
+    "votes": 0
+   },
+   {
+    "alg": "R' U L' U L U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Righty",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L U' L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Lefty",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "R' U R",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Sexy",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L U L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Left Sexy",
+  "subgroup": "L3E",
+  "alts": [
+   {
+    "alg": "U L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "2 Flip",
+  "subgroup": "Flipped Edges",
+  "alts": [
+   {
+    "alg": "R' L R L' U L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "R' U L' U' L U' R",
+    "votes": 0
+   },
+   {
+    "alg": "L U' R U R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U L' U L U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "DR Flip",
+  "subgroup": "Flipped Edges",
+  "alts": [
+   {
+    "alg": "L' U L U' R U' R'",
+    "votes": 2
+   },
+   {
+    "alg": "L R' L' R L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "L U' L R' L' R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L2 R' L' R2 U' R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L' U' L2 R' L' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "DL Flip",
+  "subgroup": "Flipped Edges",
+  "alts": [
+   {
+    "alg": "R' L R L' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' U L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "L' U' L R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L U R U R2' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U R' L R L' R",
+    "votes": 0
+   },
+   {
+    "alg": "R2' L R L2' U L U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "DB Flip",
+  "subgroup": "Flipped Edges",
+  "alts": [
+   {
+    "alg": "R U R' U L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L' U' L U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L R' L R L' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L R' L' R U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "4 Flip",
+  "subgroup": "Flipped Edges",
+  "alts": [
+   {
+    "alg": "L' U L R U' R' L' U L R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R' L' U L R U' R' L' U L",
+    "votes": -4
+   },
+   {
+    "alg": "L R U' R' L' U L R U' R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L R U' R' L' U L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Right Polish Flip",
+  "subgroup": "Polish Flip",
+  "alts": [
+   {
+    "alg": "R U' R' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U L' U' L U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U' R' U' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R' L' R U' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R U' R' L' U' L U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L R U' R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Left Polish Flip",
+  "subgroup": "Polish Flip",
+  "alts": [
+   {
+    "alg": "L' U L R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U R' U' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "U' L' U L U R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R L' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L R U' R' L' U L U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L' U L R U R' U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "SUS",
+  "subgroup": "Polish Flip",
+  "alts": [
+   {
+    "alg": "R' L R L' U' R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2' L R L2' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L' U' L R U' R2' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L R U' R2' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "R2' L R L2' U' L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Anti SUS",
+  "subgroup": "Polish Flip",
+  "alts": [
+   {
+    "alg": "L R' L' R U L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "L' U L2 R' L' R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' L' U L2 R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "L2 R' L' R2 U R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L2 R' L' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Good Niky",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "R U' R' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L' B' U B L",
+    "votes": 0
+   },
+   {
+    "alg": "R B U B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L R U R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Good Sochi",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "L' U L R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L' U' L R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L' B' U' B L",
+    "votes": 0
+   },
+   {
+    "alg": "R B U' B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L R U' R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U' L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Super Sledge",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "R U' R2' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R' L' R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L R2 U R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "L U R U' R2' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "L U R' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "U L2 R' L' R U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L2 R' L' R U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Super Hedge",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "L' U L2' R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R L2' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L' U L2 R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L R' L2' U' L U R",
+    "votes": 0
+   },
+   {
+    "alg": "L R U R2' L R L' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L R' L' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Niky",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "R U' R' U' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' U' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U L U R U' R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L' U' L U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Sochi",
+  "subgroup": "Separated Bar",
+  "alts": [
+   {
+    "alg": "L' U L U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L' U' L U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L U R U R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U' L' U L U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Right Spam",
+  "subgroup": "Connected Bar",
+  "alts": [
+   {
+    "alg": "R U R' U R' L R L'",
+    "votes": 5
+   },
+   {
+    "alg": "U R U' R' L' U L R U' R'",
+    "votes": 1
+   },
+   {
+    "alg": "U' L' U' L2 R' L' R2 U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R' L' R2 U R' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L U R U' R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U L U' R U' R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U L2 R' L' R U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Left Spam",
+  "subgroup": "Connected Bar",
+  "alts": [
+   {
+    "alg": "L' U' L U' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' L' U L R U' R' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R2' L R L2' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R L2' U' L R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L R U' R2' L R L' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L' U L U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U L' U L R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U' L R L' U' L' U L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Sledge",
+  "subgroup": "Connected Bar",
+  "alts": [
+   {
+    "alg": "L R' L' R U' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' L' U' L R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "R U' R2' L R L2' U L",
+    "votes": 0
+   },
+   {
+    "alg": "U' L R' L' R2 U R' U' L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "L R U R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L U' R U R' U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' R' L R L2' U' L R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R2' L R L2' U' L U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Hedge",
+  "subgroup": "Connected Bar",
+  "alts": [
+   {
+    "alg": "R' L R L' U L' U L",
+    "votes": 2
+   },
+   {
+    "alg": "U' L' U' L R U' R' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L' U L2 R' L' R2 U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R' L R L2' U' L U R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L U L R' L' R2 U R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U L2 R' L' R2 U R' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U' L U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R' U L' U' L U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Sexy",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "L' U' L U' R U' R'",
+    "votes": 1
+   },
+   {
+    "alg": "U L2 R' L' R2 U' R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' L' U' L2 R' L' R2",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Ugly",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "R U R' U L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "L R U R2' L R L2'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R2' L R L2' U L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Righty",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "L' U L U' R U R'",
+    "votes": 4
+   },
+   {
+    "alg": "R' L R L' U R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "L U' L R' L' R U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U L U' L' U L R U' R' L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U' L R' L' R U' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Bad Lefty",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "R U' R' U L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "L R' L' R U' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "L U R' L R L' U L'",
+    "votes": 0
+   },
+   {
+    "alg": "R' U R' L R L' U R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U R U' R' L' U L R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Double Sexy",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "R U' R' U' R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "L' U' L U R' L R L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' R U' R' U R U R'",
+    "votes": 0
+   },
+   {
+    "alg": "U R U R' U' R U' R'",
+    "votes": 0
+   },
+   {
+    "alg": "L U' L' U' L U L'",
+    "votes": 0
+   },
+   {
+    "alg": "U L U L' U' L U' L'",
+    "votes": 0
+   },
+   {
+    "alg": "U' L U' L' U L U L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Pyraminx/L4E",
+  "name": "Double Ugly",
+  "subgroup": "No Bar",
+  "alts": [
+   {
+    "alg": "L' U L U L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "R U R' U' L R' L' R",
+    "votes": 0
+   },
+   {
+    "alg": "U L' U L U' L' U' L",
+    "votes": 0
+   },
+   {
+    "alg": "U' L' U' L U L' U L",
+    "votes": 0
+   },
+   {
+    "alg": "R' U R U R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U R' U R U' R' U' R",
+    "votes": 0
+   },
+   {
+    "alg": "U' R' U' R U R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "1a",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "y x R b' r' R' r z B' r B",
+    "votes": 1
+   },
+   {
+    "alg": "H z H z' S z H",
+    "votes": 1
+   },
+   {
+    "alg": "y' x r' R r R' z' R r' R r z R r' R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "H z S z' H z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "1b",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "y2 x r' B R r R' B r' B'",
+    "votes": 3
+   },
+   {
+    "alg": "x r' R r R r' R' r z' r' R r R' B'",
+    "votes": 1
+   },
+   {
+    "alg": "z' S z' S z S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' R r R z2 r' R r R' z' R r' R' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "2a",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z2 H z' S z S z' S",
+    "votes": 1
+   },
+   {
+    "alg": "y2 x r B R' B' r R r R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x b' r' R r R' z' R r' R' r R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x b' r' R r R r' R' r z r B r' B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "2b",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z S z' H z H z' H",
+    "votes": 1
+   },
+   {
+    "alg": "x R b R' z' R r' R' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "x z R' r' R' r z R r R' r z' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B' r' R r R z R r R' r' R' r R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "1c",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "S z H z' S z H",
+    "votes": 1
+   },
+   {
+    "alg": "x y2 r' R r R b' r R' b'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R r' R r R' B R' B' r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r B' b' r' B' r B b",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "1d",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z' H z' S z H z' H",
+    "votes": 1
+   },
+   {
+    "alg": "x r' R r z R r R' z' r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' r' R' r z R r' R' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x' R r' R' r' B R' r B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "2c",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z2 S z' H z H z' H",
+    "votes": 1
+   },
+   {
+    "alg": "z2 H z' H z S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r' R' z' r' R r B R B'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R' r' B' r B R r B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "2d",
+  "subgroup": "Pi + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z S z S z' H z S",
+    "votes": 1
+   },
+   {
+    "alg": "y' x R r' R r B R' B' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x b r B r' B' z' r' R' b",
+    "votes": 0
+   },
+   {
+    "alg": "y2 z B' b' R r' b r B r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "3a",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "z' S z2 H z' S z' S",
+    "votes": 1
+   },
+   {
+    "alg": "x r2' R r B R r' R B",
+    "votes": 0
+   },
+   {
+    "alg": "y x R B R' B' R' r' R r R r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R r R' r' R' r R B R B' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "3b",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "y x B R' B' R B R B' R' r' R' r R",
+    "votes": 1
+   },
+   {
+    "alg": "x B' R' B' r' R' B R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' r' R r R B R' B' R' B R B'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r R' r' R' z' r' R r z R r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "4a",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "x r' R' r B R' B' R' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r R' r B r' z r R' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "z S y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "4b",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "y x r' R r R B' r' R' r B R'",
+    "votes": 0
+   },
+   {
+    "alg": "x B R B' r' R r R B R' B' R",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r' R' r R r' R r B R' B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "3c",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "z S z S z H z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r' R' r R' r' R r z r R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x B R B' R' r' R' r R r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R' r R r' R' r R' r' z R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "3d",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "H z' H z' S z2 H",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r R' r R r' R' z' R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x r R' r' R r R' z' R B r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R' r R z R r R' r' R r' R' r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "4c",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "y' x R r' R r z R r' R' r R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r R B R' B' R' r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "x R r' R' r' R r R' z' r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "z H y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "4d",
+  "subgroup": "Pi + Wat Perm",
+  "alts": [
+   {
+    "alg": "y x R r' R ' r' z' r' R r R z R r R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R r R r' R' r B R B' R",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' B R' B' r' R r R' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "5a",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "x' S z2 S y2 x' H",
+    "votes": 0
+   },
+   {
+    "alg": "x z' r' R z' r' R r z r R r' R",
+    "votes": 0
+   },
+   {
+    "alg": "x R' r' R r R z B R' B' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z' r' R' r B r' R r z R r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "5b",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y2 x R r' B R' B' R' r' R r'",
+    "votes": 1
+   },
+   {
+    "alg": "y z' S z2 S x y2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y x b' r' R r R' z2 r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "r R' r B x r' l r l' r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "6a",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y x R r' R r z2 R r' R' r b",
+    "votes": 0
+   },
+   {
+    "alg": "y x R r' R r z B R' B' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x r2' R' r z r R r R' b r'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z2 x' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "6b",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y' x R' r R' r' z' r' R' r z R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r' R' z2 r' R r R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S y2 x' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "5c",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "x' S z2 S y2 x' S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R r' R' r' R r R' z' R r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R' r R' z2 r' R r R' b'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r R' r R r' R' r z' r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "5d",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y z' S z2 S z2 x' H",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R' r R' r' R r R' B R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "x z R r R' z' R r z' r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "x R r' R r R r' R' r z r' R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "6c",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y' x B' r' R r R' z2 r' R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r R' z' R' r' R r R B R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B R B' R r' R' r R r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "6d",
+  "subgroup": "Pi  + X Perm",
+  "alts": [
+   {
+    "alg": "y x r B R' B' R r z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z R r' R' r R B R' B' R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z r R' B r z' r2' R r B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R' r z r' R r R' r2/r' R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "7a",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y' x B r' R r' R' r B r'",
+    "votes": 0
+   },
+   {
+    "alg": "z S S y2 x' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "7b",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y2 x r' z R r' R r z r' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y x b' R r' R r R' b' R",
+    "votes": 0
+   },
+   {
+    "alg": "z S S y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "7c",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y' x r B' r' R r R' r B'",
+    "votes": 0
+   },
+   {
+    "alg": "z' S S z2 y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "7d",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y2 x B' r z R r' R' r z' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y z' r' R r B' r' b B' l",
+    "votes": 0
+   },
+   {
+    "alg": "S S y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "8a",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x R' r R' B b r' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r B R' B' R' r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "S z' S z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "8b",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x R' r B R' B' r2' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' B R B' z' r' R r B'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x B R' B r' R' r B R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R r R z' r' R' r B r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "8c",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "H z H z H",
+    "votes": 0
+   },
+   {
+    "alg": "x r R' r b' B' R r' R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r' R' z' r' R r R z R r R' r",
+    "votes": 0
+   },
+   {
+    "alg": "S z H z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "8d",
+  "subgroup": "Pi + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "H z S z H",
+    "votes": 0
+   },
+   {
+    "alg": "y x R B' r' R r z R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "x B r' R' r z B R' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r' B R B' r' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "9a",
+  "subgroup": "Pi + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "y' x B' r' R r R B' R' r' R' r B'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r R' r B r' z' r' R r R' b",
+    "votes": 0
+   },
+   {
+    "alg": "y' r' R r B' R B r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "r' l r l' r' R' F r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "9b",
+  "subgroup": "Pi + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "S z2 S z' S S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x B r' R r z R r' R' r R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z r B R' B' z' r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' B R' B' r' R r R' r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "10a",
+  "subgroup": "Pi + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "x z r B r B' r' B'",
+    "votes": 0
+   },
+   {
+    "alg": "y' z' B R r R' B' R'",
+    "votes": 0
+   },
+   {
+    "alg": "S z2 H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "10b",
+  "subgroup": "Pi + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "x B' r' B' r B r",
+    "votes": 0
+   },
+   {
+    "alg": "x B' r' y' r' R r b",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "11a",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "y' x R r' R' r' R r R' z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "11b",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "x r' R r R r' R' r z R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "z S z S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "12a",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "z S z' x' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R' r z R r' R' r R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R' r B' R z R r R' r' R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r' R' r b r' R r R' z' R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "12b",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "z2 H z x S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y x B R B' r' R r R' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r' z r R r R' z2 r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 S z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "11c",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "y x r R' r B r' R B",
+    "votes": 0
+   },
+   {
+    "alg": "y x r2' R' r B r' R B",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "11d",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "z H z H z2 H",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R' r R' z' r' B R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "12c",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "z H y' z' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x B' R' r B' r' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z2 S z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "12d",
+  "subgroup": "Pi + O Perm",
+  "alts": [
+   {
+    "alg": "z2 S x y' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x r R B' r B R' B",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 S z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "13a",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y x r' R' r' R' z' r' R r R B'",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' R' r B' r' R r B",
+    "votes": 0
+   },
+   {
+    "alg": "H x' y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "13b",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y' x B R B' r B R' B' r'",
+    "votes": 0
+   },
+   {
+    "alg": "y' r B r' R r B' r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "z' S x' y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "13c",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "x r B R B' r' B R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "H x' y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "13d",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "x B' r' R' r B r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z' S x' y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "14a",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "z' H z' S z S",
+    "votes": 0
+   },
+   {
+    "alg": "x R' r' R' r R r' R' r R r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z R' r' R r B' r' R' r B R",
+    "votes": 0
+   },
+   {
+    "alg": "y x r R r R' r' R r' R' r R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "14b",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "z H z' H z S",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' B' r' R r B r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B R' B' r' R r R' z' R r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "z S z' H z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "14c",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "z' S z H z' H",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r R r R' r' R' r R r R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R' r' R r' R' r R r' R r R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y z r' R' r R r' R' r' R r R' r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "14d",
+  "subgroup": "Pi + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "z S z S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "z H z S z' S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r R' B R B' R r2' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x R r R' r R r' R' r R r' R' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "15a",
+  "subgroup": "Pi + Triple Sledge",
+  "alts": [
+   {
+    "alg": "S S y S S S",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r R r' z' r' R r z r R r'",
+    "votes": 0
+   },
+   {
+    "alg": "x R r' R' r' R B R' B' R' r' R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r R' B' R r' R' r R r R' B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "15b",
+  "subgroup": "Pi + Triple Sledge",
+  "alts": [
+   {
+    "alg": "y' S S y' S S S",
+    "votes": 0
+   },
+   {
+    "alg": "x r R' r' z' r' R' r z r R' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x R' r' R r z r b r' R r R' z' R r' R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x b' r' R r R r' R' r b' r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "16",
+  "subgroup": "Pi + H or Z Perm",
+  "alts": [
+   {
+    "alg": "z' S z2 S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 S z2 H",
+    "votes": 0
+   },
+   {
+    "alg": "x r B R B' r2' R r R",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R' r' R' r' B R' B' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "17a",
+  "subgroup": "Pi + H or Z Perm",
+  "alts": [
+   {
+    "alg": "z S z' H z H z' S z H",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R' r R B R' B' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R' r B R B' R' r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "17b",
+  "subgroup": "Pi + H or Z Perm",
+  "alts": [
+   {
+    "alg": "z S z H z' H z S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r R' r' z' r' R r z R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R r2' R' r B r' R r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "x R r R' z' r' R' r R z R r' R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18a",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "H z H z' H z H",
+    "votes": 0
+   },
+   {
+    "alg": "S z' H x y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z H x S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y x b' r' R r R' z' R r' R' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18b",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z' S z' S z S z' S",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z S x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z S z' S y' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x r R r R' z R r' R' r b",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18c",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z2 S z' H z S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "S z' H x y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z H x S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x R r' R r z R r' R' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18d",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z H z S z' H z S",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z S y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z S z' S x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x z r' R r' R' z' r' R r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18e",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "y' x B r' R r R' z R r' R r",
+    "votes": 1
+   },
+   {
+    "alg": "S z S z' S z S",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z S y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "H z' S x y S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18f",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z' H z' H z H z' H",
+    "votes": 0
+   },
+   {
+    "alg": "z H z' H y' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z H x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B r' R r R' z R r' R' r R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18g",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z2 H z' S z H z' S",
+    "votes": 0
+   },
+   {
+    "alg": "H z' S y' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z' S x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x R' r' R' r z R r R' r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "18h",
+  "subgroup": "Peanut + Swirl Perm",
+  "alts": [
+   {
+    "alg": "z S z H z' S z H",
+    "votes": 0
+   },
+   {
+    "alg": "z H z' H x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z H y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x z r R r R' z' r' R' r R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19a",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z' H z S y' S z2 S",
+    "votes": 1
+   },
+   {
+    "alg": "y' x r R r R' B R' B' R' r R'",
+    "votes": 1
+   },
+   {
+    "alg": "z2 S z2 S z' H z' H",
+    "votes": 0
+   },
+   {
+    "alg": "S z S z S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19b",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "S z' H y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 S z S z S",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z' H z' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r z R r R' z R r' R' r b",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19c",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z S z' S y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z2 S z S z H",
+    "votes": 0
+   },
+   {
+    "alg": "S z' H z' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x r2' R r R' z' r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19d",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z2 H z' H y' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "z S z2 S z' H z' S",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z S z S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x R r R' z' r' R r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19e",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z2 S z2 S z' S z' S",
+    "votes": 0
+   },
+   {
+    "alg": "H z H z S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y x B' R r R' r' R r R' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x b r' R' r z2 r' R r b'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19f",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z S z2 S z H z H",
+    "votes": 0
+   },
+   {
+    "alg": "S z' S z' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y r' R r b' B z' R' r' R",
+    "votes": 0
+   },
+   {
+    "alg": "x z' B' R r R' z2 R r' R' B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19g",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z2 S z2 S z H z S",
+    "votes": 0
+   },
+   {
+    "alg": "H z S z' S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x z R' r' R r z r R r R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r' R' r' z' r' R' r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "19h",
+  "subgroup": "Peanut + Wat Perm",
+  "alts": [
+   {
+    "alg": "z S z2 S z' S z' H",
+    "votes": 0
+   },
+   {
+    "alg": "S z H z S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "x r R r' R' z' R' r' R' r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r' R r R z R r R' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20a",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "z S z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20b",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "S z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20c",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "z2 H z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20d",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "y r' B r' R r R' r2 B",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20e",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "y2 x B' R r' R' r z r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "S z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20f",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "y' x r' R' r z' r' R r R' B",
+    "votes": 0
+   },
+   {
+    "alg": "z S z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20g",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "x y b r' R r R' z' R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' r' R r R' z' R r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "20h",
+  "subgroup": "Peanut + X Perm",
+  "alts": [
+   {
+    "alg": "x R r R' z R r' R' r b'",
+    "votes": 0
+   },
+   {
+    "alg": "x B' r' R r R' z R r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21a",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y x b' r' R r R z' r' B' r B r'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r' R' z' r' R r z r R r' R' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z H z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21b",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y' x R r R' z R r' R' r z' r2' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "x z R r R r' R' r' z' r' R r B'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B r' R r R z R r R' B R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z' S z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21c",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x B' r R' r' B r R r'",
+    "votes": 0
+   },
+   {
+    "alg": "x B' r' B r B' z r' R' r z' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R z R r' z' r' R' r' R' r R' B",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z' S z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21d",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x r' R' r' R r R B R' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R' r z' r' R r R' z R' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y x b' R r' R' r' z' r' R' r z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r R' r' B' r R r' B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21e",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y x R' r R' r' z' r' R' r z r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r R' B R B' r' R r R r'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r R' r' R' z' r' R' r B R",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z' H z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21f",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "y' x R r' z' r' R r z r R r' R",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R' z' r' R r z R r R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z S z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21g",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x R' B' R r' y' r' R' z' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "x R' r' R' r B R' B' R r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r R' r z r R r R' r' z' r",
+    "votes": 0
+   },
+   {
+    "alg": "x z B r' R r R r' R' r B r' R' r B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "21h",
+  "subgroup": "Peanut + Horizontal U Perm",
+  "alts": [
+   {
+    "alg": "x r' R B R' B' R' r' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r R' r' R' z' r' R' r B R'",
+    "votes": 0
+   },
+   {
+    "alg": "H z' H z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "22a",
+  "subgroup": "Peanut + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "x r R' r' R r R B R' B' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 r B R B' R' r' R' r R r'",
+    "votes": 0
+   },
+   {
+    "alg": "x r R' r' R r R B R' B' r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "22b",
+  "subgroup": "Peanut + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "x B' R B R' B' R' r' R r B",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 B' r' R' r R B R B' R' B",
+    "votes": 0
+   },
+   {
+    "alg": "y' R' r' R r z' r' R r R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "22c",
+  "subgroup": "Peanut + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "y r' R' r R z' R r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y x r R' r' z' r' R' r z r R",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R' r' z' r' R r z r R r'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "22d",
+  "subgroup": "Peanut + Vertical U Perm",
+  "alts": [
+   {
+    "alg": "y r R r' R' x r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 R r R' r' z r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "x r R z R r' R' z' R' r' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23a",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "x z r R r' R' z' R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z' H z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23b",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "x R' r' R r z r R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B r R' r' B' r R r'",
+    "votes": 0
+   },
+   {
+    "alg": "z S z S z2 H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23c",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "x r' R' r R z R r R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z H z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23d",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "x z R r R' r' z' r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z' S z2 H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23e",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "y' R r R B R' B' R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 r R r R' r' R' z' r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "S z H z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23f",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "y x B' r' R r R' z R' r' R r R",
+    "votes": 0
+   },
+   {
+    "alg": "y x R B' r' B' r B r B R' B'",
+    "votes": 0
+   },
+   {
+    "alg": "y r R B R B' R' r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x2 r' R' z' R' r' R r z r R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23g",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "y2 x b r' R r R' z' R r R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y' z' r' R' r l' r' R r R",
+    "votes": 0
+   },
+   {
+    "alg": "y x r B' r' R r R' r z r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "H z S z2 H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "23h",
+  "subgroup": "Peanut + O Perm",
+  "alts": [
+   {
+    "alg": "y r' R' r' R r z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' R r' R' z R r' R' r b'",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z' H z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "24a",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "x z R r R' r' R r R' r z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z' H z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "24b",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "x r' R' r R r' R' r R' z R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x R B R' B' r' R' r R r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "y x B r' R r' R' r B z' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R' r' R' r' z' r' R' r R r' R' r B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "24c",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "x r' R' r R' z R r' R' r R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x r' B R' B' R B R' B' R' r' R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 r R r z B r' B' z' r' R' r' z' r",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z' S z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "24d",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y' x R r' R r R' z R r' R' r R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x R r R' r z' r' R r R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x B r' R r R' r' R r z r R r R",
+    "votes": 0
+   },
+   {
+    "alg": "S z H z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "25a",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y' x r' R' r' z' r' R' r R r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r R r R' r' R r R' z' R r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "x z' r B r' R' r B r' R r' B'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S z' S z S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "25b",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y2 r B R' B' R B R' B' R' r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z S z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "25c",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y' x b' R r R' r' R r R' r z' r' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "x R r z r R r R' r' R r R' z' r'",
+    "votes": 0
+   },
+   {
+    "alg": "z H z H z' H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "25d",
+  "subgroup": "Peanut + Z Perm Conjugates",
+  "alts": [
+   {
+    "alg": "y2 x B' r' R r R' r' R r z r R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z r' R r R' z' b' r' R r R' z' R r' R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "H z' H z H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "26a",
+  "subgroup": "Peanut+ Triple Sledge",
+  "alts": [
+   {
+    "alg": "S z H H",
+    "votes": 0
+   },
+   {
+    "alg": "S z' S S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "26b",
+  "subgroup": "Peanut+ Triple Sledge",
+  "alts": [
+   {
+    "alg": "S z' H H",
+    "votes": 0
+   },
+   {
+    "alg": "x r R r' R' r B R' B' R' r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x B r' R r R z R r R' r' R r R",
+    "votes": 0
+   },
+   {
+    "alg": "z2 S S z' S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "26c",
+  "subgroup": "Peanut+ Triple Sledge",
+  "alts": [
+   {
+    "alg": "z2 S S z H",
+    "votes": 0
+   },
+   {
+    "alg": "z' H z H H",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "26d",
+  "subgroup": "Peanut+ Triple Sledge",
+  "alts": [
+   {
+    "alg": "z H H z H",
+    "votes": 0
+   },
+   {
+    "alg": "x z' r' B R' B' R' r' R' r R r' R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "z2 H z S S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "27",
+  "subgroup": "Peanut + H or Z Perm and Pure Peanut",
+  "alts": [
+   {
+    "alg": "y2 B r' R r R' B' z' R r' R' r",
+    "votes": 1
+   },
+   {
+    "alg": "z2 S S z S S",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R' z' r B r' R r y' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x z' B' r' R r R' B' z2 R r' R' r b'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "28",
+  "subgroup": "Peanut + H or Z Perm and Pure Peanut",
+  "alts": [
+   {
+    "alg": "S z' S S z' S z2 S",
+    "votes": 2
+   },
+   {
+    "alg": "x z' r' R' r z r' R r R' r z' r' R' r R",
+    "votes": 0
+   },
+   {
+    "alg": "x z R' r' R r R' z R r' R' r z' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z r' R r x R r' R z R r' R' r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "29a",
+  "subgroup": "Peanut + H or Z Perm and Pure Peanut",
+  "alts": [
+   {
+    "alg": "y x r' R' r R r' R' r' z' r' R' r B",
+    "votes": 0
+   },
+   {
+    "alg": "y x r R r' R' z' r' R' r z r' R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "x z' B' r' R r R z R r R' r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 R r R' r' R r R z R r R' b'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "29b",
+  "subgroup": "Peanut + H or Z Perm and Pure Peanut",
+  "alts": [
+   {
+    "alg": "y' r' R r y' r l B r' l B'",
+    "votes": 0
+   },
+   {
+    "alg": "y z' r' R' r y z' r' R r b r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "z S z' H z S z' H z H",
+    "votes": 0
+   },
+   {
+    "alg": "x R r' R r' R' z' r' R r B' R",
+    "votes": -1
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "30a",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "y2 x B' r' B r B R r' R'",
+    "votes": 6
+   },
+   {
+    "alg": "y2 x r B r' z' b' r' R' r b",
+    "votes": 1
+   },
+   {
+    "alg": "y' x R' r' R' r b z r B r' z' b' R",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R' r' B' r B R r R' B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "30b",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "y x B r' B' z' r' R' r b R",
+    "votes": 3
+   },
+   {
+    "alg": "x B' r B r' B' z' r' R' r b'",
+    "votes": 0
+   },
+   {
+    "alg": "y' x R r R' r' R r R' r2 R r R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x B r B' r' B' z' r' R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "31",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "y2 x b' r' R' r b z r B r'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x b z r B r' B' z' r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 B R r R' B' r' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "x z2 B' r' B' r B R r R'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "U Perm",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "z' x S z2 S",
+    "votes": 4
+   },
+   {
+    "alg": "y x b' r' R r R' z2 r' R r",
+    "votes": 0
+   },
+   {
+    "alg": "y x' r' R' r z2 R r' R' r b",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "32",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "y x r' B r' B' z' r' R' r z B r'",
+    "votes": 2
+   },
+   {
+    "alg": "y x r B' r B R r R' B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y x R2' B' r' B' r B R r R",
+    "votes": 0
+   },
+   {
+    "alg": "x r' B' r' B' r B R r R r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "33",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "r R' r R' b' r B' r",
+    "votes": 3
+   },
+   {
+    "alg": "r R' r R' x' B' R r' B",
+    "votes": 0
+   },
+   {
+    "alg": "r R' r R' y L' l L' l",
+    "votes": 0
+   },
+   {
+    "alg": "x r' R r R' B' r' B' r B r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "34a",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "x b r' R r R' z2 r' R r R",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "34b",
+  "subgroup": "L4C",
+  "alts": [
+   {
+    "alg": "x B' r' R r R' z2 r' R r R' r",
+    "votes": 4
+   },
+   {
+    "alg": "y x R' r' R' r z2 R r' R' r b'",
+    "votes": -1
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "35a",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "y' x r' R r R' r R y' r' R r B' r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x b R r' b r R' b' r R' r'",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' R r R' b' R r' R r R' b' R",
+    "votes": 0
+   },
+   {
+    "alg": "z' S z2 S x y' S z2 S",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "35b",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "y2 x R r' R' r B r' R r' R' r B r'",
+    "votes": 0
+   },
+   {
+    "alg": "x r B' r' R r R' r B' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y x B' r' R r R' r R y' r' R r B' r'",
+    "votes": 0
+   },
+   {
+    "alg": "x z R r' b z' R B' r' R B' R' r",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "36a",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "H z2 H z H z2 H",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R' r B r' R r' R' r B r' R",
+    "votes": 0
+   },
+   {
+    "alg": "y x R' r B r' R r' R' r B r' R r'",
+    "votes": 0
+   },
+   {
+    "alg": "y x r' R r R' r B' r' R r R' r B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "36b",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "S z2 S x' y S z2 S",
+    "votes": 0
+   },
+   {
+    "alg": "y' x B r' R r' R' r B r' R r' R' r",
+    "votes": 0
+   },
+   {
+    "alg": "x B' r' R' r B r' R r z' r' R r R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x B r' R r R' r R y' r' R r B'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "37a",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "S z S z' H z H",
+    "votes": 0
+   },
+   {
+    "alg": "x B' r' R r R' r B' r' R r R' r",
+    "votes": 0
+   },
+   {
+    "alg": "y' x r' R' r B r' R r z' r' R r R' z' r'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x R r' R r R' z' r2' R' r B r' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Skewb/SarahsAdvanced",
+  "name": "37b",
+  "subgroup": "L5C",
+  "alts": [
+   {
+    "alg": "x r' R r z' r B' R r' R' B' r",
+    "votes": 1
+   },
+   {
+    "alg": "z' H z' H z S z' S",
+    "votes": 0
+   },
+   {
+    "alg": "x r B r' R r' R' r B r' R r' R'",
+    "votes": 0
+   },
+   {
+    "alg": "y2 x r' R r' R' r B r' R r' R' r B",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEO",
+  "name": "EO1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F R U R' U' F'",
+    "votes": 11
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEO",
+  "name": "EO2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F U R U' R' F'",
+    "votes": 8
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEO",
+  "name": "EO3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F R U2 R2' F R F' U2' F'",
+    "votes": 15
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R U R' U2' R U' R'",
+    "votes": 9
+   },
+   {
+    "alg": "y2' R2' DR' R U2 R' DR R U2' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F R U2 R' U' R U' R' F'",
+    "votes": 5
+   },
+   {
+    "alg": "y2' R BR R' F R BR' R' F'",
+    "votes": 3
+   },
+   {
+    "alg": "y' R U R U2 R' U' R U' R' U' R'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R' U R U2 R'",
+    "votes": 8
+   },
+   {
+    "alg": "y' R U2' R' U' R U2' R'",
+    "votes": 4
+   },
+   {
+    "alg": "L' U2' L U' L' U2' L",
+    "votes": 0
+   },
+   {
+    "alg": "y L' U2 L U L' U2 L",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U' R' F R U R U' R' F'",
+    "votes": 2
+   },
+   {
+    "alg": "y F R U R' U R U2' R' F'",
+    "votes": 2
+   },
+   {
+    "alg": "F R' F' L F R F' L'",
+    "votes": 1
+   },
+   {
+    "alg": "R' F R BR' R' F' R BR",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R U2' R'",
+    "votes": 7
+   },
+   {
+    "alg": "y2 L U' R' U L' U' R U",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 6",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' U' R U' R' U2 R",
+    "votes": 5
+   },
+   {
+    "alg": "y2 L' U' L U' L' U2 L",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 7",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R' U' R U' R'",
+    "votes": 6
+   },
+   {
+    "alg": "y' R' F R F' L F R' F' R L'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 8",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U2 R U2 R'",
+    "votes": 2
+   },
+   {
+    "alg": "y L' U2' L U L' U L",
+    "votes": 2
+   },
+   {
+    "alg": "y' R' L F R F' L' F R' F' R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 9",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R' U' R U R' U' R U' R'",
+    "votes": 6
+   },
+   {
+    "alg": "y F R U R' U' R U R' U' R U R' U' F'",
+    "votes": -14
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 10",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R U' R' U R U2' R'",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 11",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R U R' U' R U2' R'",
+    "votes": 5
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 12",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R' U' R U' R2' U' R U' R' U2 R",
+    "votes": 2
+   },
+   {
+    "alg": "R U2' R' U2' R U2 R' U2' R U' R'",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 13",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R2' U' R2 U' R2' U2 R",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 14",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' U2' R2 U R2' U R2 U2' R'",
+    "votes": 6
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 15",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U2 R U2' R' U R U2' R'",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCO",
+  "name": "CO 16",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U2 R' U' R U2 R' U2' R U' R'",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEP",
+  "name": "EP 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2' R2' U' R2 U2' R2'",
+    "votes": 6
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEP",
+  "name": "EP 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2 R2' U R2 U2 R2'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEP",
+  "name": "EP 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEP",
+  "name": "EP 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R' U' R2 U' R' U R' U R U2'",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxEP",
+  "name": "EP 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "L R U2 L' U R' L U' R U2 L' U2 R'",
+    "votes": 5
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 1",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' BR' R BR R' F' R BR' R' BR F R",
+    "votes": 9
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 2",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' F' BR' R BR R' F R BR' R' BR R",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 3",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "BR' R' U L U' R' U L' U' R2 BR",
+    "votes": 3
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 4",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "BR' R2' U L U' R U L' U' R BR",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 5",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "L' R U2 R' U' R U R' U' R U R' U' R U' R' L",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 6",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R' U' R F' R U R' U' R' F R2 U' R2' U R U'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 7",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U R' U' y R U R' U' R U R' U' R U R' y' R U' R2'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 8",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "F R U2 R' U' R U' R' F' R' y' R' U' R U' R' U2 R BR U'",
+    "votes": 6
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 9",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R U R' U R' U' R2 U' R' U R' U R U R U R' U R' U' R2 U' R' U R' U R U",
+    "votes": 4
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 10",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2 R2' U' R2 U' R2' y' R2' U' R2 U' R2' U2 R2",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 11",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2' U2' R2 U R2' U R2 y R2 U R2' U R2 U2' R2'",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 12",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2' R2' U' R2 U2' R' U R' U' R' F R2 U' R' U' R U R' F'",
+    "votes": 2
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 13",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R' U2 R U' R' U2 R U2' R' U' R U2' R' U R U2' R' U R",
+    "votes": 0
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 14",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2' R2' U' R2 U R2' U' R2 U R2' U' R2 U2' R2'",
+    "votes": 1
+   }
+  ]
+ },
+ {
+  "page": "Megaminx/MegaminxCP",
+  "name": "CP 15",
+  "subgroup": "",
+  "alts": [
+   {
+    "alg": "R2 U2 R2' U R2 U' R2' U R2 U' R2' U R2 U2 R2'",
+    "votes": 0
+   }
+  ]
+ }
+]

@@ -38,7 +38,7 @@
       "stage": "Parity",
       "label": "Parity",
       "description": "Wing parity by slice depth, plus OLL and PLL parity after reduction. Start from the displayed setup.",
-      "count": 3
+      "count": 4
     },
     {
       "id": "5x5-centers",
@@ -86,7 +86,7 @@
       "stage": "Parity",
       "label": "Parity",
       "description": "Wing parity by slice depth, plus OLL and PLL parity after reduction. Start from the displayed setup.",
-      "count": 4
+      "count": 7
     },
     {
       "id": "7x7-centers",
@@ -111,6 +111,54 @@
       "label": "Parity",
       "description": "Last-two-edge wing parity, by slice depth. Odd cubes have no PLL parity after reduction.",
       "count": 2
+    },
+    {
+      "id": "4x4-pll-parity",
+      "cube_size": 4,
+      "stage": "Parity",
+      "label": "PLL parity cases",
+      "description": "Every last layer with PLL parity, solved in one algorithm instead of a PLL and the parity: the edges alone, or with an adjacent or a diagonal corner swap.",
+      "count": 22
+    },
+    {
+      "id": "6x6-pll-parity",
+      "cube_size": 6,
+      "stage": "Parity",
+      "label": "PLL parity cases",
+      "description": "Every last layer with PLL parity, solved in one algorithm instead of a PLL and the parity: the edges alone, or with an adjacent or a diagonal corner swap.",
+      "count": 22
+    },
+    {
+      "id": "5x5-l2c",
+      "cube_size": 5,
+      "stage": "Centers",
+      "label": "Last two centers",
+      "description": "The last two centers of the 5×5, built on F and U: one algorithm for each pattern of the pieces left on U.",
+      "count": 18
+    },
+    {
+      "id": "6x6-l2c",
+      "cube_size": 6,
+      "stage": "Centers",
+      "label": "Last two centers",
+      "description": "The last two centers of the 6×6, built on F and U, named by the shapes left on U: obliques, bars and pairs.",
+      "count": 33
+    },
+    {
+      "id": "5x5-l2e",
+      "cube_size": 5,
+      "stage": "Edges",
+      "label": "Last two edges",
+      "description": "Every case of the last two edges of the 5×5, held at UF and DF or UF and UB: wings, midges, flips and parity.",
+      "count": 13
+    },
+    {
+      "id": "7x7-l2e",
+      "cube_size": 7,
+      "stage": "Edges",
+      "label": "Last two edges",
+      "description": "The last two edges of the 5×5 on each orbit of wings of the 7×7: layer 2 with the middle three slices as one, then layer 3.",
+      "count": 26
     }
   ],
   "cases": [
@@ -417,6 +465,14 @@
         {
           "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
           "source": "https://www.jperm.net/4x4"
+        },
+        {
+          "alg": "Rw' U2 Rw U2 Rw U2 Rw2 F2 Rw' U2 Rw' U2 F2 Rw2 F2",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
         }
       ]
     },
@@ -434,6 +490,47 @@
         {
           "alg": "Rw2 R2 U2 Rw2 R2 Uw2 Rw2 R2 Uw2",
           "source": "https://www.jperm.net/4x4"
+        },
+        {
+          "alg": "2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Rw2 F2 U2 Rw2 R2 U2 F2 Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Uw2 Rw2 U2 2R2 U2 Rw2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "2L2 U2 2L2 Uw2 2L2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PARITY OLL and PLL parity",
+      "cube_size": 4,
+      "name": "OLL and PLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "4x4-parity",
+      "setLabel": "Parity",
+      "setup": "L' 3Lw Rw U2 Rw U2 Rw' U2 Rw U2 Lw' U2 Rw U2 Rw' U2 Rw' x' U2 Rw' L 3Lw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Lw L' Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw' 3Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "3Lw L' Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2 3Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "3Lw L' Rw' U2 Rw U2 Rw U2 Rw2 F2 Rw' U2 Rw' U2 F2 Rw2 F2 3Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
         }
       ]
     },
@@ -655,6 +752,10 @@
         {
           "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
           "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "2R2 B2 U2 2L U2 2R' U2 2R U2 F2 2R F2 2L' B2 2R2",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2E"
         }
       ]
     },
@@ -672,6 +773,10 @@
         {
           "alg": "3R' U2 3L F2 3L' F2 3R2 U2 3R U2 3R' U2 F2 3R2 F2",
           "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "3R2 B2 U2 3L U2 3R' U2 3R U2 F2 3R F2 3L' B2 3R2",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2E"
         }
       ]
     },
@@ -689,6 +794,14 @@
         {
           "alg": "3Rw U2 x 3Rw U2 3Rw U2 3Rw' U2 3Lw U2 3Rw' U2 3Rw U2 3Rw' U2 3Rw'",
           "source": "https://www.jperm.net/4x4"
+        },
+        {
+          "alg": "3Rw' U2 3Rw U2 3Rw U2 3Rw2 F2 3Rw' U2 3Rw' U2 F2 3Rw2 F2",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "3Rw2 B2 U2 3Lw U2 3Rw' U2 3Rw U2 F2 3Rw F2 3Lw' B2 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
         }
       ]
     },
@@ -706,6 +819,85 @@
         {
           "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
           "source": "https://www.jperm.net/4x4"
+        },
+        {
+          "alg": "3Rw2 F2 U2 3Rw2 R2 U2 F2 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Uw2 3Rw2 U2 3Rw2 R2 U2 3Rw2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY Pure OLL parity",
+      "cube_size": 6,
+      "name": "Pure OLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "F2 R2 3Rw2 F2 U2 R' 3Rw U2 R 3Rw' U2 R2 3Rw2 F2 L' 3Lw F2 L 3Lw' U2 R' 3Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw' R U2 3Lw L' F2 3Lw' L F2 3Rw2 R2 U2 3Rw R' U2 3Rw' R U2 F2 3Rw2 R2 F2",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY Inner wing swap",
+      "cube_size": 6,
+      "name": "Inner wing swap",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "3L2 U2 3R U2 3R' F2 3L F2 U2 3L U2 3L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3L' U2 3L' U2 F2 3L' F2 3R U2 3R' U2 3L2",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2E"
+        },
+        {
+          "alg": "3L' U2 3L' U2 3L' 3R U2 3L' U2 3L U2 3R' U2 3L2",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2E"
+        },
+        {
+          "alg": "U2 3R U2 3R U2 F2 3R F2 3L' U2 3L U2 3R2 U2",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2E"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY OLL and PLL parity",
+      "cube_size": 6,
+      "name": "OLL and PLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "L' 5Lw 3Rw U2 3Rw U2 3Rw' U2 3Rw U2 3Lw' U2 3Rw U2 3Rw' U2 3Rw' x' U2 3Rw' L 5Lw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "5Lw L' 3Rw U2 x 3Rw U2 3Rw U2 3Rw' U2 3Lw U2 3Rw' U2 3Rw U2 3Rw' U2 3Rw' 5Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "5Lw L' 3Rw2 B2 U2 3Lw U2 3Rw' U2 3Rw U2 F2 3Rw F2 3Lw' B2 3Rw2 5Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
+        },
+        {
+          "alg": "5Lw L' 3Rw' U2 3Rw U2 3Rw U2 3Rw2 F2 3Rw' U2 3Rw' U2 F2 3Rw2 F2 5Lw' L",
+          "source": "https://speedcubedb.com/a/4x4/OLLParity"
         }
       ]
     },
@@ -859,6 +1051,2724 @@
         {
           "alg": "3R' U2 3L F2 3L' F2 3R2 U2 3R U2 3R' U2 F2 3R2 F2",
           "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Opposite edge swap",
+      "cube_size": 4,
+      "name": "Opposite edge swap",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 2R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Rw2 F2 U2 Rw2 R2 U2 F2 Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Uw2 Rw2 U2 2R2 U2 Rw2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "2L2 U2 2L2 Uw2 2L2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Adjacent edge swap",
+      "cube_size": 4,
+      "name": "Adjacent edge swap",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U R U Uw2 2R2 Uw2 2R2 U2 2R2 U R' U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U R U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R' U' R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' U' 2L2 U2 2L2 Uw2 2L2 Uw2 U' R U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY O, clockwise",
+      "cube_size": 4,
+      "name": "O, clockwise",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 U' R' U' R U R' U' R' U R' U R U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Uw2 2R2 Uw2 2R2 U2 2R2 U R' U' R U' R U R U' R' U R U R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Lw2 L2 U 3Lw2 L2 U 3Lw' L U2 3Lw2 L2 U2 3Lw' L U 2L2 U2 2L2 Uw2 2L2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Lw2 L2 U' 3Lw2 L2 U' 3Lw' L U2 3Lw2 L2 U2 3Lw' L Uw2 Rw2 U2 Lw2 3Lw2 U2 Rw2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY O, counterclockwise",
+      "cube_size": 4,
+      "name": "O, counterclockwise",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "L2 3Lw2 U' L2 3Lw2 U' L' 3Lw U2 L2 3Lw2 U2 R Rw2 3Rw U2 2L2 Uw2 2L2 Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Uw2 2L2 Uw2 2L2 U2 3Rw' Rw2 R' U2 3Lw2 L2 U2 3Lw' L U 3Lw2 L2 U 3Lw2 L2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Uw2 2R2 Uw2 2R2 U2 2R2 R' U' R U' R U R U' R' U R U R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Lw2 L2 U2 3Lw' L U 3Lw2 L2 U 3Lw2 L2 U 3Lw' L 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY W",
+      "cube_size": 4,
+      "name": "W",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 Rw2 U' R' U' R U R U R U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U R' U' R' U' R' U R U Rw2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R' U R' U' R' U' R' U R U R2 Uw2 Rw2 U2 Lw2 3Lw2 U2 Rw2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' R U' R U R U R U' R' U' R2 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Pj",
+      "cube_size": 4,
+      "name": "Pj",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2L2 Uw2 2L2 U2 2L2 U F R U' R' U R U R2 F' R U R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 2L2 U2 2L2 Uw2 2L2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Rw' R2 U' R' U 2R U' R U2 R' U' 2R U 2R' U' Rw' F Rw2 U' Rw' U' Rw U Rw' F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Ba",
+      "cube_size": 4,
+      "name": "Ba",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 F' R U R U' R' F R U' R' U' 2L2 U2 2L2 Uw2 2L2 Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Uw2 2L2 Uw2 2L2 U2 2L2 U R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "x' Rw2 U2 Rw2 Uw2 2R2 Uw2 F 3Rw U' R U2 L' U R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "2R2 U2 2R2 Uw2 2R2 Uw2 U R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Bb",
+      "cube_size": 4,
+      "name": "Bb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U L' U2 R U' 3Rw B' Uw2 2R2 Uw2 Rw2 U2 Rw2 x' y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y x Rw2 U2 Rw2 Uw2 2R2 Uw2 B 3Rw' U R' U2 L U' R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y 2R2 U2 2R2 Uw2 2R2 Uw2 R' U L' U2 R U' R' U2 L R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 2R2 U2 2R2 Uw2 2R2 Uw2 L' U R' U2 L U' L' U2 L R U",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Ca",
+      "cube_size": 4,
+      "name": "Ca",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U2 R U2 R' F R U R' U' R' F' Rw2 U2 2R2 Uw2 2R2 Uw2 y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 Uw2 2R2 Uw2 2R2 U2 Rw2 F R U R U' R' F' R U2 R' U2 R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "U2 2R2 U2 2R2 Uw2 2R2 Uw2 R2 F R U R U' R' F' R U2 R' U2 R U",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Cb",
+      "cube_size": 4,
+      "name": "Cb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 Rw2 F R U R U' R' F' R U2 R' U2 R y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y R' U2 R U2 R' F R U R' U' R' F' Rw2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "2R2 U2 2R2 Uw2 2R2 Uw2 R U' R' U' R U R D R' U' R D' R' U2 R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y2 Uw2 2R2 Uw2 2R2 U2 2R2 U2 R U' R' U' R U R D R' U' R D' R' U2 R' U2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Da",
+      "cube_size": 4,
+      "name": "Da",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "x Uw2 2R2 Uw2 Rw2 U2 Rw2 B' 3Rw' U R' U2 L U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U L' U2 R U' 3Rw B Rw2 U2 Rw2 Uw2 2R2 Uw2 x'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y2 L' U R' U2 L U' L' U2 L R U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y F R U' R' U' 2R2 U2 2R2 Uw2 2R2 Uw2 R U R2 F' R U R U' R' U2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Db",
+      "cube_size": 4,
+      "name": "Db",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "2R2 U2 2R2 Uw2 2R2 Uw2 R U R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' Uw2 2R2 Uw2 2R2 U2 2R2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R U' L U2 R' U 3Rw' F Rw2 U2 Rw2 Uw2 2R2 Uw2 x",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Ka",
+      "cube_size": 4,
+      "name": "Ka",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 Rw2 x D2 R U R' D2 R U' 3Lw y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y 3Lw' U R' D2 R U' R' D2 x' Rw2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Kb",
+      "cube_size": 4,
+      "name": "Kb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "U x Rw2 R' D' R U2 R' D R x' U2 R2 Rw2 U2 F2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 F2 U2 Rw2 R2 U2 x R' D' R U2 R' D R Rw2 x' U'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 3Rw U' L D2 L' U L D2 x' Lw2 U2 2L2 Uw2 2L2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 2R2 U2 2R2 Uw2 2R2 Uw2 x' R U' R D2 R' U R D2 R2 F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY M",
+      "cube_size": 4,
+      "name": "M",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Rw2 U' F2 R' D R' D' R U' R' U R U' 2R2 U2 F2 Rw2 y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 Rw2 F2 U2 2R2 U R' U' R U R' D R D' R F2 U Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Pa",
+      "cube_size": 4,
+      "name": "Pa",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 2R2 U R U R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R U' L U2 R' U 3Rw' Rw2 U2 Rw2 Uw2 2R2 Uw2 x",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Pb",
+      "cube_size": 4,
+      "name": "Pb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 F' R U R U' R' F R U' R' Uw2 2R2 Uw2 2R2 U2 2R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R2 U2 2R2 Uw2 2R2 Uw2 R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R' U L' U2 R U' 3Rw Rw2 U2 Rw2 Uw2 2R2 Uw2 x'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Diagonal C",
+      "cube_size": 4,
+      "name": "Diagonal C",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "F R' F' R U R U' R' U Uw2 2R2 Uw2 2R2 U2 2R2 U F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' U' 2R2 U2 2R2 Uw2 2R2 Uw2 U' R U R' U' R' F R F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "2R U 2R' U' Rw' F Rw2 U' Rw' U' Rw U Rw' F' R U R' U' Rw' D' Rw U2 Rw' D Rw",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "F R U' R' U' R U R' F' U' 2L2 U2 2L2 Uw2 2L2 Uw2 U' R U R' U' R' F R F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Q",
+      "cube_size": 4,
+      "name": "Q",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "z Rw2 Uw2 R2 U2 F U R U' R' U R U' R' U R U' R' F' Uw2 R2 Uw2 Rw2 z'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "z Rw2 Uw2 R2 Uw2 F R U R' U' R U R' U' R U R' U' F' U2 R2 Uw2 Rw2 z'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y x' R U' R' D R U R' D' R U R' D R U' R' D' x U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Sa",
+      "cube_size": 4,
+      "name": "Sa",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 2R2 U F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' U' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY Sb",
+      "cube_size": 4,
+      "name": "Sb",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Uw2 2R2 Uw2 2R2 U2 2R2 F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PLL-PARITY X",
+      "cube_size": 4,
+      "name": "X",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "4x4-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "Rw2 F2 U2 R2 F' R' U' R U R' U' R U R' U' R U F Rw2 U2 F2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 F2 U2 Rw2 F' U' R' U R U' R' U R U' R' U R F R2 U2 F2 Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "Rw2 B2 U2 Rw2 B R U R' U' R U R' U' R U R' U' B' R2 U2 B2 Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "x' R U' R' D R U R' D' R U R' D R U' R' D' x 2R2 U2 2R2 Uw2 2R2 Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Opposite edge swap",
+      "cube_size": 6,
+      "name": "Opposite edge swap",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw2 F2 U2 3Rw2 R2 U2 F2 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Uw2 3Rw2 U2 3Rw2 R2 U2 3Rw2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Adjacent edge swap",
+      "cube_size": 6,
+      "name": "Adjacent edge swap",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U R U 3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2 U R' U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U R U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 U' R' U' R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' U' 3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2 U' R U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY O, clockwise",
+      "cube_size": 6,
+      "name": "O, clockwise",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 U' R' U' R U R' U' R' U R' U R U' R2 3Rw2 U2 R2 3Rw2 3Uw2 R2 3Rw2 3Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Uw2 3Rw2 R2 3Uw2 3Rw2 R2 U2 3Rw2 R2 U R' U' R U' R U R U' R' U R U R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "5Lw2 L2 U 5Lw2 L2 U 5Lw' L U2 5Lw2 L2 U2 5Lw' L U 3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "5Lw2 L2 U' 5Lw2 L2 U' 5Lw' L U2 5Lw2 L2 U2 5Lw' L 3Uw2 3Rw2 U2 3Lw2 5Lw2 U2 3Rw2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY O, counterclockwise",
+      "cube_size": 6,
+      "name": "O, counterclockwise",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "L2 5Lw2 U' L2 5Lw2 U' L' 5Lw U2 L2 5Lw2 U2 R 3Rw2 5Rw U2 L2 3Lw2 3Uw2 L2 3Lw2 3Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Uw2 3Lw2 L2 3Uw2 3Lw2 L2 U2 5Rw' 3Rw2 R' U2 5Lw2 L2 U2 5Lw' L U 5Lw2 L2 U 5Lw2 L2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Uw2 3Rw2 R2 3Uw2 3Rw2 R2 U2 3Rw2 R2 R' U' R U' R U R U' R' U R U R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "5Lw2 L2 U2 5Lw' L U 5Lw2 L2 U 5Lw2 L2 U 5Lw' L 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY W",
+      "cube_size": 6,
+      "name": "W",
+      "group": "Edges only",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 3Rw2 U' R' U' R U R U R U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U R' U' R' U' R' U R U 3Rw2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R' U R' U' R' U' R' U R U R2 3Uw2 3Rw2 U2 3Lw2 5Lw2 U2 3Rw2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' R U' R U R U R U' R' U' R2 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Pj",
+      "cube_size": 6,
+      "name": "Pj",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 L2 3Lw2 3Uw2 L2 3Lw2 U2 L2 3Lw2 U F R U' R' U R U R2 F' R U R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw' R2 U' R' U 3Rw R' U' R U2 R' U' 3Rw R' U 3Rw' R U' 3Rw' F 3Rw2 U' 3Rw' U' 3Rw U 3Rw' F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F' U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Ba",
+      "cube_size": 6,
+      "name": "Ba",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 F' R U R U' R' F R U' R' U' L2 3Lw2 U2 L2 3Lw2 3Uw2 L2 3Lw2 3Uw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Uw2 3Lw2 L2 3Uw2 3Lw2 L2 U2 3Lw2 L2 U R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "x' 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 F 5Rw U' R U2 L' U R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 U R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Bb",
+      "cube_size": 6,
+      "name": "Bb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U L' U2 R U' 5Rw B' 3Uw2 R2 3Rw2 3Uw2 3Rw2 U2 3Rw2 x' y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y x 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 B 5Rw' U R' U2 L U' R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 R' U L' U2 R U' R' U2 L R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 L' U R' U2 L U' L' U2 L R U",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Ca",
+      "cube_size": 6,
+      "name": "Ca",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R' U2 R U2 R' F R U R' U' R' F' 3Rw2 U2 R2 3Rw2 3Uw2 R2 3Rw2 3Uw2 y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 3Uw2 3Rw2 R2 3Uw2 3Rw2 R2 U2 3Rw2 F R U R U' R' F' R U2 R' U2 R",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "U2 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 R2 F R U R U' R' F' R U2 R' U2 R U",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Cb",
+      "cube_size": 6,
+      "name": "Cb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 3Rw2 F R U R U' R' F' R U2 R' U2 R y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y R' U2 R U2 R' F R U R' U' R' F' 3Rw2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 R U' R' U' R U R D R' U' R D' R' U2 R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y2 3Uw2 3Rw2 R2 3Uw2 3Rw2 R2 U2 3Rw2 R2 U2 R U' R' U' R U R D R' U' R D' R' U2 R' U2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Da",
+      "cube_size": 6,
+      "name": "Da",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "x 3Uw2 R2 3Rw2 3Uw2 3Rw2 U2 3Rw2 B' 5Rw' U R' U2 L U' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U L' U2 R U' 5Rw B 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 x'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y2 L' U R' U2 L U' L' U2 L R U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y F R U' R' U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 R U R2 F' R U R U' R' U2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Db",
+      "cube_size": 6,
+      "name": "Db",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R2 3Rw2 U2 R2 3Rw2 3Uw2 R2 3Rw2 3Uw2 R U R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' 3Uw2 3Rw2 R2 3Uw2 3Rw2 R2 U2 3Rw2 R2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R U' L U2 R' U 5Rw' F 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 x",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Ka",
+      "cube_size": 6,
+      "name": "Ka",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 3Rw2 x D2 R U R' D2 R U' 5Lw y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y 5Lw' U R' D2 R U' R' D2 x' 3Rw2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Kb",
+      "cube_size": 6,
+      "name": "Kb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "U x 3Rw2 R' D' R U2 R' D R x' U2 R2 3Rw2 U2 F2 3Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw2 F2 U2 3Rw2 R2 U2 x R' D' R U2 R' D R 3Rw2 x' U'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 5Rw U' L D2 L' U L D2 x' 3Lw2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 x' R U' R D2 R' U R D2 R2 F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY M",
+      "cube_size": 6,
+      "name": "M",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Rw2 U' F2 R' D R' D' R U' R' U R U' R2 3Rw2 U2 F2 3Rw2 y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 3Rw2 F2 U2 3Rw2 R2 U R' U' R U R' D R D' R F2 U 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Pa",
+      "cube_size": 6,
+      "name": "Pa",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2 U R U R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R' U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R U' L U2 R' U 5Rw' 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 x",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Pb",
+      "cube_size": 6,
+      "name": "Pb",
+      "group": "Adjacent corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "R U R2 F' R U R U' R' F R U' R' 3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y R' U L' U2 R U' 5Rw 3Rw2 U2 3Rw2 3Uw2 3Rw2 R2 3Uw2 x'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Diagonal C",
+      "cube_size": 6,
+      "name": "Diagonal C",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "F R' F' R U R U' R' U 3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2 U F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2 U' R U R' U' R' F R F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw R' U 3Rw' R U' 3Rw' F 3Rw2 U' 3Rw' U' 3Rw U 3Rw' F' R U R' U' 3Rw' D' 3Rw U2 3Rw' D 3Rw",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "F R U' R' U' R U R' F' U' 3Lw2 L2 U2 3Lw2 L2 3Uw2 3Lw2 L2 3Uw2 U' R U R' U' R' F R F'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Q",
+      "cube_size": 6,
+      "name": "Q",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "z 3Rw2 3Uw2 R2 U2 F U R U' R' U R U' R' U R U' R' F' 3Uw2 R2 3Uw2 3Rw2 z'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "z 3Rw2 3Uw2 R2 3Uw2 F R U R' U' R U R' U' R U R' U' F' U2 R2 3Uw2 3Rw2 z'",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "y x' R U' R' D R U R' D' R U R' D R U' R' D' x U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Sa",
+      "cube_size": 6,
+      "name": "Sa",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2 U F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' U' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY Sb",
+      "cube_size": 6,
+      "name": "Sb",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2 F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F' 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PLL-PARITY X",
+      "cube_size": 6,
+      "name": "X",
+      "group": "Diagonal corner swap",
+      "stage": "Parity",
+      "set": "6x6-pll-parity",
+      "setLabel": "PLL parity cases",
+      "setup": "3Rw2 F2 U2 R2 F' R' U' R U R' U' R U R' U' R U F 3Rw2 U2 F2 3Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw2 F2 U2 3Rw2 F' U' R' U R U' R' U R U' R' U R F R2 U2 F2 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "3Rw2 B2 U2 3Rw2 B R U R' U' R U R' U' R U R' U' B' R2 U2 B2 3Rw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        },
+        {
+          "alg": "x' R U' R' D R U R' D' R U R' D R U' R' D' x 3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://speedcubedb.com/a/4x4/PLLParity"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 1",
+      "cube_size": 5,
+      "name": "Last two centers 1",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U' Rw U' Rw' U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 Rw U Rw' U Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 2",
+      "cube_size": 5,
+      "name": "Last two centers 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' 3L' U2 3L U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U 3L' U2 3L U Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 3",
+      "cube_size": 5,
+      "name": "Last two centers 3",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 4",
+      "cube_size": 5,
+      "name": "Last two centers 4",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw' U Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U' Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 5",
+      "cube_size": 5,
+      "name": "Last two centers 5",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw' U Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw' U' Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 6",
+      "cube_size": 5,
+      "name": "Last two centers 6",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U' Rw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw' U Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 7",
+      "cube_size": 5,
+      "name": "Last two centers 7",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 8",
+      "cube_size": 5,
+      "name": "Last two centers 8",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw' U' Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw' U Rw U Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 9",
+      "cube_size": 5,
+      "name": "Last two centers 9",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw' U' Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U Rw U Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 10",
+      "cube_size": 5,
+      "name": "Last two centers 10",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U Rw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw' U' Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 11",
+      "cube_size": 5,
+      "name": "Last two centers 11",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "U Rw U' Rw' U Rw U' Rw' U Rw U' Rw' U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 Rw U Rw' U' Rw U Rw' U' Rw U Rw' U'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 12",
+      "cube_size": 5,
+      "name": "Last two centers 12",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw' U2 Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw' U2 Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 13",
+      "cube_size": 5,
+      "name": "Last two centers 13",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 14",
+      "cube_size": 5,
+      "name": "Last two centers 14",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U' Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 15",
+      "cube_size": 5,
+      "name": "Last two centers 15",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U' Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 16",
+      "cube_size": 5,
+      "name": "Last two centers 16",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw' U' Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw' U Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 17",
+      "cube_size": 5,
+      "name": "Last two centers 17",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw' U Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U' Rw U Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2C Last two centers 18",
+      "cube_size": 5,
+      "name": "Last two centers 18",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "5x5-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U2 Rw' U' 3L' U2 3L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3L' U2 3L U Rw U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Inner center",
+      "cube_size": 6,
+      "name": "Inner center",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' 3L' U 3R' U' 3L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3L' U 3R U' 3L U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        },
+        {
+          "alg": "3L' U 3R U' 3L U 3R' U'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Outer center",
+      "cube_size": 6,
+      "name": "Outer center",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3L' U Rw U' 3L U Rw' F' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U F Rw U' 3L' U Rw' U' 3L",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Front 3 bar",
+      "cube_size": 6,
+      "name": "Front 3 bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3R' U' Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U 3R U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Back 3 bar",
+      "cube_size": 6,
+      "name": "Back 3 bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' Rw U 3R' U Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U' 3R U' Rw' U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and Split",
+      "cube_size": 6,
+      "name": "Pair and Split",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U Rw' U' Rw U Rw' U' 3R' U Rw U Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U' Rw' U' 3R U Rw U' Rw' U Rw U' 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and Split · 2",
+      "cube_size": 6,
+      "name": "Pair and Split · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U' Rw' U Rw U' Rw' U 3R' U' Rw U' Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U Rw' U 3R U' Rw U Rw' U' Rw U 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Two Splits",
+      "cube_size": 6,
+      "name": "Two Splits",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R Lw' U Rw U' 3R' Lw U' Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U Lw' 3R U Rw' U' Lw 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Two Pairs",
+      "cube_size": 6,
+      "name": "Two Pairs",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Lw' U Rw U' 3Lw U' Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U 3Lw' U Rw' U' 3Lw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Split and a Pair",
+      "cube_size": 6,
+      "name": "Split and a Pair",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Lw' U Rw U' 3Lw U Rw' U2 Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U2 Rw U' 3Lw' U Rw' U' 3Lw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Split and a bar",
+      "cube_size": 6,
+      "name": "Split and a bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' Rw U 3R' U' Rw' U2 Rw U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U Rw' U2 Rw U 3R U' Rw' U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Split and a bar · 2",
+      "cube_size": 6,
+      "name": "Split and a bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3R' U Rw' U2 Rw U Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U' Rw' U2 Rw U' 3R U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bar",
+      "cube_size": 6,
+      "name": "Pair and a bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3R' U Rw' U2 Rw U' Rw' U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 Rw U Rw' U2 Rw U' 3R U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bar · 2",
+      "cube_size": 6,
+      "name": "Pair and a bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' Rw U 3R' U' Rw' U2 Rw U Rw' U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 Rw U' Rw' U2 Rw U 3R U' Rw' U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Split and a bad bar",
+      "cube_size": 6,
+      "name": "Split and a bad bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3L' U' Rw U 3L Rw' U' Rw U' Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U Rw' U Rw 3L' U' Rw' U 3L",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Split and a bad bar · 2",
+      "cube_size": 6,
+      "name": "Split and a bad bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3L' U Rw U' 3L Rw' U Rw U Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U' Rw' U' Rw 3L' U Rw' U' 3L",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bad bar",
+      "cube_size": 6,
+      "name": "Pair and a bad bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' Rw U 3Rw' U' Rw U' Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U Rw' U 3Rw U' Rw' U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bad bar · 2",
+      "cube_size": 6,
+      "name": "Pair and a bad bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3Rw' U Rw U Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U' Rw' U' 3Rw U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Stray Obliques",
+      "cube_size": 6,
+      "name": "Stray Obliques",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw' U' 3Rw U2 Rw' U Rw U 3Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw U' Rw' U' Rw U2 3Rw' U Rw U Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a Nice 3 bar",
+      "cube_size": 6,
+      "name": "Pair and a Nice 3 bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U' Rw' U 3R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R U' Rw U 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C L and a bar",
+      "cube_size": 6,
+      "name": "L and a bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U' Rw' U 3R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R U' Rw U 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C L and a bar · 2",
+      "cube_size": 6,
+      "name": "L and a bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' 3Rw U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bad bar · 3",
+      "cube_size": 6,
+      "name": "Pair and a bad bar · 3",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U' Rw' U' 3L' U' Lw' U 3Lw U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 3Lw' U' Lw U 3L U Rw U Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and a bad bar · 4",
+      "cube_size": 6,
+      "name": "Pair and a bad bar · 4",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw U Rw' U 3L' U Lw' U' 3Lw U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U 3Lw' U Lw U' 3L U' Rw U' Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Bar and Scatter",
+      "cube_size": 6,
+      "name": "Bar and Scatter",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3L F' Rw' F 3L' Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' 3L F' Rw F 3L'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Bar and Scatter · 2",
+      "cube_size": 6,
+      "name": "Bar and Scatter · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "Rw' 3L F Rw F' 3L' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' 3L F Rw' F' 3L' Rw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Front 3 bar · 2",
+      "cube_size": 6,
+      "name": "Front 3 bar · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U Rw' U' Rw U Rw' U' 3R' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' 3R U Rw U' Rw' U Rw U' 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Right 3 bar",
+      "cube_size": 6,
+      "name": "Right 3 bar",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw U' Rw' U Rw U' Rw' U 3R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R U' Rw U Rw' U' Rw U 3Rw'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Two Pairs · 2",
+      "cube_size": 6,
+      "name": "Two Pairs · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Lw' U Rw U' 3Lw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 3Lw' U Rw' U' 3Lw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Kite",
+      "cube_size": 6,
+      "name": "Kite",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3L' U' Rw U 3L Rw' U' Rw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw' U Rw 3L' U' Rw' U 3L",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Triangle",
+      "cube_size": 6,
+      "name": "Triangle",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U Rw U' 3Rw' U2 Rw U Rw' U2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U2 Rw U' Rw' U2 3Rw U Rw' U' 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Triangle · 2",
+      "cube_size": 6,
+      "name": "Triangle · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3R U' Rw U 3Rw' U2 Rw U' Rw' U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U Rw U Rw' U2 3Rw U' Rw' U 3R'",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and Shape",
+      "cube_size": 6,
+      "name": "Pair and Shape",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw' F Rw F' 3R U Rw U2 Rw' U",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U' Rw U2 Rw' U' 3R' F Rw' F' 3Rw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "6x6 L2C Pair and Shape · 2",
+      "cube_size": 6,
+      "name": "Pair and Shape · 2",
+      "group": "Last two centers",
+      "stage": "Centers",
+      "set": "6x6-l2c",
+      "setLabel": "Last two centers",
+      "setup": "3Rw' F' Rw F 3R U' Rw U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw' U 3R' F' Rw' F 3Rw",
+          "source": "https://speedcubedb.com/a/6x6/6x6L2C"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 1",
+      "cube_size": 5,
+      "name": "Last two edges 1",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw' F R' F' R U' R U Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U' R' U R' F R F' Rw",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 2",
+      "cube_size": 5,
+      "name": "Last two edges 2",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Lw F R' F' R U' R U Lw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Lw U' R' U R' F R F' Lw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z y Uw F' D' F D' L D L' Uw' y' z'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 3",
+      "cube_size": 5,
+      "name": "Last two edges 3",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' 3L' F R' F' R U' R U 3L x",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "x' 3L' U' R' U R' F R F' 3L x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw' Lw U' R' U R' F R F' Rw Lw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' z' 3D' L' U' L U' F U F' 3D z x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 4",
+      "cube_size": 5,
+      "name": "Last two edges 4",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 F2 U2 Rw2 U2 F2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 F2 U2 Rw2 U2 F2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z' y' Uw2 R2 F2 Uw2 F2 R2 Uw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "y x' Uw2 L2 F2 Uw2 F2 L2 Uw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 5",
+      "cube_size": 5,
+      "name": "Last two edges 5",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 x U2 Rw U2 Rw B2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 B2 Rw' U2 Rw' U2 x' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 B2 Rw' U2 Rw' U2 x' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 6",
+      "cube_size": 5,
+      "name": "Last two edges 6",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "F2 Rw2 F2 U2 Rw U2 Rw' U2 Rw2 F2 3Rw U2 3Rw' U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 3Rw U2 3Rw' F2 Rw2 U2 Rw U2 Rw' U2 F2 Rw2 F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U2 x Rw U2 Rw U2 3Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 3Rw' U2 Rw U2 Rw' U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 7",
+      "cube_size": 5,
+      "name": "Last two edges 7",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 U2 Lw' U2 3Rw U2 Rw' U2 x' U2 Rw' U2 Rw' y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 Rw U2 Rw U2 x U2 Rw U2 3Rw' U2 Lw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Lw' U2 Lw' U2 F2 Lw' F2 Rw U2 Rw' U2 Lw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 8",
+      "cube_size": 5,
+      "name": "Last two edges 8",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "F2 Lw F2 U2 Lw2 U2 Lw F2 Lw2 U2 Lw U2 F2 Lw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Lw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Lw2 U2 F2 Lw' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Lw2 F2 U2 Rw U2 Rw2 F2 Rw U2 Lw2 U2 F2 Lw' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "F2 Rw U2 Rw U2 Rw' F2 Rw' U2 Rw' U2 Rw U2 Rw' U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 9",
+      "cube_size": 5,
+      "name": "Last two edges 9",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw' B2 Rw' U2 Rw U2 Rw B2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "B2 Rw' U2 Rw' U2 Rw B2 Rw U2 Rw U2 Rw' U2 Rw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 F2 U2 Rw U2 Rw2 F2 Rw U2 Rw2 U2 F2 Rw F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' U2 Rw U2 Rw U2 Rw' F2 Rw' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 F2 U2 F2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Rw2 U2 F2 Rw F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 10",
+      "cube_size": 5,
+      "name": "Last two edges 10",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 Rw2 U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 11",
+      "cube_size": 5,
+      "name": "Last two edges 11",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 Rw2 U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 Rw",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 12",
+      "cube_size": 5,
+      "name": "Last two edges 12",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "D2 U2 F2 D2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw' U2 3Lw U2 Rw' U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 Rw U2 3Lw' U2 Rw U2 Rw U2 Rw' U2 Rw U2 Rw2 D2 F2 U2 D2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw' U2 Rw' U2 B2 Rw' B2 Rw' F2 Lw2 F2 Rw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "5x5 L2E Last two edges 13",
+      "cube_size": 5,
+      "name": "Last two edges 13",
+      "group": "Last two edges",
+      "stage": "Edges",
+      "set": "5x5-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw U R' U' Rw2 U' R' U Rw2 U R' U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U R U' Rw2 U' R U Rw2 U R U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U R' U' Rw2 U' R' U Rw2 U R' U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 1 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 1 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw' F R' F' R U' R U Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U' R' U R' F R F' Rw",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 2 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 2 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Lw F R' F' R U' R U Lw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Lw U' R' U R' F R F' Lw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z y Uw F' D' F D' L D L' Uw' y' z'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 3 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 3 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' Lw 5Lw' F R' F' R U' R U Lw' 5Lw x",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "x' 5Lw' Lw U' R' U R' F R F' 5Lw Lw' x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw' Lw U' R' U R' F R F' Rw Lw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' z' 5Dw' Dw L' U' L U' F U F' 5Dw Dw' z x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 4 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 4 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 F2 U2 Rw2 U2 F2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 F2 U2 Rw2 U2 F2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z' y' Uw2 R2 F2 Uw2 F2 R2 Uw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "y x' Uw2 L2 F2 Uw2 F2 L2 Uw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 5 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 5 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 x U2 Rw U2 Rw B2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 B2 Rw' U2 Rw' U2 x' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 B2 Rw' U2 Rw' U2 x' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 6 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 6 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "F2 Rw2 F2 U2 Rw U2 Rw' U2 Rw2 F2 5Rw U2 5Rw' U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 5Rw U2 5Rw' F2 Rw2 U2 Rw U2 Rw' U2 F2 Rw2 F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U2 x Rw U2 Rw U2 5Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 5Rw' U2 Rw U2 Rw' U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 B2 U2 Lw U2 Rw' U2 Rw U2 F2 Rw F2 Lw' B2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 7 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 7 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 U2 Lw' U2 5Rw U2 Rw' U2 x' U2 Rw' U2 Rw' y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 Rw U2 Rw U2 x U2 Rw U2 5Rw' U2 Lw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Lw' U2 Lw' U2 F2 Lw' F2 Rw U2 Rw' U2 Lw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 8 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 8 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "F2 Lw F2 U2 Lw2 U2 Lw F2 Lw2 U2 Lw U2 F2 Lw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Lw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Lw2 U2 F2 Lw' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Lw2 F2 U2 Rw U2 Rw2 F2 Rw U2 Lw2 U2 F2 Lw' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "F2 Rw U2 Rw U2 Rw' F2 Rw' U2 Rw' U2 Rw U2 Rw' U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 9 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 9 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw' B2 Rw' U2 Rw U2 Rw B2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "B2 Rw' U2 Rw' U2 Rw B2 Rw U2 Rw U2 Rw' U2 Rw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 F2 U2 Rw U2 Rw2 F2 Rw U2 Rw2 U2 F2 Rw F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' U2 Rw U2 Rw U2 Rw' F2 Rw' U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 F2 U2 F2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw2 F2 U2 Lw' U2 Lw2 F2 Lw' U2 Rw2 U2 F2 Rw F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 10 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 10 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 Rw2 U2 Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 11 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 11 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw' U2 Rw2 U2 Rw U2 Rw' U2 Rw U2 Rw2 U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw2 U2 Rw",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 12 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 12 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "D2 U2 F2 D2 Rw2 U2 Rw' U2 Rw U2 Rw' U2 Rw' U2 5Lw U2 Rw' U2 Rw",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw' U2 Rw U2 5Lw' U2 Rw U2 Rw U2 Rw' U2 Rw U2 Rw2 D2 F2 U2 D2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw' U2 Rw' U2 B2 Rw' B2 Rw' F2 Lw2 F2 Rw U2 Rw2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 13 · layer 2",
+      "cube_size": 7,
+      "name": "Last two edges 13 · layer 2",
+      "group": "Layer 2",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "Rw U R' U' Rw2 U' R' U Rw2 U R' U' Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U R U' Rw2 U' R U Rw2 U R U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "Rw U R' U' Rw2 U' R' U Rw2 U R' U' Rw'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 1 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 1 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R' R' F R' F' R U' R U 3R R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' 3R' U' R' U R' F R F' R 3R",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 2 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 2 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3L L F R' F' R U' R U 3L' L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L 3L U' R' U R' F R F' L' 3L'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z y U 3U F' D' F D' L D L' U' 3U' y' z'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 3 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 3 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' 4L' F R' F' R U' R U 4L x",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "x' 4L' U' R' U R' F R F' 4L x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' z' 4D' L' U' L U' F U F' 4D z x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 4 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 4 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R2 R2 F2 U2 3R2 R2 U2 F2 3R2 R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 3R2 F2 U2 R2 3R2 U2 F2 R2 3R2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "z' y' U2 3U2 R2 F2 U2 3U2 F2 R2 U2 3U2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "y x' U2 3U2 L2 F2 U2 3U2 F2 L2 U2 3U2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 5 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 5 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "x' U2 3R2 R2 U2 3R R U2 3R' R' U2 3R R U2 x U2 3R R U2 3R R B2 3R2 R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 3R2 B2 R' 3R' U2 R' 3R' U2 x' U2 R' 3R' U2 R 3R U2 R' 3R' U2 R2 3R2 U2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "R2 3R2 B2 R' 3R' U2 R' 3R' U2 x' U2 R' 3R' U2 R 3R U2 R' 3R' U2 R2 3R2 U2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 6 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 6 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R2 R2 B2 3L L F2 3R' R' F2 U2 3R' R' U2 3R R U2 3L' L' U2 B2 3R2 R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 3R2 B2 U2 L 3L U2 R' 3R' U2 R 3R U2 F2 R 3R F2 L' 3L' B2 R2 3R2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 7 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 7 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3L2 L2 U2 3R R U2 3R' R' F2 3L L F2 U2 3L L U2 3L L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L' 3L' U2 L' 3L' U2 F2 L' 3L' F2 R 3R U2 R' 3R' U2 L2 3L2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 8 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 8 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "F2 3L L F2 U2 3L2 L2 U2 3L L F2 3L2 L2 U2 3L L U2 F2 3L2 L2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L2 3L2 F2 U2 L' 3L' U2 L2 3L2 F2 L' 3L' U2 L2 3L2 U2 F2 L' 3L' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "L2 3L2 F2 U2 R 3R U2 R2 3R2 F2 R 3R U2 L2 3L2 U2 F2 L' 3L' F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "F2 R 3R U2 R 3R U2 R' 3R' F2 R' 3R' U2 R' 3R' U2 R 3R U2 R' 3R' U2 R2 3R2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 9 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 9 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R2 R2 U2 3R' R' U2 3R R U2 3R' R' U2 3R' R' B2 3R' R' U2 3R R U2 3R R B2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "B2 R' 3R' U2 R' 3R' U2 R 3R B2 R 3R U2 R 3R U2 R' 3R' U2 R 3R U2 R2 3R2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "R2 3R2 F2 U2 R 3R U2 R2 3R2 F2 R 3R U2 R2 3R2 U2 F2 R 3R F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "x' U2 R 3R U2 R 3R U2 R' 3R' F2 R' 3R' U2 R' 3R' U2 R 3R U2 R' 3R' U2 R2 3R2 U2 F2 U2 F2 x",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "R2 3R2 F2 U2 L' 3L' U2 L2 3L2 F2 L' 3L' U2 R2 3R2 U2 F2 R 3R F2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 10 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 10 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R R U2 3R2 R2 U2 3R' R' U2 3R R U2 3R' R' U2 3R2 R2 U2 3R R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' 3R' U2 R2 3R2 U2 R 3R U2 R' 3R' U2 R 3R U2 R2 3R2 U2 R' 3R'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 11 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 11 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R' R' U2 3R2 R2 U2 3R R U2 3R' R' U2 3R R U2 3R2 R2 U2 3R' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R 3R U2 R2 3R2 U2 R' 3R' U2 R 3R U2 R' 3R' U2 R2 3R2 U2 R 3R",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 12 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 12 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R2 R2 U2 3R' R' F2 3L2 L2 F2 3R R B2 3R R B2 U2 3R R U2 3R R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' 3R' U2 R' 3R' U2 B2 R' 3R' B2 R' 3R' F2 L2 3L2 F2 R 3R U2 R2 3R2",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 L2E Last two edges 13 · layer 3",
+      "cube_size": 7,
+      "name": "Last two edges 13 · layer 3",
+      "group": "Layer 3",
+      "stage": "Edges",
+      "set": "7x7-l2e",
+      "setLabel": "Last two edges",
+      "setup": "3R R U R' U' 3R2 R2 U' R' U 3R2 R2 U R' U' 3R' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R 3R U R U' R2 3R2 U' R U R2 3R2 U R U' R' 3R'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
+        },
+        {
+          "alg": "R 3R U R' U' R2 3R2 U' R' U R2 3R2 U R' U' R' 3R'",
+          "source": "https://speedcubedb.com/a/5x5/L2E"
         }
       ]
     }

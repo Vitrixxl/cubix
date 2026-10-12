@@ -346,6 +346,8 @@ export function Practice() {
     // First-block training runs like the timer, on its own scrambles.
     cross = s.crossTraining,
     training = s.page === "training" && !cross,
+    // A recognition run never names its case, and is closed rather than stepped back.
+    recognition = training && s.trainingKind === "recognition",
     // Wide windows keep the times beside the stage; narrower ones open them on demand.
     timesAlways = timesAlwaysShown(w, training),
     timesColumn = !mobile && (timesAlways ? !s.timesHidden : s.showTimes),
@@ -763,20 +765,20 @@ export function Practice() {
     <div className={cn("flex shrink-0 flex-col", short ? "gap-3" : "gap-5", FADE)}>
       {head}
       {ready ? (
-        <section className="flex flex-wrap items-center gap-x-6 gap-y-3" aria-label={tr(c.name)}>
+        <section className="flex flex-wrap items-center gap-x-6 gap-y-3" aria-label={recognition ? tr("Case") : tr(c.name)}>
           {previewSize > 0 && (
             <div className="relative shrink-0" style={{ width: previewSize, height: previewSize }}>
               {cubeShown && !live ? visual : s.training?.svg ? <div className="size-full [&_svg]:block [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: s.training.svg }} /> : <Diagram c={c} size={previewSize} />}
             </div>
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            {!recognition && <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <button type="button" data-action={"case:" + c.id} onClick={run("case:" + c.id)} className={cn("rounded-md text-[28px] leading-none font-extrabold tracking-[-0.03em] transition-colors hover:text-primary", FOCUS)}>
                 {tr(c.name)}
               </button>
               <span className="text-sm font-semibold text-faint">{tr(c.setLabel) + (c.group && c.group !== c.setLabel ? " · " + tr(c.group) : "")}</span>
               {recommendation && <StateMark tone="accent" className="self-center">{tr("Recommended")} · {recommendedWhy(recommendation)}</StateMark>}
-            </div>
+            </div>}
             {caseSetup}
             {!short && caseTools}
           </div>
@@ -793,11 +795,12 @@ export function Practice() {
       <div className="flex items-center gap-2">
         {lastSolve}
         <div className="ml-2 flex shrink-0 gap-2">
-          <CaseStep action="previous" disabled={!s.training?.canPrevious} label={tr("Previous case")} keys="Alt+P" short={short || compact} />
+          {!recognition && <CaseStep action="previous" disabled={!s.training?.canPrevious} label={tr("Previous case")} keys="Alt+P" short={short || compact} />}
           <CaseStep action="next" disabled={!ready} label={tr("Next case")} keys="Alt+N" short={short || compact} />
+          {recognition && <Button action="recognitionClose" icon={X}>{tr("Close")}</Button>}
         </div>
       </div>
-      {!short && <CaseQueue current={ready ? c : null} />}
+      {!short && !recognition && <CaseQueue current={ready ? c : null} />}
     </div>
   );
   return (

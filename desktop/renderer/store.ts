@@ -1,6 +1,6 @@
 import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
-import { recognitionRun, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
+import { nextRecognition, recognitionCases, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { resumes, type SessionSummary } from "../../src/client/lib/sessions";
 import { exportFile } from "../../src/client/lib/exportData";
@@ -23,7 +23,7 @@ import { stackmat } from "../../src/client/lib/stackmat";
 import { INSPECTIONS, type Inspection } from "../../src/client/lib/format";
 import "./dev/devTools";
 import { toast } from "sonner";
-import { tr } from "../../src/client/i18n";
+import { tn, tr } from "../../src/client/i18n";
 import { ask } from "./confirm";
 import { msg } from "../../src/client/i18n/msg";
 import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
@@ -209,8 +209,9 @@ export class Store {
    * a set, or free practice on any case.
    */
   trainingKind: "cases" | "cross" | "recognition" | "free" = "cases";
-  /** The recognition run under way: the learned cases of a set, each once in a random order, and the one shown. */
-  recognition: { set: string; order: string[]; index: number } | null = null;
+  /** The recognition run under way: the learned cases of a set it draws from at random, the one shown, how many were
+   * shown, and whether it was closed (its count then shows). */
+  recognition: { set: string; ids: string[]; current?: string; done: number; closed: boolean } | null = null;
   crossTarget: CrossTarget = "cross";
   crossMoves = 5;
   /** Optimal cross solutions of the shown scramble, computed by the engine when revealed. */
@@ -355,14 +356,14 @@ export class Store {
   get casesPool(): Set<string> { return new Set(trainingPool(this.cases(), this.learned, { picks: this.trainPicks, sets: this.trainSets, hand: [...this.selected] })); }
   /** The cases a training drills: the cases' pool, the recognition's case shown, or the cases picked for free practice. */
   get practiceSelected(): Set<string> {
-    if (this.trainingKind === "recognition") return new Set(this.recognition?.order.slice(this.recognition.index, this.recognition.index + 1));
+    if (this.trainingKind === "recognition") return new Set(this.recognition?.current ? [this.recognition.current] : []);
     if (this.trainingKind === "free") return new Set(this.freePicks.filter((id) => this.find(id)));
     return this.casesPool;
   }
   /** What a training drills, in short: its recommended cases, its whole sets (their learned cases) and its cases picked by hand. */
   trainingParts(kind = this.trainingKind) {
     const run = this.recognition;
-    if (kind === "recognition") return run ? [tr(this.allSets().find((set: any) => set.id === run.set)?.label ?? ""), tr("{0} of {1}", { 0: Math.min(run.index + 1, run.order.length), 1: run.order.length })] : [];
+    if (kind === "recognition") return run ? [tr(this.allSets().find((set: any) => set.id === run.set)?.label ?? ""), tn(run.done, "{n} case")] : [];
     if (kind === "free") return [tr("Free practice")];
     const learned = (ids: Iterable<string>) => [...ids].filter((id) => this.learned.has(id)).length,
       picks = learned(this.trainPicks),
@@ -684,9 +685,12 @@ export class Store {
     if (this.crossTraining && this.scramble) void this.loadCrossSolutions();
   }
   async nextCase(direction = "next") {
-    // A recognition run moves on once its case is done, and ends after the last.
+    // A recognition run draws another of its cases once one is done, until it is closed.
     const run = this.recognition;
-    if (direction === "next" && this.trainingKind === "recognition" && run && this.training?.id === run.order[run.index]) run.index++;
+    if (direction === "next" && this.trainingKind === "recognition" && run && !run.closed && this.training?.id === run.current) {
+      run.done++;
+      run.current = nextRecognition(run.ids, run.current);
+    }
     const puzzle = this.puzzle,
       selected = [...this.practiceSelected];
     const value = await call(
@@ -961,7 +965,8 @@ export class Store {
           this.trainingKind = arg === "cross" && this.puzzle === "333" ? "cross" : arg === "recognition" || arg === "free" ? arg : "cases";
           this.pref("cubix.training.kind", this.trainingKind);
           if (this.trainingKind === "recognition") {
-            this.recognition = { set: this.recognitionSet, order: recognitionRun(this.cases(), this.learned, this.recognitionSet), index: 0 };
+            const ids = recognitionCases(this.cases(), this.learned, this.recognitionSet);
+            this.recognition = { set: this.recognitionSet, ids, current: nextRecognition(ids, undefined), done: 0, closed: false };
             this.training = null;
           }
           // The recommended cases picked stay those of this start, whatever is recommended later.
@@ -976,6 +981,9 @@ export class Store {
         }
         case "trainingMode":
           if (TRAINING_MODES.includes(arg as TrainingMode)) this.pref("cubix.training.mode", arg);
+          break;
+        case "recognitionClose":
+          if (this.recognition) this.recognition.closed = true;
           break;
         case "recognitionSet":
           this.per("cubix.training.recognitionByCube", arg);
@@ -1179,13 +1187,27 @@ export class Store {
         case "puzzle": {
           const event = eventInfo(arg);
           if (!event) break;
+          // The step and set the algorithms show, kept on the new puzzle when it has them (OLL stays OLL).
+          const stage = this.catalogStage, shown = this.allSets().find((v: any) => v.stage === stage && v.id === this.sets[stage]) ?? this.allSets().find((v: any) => v.stage === stage);
           this.puzzle = event.puzzle;
           this.pref("cubix.puzzle", event.puzzle);
           this.per("cubix.practice.modeByPuzzle", event.solveMode);
           this.loadContext();
           this.overlay = "";
-          // A new puzzle opens on the timer, wherever the player was.
-          goPage("playground", { puzzle: event.puzzle, trainingStep: this.trainingStep, profileMode: this.profileMode }, true);
+          if (shown && this.allSets().some((v: any) => v.stage === shown.stage)) {
+            const same = this.allSets().find((v: any) => v.stage === shown.stage && v.label === shown.label);
+            if (same) this.per("cubix.algs.setByCube", (this.sets = { ...this.sets, [shown.stage]: same.id }));
+            this.per("cubix.algs.stageByCube", (this.catalogStage = shown.stage));
+          }
+          if (this.page === "profile") {
+            this.profilePuzzle = event.puzzle; this.profileSolveMode = event.solveMode;
+            if (!this.info(event.puzzle).scrambles.includes(this.profileScramble)) this.profileScramble = this.info(event.puzzle).scrambles[0];
+          }
+          // The page stays, on the same view of the new puzzle: a case's list, the course of the same method (else
+          // the courses), the training's setup, the profile's page.
+          const here = readRoute(window.location.pathname, window.location.search);
+          if (here && here.page !== "onboarding" && here.page !== "login")
+            goPage(here.page, { ...here, puzzle: event.puzzle, caseId: "", trainingStep: "setup", learnStep: undefined, learnMethod: methodOf(event.puzzle, here.learnMethod) ? here.learnMethod : "" }, true);
           this.learnPick = "";
           this.timerEpoch++;
           await this.nextCase();

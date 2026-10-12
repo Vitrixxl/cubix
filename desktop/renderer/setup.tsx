@@ -11,12 +11,12 @@ import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/share
 import { recommendedWhy, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { hintsForStage, maskForStage } from "../../src/client/lib/caseState";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Play, RotateCcw, Rotate3d, Shuffle, Target, Timer, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Play, RotateCcw, Rotate3d, Shuffle, Target, Timer, X, type LucideIcon } from "lucide-react";
 import { store as s, matches, type TrainingMode } from "./store";
 import { PhoneSheet } from "./phone";
 import { Practice } from "./practice";
 import { Cube } from "./Cube";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
+import { ActionToggle, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
 import { CaseTile, FootBar, TILES } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,7 +75,7 @@ function modeRows(sets: Sets): ModeRow[] {
   const rows: ModeRow[] = [
     { id: "cross", icon: Target, title: "Cross", summary: tr("Plan the cross in inspection, by its exact number of moves"), count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
     {
-      id: "recognition", icon: Eye, title: "Recognition", summary: tr("Every learned case of a set once, in a random order"),
+      id: "recognition", icon: Eye, title: "Recognition", summary: tr("The learned cases of a set at random, until you stop"),
       count: chosen?.learned ?? 0, unit: chosen ? tr(chosen.set.label) : tr("cases"), share: chosen ? chosen.learned / chosen.all.length : 0,
       start: "trainingStart:recognition", ready: !!chosen?.learned,
     },
@@ -288,6 +288,9 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
+          {tr("Random AUF")}
+        </ActionToggle>
         {cube ? (
           <span className="flex-1 text-sm text-muted-foreground">{tr("Set each case up on the cube: its time is saved")}</span>
         ) : (
@@ -322,76 +325,110 @@ function CourseRow({ set }: { set: any }) {
   );
 }
 
-/** A running recognition: timed on a connected cube like any training, else shown case after case for a set time. */
+/**
+ * A running recognition: three seconds counted down, then cases drawn at random from the set until it is closed, timed
+ * on a connected cube like any training, else each shown for a set time; once closed, how many cases were seen.
+ */
 export function RecognitionPractice() {
-  const run = s.recognition,
-    over = !run || run.index >= run.order.length;
-  // The run's end, with or without a cube, shows on the timed page.
-  return useCubeRecognition() && !over ? <Practice /> : <TimedRecognition />;
+  const runOf = s.recognition,
+    cube = useCubeRecognition(),
+    // The run whose countdown is over: a new run (Again) counts down again.
+    [started, setStarted] = useState<object | null>(null);
+  if (!runOf || runOf.closed || !runOf.ids.length) return <RecognitionDone />;
+  if (started !== runOf) return <Countdown onDone={() => setStarted(runOf)} />;
+  return cube ? <Practice /> : <TimedRecognition />;
 }
 
-/** How long a case's name and algorithm stay shown before the next one. */
-const REVEAL_MS = 1500;
-
-/**
- * A recognition run without a cube: each case large for the seconds chosen, a bar running out under it; then its name
- * and algorithm for a moment, and the next. Space or a click shows it at once, then moves on. Nothing is recorded.
- */
-function TimedRecognition() {
-  const runOf = s.recognition,
-    id = runOf?.order[runOf.index],
-    c = id && s.training?.id === id ? s.find(id) : null,
-    parts = s.trainingParts("recognition");
+/** The recognition's page around what it shows: its head, the set and the cases seen so far. */
+function RecognitionPage({ children }: { children: React.ReactNode }) {
   return (
     <div className={PAGE}>
-      <PageHead title={tr("Recognition")} lead={<Button action="trainingSetup" icon={ChevronLeft} tip={tr("Change what to train")} />} sub={said(parts.join(" · "))} />
-      {!id ? (
-        <Empty icon={Check} title={runOf?.order.length ? tr("All {0} cases done", { 0: runOf.order.length }) : tr("Recognition")}>
-          <div className="flex gap-2">
-            <Button action="trainingStart:recognition" variant="default" icon={RotateCcw}>{tr("Again")}</Button>
-            <Button action="trainingSetup">{tr("Change set")}</Button>
-          </div>
-        </Empty>
-      ) : c ? (
-        <RecognitionCase key={runOf!.index} c={c} />
-      ) : (
-        <div className="flex-1" />
-      )}
+      <PageHead title={tr("Recognition")} lead={<Button action="trainingSetup" icon={ChevronLeft} tip={tr("Change what to train")} />} sub={said(s.trainingParts("recognition").join(" · "))} />
+      {children}
     </div>
   );
 }
 
+/** Three, two, one, large, before the first case. */
+function Countdown({ onDone }: { onDone: () => void }) {
+  const [left, setLeft] = useState(3);
+  useEffect(() => {
+    const timeout = setTimeout(() => (left > 1 ? setLeft(left - 1) : onDone()), 1000);
+    return () => clearTimeout(timeout);
+  }, [left]);
+  return (
+    <RecognitionPage>
+      <div className="flex min-h-0 flex-1 items-center justify-center" aria-live="polite">
+        <b key={left} className={cn(NUMERIC, "text-[clamp(6rem,22vh,12rem)] leading-none font-extrabold tracking-[-0.05em] text-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-75")}>{left}</b>
+      </div>
+    </RecognitionPage>
+  );
+}
+
+/** A closed run: how many cases were seen, then the way to go again or to change the set. */
+function RecognitionDone() {
+  const done = s.recognition?.done ?? 0;
+  return (
+    <RecognitionPage>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6">
+        <div className="flex flex-col items-center gap-1">
+          <b className={cn(NUMERIC, "text-[clamp(4.5rem,16vh,8rem)] leading-none font-extrabold tracking-[-0.05em]")}>{done}</b>
+          <span className="text-lg font-semibold text-muted-foreground">{tr(done === 1 ? "case seen" : "cases seen")}</span>
+        </div>
+        <div className="flex gap-2">
+          <Button action="trainingStart:recognition" variant="default" icon={RotateCcw}>{tr("Again")}</Button>
+          <Button action="trainingSetup">{tr("Change set")}</Button>
+        </div>
+      </div>
+    </RecognitionPage>
+  );
+}
+
+/** The way out of a run, at the foot of the page on the right: its count shows next. */
+const RecognitionClose = () => (
+  <Button action="recognitionClose" icon={X}>
+    {tr("Close")}
+  </Button>
+);
+
+/** A recognition run without a cube: each case large for the seconds chosen, a bar running out under it, then the next. */
+function TimedRecognition() {
+  const runOf = s.recognition!,
+    c = runOf.current && s.training?.id === runOf.current ? s.find(runOf.current) : null;
+  return (
+    <RecognitionPage>
+      {c ? <RecognitionCase key={runOf.done} c={c} /> : <div className="flex-1" />}
+      <div className="flex shrink-0 justify-end">
+        <RecognitionClose />
+      </div>
+    </RecognitionPage>
+  );
+}
+
+/** A case alone, never named: Space or a click moves on at once. Nothing is recorded. */
 function RecognitionCase({ c }: { c: any }) {
   const { w, h } = useViewport(),
-    [shown, setShown] = useState(false),
     bar = useRef<HTMLDivElement>(null),
-    size = Math.round(Math.max(160, Math.min(h * 0.5, w * 0.8, 440))),
+    size = Math.round(Math.max(160, Math.min(h * 0.55, w * 0.8, 480))),
     next = () => void s.action("next"),
     // Every cube's case in 3D, its hidden stickers shown; other puzzles their diagram.
     cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize;
-  // The bar runs out over the seconds chosen, then the case is named.
   useEffect(() => {
     const animation = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
-    animation?.finished.then(() => setShown(true), () => {});
+    animation?.finished.then(next, () => {});
     return () => animation?.cancel();
   }, []);
-  useEffect(() => {
-    if (!shown) return;
-    const timeout = setTimeout(next, REVEAL_MS);
-    return () => clearTimeout(timeout);
-  }, [shown]);
-  const go = () => (shown ? next() : setShown(true));
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat || s.overlay) return;
       e.preventDefault();
-      go();
+      next();
     };
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
-  });
+  }, []);
   return (
-    <button type="button" onClick={go} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-5 rounded-[26px]", FOCUS)} aria-label={shown ? tr("Next case") : tr("Show the case")}>
+    <button type="button" onClick={next} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-[26px]", FOCUS)} aria-label={tr("Next case")}>
       {cubeSize ? (
         <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={hintsForStage(c.stage)} />
       ) : s.training?.svg ? (
@@ -400,15 +437,7 @@ function RecognitionCase({ c }: { c: any }) {
         <Diagram c={c} size={size} />
       )}
       <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-muted">
-        <div ref={bar} className={cn("h-full origin-left rounded-full bg-primary", shown && "opacity-0")} />
-      </div>
-      <div className={cn("flex min-h-20 flex-col items-center gap-1.5 transition-opacity", !shown && "opacity-0")} aria-live="polite">
-        {shown && (
-          <>
-            <b className="text-2xl font-extrabold tracking-[-0.03em]">{tr(c.name)}</b>
-            <Alg text={s.training.algorithm} size={20} />
-          </>
-        )}
+        <div ref={bar} className="h-full origin-left rounded-full bg-primary" />
       </div>
     </button>
   );

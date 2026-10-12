@@ -1,6 +1,8 @@
 import {test,expect} from 'bun:test';
 import {createCatalogCache,evictCatalogCache,CATALOG_CACHE_PREFIX} from '../src/client/local/catalog-cache';
-import {PUZZLES} from '../src/shared/puzzles';
+import {PUZZLES,puzzleOf} from '../src/shared/puzzles';
+import {cases} from '../src/client/local/catalog';
+const cases333=cases.filter(c=>puzzleOf(c)==='333').length;
 function storage(){const values=new Map<string,string>();let writes=0;return {getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{writes++;values.set(key,value);},removeItem:(key:string)=>{values.delete(key);},values,writes:()=>writes};}
 test('all puzzle algorithms persist across client reopening without fetching or rewriting',()=>{
   const s=storage(),first=createCatalogCache(s);
@@ -11,9 +13,9 @@ test('all puzzle algorithms persist across client reopening without fetching or 
   expect(s.writes()).toBe(PUZZLES.length);
 });
 test('outdated, malformed and unavailable caches recover from the shipped catalogue',()=>{
-  for(const bad of ['{',JSON.stringify({version:'old',cases:[],sets:[]})]){const s=storage();s.setItem(CATALOG_CACHE_PREFIX+'333',bad);expect(createCatalogCache(s)(3).cases.length).toBe(1327);expect(JSON.parse(s.getItem(CATALOG_CACHE_PREFIX+'333')!).cases.length).toBe(1327);}
+  for(const bad of ['{',JSON.stringify({version:'old',cases:[],sets:[]})]){const s=storage();s.setItem(CATALOG_CACHE_PREFIX+'333',bad);expect(createCatalogCache(s)(3).cases.length).toBe(cases333);expect(JSON.parse(s.getItem(CATALOG_CACHE_PREFIX+'333')!).cases.length).toBe(cases333);}
   const unavailable={getItem:()=>{throw Error('denied');},setItem:()=>{throw Error('full');},removeItem:()=>{throw Error('denied');}};
-  expect(createCatalogCache(unavailable)('sq1').cases.length).toBe(29);
+  expect(createCatalogCache(unavailable)('sq1').cases.length).toBe(cases.filter(c=>puzzleOf(c)==='sq1').length);
 });
 test('cache eviction frees space without removing times, accounts or preferences',()=>{
   const s=storage();s.setItem('cubix.local.v1:workspace:guest','personal solves');s.setItem('theme','dark');const cache=createCatalogCache(s);cache(3);cache(7);evictCatalogCache(s);

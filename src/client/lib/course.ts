@@ -142,3 +142,9 @@ export function methodLearned(method: SolvingMethod, cases: readonly Pick<CaseDt
 
 /** The case an inline algorithm is shown on: its own setup, or the algorithm undone from a solved cube, rotations and brackets included. */
 export const algSetup = (alg: Pick<MethodAlgorithm, "alg" | "setup">) => alg.setup ?? invertAlg(alg.alg);
+
+/** A step's before and after pictures (see `MethodStep.picture`): the puzzle before and after it, as moves from solved, and the pieces shown. */
+export function stepPicture(method: SolvingMethod, index: number) {
+  const step = method.steps[index]!, picture = step.picture ?? {};
+  return { before: picture.from ?? method.steps[index - 1]?.picture?.done ?? "", after: picture.done ?? "", mask: picture.mask ?? step.mask ?? "full" };
+}

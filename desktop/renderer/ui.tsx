@@ -236,7 +236,7 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
           e.stopPropagation();
         }}
       />
-      <ContextMenuContent className="min-w-48 max-md:min-w-56 max-md:[&_[role^=menuitem]]:min-h-10">
+      <ContextMenuContent className="min-w-48 max-md:min-w-56">
         {ms != null && (
           <ContextMenuGroup>
             <ContextMenuLabel className={NUMERIC}>{fmtSolve(ms, penalty as any)}</ContextMenuLabel>
