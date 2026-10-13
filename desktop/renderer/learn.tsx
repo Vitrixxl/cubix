@@ -800,14 +800,13 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
                         aria-label={`${p.name} · ${p.learned ? tr("Learned") : tr("To learn")}`}
                         onClick={() => pick(p)}
                         className={cn(
-                          "flex min-w-0 flex-col items-center gap-0.5 rounded-2xl px-0.5 pt-2 pb-1.5 transition-colors aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground",
-                          p.learned ? "bg-muted hover:bg-accent" : "hover:bg-muted",
+                          "flex min-w-0 flex-col items-center gap-0.5 rounded-2xl px-0.5 pt-2 pb-1.5 transition-colors hover:bg-muted aria-[current=true]:bg-muted",
                           FOCUS,
                         )}
                       >
                         <span className={cn(!p.learned && !here && "opacity-45 saturate-50")}>{p.diagram(60)}</span>
                         <span className={cn(NUMERIC, "max-w-full truncate text-[17px] leading-none font-extrabold tracking-[-0.02em]")}>{p.short ?? p.name}</span>
-                        <span className={cn(NUMERIC, "text-[11px] font-bold", here ? "text-primary-foreground/75" : p.learned ? "text-muted-foreground" : "text-warning")}>
+                        <span className={cn(NUMERIC, "text-[11px] font-bold", p.learned ? "text-muted-foreground" : "text-warning")}>
                           {p.learned ? (st?.mean != null ? fmtTime(st.mean) : "–") : tr("New")}
                         </span>
                       </button>
