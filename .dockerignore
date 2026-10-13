@@ -7,31 +7,5 @@ go-api/embed/
 !data/
 data/*
 !data/*.json
-# The web app build (desktop/web.ts) and its sources.
-!package.json
-!bun.lock
-!tsconfig.json
-!src/
-!src/**
-!desktop/
-desktop/*
-!desktop/web.ts
-!desktop/prerender.tsx
-!desktop/appearance.ts
-!desktop/engine/
-!desktop/guides/
-!desktop/renderer/
-!desktop/assets/
-# The scrambler, built to WebAssembly (scrambler/build.ts).
-!scrambler/
-scrambler/*
-!scrambler/scrambler.wasm
-# The phone app, exported for the web with the web app (desktop/web.ts), and the case images it bundles.
-!assets/
-!mobile/
-mobile/node_modules/
-mobile/android/
-mobile/build/
-mobile/.expo/
-mobile/public/
-mobile/assets/cases/
+# The web app, built by scripts/deploy.ts.
+!dist/web/

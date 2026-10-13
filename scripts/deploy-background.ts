@@ -7,7 +7,7 @@
  *   bun run deploy:bg --status     the deployment under way, if any, and the last log
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -38,18 +38,27 @@ if (git("rev-parse", "--abbrev-ref", "HEAD").stdout.trim() !== "main") {
 const head = git("rev-parse", "HEAD").stdout.trim();
 if (spawnSync("git", ["push", "origin", "main"], { cwd: root, stdio: "inherit" }).status !== 0) process.exit(1);
 
-// The commit as it is now, away from this checkout.
+// The commit as it is now, away from this checkout; the dependencies are this checkout's.
 const copy = join(home, head.slice(0, 12));
 if (existsSync(copy)) git("worktree", "remove", "--force", copy);
 rmSync(copy, { recursive: true, force: true });
 git("worktree", "prune");
 if (git("worktree", "add", "--detach", copy, head).status !== 0) { console.error(`Could not check ${head} out in ${copy}`); process.exit(1); }
+// Hard links where they can be (Metro, which bundles the phone app, does not follow a linked node_modules), else links.
+for (const dir of ["node_modules", "mobile/node_modules"]) {
+  if (!existsSync(join(root, dir))) continue;
+  if (spawnSync("cp", ["-al", join(root, dir), join(copy, dir)]).status !== 0) {
+    rmSync(join(copy, dir), { recursive: true, force: true });
+    symlinkSync(join(root, dir), join(copy, dir));
+  }
+}
 
 const log = join(logs, `${new Date().toISOString().replace(/[:.]/g, "-")}-${head.slice(0, 7)}.log`);
 const out = openSync(log, "a");
-// The deployment, then the copy goes.
+// The phone app's generated files (its postinstall), which the web app bundles, are not in git; then the deployment,
+// then the copy goes.
 const script = `
-cd "$COPY" && bun scripts/deploy.ts --no-push "$@"
+cd "$COPY/mobile" && bun scripts/build-scrambler.ts && bun scripts/build-cases.ts && bun scripts/build-scan.ts && cd "$COPY" && bun scripts/deploy.ts --no-push "$@"
 status=$?
 if [ $status -eq 0 ]; then message="Cubix ${head.slice(0, 7)} is deployed"; else message="Cubix ${head.slice(0, 7)} failed to deploy (status $status): $LOG"; fi
 echo "$message"

@@ -258,8 +258,9 @@ async function compress(directory: string): Promise<void> {
 }
 
 if (import.meta.main) {
-  // `--dev <directory>`: the development server's build (desktop/dev.ts).
-  const dev = process.argv[2] === "--dev", out = dev ? resolve(process.argv[3]!) : WEB_DIR;
+  // `--dev <directory>`: the development server's build (desktop/dev.ts); `<directory>`: a production build elsewhere
+  // than dist/web (scripts/deploy.ts).
+  const dev = process.argv[2] === "--dev", out = dev ? resolve(process.argv[3]!) : process.argv[2] ? resolve(process.argv[2]) : WEB_DIR;
   const { version } = await buildWeb(out, { devTools: dev });
   console.log(`Web app ${version} built in ${relative(root, out)}`);
 }

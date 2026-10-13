@@ -5,6 +5,8 @@ services:
   api:
     build:
       context: .
+      # Without the web app: `bun run dev:docker` serves the local sources itself.
+      target: api
       args:
         GO_TAGS: seed
     ports:
