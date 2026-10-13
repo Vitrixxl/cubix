@@ -98,7 +98,7 @@ function SignIn() {
         </Alert>
       )}
       <div className="flex flex-col gap-3">
-        {settings?.google && <div ref={button} className="flex h-10 w-full justify-center" data-slot="login-google" aria-busy={pending || undefined} />}
+        {settings?.google && <div ref={button} className="flex h-10 w-full justify-center [color-scheme:light]" data-slot="login-google" aria-busy={pending || undefined} />}
         {error && <FieldError>{said(error)}</FieldError>}
       </div>
       {settings?.dev && (

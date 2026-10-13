@@ -58,6 +58,8 @@ function GoogleButton({ id, onCredential, onError }: { id: string; onCredential:
       // React Native for the web's View is the page's element.
       const element = box.current as unknown as HTMLElement | null;
       if (!live || !element) return;
+      // Google's frame is a light page: under the app's dark scheme the browser would paint it opaque white.
+      element.style.colorScheme = "light";
       if (initialized !== id) gsi.initialize({ client_id: id, callback: ({ credential }) => onGoogle(credential) });
       initialized = id;
       gsi.renderButton(element, { theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
