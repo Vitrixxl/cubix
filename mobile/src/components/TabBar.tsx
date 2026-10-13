@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Boxes, GraduationCap, Swords, Timer, UserRound, type LucideIcon } from "lucide-react-native";
+import { Boxes, GraduationCap, Timer, UserRound, UsersRound, type LucideIcon } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
@@ -10,7 +10,7 @@ import { useTourTarget } from "../tour";
 import { SECTION_LABELS } from "./AppBar";
 import { tr } from "../../../src/client/i18n";
 
-const ICONS: Record<Tab, LucideIcon> = { timer: Timer, learn: GraduationCap, algorithms: Boxes, compete: Swords, me: UserRound };
+const ICONS: Record<Tab, LucideIcon> = { timer: Timer, learn: GraduationCap, algorithms: Boxes, social: UsersRound, me: UserRound };
 
 /**
  * The bottom bar, floating: the five sections as icons, the current one a filled pill in the accent; never a label, which would push the others.

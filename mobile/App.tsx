@@ -223,11 +223,11 @@ function FloatingCall() {
   return <Floating />;
 }
 
-/** The tab bar, with a dot where something waits: unread coaching messages; unread messages, friend requests and group
- * invitations on the account, which holds the community (as on the web). */
+/** The tab bar, with a dot where something waits on the social side: unread coaching messages; unread messages,
+ * friend requests and group invitations. */
 function Tabs({ active, onNavigate }: { active: Route["page"]; onNavigate: (tab: Tab) => void }) {
   const me = useSocial(() => (coaching.me?.unread ?? 0) + (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0));
-  return <TabBar active={tabOf(active)} waiting={{ me }} onNavigate={onNavigate} />;
+  return <TabBar active={tabOf(active)} waiting={{ social: me }} onNavigate={onNavigate} />;
 }
 
 /** Whether the link the app was opened with was followed, so signing in again does not follow it twice. */

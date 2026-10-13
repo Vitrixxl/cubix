@@ -24,6 +24,7 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 // The app bar (whose section names the bar shows) without its sheets and the social clients.
+mock.module("../src/components/layout", () => ({ Segmented: "Segmented" }));
 mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: "PuzzleIcon", sessionSheetAtom: atom(null) }));
 mock.module("../src/lib/social", () => ({ coaching: {}, community: {}, useSocial: () => 0 }));
 mockLucide();
@@ -50,10 +51,10 @@ test("tab presses navigate synchronously, including consecutive taps", async () 
 });
 
 test("the five sections, the current one named, with a dot where something waits", async () => {
-  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ me: 2 }} onNavigate={() => {}} /></Provider>); });
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ social: 2 }} onNavigate={() => {}} /></Provider>); });
   const tabs = renderer.root.findAllByType("Pressable" as any);
-  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Learn", "Algs", "Challenges", "Me"]);
-  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, null, "2 unread"]);
+  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Learn", "Algs", "Social", "Me"]);
+  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, "2 unread", null]);
 });
 
 test("switching tabs shows only the destination immediately and settles the guided tour", async () => {

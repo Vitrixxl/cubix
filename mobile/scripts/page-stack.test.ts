@@ -9,16 +9,16 @@ const { slideOf } = await import("../src/components/PageStack");
 const { TABS, goBackAtom, openTabAtom, routeAtom, routeOfUrl, tabOf, trainingSetupModeAtom, trainingStepAtom, urlOfRoute } = await import("../src/state");
 import type { Route } from "../src/state";
 
-test("the five sections; Challenges holds the duel, tournaments and matches, Me the community and coaching", () => {
-  expect(TABS).toEqual(["timer", "learn", "algorithms", "compete", "me"]);
+test("the five sections; Social holds the chat, coaching and the challenges (duel, tournaments, matches), Me the profile", () => {
+  expect(TABS).toEqual(["timer", "learn", "algorithms", "social", "me"]);
   expect(tabOf("algorithms")).toBe("algorithms");
   expect(tabOf("training")).toBe("learn");
-  expect(tabOf("duel")).toBe("compete");
+  expect(tabOf("duel")).toBe("social");
   expect(tabOf("playground")).toBe("timer");
   expect(tabOf("analysis")).toBe("timer");
-  expect(tabOf("match")).toBe("compete");
-  expect(tabOf("community")).toBe("me");
-  expect(tabOf("coaching")).toBe("me");
+  expect(tabOf("match")).toBe("social");
+  expect(tabOf("community")).toBe("social");
+  expect(tabOf("coaching")).toBe("social");
   expect(tabOf("settings")).toBe("me");
 });
 
@@ -48,10 +48,11 @@ test("another tab opens immediately; a page opened inside a tab slides in from t
   expect(slideOf({ page: "playground" }, { page: "profile" }, "push")).toEqual({ kind: "none" });
   expect(slideOf({ page: "learn" }, { page: "learn", method: "cfop" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "learn", method: "cfop" }, { page: "learn" }, "pop")).toEqual({ kind: "slide", direction: -1 });
-  // The profile's modes are screens pushed over it; Messages is a page of the same section.
+  // The profile's modes are screens pushed over it; Coaching is a page of the chat's section, the profile another tab.
   expect(slideOf({ page: "profile" }, { page: "profile", mode: "training" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "profile" }, { page: "settings" }, "push")).toEqual({ kind: "slide", direction: 1 });
-  expect(slideOf({ page: "profile" }, { page: "community" }, "replace")).toEqual({ kind: "fade" });
+  expect(slideOf({ page: "community" }, { page: "coaching" }, "replace")).toEqual({ kind: "fade" });
+  expect(slideOf({ page: "profile" }, { page: "community" }, "replace")).toEqual({ kind: "none" });
   expect(slideOf({ page: "training" }, { page: "duel" }, "push")).toEqual({ kind: "none" });
 });
 
@@ -104,9 +105,9 @@ test("tapping Learn again on the training leaves a session for the ways to pract
   store.set(openTabAtom, "learn");
   expect(store.get(trainingStepAtom)).toBe("setup");
   expect(store.get(trainingSetupModeAtom)).toBe("");
-  // Challenges is a section of its own; Learn comes back to the page it showed last.
-  store.set(openTabAtom, "compete");
-  expect(store.get(routeAtom)).toEqual({ page: "duel" });
+  // Social is a section of its own, opening on the chat; Learn comes back to the page it showed last.
+  store.set(openTabAtom, "social");
+  expect(store.get(routeAtom)).toEqual({ page: "community" });
   store.set(openTabAtom, "learn");
   expect(store.get(routeAtom)).toEqual({ page: "learn" });
 });

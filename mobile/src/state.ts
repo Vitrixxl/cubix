@@ -52,24 +52,27 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
 ];
 export type Page = Route["page"];
 /**
- * The five sections of the bottom bar, as on the desktop: the timer (and the analysis), learning (courses, training),
- * the algorithms, the challenges (duel, tournaments, daily) and the player's own pages (profile, messages, community,
- * coaching).
+ * The five sections of the bottom bar: the timer (and the analysis), learning (courses, training), the algorithms, the
+ * social side (the chat with friends and groups, coaching, the challenges: duel, tournaments, daily) and the player's
+ * profile.
  */
-export type Tab = "timer" | "learn" | "algorithms" | "compete" | "me";
-export const TABS: readonly Tab[] = ["timer", "learn", "algorithms", "compete", "me"];
+export type Tab = "timer" | "learn" | "algorithms" | "social" | "me";
+export const TABS: readonly Tab[] = ["timer", "learn", "algorithms", "social", "me"];
 const TAB_OF: Record<Page, Tab> = {
   playground: "timer", analysis: "timer", solve: "timer", learn: "learn", assisted: "learn", training: "learn", algorithms: "algorithms",
-  duel: "compete", tournaments: "compete", match: "compete", daily: "compete",
-  profile: "me", community: "me", coaching: "me", settings: "me",
+  duel: "social", tournaments: "social", match: "social", daily: "social", community: "social", coaching: "social",
+  profile: "me", settings: "me",
 };
 export const tabOf = (page: Page): Tab => TAB_OF[page];
 /** The page a section opens on the first time, and goes back to when its button is tapped again. */
 export const TAB_ROOT: Record<Tab, Route> = {
-  timer: { page: "playground" }, learn: { page: "learn" }, algorithms: { page: "algorithms" }, compete: { page: "duel" }, me: { page: "profile" },
+  timer: { page: "playground" }, learn: { page: "learn" }, algorithms: { page: "algorithms" }, social: { page: "community" }, me: { page: "profile" },
 };
-/** A page of a section, as its tab under the app bar shows it: its name, where it leads, and whether a route is in it. */
-export type SectionPage = { id: string; label: string; route: Route; has: (route: Route) => boolean };
+/**
+ * A page of a section, as its tab under the app bar shows it: its name, where it leads, and whether a route is in it;
+ * pages of one `group` share a tab, and switch under it.
+ */
+export type SectionPage = { id: string; label: string; group?: string; route: Route; has: (route: Route) => boolean };
 const isPeople = (route: Route) => route.page === "community" && !!route.view?.startsWith("people");
 export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
   timer: [
@@ -81,17 +84,15 @@ export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
     { id: "training", label: "Training", route: { page: "training" }, has: r => r.page === "training" },
   ],
   algorithms: [{ id: "algorithms", label: "Algorithms", route: { page: "algorithms" }, has: r => r.page === "algorithms" }],
-  compete: [
-    { id: "duel", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
-    { id: "tournaments", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },
-    { id: "daily", label: "Daily", route: { page: "daily" }, has: r => r.page === "daily" },
-  ],
-  me: [
-    { id: "profile", label: "Profile", route: { page: "profile" }, has: r => r.page === "profile" || r.page === "settings" },
-    { id: "messages", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
-    { id: "people", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
+  social: [
+    { id: "messages", group: "Chat", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
+    { id: "people", group: "Chat", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
     { id: "coaching", label: "Coaching", route: { page: "coaching" }, has: r => r.page === "coaching" },
+    { id: "duel", group: "Challenges", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
+    { id: "tournaments", group: "Challenges", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },
+    { id: "daily", group: "Challenges", label: "Daily", route: { page: "daily" }, has: r => r.page === "daily" },
   ],
+  me: [{ id: "profile", label: "Profile", route: { page: "profile" }, has: r => r.page === "profile" || r.page === "settings" }],
 };
 /** How deep a route sits in its tab: its first page is 0, a page opened from it 1. */
 export function routeDepth(route: Route) {
