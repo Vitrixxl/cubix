@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && useradd --system --uid 1000 --create-home cubix \
     && mkdir -p /var/lib/cubix && chown cubix:cubix /var/lib/cubix
 WORKDIR /app
-ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db CUBIX_WEB_DIR=/app/web
+ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db CUBIX_WEB_DIR=/app/dist/web
 # The GC hands memory back past this soft limit: a burst of Argon2 hashes (64 MiB each) does not stay resident.
 ENV GOMEMLIMIT=256MiB
 COPY --from=backend /cubix-api /usr/local/bin/cubix-api

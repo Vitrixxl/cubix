@@ -17,9 +17,9 @@ services:
       CUBIX_TRUSTED_PROXIES: "${CUBIX_TRUSTED_PROXIES:-}"
     volumes:
       - cubix-data:/var/lib/cubix
-      # The web app, sent by scripts/deploy.ts: a link to its latest build, followed when the container is created, so
-      # the running one keeps its own until it is replaced.
-      - ./dist/web:/app/web:ro
+      # The web app, sent by scripts/deploy.ts: dist/web links to its latest build, read at every request, so swapping
+      # the link deploys it without restarting the server.
+      - ./dist:/app/dist:ro
     ulimits:
       nofile:
         soft: 262144
