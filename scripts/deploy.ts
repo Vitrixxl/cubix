@@ -9,7 +9,8 @@
  *
  * `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
@@ -40,15 +41,27 @@ async function release(): Promise<Record<string, unknown> | null> {
 }
 
 if (!noPush) run("git", ["push"]);
+// The API's image builds on the Pi meanwhile, as pihost builds it (same project, files and build arguments): pihost
+// then finds it in its cache. Its output goes to a log, so it does not interleave with the web app's build.
+const pi = `/srv/pihost/apps/${APP}`;
+const PREBUILD_LOG = resolve(root, "dist/prebuild.log");
+mkdirSync(resolve(root, "dist"), { recursive: true });
+const prebuild = new Promise<number>((done) => {
+  const log = openSync(PREBUILD_LOG, "w");
+  spawn("ssh", [PI, `set -e; git -C ${pi}/repo pull --ff-only -q; CUBIX_BUILD_NUMBER=${build} CUBIX_COMMIT=${head} docker compose --project-name pihost-${APP} --project-directory ${pi}/repo -f ${pi}/repo/compose.yaml -f ${pi}/override.yaml build --quiet`], { stdio: ["ignore", log, log] })
+    .on("exit", (code) => done(code ?? 1));
+});
 // Away from dist/web, which the development server serves; never against a local API.
 const WEB = resolve(root, "dist/deploy");
 const { EXPO_PUBLIC_API_ORIGIN: _, ...env } = process.env;
 run("bun", ["desktop/web.ts", WEB], { CUBIX_PRERENDER_JOBS: "3", ...env });
 // Unpacked in a directory of its own, then dist/web links to it: the running container keeps the build it mounted until
 // pihost replaces it. The previous build stays too (a failed deployment leaves the container on it); older ones go.
-const dist = `/srv/pihost/apps/${APP}/repo/dist`;
+const dist = `${pi}/repo/dist`;
 const unpack = `set -e; mkdir -p ${dist}; cd ${dist}; rm -rf next; mkdir next; zstd -dcq | tar -xf - -C next; mv next web-$(date +%s); ls -d web-* | sort | head -n -2 | xargs -r rm -rf; [ -L web ] || rm -rf web; ln -sfn "$(ls -d web-* | sort | tail -n 1)" web`;
 run("bash", ["-o", "pipefail", "-c", `tar -C "${WEB}" -cf - . | zstd -3 -T0 -q | ssh ${PI} '${unpack}'`]);
+// pihost builds it again if that failed, and shows why.
+if ((await prebuild) !== 0) console.warn(`Building the API ahead on the Pi failed: ${PREBUILD_LOG}\n${readFileSync(PREBUILD_LOG, "utf8").slice(-2000)}`);
 // The build number and the commit go to the image as build arguments (compose.yaml): it reads no git history.
 run("ssh", [PI, `CUBIX_BUILD_NUMBER=${build}`, `CUBIX_COMMIT=${head}`, "pihost", "update", APP]);
 // pihost returns once compose is up; wait until the new binary answers with this commit.
