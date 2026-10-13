@@ -121,7 +121,8 @@ test("another course plans with its own steps and opens their lessons", async ()
   expect(controls("LSE · Lesson")).toHaveLength(1);
   expect(await finish()).toBe(turnsOf("roux", target));
   expect(shows("Solved!")).toBe(true);
-  expect(shows("Every step of the Roux method, on your own cube.")).toBe(true);
+  // The turns per step are Roux's.
+  expect(shows("LSE")).toBe(true);
 });
 
 test("a solved cube says so instead of planning", async () => {

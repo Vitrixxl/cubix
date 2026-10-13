@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
-import { CROSS_MOVES, CROSS_TARGET_DETAILS, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
+import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
@@ -78,20 +78,17 @@ export type TrainingData = ReturnType<typeof useTrainingData>;
 
 
 /**
- * A way of training as a card: its icon, name and line, its number large with what it counts, then its settings in
+ * A way of training as a card: its icon and name, its number large with what it counts, then its settings in
  * one quiet line and its action (Start, or Choose). A tap anywhere else opens its settings.
  */
-function ModeCard({ icon, title, summary, count, unit, lit = false, setting, action, onPress, children, accessibilityLabel }: {
-  icon: LucideIcon; title: string; summary: string; count?: number; unit?: string; lit?: boolean; setting: string; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
+function ModeCard({ icon, title, count, unit, lit = false, setting, action, onPress, children, accessibilityLabel }: {
+  icon: LucideIcon; title: string; count?: number; unit?: string; lit?: boolean; setting: string; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} onPress={onPress}
     className={cn("gap-2.5 rounded-2xl p-3 active:opacity-80", lit ? "border border-primary bg-primary/10" : "bg-card")}>
     <View className="flex-row items-center gap-3">
       <View className={cn("size-10 items-center justify-center rounded-xl", lit ? "bg-card" : "bg-muted")}><Icon as={icon} size={20} className={lit ? "text-primary" : "text-muted-foreground"} /></View>
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text numberOfLines={1} className="text-base font-extrabold tracking-tight">{title}</Text>
-        <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{summary}</Text>
-      </View>
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-extrabold tracking-tight">{title}</Text>
       {count !== undefined && <View className="items-end">
         <Numeric className={cn("text-2xl leading-7 font-extrabold tracking-tight", !count && "text-muted-foreground/50")}>{count}</Numeric>
         {unit ? <Text numberOfLines={1} className="max-w-24 text-xs text-muted-foreground">{unit}</Text> : null}
@@ -164,26 +161,26 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const toggleSet = (id: string) => setTrainSets(trainSets.includes(id) ? trainSets.filter(x => x !== id) : [...trainSets, id]);
   const ofSet = (x: TrainingData["setRows"][number]) => tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length });
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
-        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} summary={tr("Plan the cross in inspection, by its exact number of moves")} count={moves} unit={tr("moves")}
+        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} count={moves} unit={tr("moves")}
           setting={`${tr(CROSS_TARGET_LABELS[target])} · ${tr("{0} moves", { 0: moves })}`} onPress={() => setSettings("cross")} action={<StartChip onPress={() => start("cross")} />} />}
-        <ModeCard icon={Eye} title={tr("Recognition")} summary={tr("The learned cases of a set at random, until you stop")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}
+        <ModeCard icon={Eye} title={tr("Recognition")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}
           setting={[chosen ? ofSet(chosen) : tr("Nothing learned yet"), tr("{0} s", { 0: seconds }), ...(cube && auf ? [tr("AUF")] : [])].join(" · ")}
           onPress={() => setSettings("recognition")} action={<StartChip onPress={() => start("recognition")} disabled={!chosen} />}>
           {chosen && <Bar ratio={chosen.learned / chosen.all.length} />}
         </ModeCard>
-        <ModeCard icon={GraduationCap} title={tr("Learned")} summary={tr("Your slowest learned cases, and cases picked by hand")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
+        <ModeCard icon={GraduationCap} title={tr("Learned")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
           lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
           setting={tr("{0} recommended · {1} picked by hand", { 0: recommendedPicked, 1: handPicked })} action={<ChooseLink />} />
-        <ModeCard icon={Layers} title={tr("Whole sets")} summary={tr("Every learned case of the sets you choose")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}
+        <ModeCard icon={Layers} title={tr("Whole sets")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}
           setting={data.setRows.filter(x => x.learned && trainSets.includes(x.set.id)).map(x => tr(x.set.label)).join(" · ") || tr("Nothing picked yet")}
           onPress={() => setSettings("sets")} action={<ChooseLink />} />
-        <ModeCard icon={Dices} title={tr("Free practice")} summary={tr("Any case of the catalogue, learned or not")} count={free || undefined} unit={free ? tr(free === 1 ? "case" : "cases") : undefined}
+        <ModeCard icon={Dices} title={tr("Free practice")} count={free || undefined} unit={free ? tr(free === 1 ? "case" : "cases") : undefined}
           setting={free ? tr("{0} picked", { 0: free }) : tr("Nothing picked yet")} onPress={() => setPicking(true)}
           action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>} />
       </View>;
   // Each way's settings in a drawer over the page, Start at the bottom; free practice's are its cases to pick.
   const sheets = <>
-    <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Cross")} description={tr(CROSS_TARGET_DETAILS[target])}>
+    <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Cross")}>
       <Field label={tr("What to build")}>
         <Segmented label={tr("What to build")} value={target} onChange={setTarget} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))} />
       </Field>
@@ -192,7 +189,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       </Field>
       <StartButton onPress={() => start("cross")} />
     </Sheet>
-    <Sheet open={settings === "recognition"} onClose={() => setSettings("")} title={tr("Recognition")} description={tr("The learned cases of a set at random, until you stop")} scroll>
+    <Sheet open={settings === "recognition"} onClose={() => setSettings("")} title={tr("Recognition")} scroll>
       <Field label={tr("Set")}>
         {chosen && <Choice label={tr("Set")} value={chosen.set.id} onChange={setRecognition} options={data.setRows.filter(x => x.learned).map(x => ({ id: x.set.id, label: ofSet(x) }))} />}
       </Field>
@@ -205,7 +202,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       </View>}
       <StartButton onPress={() => start("recognition")} disabled={!chosen} />
     </Sheet>
-    <Sheet open={settings === "sets"} onClose={() => setSettings("")} title={tr("Whole sets")} description={tr("Every learned case of the sets you choose")} scroll>
+    <Sheet open={settings === "sets"} onClose={() => setSettings("")} title={tr("Whole sets")} scroll>
       <View className="flex-row flex-wrap gap-1.5">
         {data.setRows.filter(x => x.learned).map(({ set, learned }) => <Chip key={set.id} on={trainSets.includes(set.id)} onPress={() => toggleSet(set.id)}
           accessibilityLabel={tr("{0}, {1} learned", { 0: tr(set.label), 1: learned })}>
@@ -254,10 +251,8 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
             <Recommended data={data} grid />
             {!wide && <View className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3">
               <Icon as={ListChecks} size={20} className="text-muted-foreground" />
-              <View className="min-w-0 flex-1">
-                <Text className="text-base font-extrabold">{tr("Case by case")}</Text>
-                <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("among your {0} learned", { 0: data.totalLearned })} · <Numeric className="text-[13px] font-bold text-foreground">{handPicked}</Numeric> {tr("picked")}</Text>
-              </View>
+              <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-extrabold">{tr("Case by case")}</Text>
+              <Numeric className="text-[13px] text-muted-foreground">{tr("{0} picked", { 0: handPicked })}</Numeric>
               <Chip onPress={() => setHand([])} disabled={!data.hand.length}>{tr("Clear")}</Chip>
               <Chip icon={Search} onPress={() => setSearching(true)} disabled={!data.totalLearned}>{tr("Pick…")}</Chip>
             </View>}
@@ -278,10 +273,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
           </View>}
         </View>
         {wide && <View className="m-3 mt-4 ml-0 w-[400px] gap-3 rounded-[26px] border border-border bg-card p-4">
-          <View className="flex-row items-baseline gap-2">
-            <Text className="text-xl font-extrabold tracking-tight">{tr("Case by case")}</Text>
-            <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("among your {0} learned", { 0: data.totalLearned })}</Text>
-          </View>
+          <Text className="text-xl font-extrabold tracking-tight">{tr("Case by case")}</Text>
           <View className="flex-row items-center gap-2">
             <View className="flex-row items-baseline gap-1">
               <Numeric className="text-2xl font-extrabold tracking-tight">{handPicked}</Numeric>
@@ -354,16 +346,14 @@ export function LearnedSetup({ onBack, onTrain }: { onBack: () => void; onTrain:
   const header = <View className="gap-2 pb-2">
     <Recommended data={data} />
     <View className="flex-row items-center gap-2 pt-3">
-      <View className="min-w-0 flex-1">
-        <Text className="text-base font-extrabold">{tr("Case by case")}</Text>
-        <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("among your {0} learned", { 0: data.totalLearned })} · <Numeric className="text-[13px] font-bold text-foreground">{picked}</Numeric> {tr("picked")}</Text>
-      </View>
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-extrabold">{tr("Case by case")}</Text>
+      <Numeric className="text-[13px] text-muted-foreground">{tr("{0} picked", { 0: picked })}</Numeric>
       <HeadButton icon={Search} label={tr("Search cases")} disabled={!data.totalLearned} onPress={() => setSearching(true)} />
       <Chip onPress={() => setHand([])} disabled={!hand.length}>{tr("Clear")}</Chip>
     </View>
   </View>;
   return <View className="flex-1">
-    <PushedBar title={tr("Learned")} sub={tr("{0} recommended · {1} picked by hand", { 0: data.picks.filter(id => data.learned.has(id)).length, 1: picked })} onBack={onBack} />
+    <PushedBar title={tr("Learned")} onBack={onBack} />
     <View className="min-h-0 flex-1 px-1">
       <CaseSelector cases={learnedCases} sets={sets} selected={hand} onChange={setHand} query="" header={header}
         onOpenCase={caseId => setRoute({ page: "algorithms", caseId })} />
@@ -387,16 +377,10 @@ function Recommended({ data, grid = false }: { data: TrainingData; grid?: boolea
       onToggle={() => setPicks(picks.has(r.id) ? data.picks.filter(id => id !== r.id) : [...data.picks, r.id])} />] : [];
   });
   return <>
-    <View className="flex-row items-baseline justify-between gap-2">
-      <Text className={cn("text-xl font-extrabold tracking-tight", grid && "text-[26px]")}>{tr("Recommended")}</Text>
-      <Text numberOfLines={1} className="shrink text-[13px] text-muted-foreground">{tr("your slowest learned cases")}</Text>
-    </View>
+    <Text className={cn("text-xl font-extrabold tracking-tight", grid && "text-[26px]")}>{tr("Recommended")}</Text>
     {!data.totalLearned ? <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="flex-none py-6">
-      {tr("The training drills the cases you learned. Learn them in the courses first.")}
       <Chip icon={GraduationCap} on onPress={() => setRoute({ page: "learn" })}>{tr("Open the courses")}</Chip>
-    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6">
-      {tr("Train your learned cases a few times each: the slowest show up here.")}
-    </Empty> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
+    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6" /> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
       {rows.slice(i * 2, i * 2 + 2).map(row => <View key={row.key} className="min-w-0 flex-1">{row}</View>)}
       {i * 2 + 1 >= rows.length && <View className="flex-1" />}
     </View>) : rows}
@@ -415,7 +399,7 @@ function RecommendedRow({ r, c, scale, picked, onToggle, large = false }: { r: R
     <View className={cn("min-w-0 flex-1 gap-1", large && "gap-1.5")}>
       <View className="flex-row items-baseline gap-1.5">
         <Text numberOfLines={1} className="shrink text-[15px] font-extrabold">{tr(c.name)}</Text>
-        <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr(c.setLabel)} · {tr(c.group)}</Text>
+        <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr(c.setLabel)}</Text>
         <Numeric className="text-sm font-bold text-destructive">{tr("{0} s", { 0: sec(r.time) })}</Numeric>
       </View>
       <View className="h-1.5 rounded-full bg-muted">
@@ -425,7 +409,7 @@ function RecommendedRow({ r, c, scale, picked, onToggle, large = false }: { r: R
       <View className="flex-row items-center gap-1">
         <Icon as={Source} size={12} className="text-muted-foreground" />
         <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">
-          {r.source === "solves" ? tr("seen in {0} of your solves", { 0: r.count }) : tr("{0} in training", { 0: plural(r.count, "attempt") })} · {recommendedWhy(r)} · {tr("usual {0}", { 0: sec(r.usual) })}
+          {recommendedWhy(r)}
         </Text>
       </View>
     </View>
@@ -443,7 +427,7 @@ function PickSheet({ open, onClose, free = false, onStart }: { open: boolean; on
   const shown = useMemo(() => free ? cases : cases.filter(c => learnedIds.includes(c.id)), [free, cases, learnedIds]);
   const selected = free ? freePicks : hand, setSelected = free ? setFreePicks : setHand;
   const count = shown.filter(c => selected.includes(c.id)).length;
-  return <Sheet open={open} onClose={onClose} title={tr("Pick cases")} description={free ? tr("Among every case, learned or not") : tr("Among the cases you learned")} contentClassName="gap-2 px-0"
+  return <Sheet open={open} onClose={onClose} title={tr("Pick cases")} contentClassName="gap-2 px-0"
     right={<Text className="text-sm text-muted-foreground"><Numeric className="text-base font-extrabold text-foreground">{count}</Numeric> {tr("picked")}</Text>}>
     {open && <>
       <View className="flex-row items-center gap-2 px-4">

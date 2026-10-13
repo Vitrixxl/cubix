@@ -111,37 +111,29 @@ function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
     return () => { live = false; };
   }, []);
   return <>
-    <View className="items-center gap-1 py-2">
-      <Text accessibilityRole="header" className="text-center text-2xl font-extrabold tracking-[-0.04em]">{tr("How does Qbix see your cube?")}</Text>
-      <Text className="text-center text-sm text-muted-foreground">{tr("It plans a solve with the steps of the course, then tells you each turn to make.")}</Text>
-    </View>
+    <Text accessibilityRole="header" className="py-2 text-center text-2xl font-extrabold tracking-[-0.04em]">{tr("How does Qbix see your cube?")}</Text>
     {/* The two ways side by side on a tablet. */}
     <View className={cn("min-h-0 flex-1 gap-2.5", tablet && "flex-row gap-3")}>
-      <WayTile icon={Camera} title={tr("Show the faces")} text={tr("Hold each face up to the camera: its colours are read for you.")} meta={tr("Six faces, one at a time")} onPress={() => onChoose("scan")} />
-      <WayTile icon={Paintbrush} title={tr("By hand")} text={tr("Paint the colours of each face on a flat cube.")} meta={tr("No camera needed")} onPress={() => onChoose("hand")} />
+      <WayTile icon={Camera} title={tr("Show the faces")} onPress={() => onChoose("scan")} />
+      <WayTile icon={Paintbrush} title={tr("By hand")} onPress={() => onChoose("hand")} />
     </View>
     <View className="flex-row items-center gap-3 rounded-[20px] bg-card px-4 py-3">
       <StaticCubeSvg state={solved(3)} size={48} />
       <View className="min-w-0 flex-1 gap-0.5">
         <Label className={CAP}>{tr("Your cube is already solved?")}</Label>
-        <Text className="text-sm text-muted-foreground">{tr("Scramble it first with this scramble:")}</Text>
         {scramble ? <Alg text={scramble} size={15} /> : null}
       </View>
     </View>
   </>;
 }
 
-/** A way to give the cube, stretched to share the screen: its icon, what it does, a word on what it takes. */
-function WayTile({ icon, title, text, meta, onPress }: { icon: LucideIcon; title: string; text: string; meta: string; onPress: () => void }) {
+/** A way to give the cube, stretched to share the screen: its icon, its name and Start. */
+function WayTile({ icon, title, onPress }: { icon: LucideIcon; title: string; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}
     className="min-h-0 flex-1 justify-between gap-3 rounded-3xl bg-card p-4 active:bg-muted">
     <View className="min-h-0 flex-1 items-center justify-center rounded-2xl bg-background"><Icon as={icon} size={40} className="text-primary" /></View>
-    <View className="gap-1">
-      <Text className="text-xl font-extrabold tracking-[-0.03em]">{title}</Text>
-      <Text className="text-sm text-muted-foreground">{text}</Text>
-    </View>
-    <View className="flex-row items-center justify-between">
-      <Text className="text-[13px] font-bold text-muted-foreground">{meta}</Text>
+    <View className="flex-row items-center justify-between gap-2">
+      <Text className="min-w-0 shrink text-xl font-extrabold tracking-[-0.03em]">{title}</Text>
       <View className="flex-row items-center gap-1"><Text className="text-[13px] font-bold text-primary">{tr("Start")}</Text><Icon as={ChevronRight} size={15} className="text-primary" /></View>
     </View>
   </Pressable>;
@@ -230,9 +222,9 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
     return <Frame phase={2} back={back} close={leave}>
       <Notice cube={plan ? <StaticCubeSvg state={solved(3)} size={120} /> : <Icon as={TriangleAlert} size={40} className="text-warning" />}
         title={plan ? tr("Your cube is already solved") : tr("This cube cannot be solved")}
-        text={plan ? tr("Scramble it, then read it again.") : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-        {!plan && <Action primary icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onPress={() => again("check")} />}
-        <Action primary={!!plan} icon={ScanLine} title={plan ? tr("Read the cube again") : tr("Read everything again")} text={tr("The six faces again")} onPress={() => again()} />
+        text={plan ? undefined : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
+        {!plan && <Action primary icon={Check} title={tr("Check the colours")} onPress={() => again("check")} />}
+        <Action primary={!!plan} icon={ScanLine} title={plan ? tr("Read the cube again") : tr("Read everything again")} onPress={() => again()} />
       </Notice>
     </Frame>;
 
@@ -246,7 +238,6 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
       <View className="min-h-0 flex-1 items-center justify-center gap-2 rounded-3xl bg-card p-4">
         <StaticCubeSvg state={solved(3)} size={110} />
         <Text accessibilityRole="header" className="text-4xl font-extrabold tracking-[-0.05em]">{tr("Solved!")}</Text>
-        <Text className="text-center text-sm text-muted-foreground">{tr("Every step of the {0} method, on your own cube.", { 0: said(course.method.name) })}</Text>
         <View className="flex-row gap-8 pt-1">
           {[[time, tr("Time")], [String(total), tr("Turns")]].map(([value, label]) => <View key={label} className="items-center">
             <Numeric className="text-3xl font-extrabold tracking-[-0.03em]">{value}</Numeric>
@@ -262,7 +253,7 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
           <Numeric className="w-8 text-right text-sm font-bold text-muted-foreground">{per[k]}</Numeric>
         </View>)}
       </View>
-      <Action primary icon={RotateCcw} title={tr("Solve again")} text={tr("Scramble your cube, Qbix reads it again")} onPress={() => again()} />
+      <Action primary icon={RotateCcw} title={tr("Solve again")} onPress={() => again()} />
       <View className="flex-row gap-2">
         <Action className="flex-1" icon={Timer} title={tr("On your own, with the timer")} onPress={() => replace({ page: "playground" })} />
         <Action className="flex-1" icon={GraduationCap} title={tr("Back to the course")} onPress={leave} />
@@ -274,10 +265,10 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
   if (lost)
     return <Frame phase={2} back={back} close={leave}>
       <Route steps={steps} plan={plan} at={at.part} finished={false} onStep={setLesson} />
-      <Notice cube={<StaticCubeSvg state={at.state} size={120} />} title={tr("Your cube left the plan")} text={tr("Read it again, or go back to the start of this part.")}>
-        <Action primary icon={ScanLine} title={tr("Read the cube again")} text={tr("The six faces again")} onPress={() => again()} />
-        <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : said(steps[step]!.title)} onPress={restart} />
-        <Action icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onPress={() => again("check")} />
+      <Notice cube={<StaticCubeSvg state={at.state} size={120} />} title={tr("Your cube left the plan")}>
+        <Action primary icon={ScanLine} title={tr("Read the cube again")} onPress={() => again()} />
+        <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : undefined} onPress={restart} />
+        <Action icon={Check} title={tr("Check the colours")} onPress={() => again("check")} />
       </Notice>
       {lessonSheet}
     </Frame>;
@@ -390,12 +381,12 @@ const Piece = ({ faces }: { faces: Face[] }) => <View className="flex-row gap-0.
 </View>;
 
 /** What happened, with the ways forward, in the room the screen has. */
-function Notice({ cube, title, text, children }: { cube: ReactNode; title: string; text: string; children: ReactNode }) {
+function Notice({ cube, title, text, children }: { cube: ReactNode; title: string; text?: string; children: ReactNode }) {
   return <View className="min-h-0 flex-1 justify-end gap-2">
     <View className="min-h-0 flex-1 items-center justify-center gap-2 px-4">
       {cube}
       <Text accessibilityRole="header" className="text-center text-2xl font-extrabold tracking-[-0.04em]">{title}</Text>
-      <Text className="text-center text-sm text-muted-foreground">{text}</Text>
+      {text ? <Text className="text-center text-sm text-muted-foreground">{text}</Text> : null}
     </View>
     {children}
   </View>;

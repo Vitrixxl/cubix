@@ -164,7 +164,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
 
   const undoLast = async () => {
     const last = solves.at(-1);
-    if (!last || !await ask({ title: tr("Delete your last solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") })) return;
+    if (!last || !await ask({ title: tr("Delete your last solve?"), action: tr("Delete") })) return;
     await api.deleteSolve(last.id);
     setSolves(s => s.filter(x => x.id !== last.id)); bumpStats(v => v + 1);
   };
@@ -184,7 +184,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
   const recommendation = current && !free ? data.recommended.find(r => r.id === current.c.id) : undefined;
   const promptFont = (shownSetup.length > 90 ? 15 : 18) + (tablet ? 4 : 0);
   const pictureSize = tablet ? (wide ? 140 : 150) : height < 760 ? 72 : 92;
-  const sub = free ? `${tr("Free practice")} · ${plural(selected.length, "case")}` : [plural(selected.length, "case"), ...data.parts].join(" · ");
+  const sub = plural(selected.length, "case");
   const openCase = () => current && setRoute({ page: "algorithms", caseId: current.c.id });
 
   const picture = current && (hasCube && showCube
@@ -199,7 +199,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
         <Pressable disabled={busy} onPress={openCase} accessibilityRole="button" accessibilityLabel={tr("Open {0}", { 0: tr(current.c.name) })}>
           <Text numberOfLines={1} className={cn("text-[28px] leading-8 font-extrabold tracking-[-0.04em]", tablet && "text-[36px] leading-10")}>{tr(current.c.name)}</Text>
         </Pressable>
-        <Text numberOfLines={1} className="text-sm text-muted-foreground">{tr(current.c.setLabel) + (current.c.group && current.c.group !== current.c.setLabel ? " · " + tr(current.c.group) : "")}</Text>
+        <Text numberOfLines={1} className="text-sm text-muted-foreground">{tr(current.c.setLabel)}</Text>
         {recommendation && <Badge variant="accent" className="self-start rounded-full"><View className="size-1.5 rounded-full bg-primary" /><Text numberOfLines={1} className="text-xs font-semibold text-primary">{tr("Recommended")} · {recommendedWhy(recommendation)}</Text></Badge>}
       </View>
     </View>
@@ -220,7 +220,6 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
     </ScrollView>
   </> : <View className="items-start gap-2 py-4">
     <Text className="text-xl font-extrabold tracking-tight">{free ? tr("Choose your cases") : tr("No learned case to train")}</Text>
-    <Text className="text-sm text-muted-foreground">{free ? tr("Select the cases you want to practise.") : tr("Pick recommended cases, whole sets or learned cases one by one. Cases not learned yet are learned in the courses first.")}</Text>
     <Chip icon={ListChecks} on onPress={onBack}>{tr("Choose cases")}</Chip>
   </View>;
 
@@ -382,14 +381,14 @@ function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo, dock
           </View>
           <Numeric className={cn("text-base font-extrabold", rows.length > 1 && (i === 0 ? "text-destructive" : i === rows.length - 1 ? "text-success" : ""))}>{fmtTime(mean)}</Numeric>
         </View>)}
-      </View> : <Empty title={tr("No attempt yet")} className="flex-none py-6">{tr("Your times on each case show here.")}</Empty>
+      </View> : <Empty title={tr("No attempt yet")} className="flex-none py-6" />
         : solves.length ? <View className="gap-1">
           {[...solves].reverse().map((v, i) => <SolveMenu key={v.id} solve={v} className="min-h-12 flex-row items-center gap-3 rounded-xl px-2.5 active:bg-muted/60">
             <Numeric className="w-8 text-xs text-muted-foreground">{solves.length - i}</Numeric>
             <Numeric className={cn("text-base font-bold", v.penalty === "dnf" ? "text-destructive" : v.penalty === "+2" ? "text-warning" : "")}>{fmtSolve(v.time_ms, v.penalty)}</Numeric>
             <Text numberOfLines={1} className="min-w-0 flex-1 text-right text-xs text-muted-foreground">{v.case_id ? tr(byId.get(v.case_id)?.name ?? v.case_id) : ""}</Text>
           </SolveMenu>)}
-        </View> : <Empty title={tr("No attempt yet")} className="flex-none py-6">{tr("Your times on each case show here.")}</Empty>}
+        </View> : <Empty title={tr("No attempt yet")} className="flex-none py-6" />}
     </ScrollView>
   </View>;
 }
@@ -432,7 +431,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
   const sub = set ? `${tr(set.label)} · ${plural(state.done, "case")}` : undefined;
   return <View className="flex-1">
     <PushedBar title={tr("Recognition")} sub={sub} onBack={onBack} />
-    {!state.ids.length ? <Empty title={tr("Nothing learned yet")}>{tr("The training drills the cases you learned. Learn them in the courses first.")}</Empty>
+    {!state.ids.length ? <Empty title={tr("Nothing learned yet")} />
       : state.phase === "countdown" ? <View className="min-h-0 flex-1 items-center justify-center" accessibilityLiveRegion="polite">
         <Numeric className="text-[140px] leading-[150px] font-extrabold tracking-[-0.05em] text-primary">{state.left}</Numeric>
       </View>

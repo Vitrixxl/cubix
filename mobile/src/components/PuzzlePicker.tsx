@@ -201,7 +201,7 @@ export function EventPicker({ value, onChange }: { value: EventId; onChange: (ev
   const [open, setOpen] = useState(false);
   return <>
     <SessionTrigger event={value} onPress={() => setOpen(true)} />
-    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Puzzle")} description={tr("Statistics of this puzzle only")}>
+    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Puzzle")}>
       <PuzzleGrid value={value} onChange={id => { setOpen(false); onChange(id); }} />
     </Sheet>
   </>;

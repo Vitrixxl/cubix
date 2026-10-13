@@ -815,6 +815,7 @@
  "Algorithms are written as a list of moves, one letter per face. Choose a move to watch it turn on the cube.": "Algorithmen werden als Zugfolge geschrieben, ein Buchstabe pro Seite. Wähle einen Zug, um ihn auf dem Würfel drehen zu sehen.",
  "Algorithms for this case": "Algorithmen für diesen Fall",
  "Algorithms learned": "Gelernte Algorithmen",
+ "All learned": "Alles gelernt",
  "Algorithms to come": "Kommende Algorithmen",
  "Algorithms use the 3×3 letters for the faces you see: R, U, F, L… turn a fifth of a turn, R2 two fifths. Most last-layer algorithms are 3×3 ones moved over.": "Algorithmen verwenden die 3×3-Buchstaben für die Seiten, die du siehst: R, U, F, L… drehen um ein Fünftel, R2 um zwei Fünftel. Die meisten Last-Layer-Algorithmen sind übertragene 3×3-Algorithmen.",
  "Algs": "Algs",

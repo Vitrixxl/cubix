@@ -173,7 +173,6 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     return <Empty className="flex-1">
       <View className="size-12 items-center justify-center rounded-2xl bg-muted"><Icon as={CameraOff} size={22} className="text-muted-foreground" /></View>
       <Text className="text-lg font-semibold tracking-tight">{tr("No camera")}</Text>
-      <Text className="max-w-xs text-center text-sm text-muted-foreground">{tr("Allow the camera to read your cube, or enter its colours by hand.")}</Text>
       <View className="w-full max-w-xs gap-2 pt-2">
         <Button size="lg" className="h-12" onPress={onHand}><Icon as={Paintbrush} size={18} /><Text>{tr("Enter the colours by hand")}</Text></Button>
         <View className="flex-row gap-2">
@@ -208,10 +207,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     </View>
     <View className="flex-row items-center gap-3" accessibilityLiveRegion="polite">
       <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={scanStickers(faces, refs)} />
-      <View className="min-w-0 flex-1">
-        <Text className="text-[13px] font-bold text-primary">{tr("Show the face")}</Text>
-        <Text className="text-lg font-extrabold tracking-[-0.02em]">{tr(step.title)}</Text>
-      </View>
+      <Text className="min-w-0 flex-1 text-lg font-extrabold tracking-[-0.02em]">{tr(step.title)}</Text>
     </View>
     <View className="gap-2 rounded-2xl bg-card px-3 py-2.5">
       <Label className="font-bold tracking-widest uppercase">{tr("Faces read")} · {done} / {ORDER.length}</Label>
@@ -297,7 +293,11 @@ function Review({ initial, doubt: unsure, onDone, onCamera }: { initial: (Face |
         <Text accessibilityRole="header" className="text-base font-semibold tracking-tight">{tr("Check the colours")}</Text>
         {checks > 0 && <Badge className="border-warning/40 bg-warning/15"><Text className="text-xs font-medium text-warning">{checks === 1 ? tr("1 sticker to check") : tr("{0} stickers to check", { 0: checks })}</Text></Badge>}
       </View>
-      <Text className="text-center text-sm text-muted-foreground">{tr("Yellow on top, green in front. Pick a colour, then tap the stickers to correct.")}</Text>
+      {/* How the net is held. */}
+      <View className="flex-row items-center gap-1.5">
+        <View className="size-3 rounded-sm" style={{ backgroundColor: hex("U") }} /><Text className="text-sm text-muted-foreground">{tr("on top")} ·</Text>
+        <View className="size-3 rounded-sm" style={{ backgroundColor: hex("F") }} /><Text className="text-sm text-muted-foreground">{tr("in front")}</Text>
+      </View>
     </View>
     <View accessibilityRole="radiogroup" accessibilityLabel={tr("Colour")} className="flex-row gap-1.5">
       {FACES.map(face => <Pressable key={face} accessibilityRole="radio" accessibilityLabel={tr(COLOUR_NAMES[face])} accessibilityState={{ checked: brush === face }} onPress={() => setBrush(face)}

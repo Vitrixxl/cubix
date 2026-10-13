@@ -245,7 +245,7 @@ function FiguresSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const [size, setSize] = useState("");
   const custom = Number(size), validSize = Number.isInteger(custom) && custom >= AVERAGE_SIZES.min && custom <= AVERAGE_SIZES.max;
   const add = (id: string) => setIds(ids.includes(id) || ids.length >= FIGURE_LIMIT ? ids : [...ids, id]);
-  return <Sheet open={open} onClose={onClose} title={tr("Session figures")} description={tr("Up to {0} figures on the session card", { 0: FIGURE_LIMIT })}>
+  return <Sheet open={open} onClose={onClose} title={tr("Session figures")}>
     <Caption>{tr("Shown")}</Caption>
     <View className="flex-row flex-wrap gap-2">
       {ids.map(id => <Pill key={id} on label={said(figureLabel(id))} trailing={X} accessibilityLabel={tr("Remove {0}", { 0: said(figureLabel(id)) })} disabled={ids.length <= 1} onPress={() => setIds(ids.filter(f => f !== id))} />)}

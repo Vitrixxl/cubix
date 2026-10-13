@@ -80,9 +80,7 @@ function methodRows(puzzle: PuzzleId) {
 }
 type MethodRow = ReturnType<typeof methodRows>[number];
 
-const methodDetail = (row: MethodRow) =>
-  `${tr(LEVEL_LABEL[row.method.level])} · ${plural(row.facts.steps, "step")}` +
-  (row.progress.started ? ` · ${tr("{0} of {1} steps learned", { 0: row.progress.done, 1: row.progress.total })}` : "");
+const methodDetail = (row: MethodRow) => `${tr(LEVEL_LABEL[row.method.level])} · ${plural(row.facts.steps, "step")}`;
 /** The share of a method's algorithms known, from 0 to 1. */
 const knownShare = (row: MethodRow) => (row.facts.algorithms ? row.learned / row.facts.algorithms : 0);
 
@@ -109,8 +107,7 @@ function Methods() {
     hero = heroRow(puzzle, rows),
     [picked, setPicked] = useState<string | null>(null),
     [sheet, setSheet] = useState(false),
-    chosen = rows.find((r) => r.method.id === picked) ?? hero,
-    label = puzzleInfo(puzzle).label;
+    chosen = rows.find((r) => r.method.id === picked) ?? hero;
   const key = (e: React.KeyboardEvent<HTMLElement>) => {
     const i = rows.findIndex((r) => r === chosen),
       next = e.key === "ArrowDown" || e.key === "ArrowRight" ? i + 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? i - 1 : -1;
@@ -122,7 +119,7 @@ function Methods() {
   };
   return (
     <div className={PAGE}>
-      <PageHead title={tr("Learn")} sub={tr("Choose a {0} method, then follow it step by step", { 0: said(label) })} puzzle />
+      <PageHead title={tr("Learn")} puzzle />
       <div className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-5">
         {(phone ? hero : chosen) && <HeroCourse puzzle={puzzle} row={(phone ? hero : chosen)!} />}
         <div
@@ -170,7 +167,7 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
       <div className="flex flex-col gap-2 md:gap-3">
         <span className={cn("flex items-center gap-2 text-sm font-semibold", progress.started || row.recommended ? "text-primary" : "text-muted-foreground")}>
           <LevelBars level={method.level} />
-          {progress.started ? tr("Continue") : row.recommended ? tr("Start here") : tr(LEVEL_LABEL[method.level])}
+          {row.recommended && !progress.started ? tr("Start here") : tr(LEVEL_LABEL[method.level])}
         </span>
         <h2 className="text-[34px] leading-none font-extrabold tracking-[-0.04em] md:text-[56px]">{said(method.name)}</h2>
         {!brief && <p className="max-w-md text-base leading-relaxed text-muted-foreground">{said(method.summary)}</p>}
@@ -183,7 +180,7 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
           <StatCard size="sm" className="bg-muted" label={tr("Known")} value={`${Math.round(knownShare(row) * 100)}%`} dot={DOT.lilac} />
         </div>
         )}
-        {/* Every step as a bar, filled as far as its algorithms are learned; the step to carry on named under them. */}
+        {/* Every step as a bar, filled as far as its algorithms are learned; the step to carry on named on the button. */}
         <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${method.steps.length}, minmax(0, 1fr))` }} aria-label={tr("Steps")}>
           {method.steps.map((st, i) => {
             const learned = stepLearned(st, cases, s.learned, entry),
@@ -195,9 +192,6 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
             );
           })}
         </ol>
-        <p className="text-sm text-muted-foreground">
-          {tr("Step {0} of {1}", { 0: progress.step + 1, 1: method.steps.length })} · <span className="font-semibold text-foreground">{said(step.title)}</span>
-        </p>
         <Link
           to={pageUrl("learn", { puzzle, learnMethod: method.id })}
           data-action={action}
@@ -246,9 +240,7 @@ function MethodTile({ row, checked, onPick }: { row: MethodRow; checked: boolean
               </Badge>
             )}
           </span>
-          <span className={cn("text-sm text-muted-foreground", phone ? "truncate" : "line-clamp-2")}>
-            {phone ? methodDetail(row) : said(row.method.summary)}
-          </span>
+          <span className="truncate text-sm text-muted-foreground">{methodDetail(row)}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
           <span className={cn(NUMERIC, "text-2xl leading-none font-extrabold tracking-[-0.03em] md:text-[32px]", learned ? "text-success" : share ? "text-foreground" : "text-faint")}>{share}%</span>
@@ -257,10 +249,7 @@ function MethodTile({ row, checked, onPick }: { row: MethodRow; checked: boolean
           </span>
         </span>
       </span>
-      <span className="flex items-center gap-3">
-        {!phone && <span className="shrink-0 text-xs text-muted-foreground">{methodDetail(row)}</span>}
-        <Bar ratio={row.share} fill={learned ? "bg-success" : undefined} className="flex-1" label={tr("{0} / {1} algorithms known · {2}%", { 0: row.learned, 1: row.facts.algorithms, 2: share })} />
-      </span>
+      <Bar ratio={row.share} fill={learned ? "bg-success" : undefined} label={tr("{0} / {1} algorithms known · {2}%", { 0: row.learned, 1: row.facts.algorithms, 2: share })} />
     </button>
   );
 }
@@ -275,8 +264,6 @@ type Piece = {
   name: string;
   /** A case's number in its set (37, Aa), large on its tile. */
   short?: string;
-  /** Where it sits: its group and place in it. */
-  context?: string;
   sub?: string;
   note?: string;
   algs: string[];
@@ -297,14 +284,13 @@ function InlineDiagram({ puzzle, step, a, size }: { puzzle: PuzzleId; step: Meth
   return <StaticCubeSvg state={applyAlg(solved(cube), algSetup(a))} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
 }
 
-function inlinePiece(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, entry: CourseEntry, index: number, count: number): Piece {
+function inlinePiece(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, entry: CourseEntry): Piece {
   const id = algId(step, a),
     size = puzzleInfo(puzzle).cubeSize,
     algs = [a.alg, ...(a.alternatives ?? [])];
   return {
     key: id,
     name: a.name,
-    context: tr("Algorithm {0} of {1}", { 0: index + 1, 1: count }),
     sub: a.detail,
     algs,
     mine: [],
@@ -316,8 +302,8 @@ function inlinePiece(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, ent
   };
 }
 
-/** A catalogue case as a piece: its place in its group, its other names, the algorithms it was learned with first. */
-function casePiece(c: any, group: string, index: number, count: number): Piece {
+/** A catalogue case as a piece: its other names, the algorithms it was learned with first. */
+function casePiece(c: any, group: string): Piece {
   const mine: string[] = s.learned.has(c.id) ? (s.learnedAlgs[c.id] ?? []) : [],
     all: string[] = (c.algorithms ?? []).map((a: any) => a.alg),
     algs = [...all.filter((a) => mine.includes(a)), ...all.filter((a) => !mine.includes(a))].slice(0, Math.max(3, mine.length));
@@ -325,7 +311,6 @@ function casePiece(c: any, group: string, index: number, count: number): Piece {
     key: c.id,
     name: caseTitle(c) === c.id ? c.id : said(c.name),
     short: shortId(c),
-    context: `${tr(group)} · ${tr("{0} of {1}", { 0: index + 1, 1: count })}`,
     sub: [c.name !== caseTitle(c) && said(c.name), c.subgroup && c.subgroup !== group && said(c.subgroup)].filter(Boolean).join(" · ") || undefined,
     algs,
     mine,
@@ -352,9 +337,9 @@ function stepPieces(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry)
     chosen = shownSet(puzzle, method, entry, sets),
     byGroup = new Map(chosen ? setGroups(cases, chosen.id) : []),
     own = step.algs ?? [],
-    inline = own.map((a, i) => inlinePiece(puzzle, step, a, entry, i, own.length)),
+    inline = own.map((a) => inlinePiece(puzzle, step, a, entry)),
     groups = chosen
-      ? orderedGroups(cases.filter((c: any) => c.set === chosen.id), s.groupOrder(chosen.id)).map((group): [string, Piece[]] => [group, byGroup.get(group)!.map((c: any, i: number, all: any[]) => casePiece(c, group, i, all.length))])
+      ? orderedGroups(cases.filter((c: any) => c.set === chosen.id), s.groupOrder(chosen.id)).map((group): [string, Piece[]] => [group, byGroup.get(group)!.map((c: any) => casePiece(c, group))])
       : [],
     count = stepLearned(step, cases, s.learned, entry),
     all = [...inline, ...groups.flatMap(([, pieces]) => pieces)].filter((p) => shownByFilter(p.learned));
@@ -567,13 +552,12 @@ function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
   );
 }
 
-/** The piece's name on top: where it sits, its name large, its other names; on desktops its figures beside it. */
+/** The piece's name on top: its name large, its other names; on desktops its learned toggle beside it. */
 function PieceHead({ piece, touch = false }: { piece: Piece; touch?: boolean }) {
   return (
     <div className="relative flex shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-4">
       {!touch && <LearnToggle action={piece.action} learned={piece.learned} className="absolute top-0 right-0" />}
       <div className="flex min-w-0 flex-col gap-1">
-        {piece.context && <span className={cn("text-[13px] font-semibold text-muted-foreground", !touch && "truncate")}>{piece.context}</span>}
         <h2 className={cn("truncate leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[32px]" : "text-[52px]")}>{said(piece.name)}</h2>
         {piece.sub && <span className={cn("text-sm font-semibold text-muted-foreground md:text-base", !touch && "truncate")}>{piece.sub}</span>}
       </div>
@@ -599,7 +583,7 @@ function Workbench({ bench }: { bench: Bench }) {
         </>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col justify-center">
-          <Empty icon={Check}>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
+          <Empty icon={Check}>{s.learningFilter === "learned" ? tr("Nothing learned yet") : tr("All learned")}</Empty>
         </div>
       )}
       <div className="flex shrink-0 items-center justify-end gap-2">
@@ -625,8 +609,8 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
   const step = method.steps[entry.step]!,
     train = step.train && puzzle === "333",
     mastered = stepMastered(step, entry);
-  const card = (action: string, icon: LucideIcon, title: string, line: string, primary = false, pressed?: boolean) => (
-    <ActionCard key={action} primary={primary} pressed={pressed} icon={icon} title={tr(title)} text={tr(line)} action={action} onClick={run(action)} className={cn(touch ? "w-full" : "flex-1", pressed && "text-success")} />
+  const card = (action: string, icon: LucideIcon, title: string, primary = false, pressed?: boolean) => (
+    <ActionCard key={action} primary={primary} pressed={pressed} icon={icon} title={tr(title)} action={action} onClick={run(action)} className={cn(touch ? "w-full" : "flex-1", pressed && "text-success")} />
   );
   const body = step.missing ? (
     <Empty icon={Info} title={tr("Algorithms to come")}>
@@ -634,20 +618,16 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
     </Empty>
   ) : (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5 text-center">
-      <div className="flex flex-col items-center gap-2">
-        <h2 className={cn("leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[26px]" : "text-[40px]")}>{tr("An intuitive step")}</h2>
-        <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">{tr("Nothing to memorise here: understand the idea, then practise it in your solves.")}</p>
-      </div>
+      <h2 className={cn("leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[26px]" : "text-[40px]")}>{tr("An intuitive step")}</h2>
       <div className={cn("flex w-full justify-center gap-3", touch && "flex-col")}>
-        {train && card("trainingSetup:" + step.train, Dumbbell, "Train the cross", "Plan it in inspection, then count its moves", true)}
-        {card("courseAlg:" + stepId(step), Check, "Mastered", mastered ? "Undo if it still takes thought" : "When you do it without thinking", !train, mastered)}
+        {train && card("trainingSetup:" + step.train, Dumbbell, "Train the cross", true)}
+        {card("courseAlg:" + stepId(step), Check, "Mastered", !train, mastered)}
       </div>
     </div>
   );
   if (touch) return body;
   return (
     <Surface className="min-w-0 gap-3 px-6 pt-5 pb-4" aria-label={tr("Workbench")}>
-      <span className="shrink-0 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">{tr("Workbench")}</span>
       <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-2">{body}</div>
       <div className="flex shrink-0 items-center gap-3 pt-1">
         <StepNav method={method} entry={entry} />
@@ -761,7 +741,7 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
 }
 
 /**
- * The step's sheet: where it stands, what it changes on the cube (before and after), its explanation and tips, then
+ * The step's sheet: its title, what it changes on the cube (before and after), its explanation and tips, then
  * training it and the timer.
  */
 function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
@@ -772,12 +752,7 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
     learnedInSet = train ? s.cases().filter((c: any) => c.set === train.slice("train:".length) && s.learned.has(c.id)).length : 0;
   const content = (
     <>
-      {!touch && (
-        <div className="flex flex-col gap-2">
-          <span className={cn(NUMERIC, "text-[13px] font-bold text-primary")}>{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })}</span>
-          <h2 className="text-[30px] leading-none font-extrabold tracking-[-0.04em]">{said(step.title)}</h2>
-        </div>
-      )}
+      {!touch && <h2 className="text-[30px] leading-none font-extrabold tracking-[-0.04em]">{said(step.title)}</h2>}
       {puzzleInfo(puzzle).cubeSize && (
         <figure className="flex items-center justify-center gap-2 rounded-2xl bg-muted p-3" aria-label={tr("Before and after this step")}>
           <StepCube puzzle={puzzle} setup={picture.before} mask={picture.mask} size={touch ? 56 : 66} />
@@ -812,7 +787,7 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
         <div className="flex shrink-0 flex-col gap-2">
           {train && (
             <Button action={train} icon={Dumbbell} variant="secondary" disabled={!learnedInSet}>
-              {learnedInSet ? tr("Train the {0} learned", { 0: learnedInSet }) : tr("Learn a case to train it")}
+              {tr("Train")}
             </Button>
           )}
           <Button action="nav:playground" icon={Timer} variant="secondary">
@@ -922,22 +897,13 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
   );
   const hero = (
     <div className={cn("flex flex-col justify-center gap-5", touch ? "px-5 py-6" : "")} data-finished>
-      <span className="text-[13px] font-bold text-primary">{tr("Course finished · {0}", { 0: said(method.name) })}</span>
-      <h2 className={cn("leading-[0.95] font-extrabold tracking-[-0.05em]", touch ? "text-[36px]" : "text-[60px]")}>
-        {tr("{0} done.", { 0: said(method.name) })}
-        <br />
-        <span className="text-muted-foreground">{tr("Keep it in your hands.")}</span>
-      </h2>
-      <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-        {tr("You have been through every step of")} {said(method.name)}
-        {tr(". Solve with it on the timer until it flows, then try a faster method.")}
-      </p>
+      <h2 className={cn("leading-[0.95] font-extrabold tracking-[-0.05em]", touch ? "text-[36px]" : "text-[60px]")}>{tr("{0} done.", { 0: said(method.name) })}</h2>
       {actions}
     </div>
   );
   const steps = (
     <section className="flex min-h-0 flex-col gap-2" aria-label={tr("Steps")}>
-      <SectionHead title={tr("What you learned")} meta={tr("{0} of {1} steps learned", { 0: method.steps.length, 1: method.steps.length })} className="min-h-0 px-1" />
+      <SectionHead title={tr("Steps")} className="min-h-0 px-1" />
       <ol className="-m-1 flex min-h-0 flex-col gap-1.5 overflow-y-auto p-1">
         {method.steps.map((st, i) => {
           const learned = stepLearned(st, cases, s.learned, entry),
@@ -999,8 +965,7 @@ function AssistedButton({ puzzle, method, phone = false }: { puzzle: PuzzleId; m
  * workbench with one piece at a time, and the step's sheet.
  */
 function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
-  const progress = methodProgress(s.course, puzzle, method, s.cases(), s.learned),
-    pieces = stepPieces(puzzle, method, entry),
+  const pieces = stepPieces(puzzle, method, entry),
     bench = useBench(pieces),
     hasPieces = pieces.count.total > 0;
   return (
@@ -1008,10 +973,7 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
       <header className="flex min-h-12 shrink-0 items-center gap-5">
         <div className="flex shrink-0 items-center gap-2">
           <Back action="learnMethods" label="Every method" />
-          <div className="flex flex-col">
-            <h1 className="text-xl leading-tight font-extrabold tracking-[-0.03em]">{said(method.name)}</h1>
-            <span className={cn(NUMERIC, "text-xs font-semibold text-muted-foreground")}>{tr("{0} of {1} steps learned", { 0: progress.done, 1: progress.total })}</span>
-          </div>
+          <h1 className="text-xl leading-tight font-extrabold tracking-[-0.03em]">{said(method.name)}</h1>
         </div>
         <StepTrack puzzle={puzzle} method={method} entry={entry} />
         <AssistedButton puzzle={puzzle} method={method} />
@@ -1041,7 +1003,6 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
 function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
   const [steps, setSteps] = useState(false),
     [list, setList] = useState(false),
-    progress = methodProgress(s.course, puzzle, method, s.cases(), s.learned),
     step = method.steps[entry.step]!,
     done = stepDone(step, s.cases(), s.learned, entry),
     pieces = stepPieces(puzzle, method, entry),
@@ -1049,11 +1010,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
     hasPieces = pieces.count.total > 0;
   return (
     <div className={PAGE}>
-      <PageHead
-        lead={<Back action="learnMethods" label="Every method" />}
-        title={said(method.name)}
-        sub={tr("{0} · {1} of {2} steps learned", { 0: said(puzzleInfo(puzzle).label), 1: progress.done, 2: progress.total })}
-      >
+      <PageHead lead={<Back action="learnMethods" label="Every method" />} title={said(method.name)}>
         <AssistedButton puzzle={puzzle} method={method} phone />
       </PageHead>
       <Surface className="flex-1">
@@ -1100,7 +1057,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
                       <AlgChoice piece={bench.piece} bench={bench} touch />
                     </>
                   ) : (
-                    <Empty icon={Check}>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
+                    <Empty icon={Check}>{s.learningFilter === "learned" ? tr("Nothing learned yet") : tr("All learned")}</Empty>
                   )}
                 </>
               ) : (
@@ -1120,7 +1077,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
           </>
         )}
       </Surface>
-      <PhoneSheet open={steps} onOpenChange={setSteps} title={tr("Steps")} description={tr("{0} of {1} steps learned", { 0: progress.done, 1: progress.total })} className="gap-0 px-2">
+      <PhoneSheet open={steps} onOpenChange={setSteps} title={tr("Steps")} className="gap-0 px-2">
         <StepRows method={method} entry={entry} touch onPick={() => setSteps(false)} />
       </PhoneSheet>
       {hasPieces && (

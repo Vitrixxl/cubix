@@ -118,7 +118,7 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
           ? <ScrollView className={cn(fill && !split && "max-h-16")} nestedScrollEnabled showsVerticalScrollIndicator={false}>
             <PlayerAlg key={alg} player={player} text={recorded ? "z2 " + alg : annotation!.moves} size={15} />
           </ScrollView>
-          : <Text className="text-sm text-muted-foreground">{cube ? tr("No turns yet: write them to replay the solve.") : tr("No turns recorded for this solve.")}</Text>}
+          : !cube ? <Text className="text-sm text-muted-foreground">{tr("No turns recorded for this solve.")}</Text> : null}
       </View>}
     {analysis ? <View className="gap-2 rounded-2xl bg-card p-3">
       <View className="flex-row items-center justify-between">

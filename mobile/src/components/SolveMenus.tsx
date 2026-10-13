@@ -61,7 +61,7 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
   const expect = (id: number, value: SolveSummary | null) => setOptimistic(current => new Map(current).set(id, value));
   const settle = (id: number) => setOptimistic(current => { const next = new Map(current); next.delete(id); return next; });
   const deleteTime = useCallback(async (id: number) => {
-    if (!(await ask({ title: tr("Delete this solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") }))) return;
+    if (!(await ask({ title: tr("Delete this solve?"), action: tr("Delete") }))) return;
     await run(async () => {
       expect(id, null);
       try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); }

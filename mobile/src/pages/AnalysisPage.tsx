@@ -72,7 +72,6 @@ export function AnalysisPage() {
     <SectionTabs />
     {!a || (!method && pending) ? <Empty icon={Bluetooth} title={tr("Analysing your smart cube solves…")} />
       : !method ? <Empty icon={Bluetooth} title={tr("Only available for solves done on a connected cube")}>
-        {tr("Solves turned on a smart cube in the computer app show here once they are synced.")}
         <View className="flex-row gap-2">
           <Button variant="secondary" onPress={() => openGuide("smartCube")}><Icon as={CircleHelp} size={16} /><Text>{tr("Smart cubes")}</Text></Button>
           <Button variant="secondary" onPress={() => setRoute({ page: "playground" })}><Text>{tr("Open the timer")}</Text></Button>
@@ -243,11 +242,8 @@ function Proposal({ suggestion: t, width, start }: { suggestion: TrainingSuggest
     else start.learn(t.action.split(":")[2] ?? "cfop");
   };
   return <View className="flex-row items-center gap-3 px-4" style={{ width }}>
-    <View className="min-w-0 flex-1 gap-0.5">
-      <Text numberOfLines={1} className="text-base font-extrabold tracking-tight">{said(t.title)}</Text>
-      <Text numberOfLines={2} className="text-xs text-muted-foreground">{said(t.detail)}</Text>
-    </View>
-    <Button onPress={go} className="h-11 gap-1.5 rounded-full px-4">
+    <Text numberOfLines={2} className="min-w-0 flex-1 text-base font-extrabold tracking-tight">{said(t.title)}</Text>
+    <Button onPress={go} accessibilityHint={said(t.detail)} className="h-11 gap-1.5 rounded-full px-4">
       <Icon as={learn ? GraduationCap : Dumbbell} size={17} className="text-primary-foreground" />
       <Text>{learn ? tr("Learn") : tr("Train")}</Text>
     </Button>
@@ -293,8 +289,7 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
   }, [onClose, docked]);
   const c = tile?.stats, delta = c ? c.duration - usual : 0,
     learned = !!tile && local.learned().includes(tile.id),
-    alg = tile && (local.learnedAlgs()[tile.id]?.[0] ?? tile.known?.algorithms[0]?.alg),
-    sortName = SORTS.find(s => s.id === sort)!.label;
+    alg = tile && (local.learnedAlgs()[tile.id]?.[0] ?? tile.known?.algorithms[0]?.alg);
   const close = (then: () => void) => () => { onClose(); then(); };
   const segments = <>
     {sets.length > 1 && <Segmented label={tr("Step")} value={step} onChange={id => { setPicked(""); onStep(id); }}
@@ -374,7 +369,7 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
         </Pressable>
         <View className="min-w-0 flex-1 items-center">
           <Text numberOfLines={1} accessibilityRole="header" className="text-lg font-extrabold tracking-[-0.03em]">{tr("{0} cases", { 0: set.label })}</Text>
-          <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{tr("{0} / {1} seen", { 0: seen, 1: tiles.length })} · {tr("sorted by {0}", { 0: tr(sortName).toLowerCase() })}</Numeric>
+          <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{tr("{0} / {1} seen", { 0: seen, 1: tiles.length })}</Numeric>
         </View>
         <View className="size-11" />
       </View>

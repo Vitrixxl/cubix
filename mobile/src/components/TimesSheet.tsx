@@ -136,7 +136,7 @@ function TimesBody({ solves, title, context, calendar, onCalendar, docked = fals
       <View className="mx-5 h-px bg-border" />
       <List data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} getItemLayout={(_, index) => ({ length: ROW, offset: ROW * index, index })}
         className={docked ? "min-h-0 flex-1" : undefined} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
-        ListEmptyComponent={<Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8">{tr("Every solve of this session lands here.")}</Empty>}
+        ListEmptyComponent={<Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8" />}
         renderItem={({ item, index }) => <TimeRow solve={item} number={solves.length - index} tone={solveTone(item, extremes)} />} />
     </>}
   </>;

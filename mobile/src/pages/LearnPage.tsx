@@ -172,18 +172,17 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
   const colors = useColors();
   const { method, state } = row;
   const step = method.steps[state.step] ?? method.steps[0]!;
-  // The step it opens on is named over the button.
-  const action = state.started ? tr("Continue") : tr("Start");
+  // The button names the step it opens on.
+  const action = state.started ? tr("Continue · {0}", { 0: tr(step.title) }) : tr("Start · {0}", { 0: tr(step.title) });
   const side = variant === "side";
   return <View className={cn("gap-2.5 rounded-3xl bg-muted p-4", variant === "peek" && "rounded-none bg-transparent p-0", side && "flex-1 rounded-none bg-transparent p-1")}>
     <View className="flex-row items-center gap-1.5">
       <LevelBars level={method.level} on={state.started || row.recommended} />
       <Text className={cn("text-sm font-bold", state.started || row.recommended ? "text-primary" : "text-muted-foreground")}>
-        {state.started ? tr("Continue") : row.recommended ? tr("Start here") : tr(LEVEL_LABEL[method.level])}
+        {row.recommended && !state.started ? tr("Start here") : tr(LEVEL_LABEL[method.level])}
       </Text>
     </View>
     <Text numberOfLines={1} className={cn("text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]", side && "text-[40px] leading-[44px]")}>{tr(method.name)}</Text>
-    {!variant && <Text numberOfLines={2} className="text-[13px] leading-[18px] text-muted-foreground">{tr(method.summary)}</Text>}
     {/* A phone leaves them out: the bars count the steps, the method's row under it its algorithms and share known. */}
     {variant && <View className="flex-row gap-1.5">
       <Well label={tr("Steps")} value={`${state.done} / ${state.total}`} dot="bg-success" muted />
@@ -192,7 +191,7 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
     </View>}
     {side ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-0.5" accessibilityLabel={tr("Steps")}>
       {method.steps.map((st, i) => {
-        const count = counts[i]!, line = count.total ? `${count.learned} / ${count.total}` + (count.done ? ` · ${tr("Done")}` : "") : count.done ? tr("Done") : tr("An intuitive step");
+        const count = counts[i]!, line = count.total ? `${count.learned} / ${count.total}` + (count.done ? ` · ${tr("Done")}` : "") : count.done ? tr("Done") : tr("Intuitive");
         return <Pressable key={st.title} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${tr(st.title)} · ${line}`} onPress={() => onStep?.(i)}
           className={cn("min-h-12 flex-row items-center gap-3 rounded-xl px-2.5 py-1.5 active:bg-muted/70", i === state.step && "bg-muted")}>
           <Ring share={count.done ? 1 : count.total ? count.learned / count.total : 0} color={count.done ? colors.variables["--success"] ?? colors.primary : colors.primary} />
@@ -202,10 +201,7 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
           </View>
         </Pressable>;
       })}
-    </ScrollView> : <>
-      <StepBars puzzle={puzzle} method={method} here={state.step} className={variant ? undefined : "bg-card"} />
-      <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("Step {0} of {1}", { 0: state.step + 1, 1: method.steps.length })} · <Text className="text-[13px] font-semibold text-foreground">{tr(step.title)}</Text></Text>
-    </>}
+    </ScrollView> : <StepBars puzzle={puzzle} method={method} here={state.step} className={variant ? undefined : "bg-card"} />}
     <Pressable accessibilityRole="button" accessibilityLabel={`${state.started ? tr("Continue") : tr("Start")} ${tr(method.name)}`} onPress={onOpen}
       className="h-12 flex-row items-center justify-between rounded-2xl bg-primary px-4 active:bg-primary/85">
       <Text numberOfLines={1} className="shrink text-base font-bold text-primary-foreground">{action}</Text>
@@ -214,12 +210,12 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
   </View>;
 }
 
-/** What a method's tile or card says beside its name: its badge, and its level, steps and steps learned. */
+/** What a method's tile or card says beside its name: its badge, and its level and steps. */
 function methodLabels({ method, state, share, recommended, facts }: MethodRow) {
   const done = share === 1;
   return {
     done, badge: done ? null : state.started ? tr("In progress") : recommended ? tr("Recommended") : null,
-    detail: `${tr(LEVEL_LABEL[method.level])} · ${plural(facts.steps, "step")}` + (state.started ? ` · ${tr("{0} of {1} steps learned", { 0: state.done, 1: state.total })}` : ""),
+    detail: `${tr(LEVEL_LABEL[method.level])} · ${plural(facts.steps, "step")}`,
   };
 }
 
@@ -269,7 +265,6 @@ function MethodCard({ puzzle, row, compact, onPress }: { puzzle: PuzzleId; row: 
       <MethodBadge badge={badge} done={done} />
     </View>
     <Text numberOfLines={1} className="text-[26px] leading-8 font-extrabold tracking-[-0.04em]">{tr(method.name)}</Text>
-    <Text numberOfLines={compact ? 2 : 3} className="text-sm leading-5 text-muted-foreground">{tr(method.summary)}</Text>
     {compact ? <>
       <View className="flex-row items-baseline gap-2">
         <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{detail}</Text>
@@ -301,7 +296,7 @@ function Ring({ share, color, size = 18 }: { share: number; color: string; size?
 
 /** One thing to practise on a step's workbench: a catalogue case or one of the step's own algorithms. */
 type Piece = {
-  key: string; name: string; short?: string; context: string; sub?: string; note?: string;
+  key: string; name: string; short?: string; sub?: string; note?: string;
   /** Its algorithms, the ones used first; `mine` those the player uses. */
   algs: string[]; mine: string[]; learned: boolean; group: string; c?: CaseDto; own?: MethodAlgorithm; play?: PlayItem;
 };
@@ -360,7 +355,6 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   const [about, setAbout] = useState(false);
   const entry: CourseEntry = courseEntry(progress, puzzle, method.id);
   const step = method.steps[entry.step]!;
-  const state = useMemo(() => methodProgress(progress, puzzle, method, cases, learned), [progress, puzzle, method, cases, learned]);
   const own = stepSets(step, sets, puzzle);
   const setKey = `${puzzle}:${method.id}:${entry.step}`;
   const chosen = own.find(s => s.id === learnSets[setKey]) ?? firstOpenSet(own, cases, learned);
@@ -398,7 +392,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
       </Pressable>}
   </>;
   return <View className="flex-1">
-    <PushedBar title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })} onBack={back}>
+    <PushedBar title={tr(method.name)} onBack={back}>
       {/* A 3×3 course can solve the player's own cube with them (AssistedPage), named rather than an icon to guess. */}
       {assisted(puzzle, method.id) && <Chip icon={Box} accessibilityLabel={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted", method: method.id })}>{tr("With my cube")}</Chip>}
       {(hasPieces || !tablet) && !finished ? <HeadButton icon={Info} label={tr("About this step")} onPress={() => setAbout(true)} />
@@ -428,10 +422,10 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
         <ScrollView className="min-h-0 flex-1" contentContainerClassName="px-4 pb-2.5">
           <View className="gap-3 rounded-3xl bg-card p-4"><StepSheet puzzle={puzzle} method={method} entry={entry} /></View>
         </ScrollView>
-        <View className="px-4"><IntuitiveBench puzzle={puzzle} method={method} entry={entry} bare head={false} /></View>
+        <View className="px-4"><IntuitiveBench puzzle={puzzle} method={method} entry={entry} bare /></View>
         <View className="flex-row items-center gap-1.5 px-4 pt-2.5 pb-2">{stepNav}</View>
       </>}
-    <Sheet open={about} onClose={() => setAbout(false)} title={tr(step.title)} description={tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })} scroll>
+    <Sheet open={about} onClose={() => setAbout(false)} title={tr(step.title)} scroll>
       <StepSheet puzzle={puzzle} method={method} entry={entry} bare />
     </Sheet>
   </View>;
@@ -464,7 +458,7 @@ function StepChips({ puzzle, method, entry, finished, onPick }: { puzzle: Puzzle
   </View>;
 }
 
-/** The step's sheet: where it stands, what it changes on the cube (before and after), its explanation and numbered tips. */
+/** The step's sheet: its title, what it changes on the cube (before and after), its explanation and numbered tips. */
 function StepSheet({ puzzle, method, entry, bare = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; bare?: boolean }) {
   const step = method.steps[entry.step]!, picture = stepPicture(method, entry.step);
   const cases = useAtomValue(casesAtom), learnedIds = useAtomValue(learnedCaseIdsAtom);
@@ -473,10 +467,7 @@ function StepSheet({ puzzle, method, entry, bare = false }: { puzzle: PuzzleId; 
   const cube = !!puzzleInfo(puzzle).cubeSize;
   return <View className="gap-3">
     {!bare && <View className="flex-row items-center gap-3">
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Numeric className="text-sm font-bold text-primary">{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })}</Numeric>
-        <Text numberOfLines={2} className="text-[28px] leading-8 font-extrabold tracking-[-0.04em]">{tr(step.title)}</Text>
-      </View>
+      <Text numberOfLines={2} className="min-w-0 flex-1 text-[28px] leading-8 font-extrabold tracking-[-0.04em]">{tr(step.title)}</Text>
       {cube && <View className="items-center rounded-2xl bg-muted p-1.5" accessibilityLabel={tr("Before and after this step")}>
         <StepCube puzzle={puzzle} setup={picture.before} mask={picture.mask} size={46} />
         <Icon as={ChevronRight} size={12} className="rotate-90 text-muted-foreground" />
@@ -514,7 +505,7 @@ export function StepLesson({ puzzle, methodId, step: index, onClose }: { puzzle:
   const step = method.steps[shown]!, algs = step.algs ?? [], mask = step.mask ?? "full";
   const items = algs.map((a): PlayItem => ({ key: algId(step, a), name: a.name, detail: a.detail, context: step.title, algs: [a.alg, ...(a.alternatives ?? [])], note: a.note, size: puzzleInfo(puzzle).cubeSize ?? 3, mask, setup: a.setup }));
   return <>
-    <Sheet open={index !== null} onClose={onClose} title={tr(step.title)} description={tr("Step {0} of {1}", { 0: shown + 1, 1: method.steps.length })} scroll>
+    <Sheet open={index !== null} onClose={onClose} title={tr(step.title)} scroll>
       <StepSheet puzzle={puzzle} method={method} entry={{ ...courseEntry(progress, puzzle, method.id), step: shown }} bare />
       {algs.map((a, i) => <Pressable key={a.name} accessibilityRole="button" accessibilityLabel={tr("Play {0} in 3D", { 0: tr(a.name) })} onPress={() => setPlaying(i)}
         className="flex-row items-center gap-3 rounded-2xl bg-card p-3 active:bg-muted">
@@ -566,7 +557,6 @@ function StepPoster({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solvi
       <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={size} />
     </View> : null}
     <View className="gap-1.5">
-      <Numeric className="text-sm font-bold text-primary">{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })}</Numeric>
       <Text className="text-[40px] leading-[44px] font-extrabold tracking-[-0.04em]">{tr(step.title)}</Text>
       <Text className="text-base leading-6 text-foreground/85">{tr(step.text)}</Text>
     </View>
@@ -581,33 +571,25 @@ function StepPoster({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solvi
 }
 
 /** An intuitive step's workbench: Train the cross where it has its training, and Mark as mastered; or its algorithms to come. */
-function IntuitiveBench({ puzzle, method, entry, row = false, bare = false, head = true }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; row?: boolean; bare?: boolean; head?: boolean }) {
+function IntuitiveBench({ puzzle, method, entry, row = false, bare = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; row?: boolean; bare?: boolean }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setTrainingMode = useSetAtom(trainingSetupModeAtom), setTrainingStep = useSetAtom(trainingStepAtom), setRun = useSetAtom(trainingRunAtom), setRoute = useSetAtom(routeAtom);
   const step = method.steps[entry.step]!, train = step.train && puzzle === "333", mastered = stepMastered(step, entry);
-  const card = (icon: LucideIcon, title: string, line: string, onPress: () => void, primary: boolean, on = false, label = title) =>
+  const card = (icon: LucideIcon, title: string, onPress: () => void, primary: boolean, on = false, label = title) =>
     <Pressable accessibilityRole={primary ? "button" : "switch"} accessibilityState={{ checked: on }} accessibilityLabel={label} onPress={onPress}
       className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5", row && "min-w-0 flex-1", primary ? "bg-primary active:bg-primary/85" : on ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
       <View className={cn("size-10 items-center justify-center rounded-xl", primary ? "bg-primary-foreground/15" : "bg-card")}>
         <Icon as={icon} size={20} className={primary ? "text-primary-foreground" : on ? "text-success" : "text-foreground"} />
       </View>
-      <View className="min-w-0 flex-1">
-        <Text className={cn("text-base font-extrabold", primary && "text-primary-foreground", on && "text-success")}>{title}</Text>
-        <Text numberOfLines={2} className={cn("text-xs", primary ? "text-primary-foreground/75" : "text-muted-foreground")}>{line}</Text>
-      </View>
+      <Text className={cn("min-w-0 flex-1 text-base font-extrabold", primary && "text-primary-foreground", on && "text-success")}>{title}</Text>
       {primary && <Icon as={ChevronRight} size={18} className="text-primary-foreground" />}
     </Pressable>;
   return <View className={cn("gap-2.5 rounded-3xl bg-card p-4", bare && "rounded-none bg-transparent p-0")} accessibilityLabel={tr("Workbench")}>
-    {head && <View className="flex-row items-center justify-between">
-      <Text className="text-[11px] font-bold tracking-[1px] text-muted-foreground uppercase">{tr("Workbench")}</Text>
-      <Badge variant="secondary"><Text className="text-xs">{step.missing ? tr("Algorithms to come") : tr("An intuitive step")}</Text></Badge>
-    </View>}
     {step.missing ? <Text className="text-sm text-muted-foreground">{tr(step.missing)}</Text> : <View className={cn("gap-2.5", row && "flex-row")}>
       {/* An intuitive step with its own training mode opens it (Training → Cross). */}
-      {train && card(Dumbbell, tr("Train the cross"), tr("Plan it in inspection, then count its moves"), () => { setTrainingMode(""); setRun("cross"); setTrainingStep("practice"); setRoute({ page: "training" }); }, true)}
+      {train && card(Dumbbell, tr("Train the cross"), () => { setTrainingMode(""); setRun("cross"); setTrainingStep("practice"); setRoute({ page: "training" }); }, true)}
       {/* Says its state in a word; its full sentence is for the screen reader. */}
-      {card(Check, tr("Mastered"), mastered ? tr("Undo if it still takes thought") : tr("When you do it without thinking"),
-        () => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step))), false, mastered, mastered ? tr("Mastered") : tr("Mark as mastered"))}
+      {card(Check, tr("Mastered"), () => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step))), false, mastered, mastered ? tr("Mastered") : tr("Mark as mastered"))}
     </View>}
   </View>;
 }
@@ -636,10 +618,10 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const groups = useMemo(() => {
     const size = puzzleInfo(puzzle).cubeSize, list = step.algs ?? [];
     const result: [string, Piece[]][] = [];
-    if (list.length) result.push([tr("Algorithms"), list.map((a, i): Piece => {
+    if (list.length) result.push([tr("Algorithms"), list.map((a): Piece => {
       const id = algId(step, a), algs = [a.alg, ...(a.alternatives ?? [])];
       return {
-        key: id, name: a.name, context: tr("Algorithm {0} of {1}", { 0: i + 1, 1: list.length }), sub: a.detail, note: a.note, algs, mine: [], learned: entry.learned.includes(id), group: tr("Algorithms"), own: a,
+        key: id, name: a.name, sub: a.detail, note: a.note, algs, mine: [], learned: entry.learned.includes(id), group: tr("Algorithms"), own: a,
         play: size || isPolyPuzzle(puzzle) ? { key: id, name: a.name, detail: a.detail, context: step.title, algs, note: a.note, size: size ?? 0, mask: step.mask ?? "full", setup: a.setup, puzzle: isPolyPuzzle(puzzle) ? puzzle : undefined } : undefined,
       };
     })]);
@@ -648,10 +630,10 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       const names = orderedGroups(cases.filter(c => c.set === chosen.id), groupOrder(chosen.id));
       for (const group of names) {
         const members = byGroup.get(group) ?? [], label = names.length > 1 ? group : chosen.label;
-        result.push([label, members.map((c, i): Piece => {
+        result.push([label, members.map((c): Piece => {
           const mine = learned.has(c.id) ? learnedAlgs[c.id] ?? [] : [], every = c.algorithms.map(a => a.alg);
           return {
-            key: c.id, name: caseTitle(c) === c.id ? c.id : tr(c.name), short: c.id, context: `${tr(label)} · ${tr("{0} of {1}", { 0: i + 1, 1: members.length })}`,
+            key: c.id, name: caseTitle(c) === c.id ? c.id : tr(c.name), short: c.id,
             sub: [c.name !== caseTitle(c) && tr(c.name), c.subgroup && c.subgroup !== group && tr(c.subgroup)].filter(Boolean).join(" · ") || undefined,
             algs: [...every.filter(a => mine.includes(a)), ...every.filter(a => !mine.includes(a))].slice(0, Math.max(3, mine.length)), mine,
             learned: learned.has(c.id), group: label, c,
@@ -710,7 +692,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     </ChipMenu>}
   </View>;
   const empty = <Empty icon={Check}>
-    {filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}
+    {filter === "learned" ? tr("Nothing learned yet") : tr("All learned")}
     {!tablet && <Chip icon={ListFilter} onPress={() => setFiltering(true)}>{tr("Filter")}</Chip>}
   </Empty>;
   // A phone's card keeps what is practised with; the case's note and algorithms to pick open in a sheet from its name (no times: learning is not training).
@@ -747,7 +729,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       const previous = all[(index - 1 + all.length) % all.length]!, following = all[(index + 1) % all.length]!;
       return <View className="flex-row gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Workbench")}>
         <View className="w-[270px] gap-1">
-          <Text numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
           <Text numberOfLines={1} className="text-[40px] leading-[44px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
           {piece.sub ? <Text numberOfLines={1} className="text-[15px] font-semibold text-muted-foreground">{piece.sub}</Text> : null}
           <View className="flex-1 items-center justify-center pt-2">{diagram(wide ? 200 : 180)}</View>
@@ -770,7 +751,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
         </View>
       </View>;
     }
-    details = <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title={piece.name} description={piece.sub ? `${piece.context} · ${piece.sub}` : piece.context} scroll>
+    details = <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title={piece.name} description={piece.sub} scroll>
       {piece.note ? <Text className="text-[15px] leading-[22px] text-foreground/85">{tr(piece.note)}</Text> : null}
       {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">{choices}</View>}
     </Sheet>;
@@ -778,11 +759,10 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       <View className="flex-row items-start gap-3">
         <View className="min-w-0 flex-1 gap-1.5">
           <Pressable accessibilityRole="button" accessibilityLabel={tr("Show the details")} onPress={() => setDetailsOpen(true)} className="gap-0.5 rounded-lg active:opacity-70">
-            <View className="flex-row items-center gap-1">
-              <Text numberOfLines={1} className="shrink text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
-              <Icon as={Info} size={14} className="text-muted-foreground" />
+            <View className="flex-row items-center gap-1.5">
+              <Text numberOfLines={2} className="shrink text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
+              <Icon as={Info} size={16} className="text-muted-foreground" />
             </View>
-            <Text numberOfLines={2} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
             {piece.sub ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{piece.sub}</Text> : null}
           </Pressable>
           {learnToggle("self-start")}
@@ -808,7 +788,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
         <Pressable accessibilityRole="button" accessibilityLabel={tr("About this step")} onPress={onAbout} className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3 active:bg-muted/60">
           <IconTile icon={Info} />
           <View className="min-w-0 flex-1 gap-0.5">
-            <Numeric numberOfLines={1} className="text-xs font-bold text-primary">{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })} · {tr("About this step")}</Numeric>
+            <Text numberOfLines={1} className="text-xs font-bold text-primary">{tr("About this step")}</Text>
             <Text numberOfLines={1} className="text-sm text-muted-foreground">{tr(step.text)}</Text>
           </View>
           <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
@@ -893,10 +873,7 @@ function Finished({ puzzle, method, onTimer, onMethods }: { puzzle: PuzzleId; me
     <View className="size-12 items-center justify-center rounded-full bg-success/15">
       <Icon as={Check} size={24} strokeWidth={3} className="text-success" />
     </View>
-    <View className="gap-2">
-      <Text accessibilityRole="header" className="text-[30px] leading-9 font-extrabold tracking-[-0.04em]">{tr("{0} done", { 0: tr(method.name) })}</Text>
-      <Text className="text-base text-muted-foreground">{tr("You have been through every step of {0}. Solve with it on the timer until it flows, then try a faster method.", { 0: tr(method.name) })}</Text>
-    </View>
+    <Text accessibilityRole="header" className="text-[30px] leading-9 font-extrabold tracking-[-0.04em]">{tr("{0} done", { 0: tr(method.name) })}</Text>
     <View className="flex-row gap-10">
       <Figure label={tr("Steps")} value={`${method.steps.length} / ${method.steps.length}`} size="lg" tone="good" />
       {total > 0 && <Figure label={tr("Algorithms learned")} value={`${learned} / ${total}`} size="lg" />}

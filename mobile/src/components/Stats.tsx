@@ -86,7 +86,7 @@ export function StatsScreen() {
         : <Board key={`${data.history[0]?.id}:${data.history.at(-1)?.id}:${data.history.length}:${sessions ? by : "solve"}`} data={data} by={sessions ? by : "solve"}
           title={`${eventLabel} · ${tr(scrambleLabel(scrambleType))}`} event={eventLabel} tool={tool} setTool={setTool} />}
     </View>
-    <Sheet open={picking === "event"} onClose={() => setPicking(null)} title={tr("Puzzle")} description={tr("Statistics of this puzzle only")}>
+    <Sheet open={picking === "event"} onClose={() => setPicking(null)} title={tr("Puzzle")}>
       <PuzzleGrid value={eventId} onChange={id => { setPicking(null); setEvent(id); }} />
     </Sheet>
     <Sheet open={picking === "scramble"} onClose={() => setPicking(null)} title={tr("Scramble type")} scroll={scrambles.length > 8}>
@@ -266,7 +266,7 @@ function Door({ icon, label, onPress, disabled }: { icon: typeof ListOrdered; la
 /** Every time the best single fell, newest first: the time, the session or day, and what it took off. */
 function RecordsSheet({ open, onClose, records, history, label }: { open: boolean; onClose: () => void; records: ReturnType<typeof singleRecords>; history: HistoryPoint[]; label: (index: number) => string }) {
   const { openSolve } = useSolveMenu();
-  return <Sheet open={open} onClose={onClose} title={tr("Records broken")} description={tr("single")} contentClassName="px-3">
+  return <Sheet open={open} onClose={onClose} title={tr("Records broken")} contentClassName="px-3">
     <SheetFlatList data={records} keyExtractor={r => String(r.index)} renderItem={({ item: r }) => <Pressable accessibilityRole="button" onPress={() => openSolve(summaryOf(history[r.index]!))}
       className="h-11 flex-row items-center gap-3 rounded-xl px-2 active:bg-muted/50">
       <Numeric className="w-20 text-base font-bold text-success">{fmtTime(r.time)}</Numeric>
@@ -341,7 +341,7 @@ function ListTool({ docked = false, kind, onKind, onClose, history, data, sessio
         <Text className="text-xs font-bold text-muted-foreground">{tr("At")}</Text>
       </View>
       <FlatList data={rows} keyExtractor={r => r.key} className="min-h-0 flex-1" initialNumToRender={20} windowSize={7} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<Empty>{commented ? tr("No commented solve yet. Hold a time to add a comment.") : tr("No solves match.")}</Empty>}
+        ListEmptyComponent={<Empty title={tr("No solves match.")} />}
         renderItem={({ item: r }) => r.kind === "head"
           ? <View className="mt-2 rounded-t-2xl bg-card px-2.5 pt-2.5 pb-1">
             <Text numberOfLines={1} className="text-xs font-semibold text-muted-foreground">

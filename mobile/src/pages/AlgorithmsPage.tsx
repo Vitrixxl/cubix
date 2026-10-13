@@ -86,7 +86,7 @@ export function AlgorithmsPage({ caseId, caseIds, set, search }: Partial<Omit<Ex
 // The catalogue
 // ---------------------------------------------------------------------------------------------------------------------
 
-type CatalogueSet = { kind: "set"; key: string; set: SetDto; list: CaseDto[]; total: number; learned: number; trained: number; groups: string[] };
+type CatalogueSet = { kind: "set"; key: string; set: SetDto; list: CaseDto[]; total: number; learned: number; trained: number };
 type CatalogueRow =
   | { kind: "stage"; key: string; label: string }
   | CatalogueSet
@@ -112,18 +112,6 @@ function Legend({ learned, trained, total }: { learned: number; trained: number;
         <View className={cn("size-2 rounded-full", dot)} />
         <Text className="text-xs text-muted-foreground"><Text className="text-xs font-bold text-foreground">{n}</Text> {label}</Text>
       </View>)}
-  </View>;
-}
-
-/** Where a set sits: Algorithms › the puzzle › its step. */
-function Crumbs({ stage }: { stage: string }) {
-  const puzzle = useAtomValue(puzzleAtom);
-  return <View className="flex-row items-center gap-1">
-    <Text className="text-xs text-muted-foreground">{tr("Algorithms")}</Text>
-    <Icon as={ChevronRight} size={12} className="text-muted-foreground" />
-    <Text className="text-xs text-muted-foreground">{said(puzzleInfo(puzzle)?.label ?? puzzle)}</Text>
-    <Icon as={ChevronRight} size={12} className="text-muted-foreground" />
-    <Text numberOfLines={1} className="shrink text-xs font-bold">{said(stage)}</Text>
   </View>;
 }
 
@@ -156,7 +144,7 @@ function Catalogue() {
       for (const set of sets.filter(s => s.stage === stage)) {
         const list = bySet.get(set.id) ?? [];
         out.push({
-          kind: "set", key: set.id, set, list, total: list.length, groups: [...groupCases(list).keys()],
+          kind: "set", key: set.id, set, list, total: list.length,
           learned: list.filter(c => learned.has(c.id)).length, trained: list.filter(c => !learned.has(c.id) && stats.has(c.id)).length,
         });
       }
@@ -207,18 +195,12 @@ function Catalogue() {
         {!tablet && <Icon as={ChevronRight} size={18} className="text-muted-foreground/70" />}
       </Pressable>;
     }
-    const { set, groups } = row, on = wide && set.id === open;
-    const detail = groups.length > 1
-      ? `${groups.slice(0, 2).map(g => said(g)).join(", ")}${groups.length > 2 ? "…" : ""} · ${tr("{0} groups", { 0: groups.length })}`
-      : said(set.description);
+    const { set } = row, on = wide && set.id === open;
     return <Pressable onPress={() => wide ? setChosen(set.id) : setRoute({ page: "algorithms", set: set.id })} accessibilityRole="button" accessibilityLabel={said(set.label)}
       accessibilityState={wide ? { selected: on } : undefined} className={cn(line, on && "bg-muted")}>
       {tablet && !wide && row.list[0] ? <CaseDiagram c={row.list[0]} size={44} />
         : <StatusMark done={row.total > 0 && row.learned === row.total} current={row.learned + row.trained > 0} />}
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text numberOfLines={1} className="text-base font-bold">{said(set.label)}</Text>
-        {detail && !wide ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{detail}</Text> : null}
-      </View>
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-bold">{said(set.label)}</Text>
       <SetCount learned={row.learned} total={row.total} />
       {!tablet && <Icon as={ChevronRight} size={18} className="text-muted-foreground/70" />}
     </Pressable>;
@@ -226,7 +208,7 @@ function Catalogue() {
   const search = <Pressable onPress={() => setRoute({ page: "algorithms", search: true })} accessibilityRole="search" accessibilityLabel={tr("Search cases")}
     className="h-12 flex-row items-center gap-2.5 rounded-2xl bg-muted px-3.5 active:bg-muted/70">
     <Icon as={Search} size={18} className="text-muted-foreground" />
-    <Text numberOfLines={1} className="text-base text-muted-foreground">{tr("Search cases: oll 21, pll t…")}</Text>
+    <Text numberOfLines={1} className="text-base text-muted-foreground">{tr("Search cases…")}</Text>
   </Pressable>;
   const list = <FlatList {...scroll} data={lines} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4 pb-4", tablet && !wide && "px-7", wide && "px-0")}
     initialNumToRender={16} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />;
@@ -286,11 +268,7 @@ function CurrentSet({ row, learned, onOpen, onTrain }: { row: CatalogueSet; lear
   return <View className="gap-3 rounded-3xl bg-card p-4">
     <View className="flex-row items-center gap-4">
       {list[0] ? <CaseDiagram c={list[0]} size={88} /> : null}
-      <View className="min-w-0 flex-1 gap-1">
-        <Crumbs stage={set.stage} />
-        <Text numberOfLines={1} className="text-[28px] font-extrabold tracking-[-0.03em]">{said(set.label)}</Text>
-        {set.description ? <Text numberOfLines={2} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
-      </View>
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.03em]">{said(set.label)}</Text>
       <SetCount learned={row.learned} total={row.total} />
     </View>
     <View className="gap-1.5">
@@ -361,7 +339,7 @@ function SearchScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel={tr("Back")} onPress={() => { goBack(); }} className="size-11 items-center justify-center rounded-full active:bg-muted">
         <Icon as={ChevronLeft} size={22} />
       </Pressable>
-      <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search cases: oll 21, pll t…")} autoFocus={!query} className="flex-1 rounded-2xl" />
+      <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search cases…")} autoFocus={!query} className="flex-1 rounded-2xl" />
     </View>
     <View className="flex-row items-center gap-1 px-4 pb-1" accessibilityRole="radiogroup">
       {chip("all", tr("All puzzles' sets"))}
@@ -386,7 +364,7 @@ function SearchScreen() {
           </View>
         </Pressable>;
       }}
-      ListEmptyComponent={q ? <Empty icon={SearchX}>{tr("No case matches.")}</Empty> : <Empty icon={Search}>{tr("Type a case, a set or a group: oll 21, pll t, sune…")}</Empty>} />
+      ListEmptyComponent={q ? <Empty icon={SearchX}>{tr("No case matches.")}</Empty> : <Empty icon={Search} />} />
   </View>;
 }
 
@@ -547,7 +525,7 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     {tablet && !embedded && <SetsSheet open={switching} current={setId} onClose={() => setSwitching(false)}
       onPick={id => { setSwitching(false); if (id !== setId) replaceRoute({ page: "algorithms", set: id }); }} />}
   </>;
-  // A phone keeps the head quiet: where the set sits, a line of its description and its bar; what is shown and how
+  // A phone keeps the head quiet: the count learned and its bar; what is shown and how
   // (the filter, the tiles' size) and the bar's legend wait in a drawer behind one button, lit while a filter hides cases.
   if (!tablet) return <View className="flex-1">
     {picked ? pickedBar
@@ -558,11 +536,7 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
       </PushedBar>}
     <View className="min-h-0 flex-1 gap-2.5 px-4">
       <View className="gap-1.5">
-        <View className="flex-row items-center gap-2">
-          <View className="min-w-0 flex-1"><Crumbs stage={set.stage} /></View>
-          <Numeric className="text-xs text-muted-foreground">{tr("{0} of {1} learned", { 0: learnedCount, 1: all.length })}</Numeric>
-        </View>
-        {set.description ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
+        <Numeric className="text-xs text-muted-foreground">{tr("{0} of {1} learned", { 0: learnedCount, 1: all.length })}</Numeric>
         <Progress learned={learnedCount} trained={trainedCount} total={all.length} />
       </View>
       {listView}
@@ -598,12 +572,12 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
   const caseOver = wide
     ? <CaseSide caseId={caseOpen} ids={order} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
     : <CaseSheet caseId={caseOpen} ids={order} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />;
-  // The large title of a tablet: back, the set (the chevron switches to another), on a wide screen its description.
+  // The large title of a tablet: back, the set (the chevron switches to another).
   const bar = <View className="min-h-16 flex-row items-center gap-2 pt-3 pr-6 pl-4">
     <HeadButton icon={ChevronLeft} label={tr("Back")} onPress={() => { if (!goBack()) replaceRoute({ page: "algorithms" }); }} />
     <Text numberOfLines={1} accessibilityRole="header" className="shrink text-[40px] font-extrabold tracking-[-0.04em]">{said(set.label)}</Text>
     <HeadButton icon={ChevronDown} label={tr("Change set")} onPress={() => setSwitching(true)} />
-    {wide && set.description ? <Text numberOfLines={1} className="min-w-0 flex-1 px-2 text-sm text-muted-foreground">{said(set.description)}</Text> : <View className="flex-1" />}
+    <View className="flex-1" />
     {menu}
     <PuzzleChip />
   </View>;
@@ -613,11 +587,7 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
       <View className="gap-3 rounded-3xl bg-card px-5 py-4">
         <View className="flex-row items-center gap-4">
           {all[0] ? <CaseDiagram c={all[0]} size={64} /> : null}
-          <View className="min-w-0 flex-1 gap-0.5">
-            <Crumbs stage={set.stage} />
-            <Text numberOfLines={1} accessibilityRole="header" className="text-[28px] font-extrabold tracking-[-0.03em]">{said(set.label)}</Text>
-            {set.description ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
-          </View>
+          <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.03em]">{said(set.label)}</Text>
           <View className="w-72 gap-1.5">
             <Legend learned={learnedCount} trained={trainedCount} total={all.length} />
             <Progress learned={learnedCount} trained={trainedCount} total={all.length} />
@@ -638,7 +608,6 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     {picked ? pickedBar : bar}
     <View className="min-h-0 flex-1 gap-3 px-7 pt-1">
       <View className="gap-1.5">
-        {set.description ? <Text numberOfLines={2} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
         <Progress learned={learnedCount} trained={trainedCount} total={all.length} />
         <Legend learned={learnedCount} trained={trainedCount} total={all.length} />
       </View>
@@ -869,7 +838,7 @@ function AlgFacts({ item, cube, choices, full = false }: { item: AlgItem; cube: 
     {cube && <Text className={part}>{faces.join(" ")}{rotation ? ` + ${tr("rotation")}` : ""}</Text>}
     {item.own && <Text className={part}>{tr("Yours")}</Text>}
     {full && choices && !item.own && <Text className={part}>{tr("{0}% of players", { 0: Math.round(((choices.algs[item.alg] ?? 0) / choices.total) * 100) })}</Text>}
-    {a?.votes != null && <Text className={part}>{full ? tr("{0} votes", { 0: a.votes }) : tr("{0} SpeedCubeDB votes", { 0: a.votes })}</Text>}
+    {a?.votes != null && <Text className={part}>{tr("{0} votes", { 0: a.votes })}</Text>}
     {full && a && a.source !== "speedcubedb" && <Text className={part}>{sourceLabel(a.source)}</Text>}
     {a?.youtube && <Pressable onPress={() => void Linking.openURL(a.youtube!)} hitSlop={8} accessibilityRole="link" accessibilityLabel={tr("Watch the video")} className="flex-row items-center gap-1">
       <Icon as={Video} size={13} className="text-primary" /><Text className="text-xs text-primary">{tr("Video")}</Text>
@@ -926,12 +895,9 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   const count = history.summary.count;
   const ident = <View className={cn("flex-row items-center gap-4 px-4 pt-1", tablet && "px-0 pt-0")}>
     <CaseDiagram c={c} size={tablet ? (wide ? 64 : 84) : 60} />
-    <View className="min-w-0 flex-1 gap-1">
-      <Text numberOfLines={1} className="text-sm font-semibold text-muted-foreground">{caseContext(c)}</Text>
-      <View className="flex-row items-baseline gap-2">
-        <Text className="text-sm text-muted-foreground">{tr("Setup")}</Text>
-        <Alg text={cube ? formatAlg(c.setup) : c.setup} size={15} selectable className="min-w-0 flex-1" />
-      </View>
+    <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+      <Text className="text-sm text-muted-foreground">{tr("Setup")}</Text>
+      <Alg text={cube ? formatAlg(c.setup) : c.setup} size={15} selectable className="min-w-0 flex-1" />
     </View>
   </View>;
   const actions = <View className={cn("flex-row gap-2 px-4 pt-3", tablet && "px-0 pt-0")}>
@@ -975,7 +941,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     <TimerStats data={history} compact={sheet} fill={!sheet} empty={tr("No attempts on this case yet.")} />
   </View>;
   const sheets = <>
-    <Sheet open={drawer} onClose={() => setDrawer(false)} title={tr("Algorithms of {0}", { 0: c.id })} description={tr("Choose the one you use.")} scroll contentClassName="gap-1 px-3">
+    <Sheet open={drawer} onClose={() => setDrawer(false)} title={tr("Algorithms of {0}", { 0: c.id })} scroll contentClassName="gap-1 px-3">
       {items.map(item => <AlgRow key={item.key} item={item} cube={cube} used={isUsed(item)} here={false}
         onPress={() => { choose(item); setDrawer(false); }}
         trailing={<View className="flex-row items-center">
@@ -1006,7 +972,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
         {addYours}
       </View>
       {used.length ? used.map(item => <AlgRow key={item.key} item={item} cube={cube} used here={item.key === current?.key} onPress={() => show(item)} />)
-        : <Text className="px-1 pb-1 text-sm text-muted-foreground">{tr("None chosen yet: pick the one you learn among the case's algorithms.")}</Text>}
+        : <Text className="px-1 pb-1 text-sm text-muted-foreground">{tr("Nothing picked yet")}</Text>}
       {rest.length > 0 && <Caption className="px-1 pt-2">{tr("Other algorithms of the case")}</Caption>}
       {rest.map(item => <AlgRow key={item.key} item={item} cube={cube} used={false} here={item.key === current?.key} onPress={() => show(item)}
         trailing={item.own ? <HeadButton icon={Trash2} label={tr("Delete")} onPress={() => removeOwn(item.alg)} /> : undefined} />)}
@@ -1101,7 +1067,7 @@ function OwnAlgSheet({ open, c, onClose, onAdd }: { open: boolean; c: CaseDto; o
   const [text, setText] = useState("");
   useEffect(() => { if (open) setText(""); }, [open]);
   const alg = text.trim().replace(/\s+/g, " "), valid = !!alg && readable(c, alg);
-  return <Sheet open={open} onClose={onClose} title={tr("Add yours")} description={tr("Your own algorithm for {0}, kept on this device.", { 0: c.id })}>
+  return <Sheet open={open} onClose={onClose} title={tr("Add yours")}>
     <SheetInput value={text} onChangeText={setText} placeholder="R U R' U'" autoCapitalize="none" autoCorrect={false} autoFocus
       className="h-12 rounded-2xl border border-input bg-input/30 px-3.5 font-sans text-base text-foreground" onSubmitEditing={() => { if (valid) onAdd(alg); }} />
     {alg && !valid ? <Text className="text-sm text-destructive">{tr("These moves can't be read.")}</Text> : null}
@@ -1122,7 +1088,7 @@ export function CaseSheet({ caseId, ids, onChange, onClose }: { caseId: string |
   const c = cases.find(other => other.id === shown);
   if (!c) return null;
   const index = ids.indexOf(c.id);
-  return <Sheet open={!!caseId} onClose={onClose} title={c.id} description={c.name !== c.id ? said(c.name) : caseContext(c)} contentClassName="gap-0 px-0"
+  return <Sheet open={!!caseId} onClose={onClose} title={c.id} description={c.name !== c.id ? said(c.name) : undefined} contentClassName="gap-0 px-0"
     right={index >= 0 && ids.length > 1 ? <Stepper index={index} count={ids.length} onStep={to => onChange(ids[to]!)} /> : null}>
     <CaseView key={c.id} c={c} sheet onTrain={() => { onClose(); train([c.id]); }} />
   </Sheet>;

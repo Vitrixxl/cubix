@@ -247,7 +247,7 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
     </SolveMenu>;
   };
   const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" onPress={() => setShown(shown + PAGE)}><Text>{tr("Show more ({0} left)", { 0: rows.length - shown })}</Text></Button> : null;
-  const empty = <Empty>{commented ? tr("No commented solve yet. Hold a time to add a comment.") : tr("No solves match.")}</Empty>;
+  const empty = <Empty>{tr("No solves match.")}</Empty>;
   return <>
     <View className="flex-row items-center justify-between gap-2">
       {toggle}
