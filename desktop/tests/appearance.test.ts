@@ -1,5 +1,5 @@
 import {expect, test} from 'bun:test';
-import {appearanceFromStorage} from '../appearance';
+import {appearanceFromStorage} from '../../src/client/lib/appearance';
 import {THEMES} from '../../src/client/lib/theme';
 for (const theme of THEMES) for (const light of [false, true]) {
   test(`startup reads the app's stored ${theme.id} ${light ? 'light' : 'dark'} appearance`, () => {

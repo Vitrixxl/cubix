@@ -1,5 +1,5 @@
 import { THEMES, buildTheme } from "../../src/client/lib/theme";
-import { paintTheme } from "../appearance";
+import { paintTheme } from "../../src/client/lib/appearance";
 import { markSvg } from "./logo";
 
 /** The accent choices of the settings: id, name and the swatch colour. */

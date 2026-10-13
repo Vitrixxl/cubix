@@ -5,7 +5,7 @@ import { store as s, TIMES_OPEN_WIDTH } from "./store";
 import { language, onLanguage, preferred, setLanguage } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
-import { cacheAppearance } from "../appearance";
+import { cacheAppearance } from "../../src/client/lib/appearance";
 import { Toasts } from "./Toasts";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";

@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
 import { Brand } from "./logo";
 import { applyTheme } from "./theme";
-import { cachedAppearance } from "../appearance";
+import { cachedAppearance } from "../../src/client/lib/appearance";
 
 export type ViewedSolve = StoredContext & {
   id?: number;

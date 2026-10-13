@@ -4,7 +4,8 @@ import * as SystemUI from "expo-system-ui";
 import { useAtomValue } from "jotai";
 import { VariableContextProvider } from "nativewind";
 import { useEffect, useMemo, type ReactNode } from "react";
-import { Appearance, useColorScheme, View } from "react-native";
+import { Appearance, Platform, useColorScheme, View } from "react-native";
+import { cacheAppearance, paintTheme } from "../../../src/client/lib/appearance";
 import { colorModeAtom, themeAtom } from "../state";
 import { buildColors, ColorsContext } from "../theme";
 
@@ -27,6 +28,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
   }, [colors]);
+  // On the web, menus are portalled into <body>, out of the variables below: the page's root takes the same theme
+  // (as the desktop app paints it, desktop/appearance.ts), and its cache, so the next load starts in it.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    paintTheme(id, mode === "light");
+    cacheAppearance(id, choice);
+  }, [id, mode, choice]);
   return <ColorsContext.Provider value={colors}>
     <VariableContextProvider value={colors.variables}>
       <StatusBar style={mode === "dark" ? "light" : "dark"} />

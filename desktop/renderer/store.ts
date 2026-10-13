@@ -1,4 +1,4 @@
-import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../appearance";
+import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../../src/client/lib/appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { nextRecognition, recognitionCases, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";

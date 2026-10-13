@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { GraduationCap, Shapes, Timer } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Platform, View, useColorScheme } from "react-native";
+import { Linking, Platform, View, useColorScheme } from "react-native";
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "../../../src/client/api-client";
@@ -12,7 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { api, authToken, local } from "../api";
+import { API_ORIGIN, api, authToken, local } from "../api";
+import { legalPath } from "../../../src/client/lib/legal";
+import { LauncherCube } from "../components/LauncherCube";
 import { useLayout } from "../hooks/useLayout";
 import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
@@ -85,7 +87,7 @@ const PROMISES = [
 export function AuthScreen({ initialUsername = "" }: { initialUsername?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { tablet, wide } = useLayout();
+  const { tablet, wide, width, height } = useLayout();
   const setGuest = useSetAtom(guestModeAtom);
   const [username, setUsername] = useState(initialUsername);
   const [dev, setDev] = useState(false), [google, setGoogle] = useState<string | null>(null);
@@ -123,12 +125,18 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
         <Text className="text-base font-extrabold">{busy ? tr("Signing in…") : tr("Sign in")}</Text>
       </Button>
     </> : !google && <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
-    {!expired && <View className="items-center gap-0.5">
-      <Button variant="ghost" className="h-11 w-full" disabled={busy} onPress={() => setGuest(true)}>
-        <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>
-      </Button>
-      <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>
-    </View>}
+    {!expired && <>
+      <View className="flex-row items-center gap-3" importantForAccessibility="no-hide-descendants">
+        <View className="h-px flex-1 bg-border" /><Text className="text-xs font-semibold text-muted-foreground">{tr("or")}</Text><View className="h-px flex-1 bg-border" />
+      </View>
+      <View className="items-center gap-1.5">
+        <Button variant="secondary" className="h-12 w-full rounded-full" disabled={busy} onPress={() => setGuest(true)}>
+          <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>
+        </Button>
+        <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>
+      </View>
+    </>}
+    {google ? <Consent /> : null}
   </>;
   const scroll = { bottomOffset: 24, style: { flex: 1 }, keyboardShouldPersistTaps: "handled", showsVerticalScrollIndicator: false } as const;
   if (tablet) return <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
@@ -152,24 +160,33 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
       <View className={cn("gap-3.5 rounded-3xl bg-card p-6", wide ? "w-[440px]" : "mt-auto w-full max-w-[720px] self-center")}>{form}</View>
     </KeyboardAwareScrollView>
   </KeyboardAvoidingView>;
+  // A phone: the self-solving cube of the launcher over a soft halo, the welcome under it (its words say what the
+  // tablet's promises do), then the ways in on a panel rising from the bottom, under the thumb.
+  const cube = Math.round(Math.min(width * 0.68, height * 0.34, 300));
   return <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-    <KeyboardAwareScrollView {...scroll}
-      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 12) + 8, gap: 14 }}>
-      {brand}
-      <View className="gap-1">
-        <Text accessibilityRole="header" className="text-[28px] leading-tight font-extrabold tracking-[-0.04em]">{expired ? tr("Welcome back") : tr("Welcome to Qbix")}</Text>
-        <Text className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</Text>
+    <KeyboardAwareScrollView {...scroll} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12 }}>
+      <View className="px-5">{brand}</View>
+      <View className="min-h-0 flex-1 items-center justify-center py-3" importantForAccessibility="no-hide-descendants">
+        <View className="absolute rounded-full bg-primary/10" style={{ width: cube * 1.1, height: cube * 1.1 }} />
+        <View className="absolute rounded-full bg-primary/10" style={{ width: cube * 0.7, height: cube * 0.7 }} />
+        <LauncherCube size={cube} finish={false} />
       </View>
-      {!expired && <View className="gap-2">
-        {PROMISES.map((p, i) => <View key={p.title} className="flex-row items-center gap-3">
-          <View className="size-9 items-center justify-center rounded-xl bg-primary/15"><Icon as={p.icon} size={18} className="text-primary" /></View>
-          <View className="min-w-0 flex-1">
-            <Text numberOfLines={1} className="text-sm font-bold"><Text className="text-sm font-bold text-primary">{i + 1}</Text> {tr(p.title)}</Text>
-            <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(p.text)}</Text>
-          </View>
-        </View>)}
-      </View>}
-      {form}
+      <View className="gap-1.5 px-5 pb-5">
+        <Text accessibilityRole="header" className="text-[34px] leading-[38px] font-extrabold tracking-[-0.045em]">{expired ? tr("Welcome back") : tr("Welcome to Qbix")}</Text>
+        <Text className="text-[15px] leading-[21px] text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</Text>
+      </View>
+      <View className="gap-3.5 rounded-t-[28px] border-t border-border bg-card px-5 pt-5" style={{ paddingBottom: Math.max(insets.bottom, 12) + 10 }}>{form}</View>
     </KeyboardAwareScrollView>
   </KeyboardAvoidingView>;
+}
+
+/** Signing in accepts the terms and the privacy policy, each a link to the website. */
+function Consent() {
+  const links: Record<string, [string, string]> = { terms: [legalPath("terms"), tr("terms of use")], privacy: [legalPath("privacy"), tr("privacy policy")] };
+  return <Text className="text-center text-xs leading-[18px] text-muted-foreground">
+    {tr("By continuing, you accept the {terms} and the {privacy}.").split(/(\{terms\}|\{privacy\})/).map((part, i) => {
+      const link = links[part.slice(1, -1)];
+      return link ? <Text key={i} accessibilityRole="link" onPress={() => void Linking.openURL(API_ORIGIN + link[0])} className="text-xs text-foreground underline">{link[1]}</Text> : part;
+    })}
+  </Text>;
 }

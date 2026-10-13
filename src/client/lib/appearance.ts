@@ -1,4 +1,4 @@
-import {DEFAULT_THEME, THEMES, themeTokens, type ThemeId} from '../src/client/lib/theme';
+import {DEFAULT_THEME, THEMES, themeTokens, type ThemeId} from './theme';
 /** Dark, light, or whichever the system asks for. */
 export type ColorMode = 'dark' | 'light' | 'system';
 export type Appearance = {themeName: string; mode: ColorMode; light: boolean};

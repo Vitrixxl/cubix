@@ -3,7 +3,7 @@
  * (desktop/prerender.tsx), which only search engines and automated browsers show: a person's browser sees the app draw
  * its own at once. Without scripts the page stays, readable.
  */
-import { cachedAppearance, paintTheme } from "../appearance";
+import { cachedAppearance, paintTheme } from "../../src/client/lib/appearance";
 import { isCompact, isPhone } from "../../src/client/lib/viewport";
 import { LAUNCHED_KEY } from "../../src/client/lib/firstLaunch";
 
