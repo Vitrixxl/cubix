@@ -24,6 +24,7 @@ import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram,
 import { FootBar, PlayDiagram } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { caseTitle, casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
+import { assisted as solvable } from "../../src/client/lib/methodSolver";
 import { Kbd } from "@/components/ui/kbd";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -975,13 +976,13 @@ function Course({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMe
   return (
     <>
       {phone ? <PhoneCourse key={entry.step} puzzle={puzzle} method={method} entry={entry} /> : <DesktopCourse key={entry.step} puzzle={puzzle} method={method} entry={entry} />}
-      {assisted(puzzle, method) && <AssistedSolve />}
+      {assisted(puzzle, method) && <AssistedSolve method={method.id} />}
     </>
   );
 }
 
-/** The beginner 3×3 course can solve the player's own cube with them (AssistedSolve). */
-const assisted = (puzzle: PuzzleId, method: SolvingMethod) => puzzle === "333" && method.id === "beginner";
+/** A 3×3 course can solve the player's own cube with them (AssistedSolve). */
+const assisted = (puzzle: PuzzleId, method: SolvingMethod) => solvable(puzzle, method.id);
 function AssistedButton({ puzzle, method, phone = false }: { puzzle: PuzzleId; method: SolvingMethod; phone?: boolean }) {
   if (!assisted(puzzle, method)) return null;
   return phone ? (

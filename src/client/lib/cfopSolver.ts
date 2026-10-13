@@ -10,6 +10,8 @@ import { allDone, AUF, casesOf, colours, cornersPermuted, cpKey, crossDone, edge
 export interface SolveStep {
   label: string;
   alg: string;
+  /** The catalogue's case the step solves, and its algorithm as the catalogue writes it. */
+  case?: { name: string; alg: string };
 }
 
 const length = (alg: string) => alg.split(/\s+/).filter((t) => t && !/^[xyz]/.test(t)).length;
@@ -18,9 +20,9 @@ const TO_FRONT_RIGHT: Record<string, string> = { FR: "", FL: "y'", BL: "y2", BR:
 /** Takes a pair out of the front-right slot. */
 const TAKE_OUT = "R U R'";
 
-/** The shortest of the case's playable algorithms that does `done`, from `state`, after `prefix`. */
+/** The shortest of the case's playable algorithms that does `done`, from `state`, after `prefix`, with the case. */
 function bestFor(state: CubeState, match: Known | undefined, prefix: string, done: (state: CubeState) => boolean, ending = false) {
-  let best: string | null = null;
+  let best: { alg: string; case: { name: string; alg: string } } | null = null;
   for (const { alg } of match?.case.algorithms ?? []) {
     const ok = playable(alg);
     if (!ok) continue;
@@ -30,20 +32,24 @@ function bestFor(state: CubeState, match: Known | undefined, prefix: string, don
       if (auf === undefined) continue;
       full = [full, auf].filter(Boolean).join(" ");
     }
-    if (done(applyAlg(state, full)) && (!best || length(full) < length(best))) best = full;
+    if (done(applyAlg(state, full)) && (!best || length(full) < length(best.alg))) best = { alg: full, case: { name: match!.case.name, alg } };
   }
   return best;
 }
 
-/** `twoLook`: the last layer as a beginner does it, OLL edges then corners, PLL corners then edges. */
-export function solveCfop(start: CubeState, cases: CatalogCase[], { twoLook = false } = {}): SolveStep[] | null {
+/**
+ * `twoLook`: the last layer as a beginner does it, OLL edges then corners, PLL corners then edges; `twoLookPll` false
+ * keeps the 2-look OLL and plays PLL in one look.
+ */
+export function solveCfop(start: CubeState, cases: CatalogCase[], { twoLook = false, twoLookPll = twoLook }: { twoLook?: boolean; twoLookPll?: boolean } = {}): SolveStep[] | null {
   const known = casesOf(cases),
     steps: SolveStep[] = [];
   let state = start;
-  const turn = (label: string, alg: string) => {
-    if (!alg) return;
-    state = applyAlg(state, alg);
-    steps.push({ label, alg });
+  const turn = (label: string, alg: string | { alg: string; case: SolveStep["case"] }) => {
+    const step = typeof alg === "string" ? { label, alg } : { label, ...alg };
+    if (!step.alg) return;
+    state = applyAlg(state, step.alg);
+    steps.push(step);
   };
   turn("Cross", optimalCross(colours(state)).join(" "));
   for (let pair = 1, guard = 0; pair <= 4 && guard < 12; guard++) {
@@ -53,7 +59,7 @@ export function solveCfop(start: CubeState, cases: CatalogCase[], { twoLook = fa
       continue;
     }
     // Every unsolved slot brought to the front right: the shortest insertion the catalogue knows.
-    let best: string | null = null;
+    let best: ReturnType<typeof bestFor> = null;
     for (const [slot, y] of Object.entries(TO_FRONT_RIGHT)) {
       if (pairsDone(colours(state)).includes(slot)) continue;
       const turned = turnWhole(state, y ? [y] : []);
@@ -61,7 +67,7 @@ export function solveCfop(start: CubeState, cases: CatalogCase[], { twoLook = fa
         const c = colours(after);
         return crossDone(c) && pairsDone(c).length > before;
       });
-      if (alg && (!best || length(alg) < length(best))) best = alg;
+      if (alg && (!best || length(alg.alg) < length(best.alg))) best = alg;
     }
     if (best) {
       turn(`F2L ${pair}`, best);
@@ -87,7 +93,7 @@ export function solveCfop(start: CubeState, cases: CatalogCase[], { twoLook = fa
     if (!alg) return null;
     turn("OLL corners", alg);
   }
-  if (twoLook && !cornersPermuted(colours(state))) {
+  if (twoLookPll && !cornersPermuted(colours(state))) {
     const alg = bestFor(state, known.cp.get(cpKey(colours(state))), "", (after) => ollDone(after) && cornersPermuted(colours(after)));
     if (!alg) return null;
     turn("PLL corners", alg);

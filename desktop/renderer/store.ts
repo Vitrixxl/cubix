@@ -83,7 +83,7 @@ export class Store {
   caseDialog = "";
   /** The case dialog's side: its algorithms or its statistics. */
   caseView: "algorithms" | "statistics" = "algorithms";
-  /** The assisted solve of the beginner course is open (AssistedSolve). */
+  /** The assisted solve of the 3×3 course shown is open (AssistedSolve). */
   assisted = false;
   puzzle = "333";
   solveMode = "standard";

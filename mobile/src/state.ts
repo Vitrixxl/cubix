@@ -31,8 +31,8 @@ export type Route =
   /** The settings, pushed from the profile. */
   | { page: "settings" }
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string }
-  /** The beginner course's assisted solve (AssistedPage), over the course. */
-  | { page: "assisted" }
+  /** The assisted solve of a 3×3 course (AssistedPage), over the course: `method` its id. */
+  | { page: "assisted"; method: string }
   /**
    * The community (messages, friends, groups) and tournaments, opened from the account page or a link; `view` is the
    * address under the page, as on the web ("messages/4", "groups/2", "add/<username>", a tournament's id).
@@ -137,7 +137,7 @@ export function urlOfRoute(route: Route) {
   switch (route.page) {
     case "algorithms": return pageUrl("algorithms", { caseId: route.caseId });
     case "learn": return pageUrl("learn", { learnMethod: route.method });
-    case "assisted": return pageUrl("learn");
+    case "assisted": return pageUrl("learn", { learnMethod: route.method });
     case "analysis": return pageUrl("profile", { profileMode: "analysis" });
     case "solve": return pageUrl("playground");
     case "settings": return pageUrl("profile");

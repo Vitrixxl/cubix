@@ -3,10 +3,11 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createStore, Provider } from "jotai";
 import { createElement } from "react";
 import { applyAlg, solved } from "../../src/shared/cube";
-import { solveBeginner } from "../../src/client/lib/beginnerSolver";
+import { solveMethod } from "../../src/client/lib/methodSolver";
 import { scannedState } from "../../src/client/lib/cubeScan";
 import { COLOUR_NAMES, colours } from "../../src/client/lib/solveAnalysis";
 import { mockLucide } from "../tests/lucide-mock";
+import catalog from "../../desktop/assets/catalog.json";
 
 // The real assisted solve, painted by hand, with native drawing and the camera's WebView replaced by host nodes.
 mock.module("react-native", () => ({
@@ -27,7 +28,7 @@ mock.module("../src/platform/storage", () => ({ storage: {
   removeItem: (key: string) => { stored.delete(key); },
 } }));
 mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
-  current: () => null, learned: () => [], read: { catalog: () => ({ cases: [], sets: [] }), stats: () => [] },
+  current: () => null, learned: () => [], read: { catalog: () => catalog, stats: () => [] },
 } }));
 mock.module("../src/scan/scan-html", () => ({ SCAN_HTML: "<html></html>" }));
 mockLucide();
@@ -62,13 +63,11 @@ const button = (text: string) => renderer.root.findAll((n: any) => (n.type === "
 /** Every measured box laid out as on a phone, so what waits for its size draws. */
 const layout = () => act(() => { for (const n of renderer.root.findAll((n: any) => typeof n.props.onLayout === "function")) n.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 420 } } }); });
 const shows = (text: string) => renderer.root.findAll((n: any) => n.type === "Text" && [n.props.children].flat().join("").includes(text)).length > 0;
-
-test("a cube painted by hand is planned, then solved turn by turn to the end", async () => {
-  await act(() => { renderer = create(<Provider store={createStore()}><AssistedPage /></Provider>); });
+/** The course's assisted solve opened, the cube painted by hand on the net (it starts with the centres only), then confirmed. */
+async function paint(method: string, target: ReturnType<typeof colours>) {
+  await act(() => { renderer = create(<Provider store={createStore()}><AssistedPage method={method} /></Provider>); });
   await press("By hand");
   await layout();
-  // The net starts with the centres only: each other sticker painted as the scrambled cube shows it.
-  const target = colours(applyAlg(solved(3), "R U2 F' L D2 B R' U F2 L'"));
   expect(controls("Paint this sticker")).toHaveLength(54);
   for (let slot = 0; slot < 54; slot++) {
     if (slot % 9 === 4) continue;
@@ -79,8 +78,18 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   expect(button("Looks right")!.props.disabled).toBe(false);
   await act(() => button("Looks right")!.props.onPress());
   await layout();
+}
+/** Every turn of the plan said done, to the end. */
+async function finish() {
+  let turns = 0;
+  while (button("Done, next turn") && turns < 500) { await act(() => button("Done, next turn")!.props.onPress()); turns++; }
+  return turns;
+}
+const turnsOf = (method: string, target: ReturnType<typeof colours>) => solveMethod(method, scannedState(target), catalog.cases as any)!.reduce((sum, p) => sum + p.alg.split(" ").length, 0);
 
-  const parts = solveBeginner(scannedState(target))!, total = parts.reduce((sum, p) => sum + p.alg.split(" ").length, 0);
+test("a cube painted by hand is planned, then solved turn by turn to the end", async () => {
+  const target = colours(applyAlg(solved(3), "R U2 F' L D2 B R' U F2 L'"));
+  await paint("beginner", target);
   expect(shows("Step 1 · White cross")).toBe(true);
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
   // A turn made, then taken back.
@@ -97,24 +106,26 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   expect(shows("Step 1 · White cross")).toBe(true);
   expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
   await press("Previous turn");
-  let turns = 0;
-  while (button("Done, next turn") && turns < 500) { await act(() => button("Done, next turn")!.props.onPress()); turns++; }
-  expect(turns).toBe(total);
+  expect(await finish()).toBe(turnsOf("beginner", target));
   expect(shows("Solved!")).toBe(true);
   expect(button("Solve again")).toBeDefined();
 });
 
+test("another course plans with its own steps and opens their lessons", async () => {
+  const target = colours(applyAlg(solved(3), "F2 D' L B2 U R' F L2 D B' R2 U'"));
+  await paint("roux", target);
+  expect(shows("Step 1 · First block")).toBe(true);
+  // Roux's four steps across the top, CMLL's lesson from its tile.
+  await press("CMLL · Lesson");
+  expect(shows("lesson:2")).toBe(true);
+  expect(controls("LSE · Lesson")).toHaveLength(1);
+  expect(await finish()).toBe(turnsOf("roux", target));
+  expect(shows("Solved!")).toBe(true);
+  expect(shows("Every step of the Roux method, on your own cube.")).toBe(true);
+});
+
 test("a solved cube says so instead of planning", async () => {
-  await act(() => { renderer = create(<Provider store={createStore()}><AssistedPage /></Provider>); });
-  await press("By hand");
-  await layout();
-  const target = colours(solved(3));
-  for (let slot = 0; slot < 54; slot++) {
-    if (slot % 9 === 4) continue;
-    await press(COLOUR_NAMES[target[slot]!]);
-    await act(() => renderer.root.findAll((n: any) => n.type === "Pressable" && /sticker/.test(n.props.accessibilityLabel ?? ""))[slot]!.props.onPress());
-  }
-  await act(() => button("Looks right")!.props.onPress());
+  await paint("cfop", colours(solved(3)));
   expect(shows("Your cube is already solved")).toBe(true);
   // Read again: back on the net, painted as the cube stands.
   await act(() => button("Read the cube again")!.props.onPress());

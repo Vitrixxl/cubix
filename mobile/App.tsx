@@ -65,7 +65,7 @@ function renderPage(route: Route) {
     case "playground": return <PlaygroundPage />;
     case "duel": return <DuelPage />;
     case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
-    case "assisted": return <AssistedPage />;
+    case "assisted": return <AssistedPage method={route.method} />;
     case "solve": { const { SolvePage } = require("./src/pages/SolvePage") as typeof import("./src/pages/SolvePage"); return <SolvePage id={route.id} step={route.step} comment={route.comment} />; }
     case "analysis": { const { AnalysisPage } = require("./src/pages/AnalysisPage") as typeof import("./src/pages/AnalysisPage"); return <AnalysisPage />; }
     case "daily": { const { DailyPage } = require("./src/pages/DailyPage") as typeof import("./src/pages/DailyPage"); return <DailyPage day={route.day} />; }

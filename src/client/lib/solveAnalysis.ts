@@ -149,13 +149,13 @@ const expected = (c: Face[], k: number) => (face: Face) => {
   const i = RING.indexOf(face);
   return i < 0 ? centre(c, face) : centre(c, RING[(i + k) % 4]!);
 };
-const matches = (c: Face[], k: number, pieces: number[][]) => {
+export const matches = (c: Face[], k: number, pieces: number[][]) => {
   const want = expected(c, k);
   return pieces.every((p) => PIECES.get(key(p))!.every((slot) => c[slot] === want(SLOTS[slot]!.face)));
 };
 /** The 1×2×3 blocks at the bottom left (x = -1) and right (x = 1). */
-const BLOCK = (x: number) => [[x, -1, 1], [x, -1, -1], [x, -1, 0], [x, 0, 1], [x, 0, -1]];
-const TOP_CORNERS = [[1, 1, 1], [-1, 1, 1], [1, 1, -1], [-1, 1, -1]];
+export const BLOCK = (x: number) => [[x, -1, 1], [x, -1, -1], [x, -1, 0], [x, 0, 1], [x, 0, -1]];
+export const TOP_CORNERS = [[1, 1, 1], [-1, 1, 1], [1, 1, -1], [-1, 1, -1]];
 const LSE_EDGES = [[0, 1, 1], [0, 1, -1], [-1, 1, 0], [1, 1, 0], [0, -1, 1], [0, -1, -1]];
 const BLOCKS = [...BLOCK(-1), ...BLOCK(1)];
 /** The slice's turn under which both blocks are solved, or -1. */

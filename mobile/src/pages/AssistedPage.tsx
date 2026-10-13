@@ -11,8 +11,7 @@ import { applyAlg, faceOfSlot, invertToken, parseAlg, solved, type CubeState, ty
 import { HELD_HEX } from "../../../src/shared/cubeAppearance";
 import { cubeSceneDuration, cubeShapes, cubeViewRadius, type CubeScene } from "../../../src/shared/cubeScene";
 import { CubeView } from "../../../src/client/lib/cubeView";
-import { METHODS } from "../../../src/shared/methods";
-import { solveBeginner } from "../../../src/client/lib/beginnerSolver";
+import { assistedCourse, solveMethod } from "../../../src/client/lib/methodSolver";
 import { scannedState } from "../../../src/client/lib/cubeScan";
 import { clock } from "../../../src/client/lib/duel";
 import { colours } from "../../../src/client/lib/solveAnalysis";
@@ -26,6 +25,7 @@ import { CubeScan, hex } from "../components/scan/CubeScan";
 import { pathsOf } from "../components/ScrambleCube";
 import { Pulse, ViewButtons } from "../components/AlgPlayer";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { catalogCases } from "../components/analysis/steps";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { useLayout } from "../hooks/useLayout";
@@ -34,18 +34,19 @@ import { StepLesson } from "./LearnPage";
 import { said, tr } from "../../../src/client/i18n";
 
 /**
- * The assisted solve of the 3×3 beginner course, as the web's (desktop/renderer/AssistedSolve.tsx), over the whole
- * screen: the player's own cube, read by the camera or painted by hand (CubeScan), solved with the course's steps
- * (beginnerSolver.ts), turn by turn on a model of it, the turn said in words. The player says when each turn is done;
- * a player who got lost goes back to the start of the part, or reads the cube again. (No connected cube on the phone.)
+ * The assisted solve of a 3×3 course, as the web's (desktop/renderer/AssistedSolve.tsx), over the whole screen: the
+ * player's own cube, read by the camera or painted by hand (CubeScan), solved with the course's steps (methodSolver.ts),
+ * turn by turn on a model of it, the turn said in words. The player says when each turn is done; a player who got lost
+ * goes back to the start of the part, or reads the cube again. (No connected cube on the phone.)
  */
-const STEPS = METHODS["333"].find(m => m.id === "beginner")!.steps;
+type Course = ReturnType<typeof assistedCourse>;
 const PHASES = ["Your cube", "Read your cube", "Solve it"];
 /** The small uppercase caption over a block. */
 const CAP = "font-bold tracking-widest uppercase";
 
-export function AssistedPage() {
+export function AssistedPage({ method }: { method: string }) {
   const leave = useSetAtom(goBackAtom),
+    [course] = useState(() => assistedCourse(method)),
     [source, setSource] = useState<"scan" | "hand" | null>(null),
     // The cube read, then as it stands when it is read again.
     [cube, setCube] = useState<CubeState | null>(null),
@@ -67,7 +68,7 @@ export function AssistedPage() {
       <CubeScan key={String(reading) + round} hand={reading === "check"} initial={cube ? colours(cube) : undefined}
         onDone={read => { setCube(scannedState(read)); setReading(false); setRound(r => r + 1); }} />
     </Frame>;
-  return <Solve key={round} start={cube} back={back} leave={() => leave()} rescan={(now, how) => { setCube(now); setReading(how ?? (source === "hand" ? "check" : "camera")); }} />;
+  return <Solve key={round} course={course} start={cube} back={back} leave={() => leave()} rescan={(now, how) => { setCube(now); setReading(how ?? (source === "hand" ? "check" : "camera")); }} />;
 }
 
 /**
@@ -112,7 +113,7 @@ function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
   return <>
     <View className="items-center gap-1 py-2">
       <Text accessibilityRole="header" className="text-center text-2xl font-extrabold tracking-[-0.04em]">{tr("How does Qbix see your cube?")}</Text>
-      <Text className="text-center text-sm text-muted-foreground">{tr("It plans a solve with the six steps of the course, then tells you each turn to make.")}</Text>
+      <Text className="text-center text-sm text-muted-foreground">{tr("It plans a solve with the steps of the course, then tells you each turn to make.")}</Text>
     </View>
     {/* The two ways side by side on a tablet. */}
     <View className={cn("min-h-0 flex-1 gap-2.5", tablet && "flex-row gap-3")}>
@@ -147,8 +148,8 @@ function WayTile({ icon, title, text, meta, onPress }: { icon: LucideIcon; title
 }
 
 /** The parts of the solve and the state each starts from; null when the cube cannot be solved. */
-function planFrom(state: CubeState) {
-  const parts = solveBeginner(state);
+function planFrom(methodId: string, state: CubeState) {
+  const parts = solveMethod(methodId, state, catalogCases());
   if (!parts) return null;
   const starts = [state];
   for (const part of parts) starts.push(applyAlg(starts.at(-1)!, part.alg));
@@ -185,11 +186,12 @@ function useClock(start: number, end: number | null) {
 type At = { part: number; made: number; state: CubeState; turn: { before: CubeState; move: string } | null };
 
 /**
- * The solve: the course's six steps across the top, the turn to make on the cube and in words, the part under way with
+ * The solve: the course's steps across the top, the turn to make on the cube and in words, the part under way with
  * its turns, then Previous and Done, next turn under the thumb; the time and turns once solved.
  */
-function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => void; leave: () => void; rescan: (now: CubeState, how?: "camera" | "check") => void }) {
-  const [plan] = useState(() => planFrom(start)),
+function Solve({ course, start, back, leave, rescan }: { course: Course; start: CubeState; back: () => void; leave: () => void; rescan: (now: CubeState, how?: "camera" | "check") => void }) {
+  const { steps } = course,
+    [plan] = useState(() => planFrom(course.method.id, start)),
     [at, setAt] = useState<At>({ part: 0, made: 0, state: start, turn: null }),
     [began] = useState(Date.now),
     [end, setEnd] = useState<number | null>(null),
@@ -219,10 +221,10 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   /** Back to the start of the part, the turns made undone. */
   const restart = () => { setAt({ part: at.part, made: 0, state: plan!.starts[at.part]!, turn: null }); setLost(false); };
   const again = (how?: "camera" | "check") => rescan(at.state, how);
-  const step = part?.step ?? STEPS.length;
+  const step = part?.step ?? steps.length;
   // A step's lesson opens over the solve, which goes on where it was once the sheet is closed.
   const [lesson, setLesson] = useState<number | null>(null);
-  const lessonSheet = <StepLesson puzzle="333" methodId="beginner" step={lesson} onClose={() => setLesson(null)} />;
+  const lessonSheet = <StepLesson puzzle="333" methodId={course.method.id} step={lesson} onClose={() => setLesson(null)} />;
 
   if (!plan || !plan.parts.length)
     return <Frame phase={2} back={back} close={leave}>
@@ -238,13 +240,13 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
     done = plan.parts.slice(0, at.part).reduce((sum, p) => sum + turnsOf(p.alg).length, 0) + at.made;
 
   if (finished) {
-    const per = STEPS.map((_, k) => plan.parts.filter(p => p.step === k).reduce((n, p) => n + turnsOf(p.alg).length, 0)), max = Math.max(1, ...per);
+    const per = steps.map((_, k) => plan.parts.filter(p => p.step === k).reduce((n, p) => n + turnsOf(p.alg).length, 0)), max = Math.max(1, ...per);
     return <Frame phase={3} back={back} close={leave}>
-      <Route plan={plan} at={at.part} finished onStep={setLesson} />
+      <Route steps={steps} plan={plan} at={at.part} finished onStep={setLesson} />
       <View className="min-h-0 flex-1 items-center justify-center gap-2 rounded-3xl bg-card p-4">
         <StaticCubeSvg state={solved(3)} size={110} />
         <Text accessibilityRole="header" className="text-4xl font-extrabold tracking-[-0.05em]">{tr("Solved!")}</Text>
-        <Text className="text-center text-sm text-muted-foreground">{tr("Every step of the beginner method, on your own cube.")}</Text>
+        <Text className="text-center text-sm text-muted-foreground">{tr("Every step of the {0} method, on your own cube.", { 0: said(course.method.name) })}</Text>
         <View className="flex-row gap-8 pt-1">
           {[[time, tr("Time")], [String(total), tr("Turns")]].map(([value, label]) => <View key={label} className="items-center">
             <Numeric className="text-3xl font-extrabold tracking-[-0.03em]">{value}</Numeric>
@@ -254,7 +256,7 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
       </View>
       <View className="gap-1.5 rounded-3xl bg-card px-4 py-3" accessibilityLabel={tr("Turns per step")}>
         <Label className={CAP}>{tr("Turns per step")}</Label>
-        {STEPS.map((st, k) => <View key={st.title} className="flex-row items-center gap-3">
+        {steps.map((st, k) => <View key={st.title} className="flex-row items-center gap-3">
           <Text numberOfLines={1} className="w-32 text-sm">{said(st.title)}</Text>
           <View className="h-2.5 flex-1 rounded-[4px] bg-muted"><View className="h-full rounded-[4px] bg-primary" style={{ width: `${(per[k]! / max) * 100}%` }} /></View>
           <Numeric className="w-8 text-right text-sm font-bold text-muted-foreground">{per[k]}</Numeric>
@@ -271,10 +273,10 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
 
   if (lost)
     return <Frame phase={2} back={back} close={leave}>
-      <Route plan={plan} at={at.part} finished={false} onStep={setLesson} />
+      <Route steps={steps} plan={plan} at={at.part} finished={false} onStep={setLesson} />
       <Notice cube={<StaticCubeSvg state={at.state} size={120} />} title={tr("Your cube left the plan")} text={tr("Read it again, or go back to the start of this part.")}>
         <Action primary icon={ScanLine} title={tr("Read the cube again")} text={tr("The six faces again")} onPress={() => again()} />
-        <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : said(STEPS[step]!.title)} onPress={restart} />
+        <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : said(steps[step]!.title)} onPress={restart} />
         <Action icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onPress={() => again("check")} />
       </Notice>
       {lessonSheet}
@@ -300,7 +302,7 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   </View>;
   const partCard = <View className="gap-2 rounded-3xl bg-card px-3.5 py-3" accessibilityLabel={tr("Current turns")}>
     <Text numberOfLines={1} className="text-[13px] font-bold text-primary">
-      {tr("Step {0}", { 0: step + 1 })} · {said(STEPS[step]!.title)}{inStep.length > 1 ? ` · ${tr("{0} of {1}", { 0: inStep.indexOf(part!) + 1, 1: inStep.length })}` : ""}
+      {tr("Step {0}", { 0: step + 1 })} · {said(steps[step]!.title)}{inStep.length > 1 ? ` · ${tr("{0} of {1}", { 0: inStep.indexOf(part!) + 1, 1: inStep.length })}` : ""}
     </Text>
     <View className="flex-row items-center gap-2.5">
       {part!.piece && <Piece faces={part!.piece} />}
@@ -339,10 +341,10 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   </View>;
   return <Frame phase={2} back={back} close={leave}>
     {wide ? <View className="min-h-0 flex-1 flex-row gap-4">
-      <View className="min-h-0 min-w-0 flex-1 gap-3"><Route plan={plan} at={at.part} finished={false} onStep={setLesson} />{stage}{next}</View>
+      <View className="min-h-0 min-w-0 flex-1 gap-3"><Route steps={steps} plan={plan} at={at.part} finished={false} onStep={setLesson} />{stage}{next}</View>
       <View className="w-[380px] gap-3 rounded-[26px] bg-popover p-4">{partCard}{progress}<View className="flex-1" />{help}</View>
     </View> : <>
-      <Route plan={plan} at={at.part} finished={false} onStep={setLesson} />
+      <Route steps={steps} plan={plan} at={at.part} finished={false} onStep={setLesson} />
       {stage}
       {partCard}
       {progress}
@@ -354,13 +356,13 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
 }
 
 /**
- * The course's six steps across the top: each its number and a dash per part, done in green, the current one in the
+ * The course's steps across the top: each its number and a dash per part, done in green, the current one in the
  * accent; a tap opens the step's lesson.
  */
-function Route({ plan, at, finished, onStep }: { plan: NonNullable<ReturnType<typeof planFrom>>; at: number; finished: boolean; onStep: (step: number) => void }) {
-  const step = finished ? STEPS.length : (plan.parts[at]?.step ?? STEPS.length);
+function Route({ steps, plan, at, finished, onStep }: { steps: Course["steps"]; plan: NonNullable<ReturnType<typeof planFrom>>; at: number; finished: boolean; onStep: (step: number) => void }) {
+  const step = finished ? steps.length : (plan.parts[at]?.step ?? steps.length);
   return <View accessibilityLabel={tr("Steps")} className="flex-row gap-1.5">
-    {STEPS.map((st, i) => {
+    {steps.map((st, i) => {
       const parts = plan.parts.flatMap((p, k) => (p.step === i ? [k] : []));
       return <Pressable key={st.title} accessibilityRole="button" accessibilityLabel={`${said(st.title)} · ${tr("Lesson")}`} accessibilityState={{ selected: i === step }} onPress={() => onStep(i)}
         className={cn("min-w-0 flex-1 gap-1.5 rounded-xl px-2 py-1.5", i === step ? "bg-muted active:bg-muted/70" : "bg-card active:bg-muted")}>

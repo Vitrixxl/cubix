@@ -8,6 +8,7 @@ import {
   recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets, toggleAlgLearned, type CourseEntry, type CourseProgress,
 } from "../../../src/client/lib/course";
 import { caseTitle, moveCount } from "../../../src/client/lib/caseState";
+import { assisted } from "../../../src/client/lib/methodSolver";
 import { isLearningTrack, orderedGroups } from "../../../src/client/lib/dailyLearning";
 import { plural } from "../../../src/client/lib/format";
 import { applyAlg, solved } from "../../../src/shared/cube";
@@ -398,8 +399,8 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   </>;
   return <View className="flex-1">
     <PushedBar title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })} onBack={back}>
-      {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage), named rather than an icon to guess. */}
-      {puzzle === "333" && method.id === "beginner" && <Chip icon={Box} accessibilityLabel={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted" })}>{tr("With my cube")}</Chip>}
+      {/* A 3×3 course can solve the player's own cube with them (AssistedPage), named rather than an icon to guess. */}
+      {assisted(puzzle, method.id) && <Chip icon={Box} accessibilityLabel={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted", method: method.id })}>{tr("With my cube")}</Chip>}
       {(hasPieces || !tablet) && !finished ? <HeadButton icon={Info} label={tr("About this step")} onPress={() => setAbout(true)} />
         : <HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} />}
     </PushedBar>
