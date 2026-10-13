@@ -1,7 +1,7 @@
 /**
  * What the landing page says, in one place: the page draws it (Landing.tsx), and the build writes it for search
  * engines and language models too (structured data, llms.txt, llms-full.txt; see desktop/web.ts). Only what the app
- * really does today, and what PRODUCT.md commits to: everything in one app, free, made to get faster, for every
+ * really does today: everything in one app, free, made to get faster, for every
  * cuber from the first solve to competition.
  */
 export const SITE = "https://cubix.vitrixxl.fr";
