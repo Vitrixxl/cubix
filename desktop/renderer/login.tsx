@@ -19,29 +19,12 @@ import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { legalPath } from "./legal/paths";
 import { go } from "./navigation";
+import { loadGsi } from "../../src/client/lib/googleSignIn";
 
 type AuthConfig = { google: string | null; dev: boolean };
-/** What Google's script puts on `window.google` that the dialog uses. */
-type Gsi = {
-  initialize(options: { client_id: string; callback: (response: { credential: string }) => void }): void;
-  renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
-};
-
 /** Asked once a page; asked again after a failure (offline). */
 let config: Promise<AuthConfig> | undefined;
 const authConfig = () => (config ??= (call("authConfig") as Promise<AuthConfig>).catch((e) => ((config = undefined), Promise.reject(e))));
-/** Google's script, one tag for the page, loaded the first time the dialog opens. */
-let gsi: Promise<Gsi> | undefined;
-function loadGsi() {
-  return (gsi ??= new Promise<Gsi>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.onload = () => resolve((window as any).google.accounts.id);
-    script.onerror = () => ((gsi = undefined), script.remove(), reject(new Error("Google sign-in did not load. Check your connection.")));
-    document.head.append(script);
-  }));
-}
 /** Google's callback, set at its single `initialize`: the dialog open now. */
 let onCredential = (_credential: string) => {};
 let initialized = "";

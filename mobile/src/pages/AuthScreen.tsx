@@ -1,7 +1,7 @@
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { GraduationCap, Shapes, Timer } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, View, useColorScheme } from "react-native";
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "../../../src/client/api-client";
@@ -16,9 +16,10 @@ import { api, authToken, local } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
-import { guestModeAtom } from "../state";
+import { colorModeAtom, guestModeAtom } from "../state";
 import { useColors } from "../theme";
-import { said, tr } from "../../../src/client/i18n";
+import { language, said, tr } from "../../../src/client/i18n";
+import { loadGsi } from "../../../src/client/lib/googleSignIn";
 
 /** A labelled field with its hint or its error under it. */
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
@@ -42,6 +43,30 @@ function localData() {
   } catch { return false; }
 }
 
+/** Google's callback, set at its single `initialize`: the screen shown now. */
+let onGoogle = (_credential: string) => {};
+let initialized = "";
+/** Google's button (web only), drawn by Google in a frame in the app's mode and language. */
+function GoogleButton({ id, onCredential, onError }: { id: string; onCredential: (credential: string) => void; onError: (message: string) => void }) {
+  // The app's mode (ThemeProvider): React Native's scheme follows the system on the web.
+  const choice = useAtomValue(colorModeAtom), system = useColorScheme(), dark = choice === "system" ? system !== "light" : choice === "dark";
+  const box = useRef<View>(null);
+  onGoogle = onCredential;
+  useEffect(() => {
+    let live = true;
+    loadGsi().then(gsi => {
+      // React Native for the web's View is the page's element.
+      const element = box.current as unknown as HTMLElement | null;
+      if (!live || !element) return;
+      if (initialized !== id) gsi.initialize({ client_id: id, callback: ({ credential }) => onGoogle(credential) });
+      initialized = id;
+      gsi.renderButton(element, { theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
+    }, (reason: Error) => live && onError(reason.message));
+    return () => { live = false; };
+  }, [id, dark]);
+  return <View ref={box} className="h-11 w-full items-center" />;
+}
+
 const PROMISES = [
   { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
   { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
@@ -50,8 +75,8 @@ const PROMISES = [
 
 /**
  * The welcome (direction A): the welcome words and their three promises on top, then signing in, then going on without
- * an account (this device only). Google sign-in is on the web only for now (desktop/renderer/login.tsx); a dev or
- * test server also takes a bare username here. Times already kept on this device are added to the account. On a
+ * an account (this device only). On the web, Google's button (as desktop/renderer/login.tsx); not yet in the Android
+ * app, which sends to the web. A dev or test server also takes a bare username here. Times already kept on this device are added to the account. On a
  * tablet the welcome takes the top (the promises side by side) and the form a card at the bottom; on a wide screen
  * they share the screen side by side.
  */
@@ -61,40 +86,41 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
   const { tablet, wide } = useLayout();
   const setGuest = useSetAtom(guestModeAtom);
   const [username, setUsername] = useState(initialUsername);
-  const [dev, setDev] = useState(false);
+  const [dev, setDev] = useState(false), [google, setGoogle] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   // Shown while no session is open: a known account means its session ended (an expired token).
   const [expired] = useState(() => !local.current().isGuest), [kept] = useState(localData);
-  useEffect(() => { api.authConfig().then(c => setDev(c.dev), () => {}); }, []);
-  const submit = async () => {
-    const name = username.trim().toLowerCase();
-    if (busy || !name) return;
+  useEffect(() => { api.authConfig().then(c => { setDev(c.dev); setGoogle(Platform.OS === "web" ? c.google : null); }, () => {}); }, []);
+  const signIn = async (open: () => Promise<unknown>) => {
+    if (busy) return;
     setBusy(true); setError("");
     try {
       // A guest account from an older version still on the server: bring its times home first, so the account
       // receives them with the rest of this device's times.
       if (authToken.get() && local.current().isGuest) await local.restore().catch(() => {});
-      await api.devLogin(name);
+      await open();
       setGuest(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : tr("Can't reach Qbix. Check your connection and try again."));
     } finally { setBusy(false); }
   };
+  const submit = () => { const name = username.trim().toLowerCase(); if (name) void signIn(() => api.devLogin(name)); };
   const brand = <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel={tr("Qbix")} className="text-2xl font-extrabold tracking-[-0.03em]">Qbix</Text></View>;
   const form = <>
     {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
+    {google ? <GoogleButton id={google} onCredential={credential => void signIn(() => api.google(credential))} onError={setError} /> : null}
+    {error ? <Alert variant="destructive">{said(error)}</Alert> : null}
     {dev ? <>
       <Field label={tr("Dev sign-in")}>
         <Input accessibilityLabel={tr("Username")} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false}
           maxLength={24} editable={!busy} returnKeyType="go" onSubmitEditing={() => void submit()}
           placeholder="dev" placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary} className="h-12 rounded-xl border-0 bg-muted" />
       </Field>
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
       <Button size="lg" className="h-13 rounded-2xl" disabled={busy || !username.trim()} onPress={() => void submit()}>
         <Text className="text-base font-extrabold">{busy ? tr("Signing in…") : tr("Sign in")}</Text>
       </Button>
-    </> : <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
+    </> : !google && <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
     {!expired && <View className="items-center gap-0.5">
       <Button variant="ghost" className="h-11 w-full" disabled={busy} onPress={() => setGuest(true)}>
         <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>
