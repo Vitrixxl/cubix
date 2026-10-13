@@ -1,7 +1,8 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { GraduationCap, Shapes, Timer } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { Linking, Platform, View, useColorScheme } from "react-native";
+import { Linking, Platform, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "../../../src/client/api-client";
@@ -18,7 +19,7 @@ import { LauncherCube } from "../components/LauncherCube";
 import { useLayout } from "../hooks/useLayout";
 import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
-import { colorModeAtom, guestModeAtom } from "../state";
+import { guestModeAtom } from "../state";
 import { useColors } from "../theme";
 import { language, said, tr } from "../../../src/client/i18n";
 import { loadGsi } from "../../../src/client/lib/googleSignIn";
@@ -48,10 +49,11 @@ function localData() {
 /** Google's callback, set at its single `initialize`: the screen shown now. */
 let onGoogle = (_credential: string) => {};
 let initialized = "";
-/** Google's button (web only), drawn by Google in a frame in the app's mode and language. */
-function GoogleButton({ id, onCredential, onError }: { id: string; onCredential: (credential: string) => void; onError: (message: string) => void }) {
-  // The app's mode (ThemeProvider): React Native's scheme follows the system on the web.
-  const choice = useAtomValue(colorModeAtom), system = useColorScheme(), dark = choice === "system" ? system !== "light" : choice === "dark";
+/**
+ * Google's sign-in (web only), in the app's look: Google draws its button in a frame it styles itself (light, blue or
+ * black), so ours is drawn in the accent and Google's lies over it, invisible, taking the tap.
+ */
+function GoogleButton({ id, busy, onCredential, onError }: { id: string; busy: boolean; onCredential: (credential: string) => void; onError: (message: string) => void }) {
   const box = useRef<View>(null);
   onGoogle = onCredential;
   useEffect(() => {
@@ -60,16 +62,28 @@ function GoogleButton({ id, onCredential, onError }: { id: string; onCredential:
       // React Native for the web's View is the page's element.
       const element = box.current as unknown as HTMLElement | null;
       if (!live || !element) return;
-      // Google's frame is a light page: under the app's dark scheme the browser would paint it opaque white.
-      element.style.colorScheme = "light";
       if (initialized !== id) gsi.initialize({ client_id: id, callback: ({ credential }) => onGoogle(credential) });
       initialized = id;
-      gsi.renderButton(element, { theme: dark ? "filled_black" : "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
+      gsi.renderButton(element, { size: "large", shape: "pill", text: "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
     }, (reason: Error) => live && onError(reason.message));
     return () => { live = false; };
-  }, [id, dark]);
-  return <View ref={box} className="h-11 w-full items-center" />;
+  }, [id]);
+  return <View className={cn("h-12 w-full", busy && "opacity-60")}>
+    <View pointerEvents="none" importantForAccessibility="no-hide-descendants" className="h-12 flex-row items-center justify-center gap-3 rounded-full bg-primary px-5">
+      <View className="size-7 items-center justify-center rounded-full bg-white"><GoogleMark size={16} /></View>
+      <Text className="text-base font-extrabold text-primary-foreground">{busy ? tr("Signing in…") : tr("Continue with Google")}</Text>
+    </View>
+    <View ref={box} className="absolute inset-0 items-center justify-center overflow-hidden opacity-0" />
+  </View>;
 }
+
+/** Google's "G", in its four colours. */
+const GoogleMark = ({ size }: { size: number }) => <Svg width={size} height={size} viewBox="0 0 48 48">
+  <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+  <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+  <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+  <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+</Svg>;
 
 const PROMISES = [
   { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
@@ -113,7 +127,7 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
   const brand = <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel={tr("Qbix")} className="text-2xl font-extrabold tracking-[-0.03em]">Qbix</Text></View>;
   const form = <>
     {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
-    {google ? <GoogleButton id={google} onCredential={credential => void signIn(() => api.google(credential))} onError={setError} /> : null}
+    {google ? <GoogleButton id={google} busy={busy} onCredential={credential => void signIn(() => api.google(credential))} onError={setError} /> : null}
     {error ? <Alert variant="destructive">{said(error)}</Alert> : null}
     {dev ? <>
       <Field label={tr("Dev sign-in")}>
