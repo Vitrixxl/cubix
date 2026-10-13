@@ -91,7 +91,6 @@ export function BattleDialog({ conversation: c, group, trigger }: { conversation
         open={open}
         onOpenChange={setOpen}
         title={c.kind === "direct" ? tr("Challenge {0}", { 0: c.with!.username }) : tr("New battle in {0}", { 0: c.group!.name })}
-        description={tr("It shows in the conversation, and starts once your opponent accepts it.")}
         className="sm:max-w-md"
       >
         <form
@@ -154,7 +153,6 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
         open={open}
         onOpenChange={setOpen}
         title={tr("New tournament in {0}", { 0: g.name })}
-        description={tr("Its card goes to the group's conversation. Members register until it starts; the bracket is drawn at its start.")}
         className="sm:max-w-lg"
       >
         <form
@@ -210,7 +208,7 @@ export function FriendPicker({ friends, value, onChange }: { friends: Person[]; 
   if (!friends.length)
     return (
       <Empty icon={Users} className="rounded-[14px] bg-muted p-4">
-        {tr("Add friends first: you invite them from here.")}
+        {tr("No one yet.")}
       </Empty>
     );
   return (
@@ -258,7 +256,7 @@ export function NewGroupDialog({ trigger }: { trigger?: React.ReactElement }) {
   return (
     <>
       {opener(trigger ?? <HeadButton icon={Users} label={tr("New group")} data-action="community:new-group" />, () => setOpen(true))}
-      <Modal open={open} onOpenChange={setOpen} title={tr("New group")} description={tr("A conversation for several friends, with its battles and tournaments. You run it.")} className="sm:max-w-md">
+      <Modal open={open} onOpenChange={setOpen} title={tr("New group")} className="sm:max-w-md">
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -304,7 +302,7 @@ export function EditGroupDialog({ group: g, open, onOpenChange }: { group: Group
     }
   }, [open]);
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={tr("Edit the group")} description={tr("Its members see the change at once.")} className="sm:max-w-md">
+    <Modal open={open} onOpenChange={onOpenChange} title={tr("Edit the group")} className="sm:max-w-md">
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -364,16 +362,13 @@ function useFound(query: string) {
   return found;
 }
 
-/** The link that adds the account as a friend, to copy or share. */
-function ShareLink() {
+/** The link that adds the account as a friend, to copy or share; `bare` without its heading. */
+function ShareLink({ bare = false }: { bare?: boolean }) {
   const link = community.shareLink(),
     [copied, setCopied] = useState(false);
   return (
     <section className="flex shrink-0 flex-col gap-2" aria-label={tr("Your link")}>
-      <div>
-        <SectionHead title="Your link" className="min-h-0" />
-        <p className="text-xs text-muted-foreground">{tr("Whoever opens it is asked to add you as a friend.")}</p>
-      </div>
+      {!bare && <SectionHead title="Your link" className="min-h-0" />}
       <InputGroup>
         <InputGroupInput value={link} readOnly aria-label={tr("Your link")} onFocus={(e) => e.target.select()} className="font-mono text-xs" />
         <InputGroupAddon align="inline-end">
@@ -411,7 +406,7 @@ export function FriendsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!open) setQuery("");
   }, [open]);
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={tr("Friends")} description={tr("Find players by their username, or share your link.")} tall className="flex max-h-[min(44rem,90svh)] flex-col sm:max-w-lg">
+    <Modal open={open} onOpenChange={onOpenChange} title={tr("Friends")} tall className="flex max-h-[min(44rem,90svh)] flex-col sm:max-w-lg">
       <div className="flex min-h-0 flex-1 flex-col gap-5" data-slot="friends-dialog">
         <section className="flex shrink-0 flex-col gap-2" aria-label={tr("Find players")}>
           <SearchField value={query} onChange={setQuery} placeholder="Username" label="Search players" action="community:search" autoFocus />
@@ -436,7 +431,7 @@ export function FriendsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <SectionHead title="Your friends" meta={friends.length || undefined} />
             {!friends.length ? (
               <Empty icon={Users} className="p-4">
-                {tr("No friend yet. Find players by their username, or share your link.")}
+                {tr("No one yet.")}
               </Empty>
             ) : (
               <ul className="-mx-2 flex min-h-0 flex-col gap-0.5 overflow-y-auto">
@@ -486,7 +481,7 @@ export function Requests() {
       <PopoverContent align="end" className="w-88 gap-3 p-2" data-slot="requests">
         {empty && (
           <Empty icon={Bell} className="p-4">
-            {tr("Nothing waiting. Requests and invitations show here.")}
+            {tr("Nothing new")}
           </Empty>
         )}
         {!!me?.incoming.length && (
@@ -557,11 +552,10 @@ export function LinkDialog({ username, onClose }: { username: string; onClose: (
       open
       onOpenChange={(open) => !open && onClose()}
       title={self ? tr("Your link") : tr("Add a friend")}
-      description={self ? tr("This is the link others open to add you. Share it with your friends.") : tr("You opened a link to add this player.")}
       className="sm:max-w-sm"
     >
       <div data-slot="link-dialog">
-        {self ? null : player === undefined ? (
+        {self ? <ShareLink bare /> : player === undefined ? (
           <ListSkeleton rows={1} className="p-0" />
         ) : !player ? (
           <Empty icon={UserRoundX} className="p-4">

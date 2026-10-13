@@ -63,7 +63,7 @@ export function CommunityPage() {
             {current ? (
               <Chat conversation={current} details={details} onDetails={() => setDetails(!details)} back={phone ? () => go(communityUrl()) : undefined} />
             ) : (
-              <Empty icon={MessagesSquare}>{list && id ? tr("This conversation does not exist.") : tr("Your conversations open here.")}</Empty>
+              <Empty icon={MessagesSquare}>{list && id ? tr("This conversation does not exist.") : null}</Empty>
             )}
             {!phone && details && current && (
               <aside

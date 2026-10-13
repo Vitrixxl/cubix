@@ -11,7 +11,7 @@ import { store as s } from "../store";
 import { go } from "../navigation";
 import { Avatar, Segmented, plural } from "../ui";
 import { Empty, LINK, LINK_ACCENT, ListSkeleton, NUMERIC, Tip } from "../base";
-import { relative, time } from "../coaching/parts";
+import { time } from "../coaching/parts";
 import { Bubble, ChatClosed, ChatHeader, Composer, ConversationList as List, ConversationRow as Row, LIST, MessageList } from "../chat";
 import { cardText, community, communityUrl, eventName, matchUrl, seatIn, type Conversation, type Message } from "./client";
 import { BattleCard, TournamentChatCard } from "./cards";
@@ -124,7 +124,6 @@ export function ConversationList({ id, onFriends, className }: { id: number | nu
           <Empty icon={SearchX} title={query ? "No conversation by that name." : "Nothing new"} />
         ) : (
           <Empty icon={MessagesSquare} title="No conversation yet.">
-            {tr("Write to a friend, or make a group.")}
             <NewGroupDialog />
           </Empty>
         )
@@ -198,7 +197,7 @@ export function Chat({ conversation: c, details, onDetails, back }: { conversati
         back={back && { label: "Conversations", onClick: back }}
         face={c.kind === "group" ? <GroupMark size={40} /> : <Avatar name={c.with!.username} src={c.with!.avatar} size={40} />}
         title={title(c)}
-        sub={c.kind === "group" ? (members !== undefined ? plural(members, "member") : tr("Group")) : friend ? tr("Friends since {0}", { 0: relative(friend.since) }) : tr("No longer friends")}
+        sub={c.kind === "group" ? (members !== undefined ? plural(members, "member") : tr("Group")) : !friend && tr("No longer friends")}
         onOpen={onDetails}
       >
         {c.open && <BattleDialog conversation={c} group={group} />}
@@ -217,9 +216,7 @@ export function Chat({ conversation: c, details, onDetails, back }: { conversati
         event={(m) => (m.match ? <BattleCard match={m.match} /> : m.tournament ? <TournamentChatCard tournament={m.tournament} /> : null)}
         bubble={(m) => <Bubble at={m.createdAt}>{m.body}</Bubble>}
         empty={
-          <Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })}>
-            {tr("Messages you write show here.")}
-          </Empty>
+          <Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })} />
         }
       />
       {c.open ? <Write c={c} /> : <ChatClosed>{tr("You are no longer friends with {0}", { 0: c.with?.username })}</ChatClosed>}

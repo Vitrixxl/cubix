@@ -86,7 +86,6 @@ function Form() {
     <form onSubmit={submit} noValidate className="mx-auto flex min-h-0 w-full max-w-2xl flex-col" data-slot="apply">
       <Surface className="flex-1">
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-6 max-md:p-4">
-        <p className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</p>
         <Field data-invalid={error?.field === "email" || undefined}>
           <FieldLabel htmlFor="apply-email">{tr("E-mail address")}</FieldLabel>
           <Input id="apply-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tr("you@example.com")} aria-invalid={error?.field === "email" || undefined} data-action="apply:email" />

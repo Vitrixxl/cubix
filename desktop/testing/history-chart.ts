@@ -139,7 +139,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("[data-row]").length === 1);
   await row(0).getByRole("button", { name: "Delete solve" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
-  await page.getByText("No commented solve yet").waitFor();
+  await page.getByText("No solves match.").waitFor();
   await page.getByRole("button", { name: "Show only commented solves" }).click();
   await selectedCount(599);
   assert.notEqual(await rows.first().innerText(), newest);

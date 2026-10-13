@@ -90,7 +90,6 @@ function SignIn() {
       <div className="flex flex-col items-start gap-2">
         <Brand size={30} className="mb-3 text-[24px]" />
         <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{tr("Welcome to Qbix")}</h2>
-        <p className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</p>
       </div>
       {expired && (
         <Alert role="status" data-slot="login-expired">

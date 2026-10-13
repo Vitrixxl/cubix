@@ -280,7 +280,7 @@ export function FormatFields({ value, onChange }: { value: Format; onChange: (f:
           <Input id="format-sets" type="number" min={1} max={9} value={value.sets} onChange={(e) => onChange({ ...value, sets: Math.max(1, Math.min(9, Number(e.target.value) || 1)) })} />
         </Field>
       </div>
-      <FieldDescription>{formatText(value)}{tr(", on the same scrambles for both players.")}</FieldDescription>
+      <FieldDescription>{formatText(value)}</FieldDescription>
     </>
   );
 }

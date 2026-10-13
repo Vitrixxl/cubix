@@ -73,7 +73,7 @@ function HoldCube({ index, animated, stickers, size = 112 }: { index: number; an
 const CENTRES = Array.from({ length: 54 }, (_, i) => (i % 9 === 4 ? FACES[Math.floor(i / 9)]! : null));
 
 /** How the cube is held from start to end: the cube of its centres, yellow on top and green facing the player, in words beside it. */
-export function HoldNote({ size = 58, short = false }: { size?: number; short?: boolean }) {
+export function HoldNote({ size = 58 }: { size?: number }) {
   const scene = useMemo(() => ({ ...cubeScene("", 3, "full", false, true), colors: heldColors(CENTRES) }), []);
   return (
     <span className="flex items-center gap-3">
@@ -83,7 +83,6 @@ export function HoldNote({ size = 58, short = false }: { size?: number; short?: 
       <span className="flex flex-col text-sm leading-snug font-bold">
         <span>{tr("Yellow on top")}</span>
         <span>{tr("Green facing you")}</span>
-        {!short && <span className="mt-0.5 text-xs font-normal text-muted-foreground">{tr("From start to end, without turning the cube over.")}</span>}
       </span>
     </span>
   );
@@ -325,7 +324,6 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
               <span className="max-md:hidden">
                 <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(faces, refs)} size={110} />
               </span>
-              <p className="text-[15px] leading-snug text-muted-foreground max-md:hidden">{tr("Turn the cube as shown. Which way round the face is does not matter.")}</p>
             </div>
           </div>
         </section>
@@ -366,12 +364,11 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
               );
             })}
           </div>
-          <span className="text-xs text-muted-foreground max-md:hidden">{tr("Click a face read to read it again.")}</span>
         </section>
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
           <ActionCard primary icon={Camera} title={tr("Read this face")} kbd={tr("Space")} onClick={readNow} disabled={state !== "live" || !live} action="scan:read" className="max-md:col-span-2" />
           <ActionCard icon={Undo2} title={tr("Read the last face again")} text={last >= 0 ? <span className="first-letter:uppercase max-md:hidden">{said(COLOUR_NAMES[ORDER[last]!.face])}</span> : undefined} kbd="⌫" onClick={undo} disabled={last < 0} action="scan:undo" />
-          <ActionCard icon={Paintbrush} title={tr("Enter the colours by hand")} text={<span className="max-md:hidden">{tr("If the camera reads badly")}</span>} onClick={onHand} action="scan:hand" />
+          <ActionCard icon={Paintbrush} title={tr("Enter the colours by hand")} onClick={onHand} action="scan:hand" />
         </div>
       </div>
     </div>
@@ -435,8 +432,8 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
   if (impossible)
     return frame(
       <Notice icon={TriangleAlert} title={tr("This cube cannot be solved")} text={problem ? said(problem) : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-        <ActionCard primary icon={Paintbrush} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onClick={() => setImpossible(false)} action="scan:check" />
-        {onCamera && <ActionCard icon={Camera} title={tr("Read everything again")} text={tr("The six faces again")} onClick={onCamera} action="scan:again" />}
+        <ActionCard primary icon={Paintbrush} title={tr("Check the colours")} onClick={() => setImpossible(false)} action="scan:check" />
+        {onCamera && <ActionCard icon={Camera} title={tr("Read everything again")} onClick={onCamera} action="scan:again" />}
       </Notice>,
       () => setImpossible(false),
     );
@@ -459,13 +456,12 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
               {tr("Qbix is not sure of this sticker")}
             </span>
           )}
-          <HoldNote size={40} short />
+          <HoldNote size={40} />
         </div>
       </div>
       <div className="flex min-h-0 flex-col gap-2.5 md:gap-3">
         <section className="flex flex-col gap-2.5 rounded-[24px] bg-card px-4 py-3.5 md:px-5 md:py-[18px]">
           <h2 className="text-lg font-extrabold max-md:hidden">{tr("Compare with your cube")}</h2>
-          <p className="text-sm leading-snug text-muted-foreground max-md:hidden">{tr("Each colour must show on nine stickers.")}</p>
           <ul className="grid grid-cols-6 gap-1" aria-label={tr("Colour")}>
             {FACES.map((face, k) => (
               <li key={face} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-1 py-1 text-[13px]" aria-label={`${said(COLOUR_NAMES[face])}: ${counts[k]} / 9`}>
@@ -479,7 +475,6 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
         </section>
         <section className="flex flex-col gap-2.5 rounded-[24px] bg-card px-4 py-3.5 md:px-5 md:py-[18px]">
           <h2 className="text-lg font-extrabold max-md:hidden">{checks === 1 ? tr("1 sticker to check") : checks ? tr("{0} stickers to check", { 0: checks }) : tr("Correct a sticker")}</h2>
-          <p className="text-sm leading-snug text-muted-foreground max-md:hidden">{tr("Pick a colour, then click the stickers that do not match.")}</p>
           <ToggleGroup aria-label={tr("Colour")} spacing={2} value={[brush]} onValueChange={(next: string[]) => next[0] && setBrush(next[0] as Face)} className="justify-between">
             {FACES.map((face) => (
               <ToggleGroupItem
@@ -496,8 +491,8 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
           </ToggleGroup>
         </section>
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
-          <ActionCard primary icon={Check} title={tr("The colours are right")} text={tr("Qbix plans the solve")} disabled={!complete} onClick={() => (problem ? setImpossible(true) : onDone(colours as Face[]))} action="scan:done" className={cn(!onCamera && "col-span-2")} />
-          {onCamera && <ActionCard icon={Camera} title={tr("Read again with the camera")} text={<span className="max-md:hidden">{tr("The six faces again")}</span>} onClick={onCamera} action="scan:again" />}
+          <ActionCard primary icon={Check} title={tr("The colours are right")} disabled={!complete} onClick={() => (problem ? setImpossible(true) : onDone(colours as Face[]))} action="scan:done" className={cn(!onCamera && "col-span-2")} />
+          {onCamera && <ActionCard icon={Camera} title={tr("Read again with the camera")} onClick={onCamera} action="scan:again" />}
         </div>
       </div>
     </div>,

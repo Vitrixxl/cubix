@@ -4,7 +4,7 @@ import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
 import { fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { Back, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, run, plural } from "../ui";
+import { Back, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, run } from "../ui";
 import { TILES } from "../algorithms";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
@@ -16,14 +16,11 @@ import { tr } from "../../../src/client/i18n";
 
 export function TrainingPage({ phone }: { phone: boolean }) {
   const p = s.profile,
-    cases: any[] = s.cases(s.profilePuzzle),
-    learned = cases.filter((c) => s.learned.has(c.id)).length,
-    trained = p.cases?.length ?? 0;
+    cases: any[] = s.cases(s.profilePuzzle);
   return (
     <>
       <PageHead
         title={tr("Training")}
-        sub={tr("{0} of {1} trained · {2} learned", { 0: trained, 1: cases.length, 2: learned })}
         lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
       >
         {!phone && <PuzzleButton profile />}
@@ -117,7 +114,7 @@ export function BattlesPage({ phone }: { phone: boolean }) {
     averages = list.map((b) => b.ao5[0]).filter((v): v is number => v != null);
   return (
     <>
-      <PageHead title={tr("Battles")} sub={list.length ? plural(list.length, "battle") : undefined} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />} />
+      <PageHead title={tr("Battles")} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />} />
       {!list.length ? (
         <PageCard scroll={false}>
           <NoBattles />

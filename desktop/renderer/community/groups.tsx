@@ -102,7 +102,7 @@ function GroupDetails({ id, scroller }: { id: number; scroller: RefObject<HTMLDi
         }
       >
         {!g.tournaments.length ? (
-          <Empty className="p-3">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</Empty>
+          <Empty className="p-3">{tr("No tournament yet")}</Empty>
         ) : (
           <ul className="-mx-2 flex flex-col gap-0.5">
             {g.tournaments.map((t) => (
@@ -123,7 +123,7 @@ function GroupDetails({ id, scroller }: { id: number; scroller: RefObject<HTMLDi
         )}
       </Part>
       <Part title={tr("Battles")} count={g.battles.length}>
-        <Battles battles={g.battles} empty={tr("No battle yet: launch one from the top of the conversation.")} />
+        <Battles battles={g.battles} empty={tr("No battles yet")} />
       </Part>
       <div className="mt-auto flex flex-col gap-1 p-3">
         {g.role !== "owner" ? (
@@ -247,7 +247,7 @@ export function InviteDialog({ g }: { g: Group }) {
       >
         <UserPlus />
         {tr("Invite")}</Button>
-      <Modal open={open} onOpenChange={setOpen} title={tr("Invite to {0}", { 0: g.name })} description={tr("They join once they accept the invitation.")} className="sm:max-w-md">
+      <Modal open={open} onOpenChange={setOpen} title={tr("Invite to {0}", { 0: g.name })} className="sm:max-w-md">
         <FriendPicker friends={outside} value={picked} onChange={setPicked} />
         <form
           className="flex flex-col gap-1.5"
@@ -351,7 +351,7 @@ function FriendDetails({ c }: { c: Conversation }) {
             <Figure label="Played" value={done.length} />
           </Strip>
         )}
-        <Battles battles={battles} empty={tr("No battle yet: challenge {0} from the top of the conversation.", { 0: other.username })} />
+        <Battles battles={battles} empty={tr("No battles yet")} />
       </Part>
       {friend && (
         <div className="mt-auto flex flex-col gap-1 p-3">

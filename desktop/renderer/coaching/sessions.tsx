@@ -230,7 +230,7 @@ export function MoveButton({ b, label = false }: { b: Booking; label?: boolean }
         open={open}
         onOpenChange={setOpen}
         title={tr("Offer another time")}
-        description={`${tr("Now")} ${span(b.startsAt, b.endsAt)} ${tr("with")} ${b.with.username}${tr(". The session stays where it is until they accept.")}`}
+        description={`${tr("Now")} ${span(b.startsAt, b.endsAt)} ${tr("with")} ${b.with.username}`}
         className="sm:max-w-lg"
       >
         {open && <MoveForm b={b} close={() => setOpen(false)} />}
@@ -394,7 +394,7 @@ export function ReviewButton({ b }: { b: Booking }) {
           {tr("Review")}
         </UiButton>
       )}
-      <Modal open={open} onOpenChange={setOpen} title={`${tr("Your session with")} ${b.with.username}`} description={`${day(b.startsAt)} ${tr("· other players read your review on the coach's page.")}`} className="sm:max-w-md">
+      <Modal open={open} onOpenChange={setOpen} title={`${tr("Your session with")} ${b.with.username}`} description={day(b.startsAt)} className="sm:max-w-md">
         <Rating value={rating} onChange={setRating} />
         <Textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} rows={4} placeholder={tr("What helped you most?")} aria-label={tr("Comment")} className="resize-none" />
         <DialogFooter>

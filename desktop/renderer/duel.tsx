@@ -148,11 +148,7 @@ function Lobby() {
         <Stage
           data-tour="duel"
           className="duel-stage relative"
-          lead={
-            <p className={cn("-mt-2 max-w-md text-sm text-balance md:-mt-4 md:text-[15px]", duel.notice ? "text-destructive" : "text-muted-foreground")}>
-              {duel.notice || tr("An Ao5 race · the same five {0} scrambles for both of you", { 0: event.label })}
-            </p>
-          }
+          lead={duel.notice && <p className="-mt-2 max-w-md text-sm text-balance text-destructive md:-mt-4 md:text-[15px]">{duel.notice}</p>}
           figures={
             <>
               <StageFigure value={duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level)} label={tr("Your {0} level", { 0: event.label })} />
@@ -170,7 +166,7 @@ function Lobby() {
               </Button>
             </>
           ) : (
-            <StageAction icon={Swords} title={tr("Play")} sub={tr("an opponent at your level")} data-action="duel:search" onClick={run("duel:search")} />
+            <StageAction icon={Swords} title={tr("Play")} data-action="duel:search" onClick={run("duel:search")} />
           )}
         </Stage>
         {!phone && (
@@ -222,7 +218,7 @@ function Friends({ bare = false }: { bare?: boolean }) {
     const done = c && (await community.battle(c.id, { ...format, opponentId: null }));
     setBusy(false);
     if (!done) return;
-    toast(tr("Challenge sent to {0}", { 0: friend.username }), { description: tr("It starts once they accept it.") });
+    toast(tr("Challenge sent to {0}", { 0: friend.username }));
     setPicked(null);
   };
   const link = signedIn ? community.shareLink() : "";
@@ -231,7 +227,6 @@ function Friends({ bare = false }: { bare?: boolean }) {
       {!bare && <PanelHead title="Your friends" meta={list.length || undefined} className="px-1" />}
       {!signedIn ? (
         <Empty icon={Users} title={tr("Challenge your friends")} className="flex-1">
-          <p>{tr("Sign in to race your friends on the scrambles you pick.")}</p>
           <UiButton variant="outline" onClick={() => s.askSignIn()}>
             {tr("Sign in")}
           </UiButton>
@@ -272,7 +267,7 @@ function Friends({ bare = false }: { bare?: boolean }) {
       )}
       {signedIn && me && (
         <div className="mt-auto grid shrink-0 gap-2.5 rounded-[18px] bg-muted p-3.5">
-          {friend ? (
+          {friend && (
             <>
               <div className="flex min-w-0 items-center gap-2.5 text-sm">
                 <Avatar name={friend.username} src={friend.avatar} size={32} />
@@ -290,10 +285,8 @@ function Friends({ bare = false }: { bare?: boolean }) {
                 {tr("Send the challenge")}
               </UiButton>
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground">{list.length ? tr("Pick a friend to challenge them.") : tr("No friend yet: find players, or share your link.")}</p>
           )}
-          <div className="flex min-w-0 items-center gap-2 border-t border-card pt-2 text-[13px] text-muted-foreground">
+          <div className={cn("flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground", friend && "border-t border-card pt-2")}>
             <Link2 className="size-4 shrink-0" />
             <span className="shrink-0">{tr("Your link")}</span>
             <code className="min-w-0 truncate font-sans font-semibold text-foreground/80">{link.replace(/^https?:\/\//, "")}</code>
@@ -338,9 +331,7 @@ function Played() {
         )}
       </PanelHead>
       {!list.length ? (
-        <Empty icon={Swords} title={tr("No race yet")} className="flex-1">
-          {tr("Your races show here, won or lost.")}
-        </Empty>
+        <Empty icon={Swords} title={tr("No race yet")} className="flex-1" />
       ) : (
         <>
           <div className="px-1">

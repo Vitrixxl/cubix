@@ -96,7 +96,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
-import { language, locale, tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { msg } from "../../src/client/i18n/msg";
 import { Digits, fractionClass, isMinxScramble, keyed, said } from "./base";
 export { Digits };
@@ -500,7 +500,6 @@ export function Practice() {
   const noCases = (
     <div data-no-timer>
       <Empty icon={LayoutList} title={tr("No learned case to train")} className="py-8">
-        <p>{unlearned && !s.trainSets.length && !s.trainPicks.length ? tr("These cases are not learned yet: learn them in the courses, then train them here.") : tr("Pick recommended cases, whole sets or learned cases one by one.")}</p>
         <div className="flex gap-2">
           <Button action="trainingSetup" variant="default">{tr("Choose cases")}</Button>
           {unlearned && <Button action="nav:learn">{tr("Open the courses")}</Button>}
@@ -528,12 +527,7 @@ export function Practice() {
       <CalendarDays className="size-4 shrink-0 text-primary" />
       <span className="truncate">
         <span className="text-primary">{tr("Daily scramble")}</span>
-        <span className="text-muted-foreground">
-          {" · "}
-          {new Date(dailyDay() + "T12:00:00Z").toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: "UTC" })}
-          {" · "}
-          {dailyDone ? tr("already done, not ranked") : tr("your ranked attempt")}
-        </span>
+        {dailyDone && <span className="text-muted-foreground"> · {tr("already done, not ranked")}</span>}
       </span>
       <Button action="daily:off" icon={X} size="icon" variant="ghost" tip={tr("Back to random scrambles")} />
     </div>
@@ -673,7 +667,7 @@ export function Practice() {
           title={mobile ? tr(CROSS_TARGET_LABELS[s.crossTarget]) : tr("Cross")}
           puzzle={!mobile}
           lead={<ChangeTraining />}
-          sub={mobile ? tr("{0} moves", { 0: s.crossMoves }) : tr("Training")}
+          sub={mobile && tr("{0} moves", { 0: s.crossMoves })}
           more={
             mobile && (
               <>
@@ -702,7 +696,7 @@ export function Practice() {
         <PageHead
           title={tr("Session")}
           lead={<ChangeTraining />}
-          sub={said([plural(s.practiceSelected.size, "case"), s.trainingParts().join(", ")].filter(Boolean).join(" · "))}
+          sub={said(s.trainingParts().join(", "))}
           more={
             mobile && (
               <>
@@ -777,7 +771,13 @@ export function Practice() {
                 {tr(c.name)}
               </button>
               <span className="text-sm font-semibold text-faint">{tr(c.setLabel) + (c.group && c.group !== c.setLabel ? " · " + tr(c.group) : "")}</span>
-              {recommendation && <StateMark tone="accent" className="self-center">{tr("Recommended")} · {recommendedWhy(recommendation)}</StateMark>}
+              {recommendation && (
+                <Tip content={recommendedWhy(recommendation)}>
+                  <span className="self-center">
+                    <StateMark tone="accent">{tr("Recommended")}</StateMark>
+                  </span>
+                </Tip>
+              )}
             </div>}
             {caseSetup}
             {!short && caseTools}
@@ -950,7 +950,6 @@ export function Practice() {
               <span className={cn(NUMERIC, "text-sm font-normal text-muted-foreground")}>{s.solves.length}</span>
             </span>
           }
-          description={tr("Tap a time for its details · hold it for +2, DNF or delete")}
           snapPoints={[0.5, 1]}
           className="gap-3"
         >
@@ -998,23 +997,20 @@ function SessionPeek({ training }: { training: boolean }) {
   );
 }
 
-/** The last attempt against its case's figures: how far from its mean, then its best and mean over its attempts. */
+/** The last attempt against its case's mean, its best and mean over its attempts in the tip. */
 function Verdict({ solve }: { solve: any }) {
   const st = s.stats.find((v: any) => v.caseId === solve.case_id),
     c = s.find(solve.case_id),
     time = effective(solve.time_ms, solve.penalty);
-  if (!st || !c || st.mean == null) return null;
-  const delta = time == null ? null : time - st.mean;
+  if (!st || !c || st.mean == null || time == null) return null;
+  const delta = time - st.mean;
   return (
-    <p className={cn("mt-4 flex items-center gap-2.5 text-[15px] font-semibold text-muted-foreground", FADE)}>
-      {delta != null && (
-        <Tip content={tr("Against your mean on this case")}>
-          <span className={cn(NUMERIC, "rounded-lg px-2 py-0.5 text-[13px]", delta <= 0 ? "bg-success/15 text-success" : "bg-destructive/12 text-destructive")}>
-            {(delta <= 0 ? "−" : "+") + (Math.abs(delta) / 1000).toFixed(2)} s
-          </span>
-        </Tip>
-      )}
-      {tr("{0}: best {1} · mean {2} over {3}", { 0: tr(c.name), 1: fmtTime(st.best), 2: fmtTime(st.mean), 3: plural(st.count, "attempt") })}
+    <p className={cn("mt-4 flex items-center text-[15px] font-semibold", FADE)}>
+      <Tip content={tr("{0}: best {1} · mean {2} over {3}", { 0: tr(c.name), 1: fmtTime(st.best), 2: fmtTime(st.mean), 3: plural(st.count, "attempt") })}>
+        <span className={cn(NUMERIC, "rounded-lg px-2 py-0.5 text-[13px]", delta <= 0 ? "bg-success/15 text-success" : "bg-destructive/12 text-destructive")}>
+          {(delta <= 0 ? "−" : "+") + (Math.abs(delta) / 1000).toFixed(2)} s
+        </span>
+      </Tip>
     </p>
   );
 }
@@ -1034,8 +1030,7 @@ function CaseQueue({ current }: { current: any }) {
   const [row, setRow] = useState<HTMLElement | null>(null),
     fit = Math.max(1, Math.floor((useWidth(row) + 6) / (QUEUE_ITEM + 6)) - (current ? 1 : 0)),
     recent = s.solves.slice(-fit),
-    extremes = sessionExtremes(s.solves),
-    cases = new Set(s.solves.map((v) => v.case_id)).size;
+    extremes = sessionExtremes(s.solves);
   return (
     <nav aria-label={tr("Attempts of the session")} className="flex items-center gap-3 rounded-[20px] bg-card px-3.5 py-2">
       <span className="text-xs font-bold text-faint">{tr("Attempts")}</span>
@@ -1055,10 +1050,7 @@ function CaseQueue({ current }: { current: any }) {
           </span>
         )}
       </div>
-      <span className="pl-3 text-right text-[13px] font-semibold whitespace-nowrap text-faint">
-        <b className={cn(NUMERIC, "block text-base text-foreground")}>{plural(s.solves.length, "attempt")}</b>
-        {tr("on {0}", { 0: plural(cases, "case") })}
-      </span>
+      <b className={cn(NUMERIC, "pl-3 text-base whitespace-nowrap")}>{plural(s.solves.length, "attempt")}</b>
     </nav>
   );
 }
@@ -1117,31 +1109,26 @@ function SessionBoard() {
       {tab === "cases" ? (
         <div ref={list} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pt-3 pb-3">
           {rows.length ? (
-            <>
-              <span className="px-2 pb-1 text-xs font-semibold text-faint">{tr("Slowest to fastest · {0}", { 0: plural(s.solves.length, "attempt") })}</span>
-              <VirtualList
-                items={rows}
-                scroller={list}
-                estimate={46}
-                gap={2}
-                rowKey={(r) => r.c.id}
-                row={({ c, count, mean, validCount }, i, measure) => (
-                <div ref={measure} aria-current={c.id === s.training?.id ? "step" : undefined} className="grid shrink-0 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl px-2 py-1.5 aria-[current=step]:bg-accent">
-                  <Diagram c={c} size={34} />
-                  <span className="min-w-0">
-                    <b className="block truncate text-sm">{tr(c.name)}</b>
-                    <small className="block truncate text-xs font-semibold text-faint">
-                      {plural(count, "attempt")}
-                      {count > validCount ? " · " + tr("{0} DNF", { 0: count - validCount }) : ""}
-                      {" · "}
-                      {c.id === s.training?.id ? tr("now") : tr(c.setLabel)}
-                    </small>
-                  </span>
-                  <span className={cn(NUMERIC, "text-[15px] font-bold", rows.length > 1 && (i === 0 ? "text-destructive" : i === rows.length - 1 ? "text-success" : ""))}>{fmtTime(mean)}</span>
-                </div>
-                )}
-              />
-            </>
+            <VirtualList
+              items={rows}
+              scroller={list}
+              estimate={46}
+              gap={2}
+              rowKey={(r) => r.c.id}
+              row={({ c, count, mean, validCount }, i, measure) => (
+              <div ref={measure} aria-current={c.id === s.training?.id ? "step" : undefined} className="grid shrink-0 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl px-2 py-1.5 aria-[current=step]:bg-accent">
+                <Diagram c={c} size={34} />
+                <span className="min-w-0">
+                  <b className="block truncate text-sm">{tr(c.name)}</b>
+                  <small className="block truncate text-xs font-semibold text-faint">
+                    {plural(count, "attempt")}
+                    {count > validCount ? " · " + tr("{0} DNF", { 0: count - validCount }) : ""}
+                  </small>
+                </span>
+                <span className={cn(NUMERIC, "text-[15px] font-bold", rows.length > 1 && (i === 0 ? "text-destructive" : i === rows.length - 1 ? "text-success" : ""))}>{fmtTime(mean)}</span>
+              </div>
+              )}
+            />
           ) : (
             <NoTimes />
           )}
@@ -1243,12 +1230,10 @@ function ChangeTraining() {
   return <Button action="trainingSetup" icon={ChevronLeft} tip={tr("Change what to train")} />;
 }
 
-/** An empty session: in the middle of the column, what will appear here (how to start is under the timer). */
+/** An empty session, in the middle of the column (how to start is under the timer). */
 function NoTimes() {
   return (
-    <Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8">
-      <p className="text-xs">{tr("Every solve of this session lands here.")}</p>
-    </Empty>
+    <Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8" />
   );
 }
 

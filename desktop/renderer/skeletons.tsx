@@ -383,7 +383,7 @@ function AlgorithmsSkeleton({ phone }: { phone: boolean }) {
   if (phone)
     return (
       <Page>
-        <Head title="w-28" sub="w-16">
+        <Head title="w-28">
           <Puzzle />
           <Bone className={ICON} />
           <Bone className={ICON} />
@@ -729,7 +729,7 @@ function TournamentsSkeleton({ phone, page, view }: { phone: boolean; page: stri
   if (phone)
     return (
       <Page>
-        <Head title="w-36" sub="w-40" />
+        <Head title="w-36" />
         <div className="grid min-h-0 flex-1">{list}</div>
       </Page>
     );
@@ -1052,7 +1052,7 @@ function ProfileSection({ phone, mode }: { phone: boolean; mode: string }) {
         {phone ? <><Puzzle /><Bone className={ICON} /></> : <><Bone className="h-9 w-36" /><Bone className="size-9" /><Bone className="ml-auto h-9 w-[151px]" /><Bone className="h-9 w-[188px]" /></>}
       </header>
     ) : (
-      <Head back={!phone} title="w-40" sub="w-32">{!phone && <><Bone className="h-9 w-32" /><Bone className="h-9 w-48" /></>}</Head>
+      <Head back={!phone} title="w-40">{!phone && <><Bone className="h-9 w-32" /><Bone className="h-9 w-48" /></>}</Head>
     );
   return phone ? (
     <div className="flex min-h-0 flex-1 flex-col gap-3">

@@ -336,7 +336,7 @@ const nameOf = (m: Match, seat: number) => (m.players[seat]?.id === s.user.id ? 
 function Outcome({ m, left }: { m: Match; left: number }) {
   const out = lastOutcome(m);
   const line = "flex h-6 shrink-0 items-center gap-2 text-[13px] font-semibold text-muted-foreground before:h-px before:flex-1 before:bg-muted after:h-px after:flex-1 after:bg-muted";
-  if (!out) return <p className={cn(line, FADE)}>{tr("The first solve decides the first point.")}</p>;
+  if (!out) return <p aria-hidden="true" className={cn(line, FADE)} />;
   const { solve, set, setWon } = out,
     w = solve.winner,
     times = [left, 1 - left].map((seat) => solve.results[seat]),
@@ -402,9 +402,6 @@ function Waiting({ m, seat }: { m: Match; seat: number | null }) {
             <h2 className="text-[clamp(24px,4vw,38px)] leading-[1.05] font-extrabold tracking-[-0.03em] text-balance">
               {other ? (started ? tr("Waiting for {0} to come back", { 0: other.username }) : tr("Waiting for {0}", { 0: other.username })) : tr("Waiting for the players")}
             </h2>
-            <p className="text-sm text-balance text-muted-foreground">
-              {seat !== null ? tr("The race starts by itself once you are both on this page. Keep it open: {0} has been told.", { 0: other?.username ?? "" }) : tr("The race shows here once both players are on its page.")}
-            </p>
           </div>
         }
         figures={

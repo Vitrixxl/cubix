@@ -64,7 +64,7 @@ const sectionWaiting = (id: string) => SECTIONS.find((x) => x.id === id)!.pages.
 
 /** All the header and the tab bar show of the app (the account menu's level too); they are drawn again when it changes, not at every change of the page. */
 const shellKey = () =>
-  [s.ready, s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, s.user.isGuest, waiting.coaching!(), waiting.community!(), waiting.people!(), s.view.startsWith("people"), language(), s.xp, s.unlocked.count, s.unlocked.total].join("|");
+  [s.ready, s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, s.user.isGuest, waiting.coaching!(), waiting.community!(), waiting.people!(), s.view.startsWith("people"), language(), s.xp].join("|");
 const useShell = () => useSyncExternalStore(s.subscribe, shellKey, shellKey);
 
 /** A dot on a section while something waits there. */
@@ -159,12 +159,7 @@ export function AccountMenu() {
               // The account's own face in the accent, as on its button.
               <Avatar name={s.user.username} size={52} className="rounded-2xl bg-primary" />
             )}
-            <span className="flex min-w-0 flex-col gap-1">
-              <span className="truncate text-lg leading-tight font-extrabold tracking-tight text-foreground">{guest ? tr("Guest") : s.user.username}</span>
-              <span className="truncate text-xs font-medium text-muted-foreground">
-                {guest ? tr("Times stay on this device") : tr("{0} of {1} achievements unlocked", { 0: s.unlocked.count, 1: s.unlocked.total })}
-              </span>
-            </span>
+            <span className="min-w-0 truncate text-lg leading-tight font-extrabold tracking-tight text-foreground">{guest ? tr("Guest") : s.user.username}</span>
           </DropdownMenuLabel>
           {!guest && s.xp !== null && (
             <DropdownMenuItem data-action="nav:achievements" className="block px-1.5 py-2 [&_[role=progressbar]]:h-2" render={<Link to={pageUrl("profile", { profileMode: "achievements" })} />}>

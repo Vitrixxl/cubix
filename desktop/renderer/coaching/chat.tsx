@@ -44,7 +44,6 @@ export function Messages({ id }: { id: number | null }) {
             <ListSkeleton />
           ) : !list.length ? (
             <Empty icon={MessagesSquare} title="No conversation yet.">
-              {tr("Book a session with a coach to write to them.")}
               <UiButton variant="outline" onClick={() => go(url("coaches"))}>
                 {tr("Find a coach")}
               </UiButton>
@@ -82,7 +81,7 @@ export function Messages({ id }: { id: number | null }) {
           {current ? (
             <Chat conversation={current} back={phone ? url("messages") : undefined} />
           ) : (
-            <Empty icon={MessagesSquare} title={list && id ? "This conversation does not exist." : "Your conversations open here."} />
+            <Empty icon={MessagesSquare} title={list && id ? "This conversation does not exist." : undefined} />
           )}
         </ChatPanel>
       )}
@@ -183,9 +182,7 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
           </>
         )}
         empty={
-          <Empty icon={MessagesSquare} title={tr("Say hello to {0}.", { 0: c.with.username })}>
-            {tr("Messages, pictures and videos you send show here.")}
-          </Empty>
+          <Empty icon={MessagesSquare} title={tr("Say hello to {0}.", { 0: c.with.username })} />
         }
       >
         {uploads.map((u) => (

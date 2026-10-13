@@ -207,7 +207,7 @@ export function RecordPlates({ d }: { d: ProfileData }) {
       <Caption
         link={<Link action="profileMode:playground">{tr("Statistics")}</Link>}
       >
-        {tr("Records · single / Ao5")}
+        {tr("Records")}
       </Caption>
       {records.length ? (
         <div className="-mr-1 grid min-h-0 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
@@ -244,9 +244,7 @@ export function RecordPlates({ d }: { d: ProfileData }) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {tr("Your records appear after your first timed solves.")}
-        </p>
+        <p className="text-sm text-muted-foreground">{tr("No times yet")}</p>
       )}
     </section>
   );
@@ -379,7 +377,7 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
             title={
               days.length
                 ? tr("Nothing of this kind yet.")
-                : tr("Your practice days appear here.")
+                : tr("No times yet")
             }
             className="py-10"
           />

@@ -60,8 +60,8 @@ function useCubeRecognition() {
 /** The set a recognition run goes through (`recognitionSet`: the one chosen, else the first with learned cases). */
 const recognitionSet = (sets: Sets) => sets.find((x) => x.set.id === s.recognitionSet);
 
-/** A way of training as the list shows it: its icon, name and line, then its number, large, with what it counts. */
-type ModeRow = { id: TrainingMode; icon: LucideIcon; title: string; summary: string; count: number; unit: string; share?: number; start: string; ready: boolean };
+/** A way of training as the list shows it: its icon and name, then its number, large, with what it counts. */
+type ModeRow = { id: TrainingMode; icon: LucideIcon; title: string; count: number; unit: string; share?: number; start: string; ready: boolean };
 
 function modeRows(sets: Sets): ModeRow[] {
   const cases = s.cases(),
@@ -73,15 +73,15 @@ function modeRows(sets: Sets): ModeRow[] {
     chosen = recognitionSet(sets),
     free = s.freePicks.filter((id) => s.find(id)).length;
   const rows: ModeRow[] = [
-    { id: "cross", icon: Target, title: "Cross", summary: tr("Plan the cross in inspection, by its exact number of moves"), count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
+    { id: "cross", icon: Target, title: "Cross", count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
     {
-      id: "recognition", icon: Eye, title: "Recognition", summary: tr("The learned cases of a set at random, until you stop"),
+      id: "recognition", icon: Eye, title: "Recognition",
       count: chosen?.learned ?? 0, unit: chosen ? tr(chosen.set.label) : tr("cases"), share: chosen ? chosen.learned / chosen.all.length : 0,
       start: "trainingStart:recognition", ready: !!chosen?.learned,
     },
-    { id: "learned", icon: GraduationCap, title: "Learned", summary: tr("Your slowest learned cases, and cases picked by hand"), count: learned, unit: tr(learned === 1 ? "case" : "cases"), start: "trainingStart:cases:practice", ready: !!pool.size },
-    { id: "sets", icon: Layers, title: "Whole sets", summary: tr("Every learned case of the sets you choose"), count: whole, unit: tr(whole === 1 ? "case" : "cases"), share: total ? known / total : 0, start: "trainingStart:cases:practice", ready: !!pool.size },
-    { id: "free", icon: Dices, title: "Free practice", summary: tr("Any case of the catalogue, learned or not"), count: free, unit: tr(free === 1 ? "case" : "cases"), start: "trainingStart:free", ready: !!free },
+    { id: "learned", icon: GraduationCap, title: "Learned", count: learned, unit: tr(learned === 1 ? "case" : "cases"), start: "trainingStart:cases:practice", ready: !!pool.size },
+    { id: "sets", icon: Layers, title: "Whole sets", count: whole, unit: tr(whole === 1 ? "case" : "cases"), share: total ? known / total : 0, start: "trainingStart:cases:practice", ready: !!pool.size },
+    { id: "free", icon: Dices, title: "Free practice", count: free, unit: tr(free === 1 ? "case" : "cases"), start: "trainingStart:free", ready: !!free },
   ];
   return rows.filter((r) => r.id !== "cross" || s.puzzle === "333");
 }
@@ -125,7 +125,6 @@ export function TrainingSetup() {
       <Modal
         id="pickCases"
         title={tr("Pick cases")}
-        description={chosen.id === "free" ? tr("Among every case, learned or not") : tr("Among the cases you learned")}
         tall
         className="flex h-[min(86vh,760px)] flex-col sm:max-w-4xl"
       >
@@ -136,7 +135,7 @@ export function TrainingSetup() {
 }
 
 /**
- * A way of training as a row to choose, like Learn's methods: its icon, name and line, its number large on the right,
+ * A way of training as a row to choose, like Learn's methods: its icon and name, its number large on the right,
  * over a bar where a share says something. The chosen one is checked and the only one in the tab order.
  */
 function ModeTile({ row, checked, onPick }: { row: ModeRow; checked: boolean; onPick: () => void }) {
@@ -159,10 +158,7 @@ function ModeTile({ row, checked, onPick }: { row: ModeRow; checked: boolean; on
         <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-muted text-muted-foreground transition-colors group-hover/card:bg-accent", checked && "text-primary")}>
           <Icon className="size-5" aria-hidden="true" />
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-lg font-extrabold tracking-[-0.02em] md:text-xl">{tr(row.title)}</span>
-          <span className={cn("text-sm text-muted-foreground", phone ? "truncate" : "line-clamp-2")}>{row.summary}</span>
-        </span>
+        <span className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-[-0.02em] md:text-xl">{tr(row.title)}</span>
         <span className="flex shrink-0 flex-col items-end">
           <span className={cn(NUMERIC, "text-2xl leading-none font-extrabold tracking-[-0.03em] md:text-[32px]", row.count ? "text-foreground" : "text-faint")}>{row.count}</span>
           <span className="mt-1 max-w-28 truncate text-xs text-muted-foreground">{row.unit}</span>
@@ -229,7 +225,7 @@ function FreeCard() {
     picked = s.cases().filter((c: any) => picks.has(c.id)),
     shown = picked.slice(0, 18);
   return (
-    <Card title={tr("Free practice")} meta={tr("any case, learned or not")} className="min-h-0 flex-1">
+    <Card title={tr("Free practice")} className="min-h-0 flex-1">
       {picked.length ? (
         <div className="flex min-h-0 flex-wrap content-start items-center gap-1.5 overflow-hidden">
           {shown.map((c: any) => (
@@ -262,7 +258,7 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
   const chosen = recognitionSet(sets),
     cube = useCubeRecognition();
   return (
-    <Card title={tr("Recognition")} meta={cube ? tr("timed on the cube") : tr("one case after another")} className={cn(!phone && "min-h-0 flex-1")}>
+    <Card title={tr("Recognition")} className={cn(!phone && "min-h-0 flex-1")}>
       <div className={cn("-mx-1 flex flex-col gap-1.5 px-1", !phone && "min-h-0 overflow-y-auto")} role="radiogroup" aria-label={tr("Set")}>
         {sets.map(({ set, all, learned }) =>
           learned ? (
@@ -297,7 +293,7 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
           </ActionToggle>
         )}
         {cube ? (
-          <span className="flex-1 text-sm text-muted-foreground">{tr("Set each case up on the cube: its time is saved")}</span>
+          <span className="flex-1" />
         ) : (
           <span className="flex min-w-max grow items-center gap-2">
             <Timer className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -449,10 +445,10 @@ function RecognitionCase({ c }: { c: any }) {
 }
 
 /** A card of the page: its head, then its body. */
-function Card({ title, meta, head, className, children }: { title: React.ReactNode; meta?: React.ReactNode; head?: React.ReactNode; className?: string; children: React.ReactNode }) {
+function Card({ title, head, className, children }: { title: React.ReactNode; head?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
     <Surface className={cn("gap-3.5 px-5 py-4 md:px-6 md:py-5", className)}>
-      <SectionHead title={title} meta={meta}>{head}</SectionHead>
+      <SectionHead title={title}>{head}</SectionHead>
       {children}
     </Surface>
   );
@@ -469,7 +465,6 @@ function Recommended({ learned, phone = false }: { learned: number; phone?: bool
   return (
     <Card
       title={<span className="text-xl font-extrabold tracking-[-0.03em] md:text-2xl">{tr("Recommended")}</span>}
-      meta={tr("your slowest learned cases")}
       className={cn(!phone && "min-h-0")}
       head={
         both && (
@@ -488,13 +483,10 @@ function Recommended({ learned, phone = false }: { learned: number; phone?: bool
     >
       {!learned ? (
         <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="my-auto py-8">
-          <p>{tr("The training drills the cases you learned. Learn them in the courses first.")}</p>
           <Button action="nav:learn" variant="default">{tr("Open the courses")}</Button>
         </Empty>
       ) : !shown.length ? (
-        <Empty icon={Timer} title={tr("No recommendation yet")} className="my-auto py-8">
-          <p>{tr("Train your learned cases a few times each: the slowest show up here.")}</p>
-        </Empty>
+        <Empty icon={Timer} title={tr("No recommendation yet")} className="my-auto py-8" />
       ) : (
         <ul className={cn("flex flex-col gap-2", !phone && "min-h-0 overflow-y-auto")}>
           {shown.map((r) => (
@@ -561,7 +553,7 @@ function Pips({ learned, total, fill }: { learned: number; total: number; fill: 
 /** Whole sets, their learned cases only; a set with none learned leads to its course. */
 function SetsCard({ sets, phone }: { sets: ReturnType<typeof useSets>; phone: boolean }) {
   return (
-    <Card title={tr("Whole sets")} meta={tr("learned cases only")} className={cn(!phone && "min-h-0 shrink")}>
+    <Card title={tr("Whole sets")} className={cn(!phone && "min-h-0 shrink")}>
       <div className={cn("-mx-1 flex flex-col gap-1.5 px-1", !phone && "min-h-0 overflow-y-auto")}>
         {sets.map(({ set, all, learned }) => {
           const on = !!learned && s.trainSets.includes(set.id);
@@ -604,7 +596,7 @@ function HandCard({ learned }: { learned: number }) {
   const picked = s.cases().filter((c: any) => s.selected.has(c.id) && s.learned.has(c.id)),
     shown = picked.slice(0, 7);
   return (
-    <Card title={tr("Case by case")} meta={tr("among your {0} learned", { 0: learned })} className="shrink-0">
+    <Card title={tr("Case by case")} className="shrink-0">
       {!!picked.length && (
         <div className="flex flex-wrap items-center gap-1.5">
           {shown.map((c: any) => (
@@ -625,7 +617,7 @@ function HandCard({ learned }: { learned: number }) {
 function CrossCard() {
   const moves = [...new Set(CROSS_TARGETS.flatMap((t) => CROSS_MOVES[t]))].sort();
   return (
-    <Card title={tr("Cross")} meta={tr("goal × exact moves")} className="shrink-0">
+    <Card title={tr("Cross")} className="shrink-0">
       <div className="grid grid-cols-[4.5rem_repeat(var(--n),minmax(0,1fr))] items-center gap-1" style={{ "--n": moves.length } as React.CSSProperties} role="radiogroup" aria-label={tr("Cross")}>
         <span />
         {moves.map((n) => (

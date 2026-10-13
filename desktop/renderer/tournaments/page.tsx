@@ -49,7 +49,7 @@ export function RegisterButton({ t, size = "default" }: { t: Tournament; size?: 
 }
 
 /** The account's match ready to be played, as the duel's challenge card: the round, where, and the way to it. */
-function MatchReady({ title, text, match, action }: { title: string; text: string; match: number; action?: string }) {
+function MatchReady({ title, text, match, action }: { title: string; text?: string; match: number; action?: string }) {
   return (
     <div className="grid shrink-0 gap-2.5 rounded-[18px] bg-muted p-3.5" data-slot="my-match">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -58,7 +58,7 @@ function MatchReady({ title, text, match, action }: { title: string; text: strin
         </span>
         <span className="flex min-w-0 flex-col">
           <b className="truncate text-[15px]">{title}</b>
-          <span className="truncate text-[13px] text-muted-foreground">{text}</span>
+          {text && <span className="truncate text-[13px] text-muted-foreground">{text}</span>}
         </span>
       </div>
       <Button onClick={() => go(matchUrl(match))} data-action={action}>
@@ -115,7 +115,7 @@ function TournamentList() {
   );
   return (
     <div className={cn(PAGE, "tournaments")}>
-      {phone && <PageHead title={tr("Tournaments")} sub={tr("Open to every player, and your groups'")} />}
+      {phone && <PageHead title={tr("Tournaments")} />}
       {!list ? (
         <div className="grid min-h-0 flex-1 gap-5 md:grid-cols-[340px_minmax(0,1fr)]" aria-busy="true" aria-label={tr("Loading")}>
           <Surface className="p-4">
@@ -127,9 +127,7 @@ function TournamentList() {
           </div>
         </div>
       ) : !list.length ? (
-        <Empty icon={Trophy} title={tr("No tournament yet")} className="flex-1">
-          {tr("No tournament yet. The next ones will be listed here.")}
-        </Empty>
+        <Empty icon={Trophy} title={tr("No tournament yet")} className="flex-1" />
       ) : (
         <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "md:grid-cols-[320px_minmax(0,1fr)]", wide && "md:grid-cols-[340px_minmax(0,1fr)_320px]")}>
           <Surface className="gap-3.5 p-4 pt-5">
@@ -398,7 +396,7 @@ function Standing({ t }: { t: TournamentDetail }) {
   return mine ? (
     <MatchReady
       title={tr("{0}: your match is ready", { 0: said(roundName(mine.round, t.rounds)) })}
-      text={opponent ? tr("Against {0}. Both of you on the match page and it starts.", { 0: opponent.username }) : tr("It starts once both players are on its page.")}
+      text={opponent ? tr("vs {0}", { 0: opponent.username }) : undefined}
       match={mine.id}
       action="tournament:play"
     />
@@ -407,7 +405,7 @@ function Standing({ t }: { t: TournamentDetail }) {
       <Check className="size-4 shrink-0 text-success" />
       <b className="shrink-0">{tr("You are still in")}</b>
       <span className={cn(NUMERIC, "min-w-0 truncate text-muted-foreground")}>
-        {tr("Waiting for the rest of the {0}: {1} of {2} matches over. Your next match opens here by itself.", { 0: said(roundName(t.round, t.rounds)), 1: over, 2: round.length })}
+        {said(roundName(t.round, t.rounds))} · {over} / {round.length}
       </span>
     </p>
   );

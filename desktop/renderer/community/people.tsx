@@ -75,9 +75,7 @@ export function PeoplePage({ kind, id }: { kind: string; id: string }) {
           ) : !me ? (
             <ListSkeleton className="p-6" />
           ) : (
-            <Empty icon={kind ? UserRoundX : Users} title={kind ? "No longer among your friends and groups." : "Add friends, or make a group."}>
-              {!kind && tr("Find players by their username, or share your link.")}
-            </Empty>
+            <Empty icon={kind ? UserRoundX : Users} title={kind ? "No longer among your friends and groups." : "Add friends, or make a group."} />
           )}
         </Surface>
       )}
@@ -142,7 +140,7 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
             {(filter === "all" || filter === "friends") && (
               <Part title={tr("Friends")} count={filter === "all" ? friends.length : undefined}>
                 {!friends.length ? (
-                  <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No friend by that name.") : tr("No friend yet. Find players by their username, or share your link.")}</p>
+                  <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No friend by that name.") : tr("No one yet.")}</p>
                 ) : (
                   <VirtualList items={friends} scroller={scroller} estimate={56} gap={2} rowKey={(f) => f.id} row={(f, _, measure) => <FriendRow ref={measure} f={f} active={kind === "u" && id === f.id} />} />
                 )}
@@ -151,7 +149,7 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
             {(filter === "all" || filter === "groups") && (
               <Part title={tr("Groups")} count={filter === "all" ? groups.length : undefined}>
                 {!groups.length ? (
-                  <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No group by that name.") : tr("No group yet: make one for your club or your friends.")}</p>
+                  <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No group by that name.") : tr("None yet")}</p>
                 ) : (
                   <VirtualList
                     items={groups}
@@ -283,7 +281,7 @@ function Requests({ empty }: { empty: boolean }) {
   const me = community.me!,
     count = me.incoming.length + me.invitations.length;
   if (!count && !me.outgoing.length)
-    return empty ? <Empty icon={Check} className="p-6">{tr("Nothing waiting. Requests and invitations show here.")}</Empty> : null;
+    return empty ? <Empty icon={Check} className="p-6">{tr("Nothing new")}</Empty> : null;
   const CARD = "flex items-start gap-3 rounded-2xl bg-muted px-3.5 py-3";
   return (
     <Part title={tr("Requests")} count={count}>
@@ -349,7 +347,7 @@ function ShareLink() {
   return (
     <section className="mx-3 flex shrink-0 items-center gap-3 rounded-2xl bg-muted px-3.5 py-2.5" aria-label={tr("Your link")}>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[11px] text-muted-foreground">{tr("Your link · whoever opens it adds you")}</span>
+        <span className="text-[11px] text-muted-foreground">{tr("Your link")}</span>
         <span className="truncate text-sm font-bold" title={link}>
           {link.replace(/^https?:\/\//, "")}
         </span>
@@ -550,7 +548,7 @@ function FriendPage({ friend: f, phone }: { friend: Person & { since: number }; 
               run={() => void community.battle(c.id, { event: last.event, points: last.points, sets: last.sets, opponentId: null })}
             />
           )}
-          {!items.length && !last && <p className="text-[13px] text-muted-foreground">{tr("Nothing waits between you. Challenge {0} to a first battle.", { 0: f.username })}</p>}
+          {!items.length && !last && <p className="text-[13px] text-muted-foreground">{tr("Nothing new")}</p>}
         </section>
       </div>
     </div>
@@ -661,12 +659,12 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
       <div ref={scroller} className="grid min-h-0 flex-1 gap-x-8 gap-y-6 content-start overflow-y-auto px-6 pb-6 max-md:px-4 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-6">
           <section className="flex flex-col gap-2" aria-label={tr("Members")}>
-            <Caption action={run && <InviteDialog g={g} />}>{tr("Members · click a name to manage them")}</Caption>
+            <Caption action={run && <InviteDialog g={g} />}>{tr("Members")}</Caption>
             <MemberGrid g={g} members={[...members, ...invited]} scroller={scroller} />
           </section>
           <section className="flex flex-col gap-2" aria-label={tr("Battles")}>
             <Caption>{tr("Battles of the group")}</Caption>
-            {g.battles.length ? <BattleLines battles={g.battles.map((b) => community.card(b))} group /> : <p className="text-[13px] text-muted-foreground">{tr("No battle yet: launch the first one.")}</p>}
+            {g.battles.length ? <BattleLines battles={g.battles.map((b) => community.card(b))} group /> : <p className="text-[13px] text-muted-foreground">{tr("No battles yet")}</p>}
           </section>
         </div>
         <div className="flex min-w-0 flex-col gap-6">
@@ -674,7 +672,7 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
           <section className="flex flex-col gap-2" aria-label={tr("Tournaments")}>
             <Caption>{tr("Tournaments")}</Caption>
             {!g.tournaments.length ? (
-              <p className="text-[13px] text-muted-foreground">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</p>
+              <p className="text-[13px] text-muted-foreground">{tr("No tournament yet")}</p>
             ) : (
               <>
                 {upcoming.map((t) => (

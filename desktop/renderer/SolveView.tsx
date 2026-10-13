@@ -106,7 +106,7 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
       {alg && player ? (
         <PlayerAlg key={alg} player={player} text={recorded ? "z2 " + alg : annotation!.moves} size={16} className="max-h-32 overflow-y-auto" />
       ) : (
-        <p className="text-sm text-muted-foreground">{owner && cube ? tr("No turns yet: write them to replay the solve.") : tr("No turns recorded for this solve.")}</p>
+        !(owner && cube) && <p className="text-sm text-muted-foreground">{tr("No turns recorded for this solve.")}</p>
       )}
     </section>
   );

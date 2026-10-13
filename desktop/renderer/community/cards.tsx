@@ -125,7 +125,6 @@ function Seat({ p, name, score, won, take, action, order }: { p: Person | null; 
           {p && <Check className="size-3.5" />}
           {p ? tr("Accept") : tr("Take the seat")}
         </span>
-        <small className="text-xs font-semibold text-muted-foreground">{tr("You play right away")}</small>
       </button>
     );
   if (!p)

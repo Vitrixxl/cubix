@@ -65,9 +65,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
         <NoSmartSolves pending={a.pending} />
       ) : !method.count ? (
         <PageCard scroll={false}>
-          <Empty icon={Bluetooth} title={tr("No smart cube solve with {0} yet", { 0: said(method.label) })}>
-            <p className="max-w-md">{tr("Solve with this method on a connected cube: its steps, cases and times show here as soon as one is analysed.")}</p>
-          </Empty>
+          <Empty icon={Bluetooth} title={tr("No smart cube solve with {0} yet", { 0: said(method.label) })} />
         </PageCard>
       ) : (
         <Workshop key={method.id} method={method} latest={a.latest} suggestions={a.suggestions} phone={phone} />
@@ -82,7 +80,6 @@ function NoSmartSolves({ pending }: { pending: number }) {
     <Empty icon={Bluetooth} title={pending ? tr("Analysing your smart cube solves…") : tr("Only available for solves done on a connected cube")}>
       {!pending && (
         <>
-          <p className="max-w-md">{tr("Connect a smart cube on the 3×3 timer and solve: each solve is split into its steps and its cases, and gathered here.")}</p>
           <Button action="nav:playground" icon={Timer} variant="outline">
             {tr("Open the timer")}
           </Button>
@@ -361,7 +358,7 @@ function Plan({ suggestions, className }: { suggestions: TrainingSuggestion[]; c
   return (
     <section aria-label={tr("Suggested training")} className={cn("flex min-w-0 flex-col gap-2 md:flex-row md:items-stretch", className)}>
       <h2 className={cn(CARD_TITLE, "shrink-0 md:sr-only")}>{tr("To work on")}</h2>
-      {!suggestions.length && <p className="self-center text-sm text-muted-foreground">{tr("Nothing stands out yet: keep solving on the cube.")}</p>}
+      {!suggestions.length && <p className="self-center text-sm text-muted-foreground">{tr("Nothing new")}</p>}
       <div className="grid min-w-0 flex-1 gap-2 md:auto-cols-[minmax(15rem,1fr)] md:grid-flow-col md:overflow-x-auto">
         {suggestions.map((t) => (
           <Proposal key={t.id} suggestion={t} />

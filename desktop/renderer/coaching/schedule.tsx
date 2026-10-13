@@ -309,12 +309,11 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
     <>
       <DialogHeader>
         <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{tr("Edit availability")}</DialogTitle>
-        <DialogDescription>{tr("What do you want to change?")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
-        <ActionCard icon={<CalendarPlus />} title={tr("Add a date")} text={tr("Open hours on days you pick")} onClick={() => choose("open")} action="schedule:add-date" />
-        <ActionCard icon={<CalendarX />} title={tr("Cancel a date")} text={tr("A day off, or a few hours away")} onClick={() => choose("close")} action="schedule:cancel-date" />
-        <ActionCard icon={<Repeat />} title={tr("Add weekly hours")} text={tr("The same hours every week")} onClick={() => choose("rule")} action="schedule:rule" />
+        <ActionCard icon={<CalendarPlus />} title={tr("Add a date")} onClick={() => choose("open")} action="schedule:add-date" />
+        <ActionCard icon={<CalendarX />} title={tr("Cancel a date")} onClick={() => choose("close")} action="schedule:cancel-date" />
+        <ActionCard icon={<Repeat />} title={tr("Add weekly hours")} onClick={() => choose("rule")} action="schedule:rule" />
       </div>
       {!!saved.rules.length && (
         <div className="flex flex-col gap-1.5" data-slot="rules">
@@ -362,14 +361,11 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
   );
 }
 /** One way to change the availability, as a card leading to its next step. */
-function ActionCard({ icon, title, text, onClick, action }: { icon: React.ReactNode; title: string; text: string; onClick: () => void; action: string }) {
+function ActionCard({ icon, title, onClick, action }: { icon: React.ReactNode; title: string; onClick: () => void; action: string }) {
   return (
     <button type="button" onClick={onClick} data-action={action} className={cn(TILE, "flex items-center gap-3 bg-muted p-3 hover:bg-accent")}>
       <span className="flex size-6 shrink-0 items-center justify-center text-primary [&_svg]:size-5">{icon}</span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-bold">{title}</span>
-        <span className="text-xs text-muted-foreground">{text}</span>
-      </span>
+      <span className="min-w-0 flex-1 font-bold">{title}</span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </button>
   );

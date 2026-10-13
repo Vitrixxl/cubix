@@ -76,18 +76,12 @@ const PHASES = ["Your cube", "Read your cube", "Solve it"];
  * `phase`: 0 to 2, 3 once solved; `skipped`, the reading of a connected cube, which needs none.
  */
 function Page({ phase, skipped = false, back, children }: { phase: number; skipped?: boolean; back: () => void; children: React.ReactNode }) {
-  const { method } = useContext(Course);
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 px-3 pt-2 pb-3 md:gap-4 md:px-6 md:pb-6 lg:px-9">
       <header className="flex shrink-0 items-center gap-2 md:gap-4">
         <button type="button" data-action="assisted:back" onClick={back} aria-label={tr("Back")} className={cn("flex min-w-0 items-center gap-1.5 rounded-xl py-1 pr-2 pl-1 hover:bg-muted", FOCUS)}>
           <ChevronLeft className="size-5 shrink-0" />
-          <span className="flex min-w-0 flex-col text-left">
-            <h1 className="truncate text-lg leading-tight font-extrabold tracking-[-0.02em] md:text-xl">{tr("With my cube")}</h1>
-            <span className="truncate text-xs font-semibold text-muted-foreground max-md:hidden">
-              {said(method.name)} · {tr("Assisted solve")}
-            </span>
-          </span>
+          <h1 className="truncate text-lg leading-tight font-extrabold tracking-[-0.02em] md:text-xl">{tr("With my cube")}</h1>
         </button>
         <ol className="mx-auto flex items-center gap-1.5" aria-label={tr("Steps")}>
           {PHASES.map((name, k) => {
@@ -176,7 +170,6 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
       onClick: () => (link.status === "on" ? onChoose("cube") : void s.action("smartCube")),
       disabled: link.status === "connecting",
       title: tr("Connected cube"),
-      text: tr("Qbix follows each of your turns itself and tells you when one goes wrong."),
       meta: link.status === "on" && link.battery != null ? tr("Battery {0} %", { 0: link.battery }) : link.status === "on" ? link.name : "",
       go: link.status === "on" ? tr("Start") : link.status === "connecting" ? tr("Connecting…") : tr("Connect"),
       picture: (
@@ -193,7 +186,6 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
       action: "assisted:scan",
       onClick: () => onChoose("scan"),
       title: tr("Show the faces"),
-      text: tr("Hold each face up to the camera: its colours are read for you."),
       meta: tr("Six faces, one at a time"),
       go: tr("Start"),
       picture: <CameraPicture />,
@@ -203,7 +195,6 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
       action: "assisted:hand",
       onClick: () => onChoose("hand"),
       title: tr("By hand"),
-      text: tr("Paint the colours of each face on a flat cube."),
       meta: tr("No camera needed"),
       go: tr("Start"),
       picture: <HandPicture />,
@@ -212,18 +203,12 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
   return (
     <Page phase={0} back={() => void s.action("assisted:off")}>
       <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-3 md:gap-5">
-        <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("How does Qbix see your cube?")}</h2>
-          <p className="text-sm text-balance text-muted-foreground md:text-base">{tr("It plans a solve with the steps of the course, then tells you each turn to make.")}</p>
-        </div>
+        <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("How does Qbix see your cube?")}</h2>
         <div className={cn("grid min-h-0 gap-2.5 max-md:auto-rows-min md:gap-4", ways.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2")}>
           {ways.map((way) => (
             <button key={way.id} type="button" data-action={way.action} disabled={"disabled" in way && way.disabled} onClick={way.onClick} className={cn(TILE, "group flex min-h-0 flex-col gap-3 p-3.5 md:gap-4 md:rounded-[26px] md:p-4")}>
               <span className="relative flex min-h-0 flex-1 items-center justify-center rounded-[18px] bg-background transition-colors group-hover:bg-card max-md:hidden">{way.picture}</span>
-              <span className="flex flex-col gap-1 px-1">
-                <span className="text-lg font-extrabold tracking-[-0.03em] md:text-[22px]">{way.title}</span>
-                <span className="text-sm leading-snug text-muted-foreground">{way.text}</span>
-              </span>
+              <span className="px-1 text-lg font-extrabold tracking-[-0.03em] md:text-[22px]">{way.title}</span>
               <span className="flex items-center justify-between gap-2 px-1 text-[13px] font-bold">
                 <span className="truncate text-muted-foreground">{way.meta}</span>
                 <span className="flex shrink-0 items-center gap-1 text-primary">
@@ -242,7 +227,6 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
             <StaticCubeSvg state={solved(3)} size={50} className="shrink-0 max-md:hidden" />
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className={SAY}>{tr("Your cube is already solved?")}</span>
-              <span className="text-sm text-muted-foreground">{tr("Scramble it first with this scramble:")}</span>
               {scramble && <Alg text={scramble} size={16} className="font-bold text-foreground" />}
             </span>
           </div>
@@ -471,12 +455,12 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
       <Page phase={2} skipped={!manual} back={leave}>
         {plan ? (
           <Notice cube={<StaticCubeSvg state={solved(3)} size={phone ? 110 : 150} />} title={tr("Your cube is already solved")} text={manual ? tr("Scramble it, then read it again.") : tr("Scramble it, then start.")}>
-            <ActionCard primary icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read the cube again") : tr("Start")} text={tr("The six faces again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+            <ActionCard primary icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read the cube again") : tr("Start")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
           </Notice>
         ) : (
           <Notice icon={TriangleAlert} title={tr("This cube cannot be solved")} text={tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-            {manual && <ActionCard primary icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onClick={() => rescan("check")} action="assisted:check" />}
-            <ActionCard primary={!manual} icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read everything again") : tr("Try again")} text={manual ? tr("The six faces again") : undefined} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+            {manual && <ActionCard primary icon={Check} title={tr("Check the colours")} onClick={() => rescan("check")} action="assisted:check" />}
+            <ActionCard primary={!manual} icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read everything again") : tr("Try again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
           </Notice>
         )}
       </Page>
@@ -517,7 +501,6 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
               <StaticCubeSvg state={solved(3)} size={170} />
             </span>
             <h2 className="text-4xl leading-none font-extrabold tracking-[-0.05em] md:text-[56px]">{tr("Solved!")}</h2>
-            <p className="text-sm text-muted-foreground md:text-base">{tr("Every step of the {0} method, on your own cube.", { 0: said(method.name) })}</p>
             <div className="flex gap-8">
               {[
                 [time, tr("Time")],
@@ -547,9 +530,9 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
               ))}
             </section>
             <div className="grid gap-2 md:grid-cols-3 md:gap-3">
-              <ActionCard primary icon={RotateCcw} title={tr("Solve again")} text={manual ? tr("Scramble your cube, Qbix reads it again") : tr("Scramble your cube, then start")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
-              <ActionCard icon={Timer} title={tr("On your own, with the timer")} text={tr("No help, to see")} onClick={() => void s.action("nav:playground")} action="nav:playground" />
-              <ActionCard icon={GraduationCap} title={tr("Back to the course")} text={`${tr("Step {0} of {1}", { 0: 1, 1: method.steps.length })} · ${said(steps[0]!.title)}`} onClick={() => void s.action("assisted:off")} action="assisted:off" />
+              <ActionCard primary icon={RotateCcw} title={tr("Solve again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+              <ActionCard icon={Timer} title={tr("On your own, with the timer")} onClick={() => void s.action("nav:playground")} action="nav:playground" />
+              <ActionCard icon={GraduationCap} title={tr("Back to the course")} onClick={() => void s.action("assisted:off")} action="assisted:off" />
             </div>
           </div>
         </div>
@@ -596,13 +579,13 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
         >
           {manual ? (
             <>
-              <ActionCard primary icon={ScanLine} title={tr("Read the cube again")} text={tr("The six faces again")} onClick={() => rescan()} action="assisted:rescan" />
+              <ActionCard primary icon={ScanLine} title={tr("Read the cube again")} onClick={() => rescan()} action="assisted:rescan" />
               <ActionCard icon={Undo2} title={tr("Back to the start of this part")} text={made ? tr("Undo {0}", { 0: turns.slice(0, made).reverse().map(invertToken).join(" ") }) : said(steps[step]!.title)} onClick={restart} action="assisted:restart" />
-              <ActionCard icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onClick={() => rescan("check")} action="assisted:check" />
+              <ActionCard icon={Check} title={tr("Check the colours")} onClick={() => rescan("check")} action="assisted:check" />
             </>
           ) : (
             <>
-              <ActionCard primary icon={RefreshCw} title={tr("Continue from here")} text={tr("A new plan, from your cube as it is")} onClick={replan} action="assisted:replan" />
+              <ActionCard primary icon={RefreshCw} title={tr("Continue from here")} onClick={replan} action="assisted:replan" />
               <ActionCard icon={GraduationCap} title={tr("Review the lesson")} text={said(steps[step]!.title)} onClick={reviewLesson} action={"learnStep:" + step} />
             </>
           )}
@@ -698,8 +681,8 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
                 </button>
               </Tip>
               <ActionCard primary title={<span className="text-lg md:text-xl md:font-extrabold">{tr("Done, next turn")}</span>} kbd={tr("Space")} onClick={forward} disabled={next < 0} action="assisted:next" className="min-h-14 max-md:col-span-2 md:px-5" />
-              <ActionCard icon={Info} title={tr("I'm lost")} text={<span className="max-md:hidden">{tr("Start again from where the cube is")}</span>} onClick={() => setGaveUp(true)} action="assisted:lost" className="max-md:col-span-2" />
-              <ActionCard icon={ScanLine} title={tr("Read the cube again")} text={<span className="max-md:hidden">{tr("The six faces again")}</span>} onClick={() => rescan()} action="assisted:rescan" />
+              <ActionCard icon={Info} title={tr("I'm lost")} onClick={() => setGaveUp(true)} action="assisted:lost" className="max-md:col-span-2" />
+              <ActionCard icon={ScanLine} title={tr("Read the cube again")} onClick={() => rescan()} action="assisted:rescan" />
             </>
           ) : (
             <>
@@ -716,10 +699,9 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
               ) : (
                 <div className="flex min-w-0 items-center gap-3 rounded-xl bg-card px-4 py-3" role="status">
                   <StateMark tone="good">{tr("Following your cube")}</StateMark>
-                  <span className="truncate text-xs text-muted-foreground">{tr("Make the turn shown: Qbix moves on by itself.")}</span>
                 </div>
               )}
-              <ActionCard icon={RefreshCw} title={tr("Continue from here")} text={tr("A new plan, from your cube as it is")} onClick={replan} action="assisted:replan" />
+              <ActionCard icon={RefreshCw} title={tr("Continue from here")} onClick={replan} action="assisted:replan" />
               <ActionCard
                 icon={Unplug}
                 title={link.name}

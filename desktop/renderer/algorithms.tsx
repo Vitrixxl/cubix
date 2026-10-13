@@ -80,7 +80,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
   if (mobile)
     return (
       <div className={PAGE}>
-        <PageHead title={tr("Algorithms")} puzzle sub={tr("{0} of {1} learned", { 0: learned, 1: total })} more={<MenuAction action="methods" icon={BookOpen}>{tr("Solving methods")}</MenuAction>}>
+        <PageHead title={tr("Algorithms")} puzzle more={<MenuAction action="methods" icon={BookOpen}>{tr("Solving methods")}</MenuAction>}>
           <Button action="search" icon={Search} tip={tr("Search cases")} />
         </PageHead>
         <div className="flex shrink-0 flex-col items-start gap-2">
@@ -190,7 +190,7 @@ function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>
   );
 }
 
-/** The chosen set's title: where it sits, its name and what it is; how far it is learned on the right. */
+/** The chosen set's name; how far it is learned on the right. */
 function SetHead({ set, section }: { set: any; section: any }) {
   const all: any[] = section.all,
     learned = section.learnedCount,
@@ -202,17 +202,7 @@ function SetHead({ set, section }: { set: any; section: any }) {
     ];
   return (
     <header className="flex shrink-0 items-end gap-6">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="flex items-center gap-1 text-[13px] font-semibold text-muted-foreground">
-          {tr("Algorithms")}
-          <ChevronRight className="size-3" />
-          {s.event().label}
-          <ChevronRight className="size-3" />
-          {said(section.stage)}
-        </p>
-        <h1 className="truncate text-[30px] leading-tight font-extrabold tracking-[-0.04em]">{said(set.label)}</h1>
-        {set.description && <p className="line-clamp-1 text-sm text-muted-foreground">{said(set.description)}</p>}
-      </div>
+      <h1 className="min-w-0 flex-1 truncate text-[30px] leading-tight font-extrabold tracking-[-0.04em]">{said(set.label)}</h1>
       <div className="flex w-[min(26rem,42%)] shrink-0 flex-col gap-2.5 pb-1 max-lg:hidden">
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold text-muted-foreground">
           {legend.map(([n, label, dot]) => (
@@ -734,7 +724,6 @@ function CaseCard({ id }: { id: string }) {
           { id: "statistics", label: "My times", count: st?.count ?? 0 },
         ]}
       />
-      {tab === "algorithms" && !phone && <span className="text-[13px] font-semibold text-faint">{tr("← → change case · click an algorithm to play it")}</span>}
     </div>
   );
   // Phones play it above the list: back up to it.

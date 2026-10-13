@@ -160,7 +160,7 @@ function AccountData() {
             <form onSubmit={remove} className="flex flex-col gap-5">
               <AlertDialogHeader>
                 <AlertDialogTitle>{tr("Delete your account?")}</AlertDialogTitle>
-                <AlertDialogDescription>{tr("Your times, sessions, friends, messages, groups you own and everything else of the account are erased from the server at once. This cannot be undone.")}</AlertDialogDescription>
+                <AlertDialogDescription>{tr("The account and all its data are erased for good.")}</AlertDialogDescription>
               </AlertDialogHeader>
               {error && <FieldError>{error}</FieldError>}
               <AlertDialogFooter>
@@ -292,7 +292,6 @@ function SearchDialog() {
       open={s.overlay === "search"}
       onOpenChange={(open: boolean) => !open && s.overlay === "search" && close()}
       title={tr("Search cases")}
-      description={tr("Find a case by its name, set or group")}
       className="sm:max-w-xl"
     >
       <SearchCases />
@@ -348,7 +347,7 @@ export const Overlays = memo(function Overlays() {
       <Modal id="settings" title={tr("Settings")} className="sm:max-w-lg" tall>
         <Settings />
       </Modal>
-      <Modal id="importTimes" title={tr("Import times")} description={tr("From another timer, or a file exported from Qbix. The file is read on this device.")} className="sm:max-w-lg">
+      <Modal id="importTimes" title={tr("Import times")} className="sm:max-w-lg">
         <ImportTimes />
       </Modal>
       <GuidesDialog />
@@ -359,7 +358,7 @@ export const Overlays = memo(function Overlays() {
       <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? tr("Algorithm")} description={tr("The algorithm played on the cube")} hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
         <AlgView />
       </Modal>
-      <Modal id="notation" title={tr("Notation")} description={tr("How moves are written")} tall className="flex h-[min(88vh,760px)] flex-col sm:max-w-5xl">
+      <Modal id="notation" title={tr("Notation")} tall className="flex h-[min(88vh,760px)] flex-col sm:max-w-5xl">
         <NotationContent />
       </Modal>
       <Modal id="solve" title={tr("Solve")} hideHeader className={s.overlaySolve?.scramble && puzzleInfo(puzzleOf(s.overlaySolve)).cubeSize ? "sm:max-w-4xl" : "sm:max-w-lg"}>

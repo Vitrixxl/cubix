@@ -168,7 +168,7 @@ export function DailyDialog() {
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-muted-foreground">
             {ranked && board.mine && <Verified on={board.mine.verified} />}
-            <span>{!s.signedIn ? <SignInNote /> : ranked ? tr("Your ranked attempt of the day.") : tr("Not ranked: only the first attempt of the day counts.")}</span>
+            {(!s.signedIn || !ranked) && <span>{!s.signedIn ? <SignInNote /> : tr("Not ranked")}</span>}
           </div>
           <div className="flex shrink-0 justify-center">
             <View board={board} />
@@ -222,9 +222,8 @@ export function DailyPage() {
     ) : past ? (
       <StageMeter share={0} value="–" label={tr("Not tried that day")} />
     ) : (
-      <StageAction icon={Play} title={tr("Solve it")} sub={s.signedIn ? tr("Your one ranked attempt of the day, on the timer") : tr("On the timer")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />
+      <StageAction icon={Play} title={tr("Solve it")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />
     );
-  const note = !s.signedIn ? <SignInNote /> : past ? tr("The scramble of {0}.", { 0: dayLabel(day) }) : !done ? tr("One ranked attempt a day: a connected cube makes it verified.") : tr("Done for today: a new scramble at midnight UTC.");
   const pick = (d: string, e: DailyEvent) => (setDay(d), setEvent(e), setResults(false));
   const resultsButton = !wide && (
     <UiButton variant="outline" onClick={() => setResults(true)} data-action="daily:results">
@@ -248,17 +247,23 @@ export function DailyPage() {
         <Stage
           className="daily-stage gap-4"
           lead={
-            <div className="-mt-1 flex flex-col items-center gap-2">
-              {loaded?.mine && <Verified on={loaded.mine.verified} />}
-              <p className="max-w-md text-sm text-balance text-muted-foreground">{note}</p>
-            </div>
+            (loaded?.mine || !s.signedIn) && (
+              <div className="-mt-1 flex flex-col items-center gap-2">
+                {loaded?.mine && <Verified on={loaded.mine.verified} />}
+                {!s.signedIn && (
+                  <p className="max-w-md text-sm text-balance text-muted-foreground">
+                    <SignInNote />
+                  </p>
+                )}
+              </div>
+            )
           }
           figures={!phone && <Figures board={loaded} place={place} />}
         >
           <div className="flex flex-col items-center gap-2.5">
             {!phone && (
               <div className="flex items-center gap-3">
-                <span className={KICKER}>{past ? dayLabel(day) : tr("{0} · new at midnight UTC", { 0: dayLabel(day) })}</span>
+                <span className={KICKER}>{dayLabel(day)}</span>
                 {events}
               </div>
             )}

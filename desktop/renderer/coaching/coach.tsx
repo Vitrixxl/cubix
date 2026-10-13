@@ -176,7 +176,7 @@ export function StudentsView({ id }: { id: string }) {
           {!d ? (
             <ListSkeleton />
           ) : !d.students.length ? (
-            <Empty icon={Users}>{tr("Players who book you or write to you appear here.")}</Empty>
+            <Empty icon={Users}>{tr("No one yet.")}</Empty>
           ) : (
             <ul className={LIST} data-slot="students">
               <VirtualList
@@ -290,7 +290,6 @@ function ProfileForm() {
             <div>
               <Segmented label="New students" value={newStudents ? "newcomers" : "regulars"} onChange={(v) => setNewStudents(v === "newcomers")} action="profile:" className="w-fit bg-muted" options={[{ id: "newcomers", label: "Welcome" }, { id: "regulars", label: "My students only" }]} />
             </div>
-            <FieldDescription>{newStudents ? tr("Anyone can book your free slots.") : tr("Only players you already coached see your slots.")}</FieldDescription>
           </Field>
         </div>
         <Field>
@@ -316,7 +315,7 @@ function ProfileForm() {
               <InputGroupInput id="coach-price" inputMode="decimal" value={euros} onChange={(e) => setEuros(e.target.value)} placeholder="0" className={NUMERIC} aria-invalid={!valid || undefined} />
               <InputGroupAddon align="inline-end">€ · {coach.sessionMinutes} {" "}{tr("min")}</InputGroupAddon>
             </InputGroup>
-            <FieldDescription>{cents ? price(cents) : tr("Free")} {" "}{tr("· payment comes later")}</FieldDescription>
+            <FieldDescription>{cents ? price(cents) : tr("Free")}</FieldDescription>
           </Field>
         </div>
       </div>
@@ -333,9 +332,9 @@ function ProfileForm() {
       </Surface>
       {/* What players will see in the list of coaches, as it is typed. */}
       <Surface className="gap-3 self-start px-2.5 pt-4 pb-2.5 max-lg:hidden" aria-label={tr("How players see you")}>
-        <h2 className="px-3 text-xs font-bold text-muted-foreground">{tr("How players see you in the list")}</h2>
+        <h2 className="px-3 text-xs font-bold text-muted-foreground">{tr("How players see you")}</h2>
         <CoachRow c={{ ...coach, headline: headline.trim(), events, languages: languages.split(",").map((l) => l.trim()).filter(Boolean), priceCents: valid ? cents : coach.priceCents, newStudents }} />
-        <p className="px-3 pb-1 text-xs text-muted-foreground">{accepting ? tr("Bookings open.") : tr("Bookings paused: players see no slot.")}</p>
+        {!accepting && <p className="px-3 pb-1 text-xs text-muted-foreground">{tr("Bookings paused: players see no slot.")}</p>}
       </Surface>
     </form>
   );
@@ -385,7 +384,6 @@ function Picture() {
                 {tr("Remove")}</UiButton>
             )}
           </div>
-          <FieldDescription>{tr("Players see it beside your name. A face works best.")}</FieldDescription>
         </div>
       </div>
     </Field>

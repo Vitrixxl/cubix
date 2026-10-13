@@ -48,8 +48,7 @@ export function StatsPage({ phone }: { phone: boolean }) {
   const by = data?.sessions?.length && s.statsBy === "session" ? "session" : "solve";
   const empty = (
     <Surface className="flex-1">
-      <Empty icon={Timer}>
-        <span>{tr("No times in this selection yet.")}</span>
+      <Empty icon={Timer} title={tr("No times yet")}>
         <Button action="nav:playground" icon={Timer} variant="outline">
           {tr("Open the timer")}
         </Button>
@@ -572,7 +571,7 @@ function SolveList({ history, ao5, ao12, sessionOf, range, phone, records, sort,
         <span className="w-40 max-md:hidden" />
       </div>
       <div ref={scroller} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" key={`${range.join(":")}:${sort}:${commented}`}>
-        {!items.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
+        {!items.length && <Empty>{tr("No solves match.")}</Empty>}
         {/* Takes no room: the headings drawn in the list come after it and cover it while they are there. */}
         {pinned && <div className="sticky top-0 z-[1] h-0" aria-hidden>{head(pinned)}</div>}
         <VirtualList
@@ -766,7 +765,7 @@ function SolvesTable({ history, ao5, ao12, range, total, tools, sort, setSort, c
         <span className="w-40 max-md:hidden" />
       </div>
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
-        {!rows.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
+        {!rows.length && <Empty>{tr("No solves match.")}</Empty>}
         <VirtualList items={rows} scroller={scroller} estimate={36} rowKey={(r) => r.v.id} row={({ v, index, pb }, _, measure) => {
           // A case done during a smart cube solve opens that solve; its time is the case's, so it has no actions.
           const open = "solve:" + (v.solveId ?? v.id),

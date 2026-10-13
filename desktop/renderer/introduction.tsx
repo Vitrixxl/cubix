@@ -26,9 +26,9 @@ import { said } from "./base";
 /* ------------------------------------------------------------------ Onboarding */
 
 const STEPS = [
-  { label: "Welcome", title: "Welcome to Qbix", sub: "A few seconds to set the app up for you" },
-  { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
-  { label: "Times", title: "Bring your times", sub: "Your history from another timer, if you have one" },
+  { label: "Welcome", title: "Welcome to Qbix" },
+  { label: "Puzzles", title: "What can you solve?" },
+  { label: "Times", title: "Bring your times" },
 ] as const;
 const LAST = STEPS.length - 1;
 
@@ -36,7 +36,7 @@ const LAST = STEPS.length - 1;
 const CHECKED = "aria-checked:bg-accent aria-checked:text-foreground";
 
 /** The page header, its title named as the page's and focused as each step comes in. */
-function StepHead({ title, sub }: { title: string; sub: string }) {
+function StepHead({ title }: { title: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const h1 = ref.current?.querySelector("h1");
@@ -47,9 +47,8 @@ function StepHead({ title, sub }: { title: string; sub: string }) {
     h1.focus({ preventScroll: true });
   }, []);
   return (
-    <div ref={ref} className="flex shrink-0 flex-col gap-1.5">
+    <div ref={ref} className="shrink-0">
       <h1 className="text-3xl font-extrabold tracking-[-0.03em] text-balance md:text-4xl">{title}</h1>
-      <p className="text-sm text-muted-foreground md:text-base">{sub}</p>
     </div>
   );
 }
@@ -297,7 +296,7 @@ export function Onboarding() {
               transition={{ x: { type: "spring", stiffness: 520, damping: 42 }, opacity: { duration: 0.14 } }}
               className={cn("flex min-h-0 flex-1 flex-col gap-4 pt-2 pb-4 md:flex-initial md:gap-6 md:pt-6 md:pb-6", step === 0 && "max-md:justify-center max-md:pb-[8vh]")}
             >
-              <StepHead title={said(STEPS[step].title)} sub={said(STEPS[step].sub)} />
+              <StepHead title={said(STEPS[step].title)} />
               {content}
               {error && (
                 <Alert variant="destructive">

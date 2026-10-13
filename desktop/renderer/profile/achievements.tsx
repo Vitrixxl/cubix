@@ -11,7 +11,7 @@ import { Back, Bar, Choice, Empty, FOCUS, Modal, NUMERIC, PageHead, SelectMenu, 
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { achievementKind, achievementSeries, isTimeGoal, level } from "../../../src/client/lib/achievements";
+import { achievementKind, achievementSeries, isTimeGoal } from "../../../src/client/lib/achievements";
 import { fmtTime } from "../../../src/client/lib/format";
 import { eventOf, type PuzzleId } from "../../../src/shared/puzzles";
 import { sets } from "../../../src/client/local/catalog";
@@ -91,7 +91,6 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
   const head = (
     <PageHead
       title={tr("Achievements")}
-      sub={`${tr("{0} of {1} unlocked", { 0: s.achievements?.unlocked ?? 0, 1: s.achievements?.total ?? 0 })} · ${tr("Level {0}", { 0: level(s.achievements?.xp ?? 0).level })}`}
       lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
     >
       {!phone && <Filters groups={groups} unlocked={unlocked} locked={inGroup.length - unlocked} />}
@@ -245,9 +244,7 @@ function Journal({ pool, mode, chosen, pick, phone }: { pool: A[]; mode: "locked
     <Surface aria-label={mode === "unlocked" ? tr("Your journal") : tr("To unlock")} className="flex flex-col pt-5 pl-6 max-md:pt-4 max-md:pl-4">
       <header className="flex shrink-0 items-baseline gap-3 pr-6 max-md:pr-4">
         <h2 className="text-lg font-extrabold tracking-tight">{mode === "unlocked" ? tr("Your journal") : tr("To unlock")}</h2>
-        <span className={cn(NUMERIC, "truncate text-sm font-semibold text-muted-foreground")}>
-          {mode === "unlocked" ? tr("{0} achievements, latest first", { 0: pool.length }) : tr("{0} achievements, closest first", { 0: pool.length })}
-        </span>
+        <span className={cn(NUMERIC, "text-sm font-semibold text-muted-foreground")}>{pool.length}</span>
       </header>
       {!pool.length ? (
         <Empty icon={Trophy} title={mode === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")} />
