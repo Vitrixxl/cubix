@@ -72,7 +72,7 @@ export function CoachList({ selected }: { selected?: string }) {
     {!shown ? <View accessibilityLabel={tr("Loading")} className="gap-2">{[0, 1, 2].map(i => <Skeleton key={i} className="h-32 rounded-3xl" />)}</View>
       : !shown.length ? <Empty icon={list?.length ? SearchX : Users}>
         {list?.length ? tr("No coach matches your search.") : tr("No coach has opened their page yet.")}
-        {!c.isCoach && !list?.length ? <Button variant="outline" onPress={() => nav.go("apply", true)}><Text>{tr("Become the first coach")}</Text></Button> : null}
+        {!c.isCoach && !list?.length ? <Button variant="outline" onPress={() => nav.go("apply", true)}><Text>{tr("Become a coach")}</Text></Button> : null}
       </Empty>
         : <FlatList key={columns} data={shown} extraData={selected} keyExtractor={c => c.id} numColumns={columns} className={cn("min-h-0 flex-1", tablet && "-mx-1")} contentContainerClassName={tablet ? "pb-2" : "gap-2 pb-2"} keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => <View className={cn(tablet && "w-1/2 p-1")}><CoachCard c={item} on={item.id === selected} onPress={() => nav.go("coach/" + item.id, wide)} /></View>} />}
@@ -297,7 +297,7 @@ function Booking({ id, head, after, scroller }: { id: string; head?: ReactNode; 
   return <View className="min-h-0 flex-1">
     <ScrollView ref={scroller} className="min-h-0 flex-1" contentContainerClassName="gap-3 px-4 pb-4" keyboardShouldPersistTaps="handled">
       {head}
-      {own ? <Button variant="outline" className="self-start" onPress={() => nav.go("schedule", true)}><Text>{tr("Edit your schedule")}</Text></Button>
+      {own ? <Button variant="outline" className="self-start" accessibilityLabel={tr("Edit your schedule")} onPress={() => nav.go("schedule", true)}><Text>{tr("Edit")}</Text></Button>
         : !data ? <View accessibilityLabel={tr("Loading")} className="gap-2"><Skeleton className="h-5 w-40" /><View className="flex-row gap-1">{Array.from({ length: 7 }, (_, i) => <Skeleton key={i} className="h-16 flex-1" />)}</View></View>
           : !open ? <Empty icon={!data.welcome ? UserRoundX : CalendarX} className="flex-none rounded-2xl bg-muted">
             {!data.welcome ? tr("Full · own students only") : tr("No open slot")}

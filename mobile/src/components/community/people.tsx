@@ -117,12 +117,12 @@ const FILTERS = ["all", "friends", "groups", "requests"] as const;
 type Filter = (typeof FILTERS)[number];
 
 /**
- * The Community tab: the search (a friend, a group or any player) and a new group, the filters, then the requests
- * waiting, the friends with the score of your battles and the groups, each opening its page; the link to share at the foot.
- * On a tablet the friends and groups go in two columns; on a wide screen the page open beside (`selected`) is marked,
- * and with none open the requests and the link go `aside`, in its place.
+ * The Community tab: the search (a friend, a group or any player), a friend to add (with the link to share) and a new
+ * group, the filters, then the requests waiting, the friends with the score of your battles and the groups, each opening
+ * its page. On a tablet the friends and groups go in two columns; on a wide screen the page open beside (`selected`) is
+ * marked, and with none open the requests go `aside`, in its place.
  */
-export function Contacts({ onNewGroup, selected, aside = false }: { onNewGroup: () => void; selected?: string; aside?: boolean }) {
+export function Contacts({ onAddFriend, onNewGroup, selected, aside = false }: { onAddFriend: () => void; onNewGroup: () => void; selected?: string; aside?: boolean }) {
   const m = community.me, [query, setQuery] = useState(""), [filter, setFilter] = useState<Filter>("all"), found = useFound(query), q = query.trim().toLowerCase(),
     friends = (m?.friends ?? []).filter(f => f.username.toLowerCase().includes(q)),
     groups = (m?.groups ?? []).filter(g => g.name.toLowerCase().includes(q)),
@@ -138,6 +138,7 @@ export function Contacts({ onNewGroup, selected, aside = false }: { onNewGroup: 
   return <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-2", tablet && "px-7")}>
     <View className="flex-row items-center gap-2">
       <SearchField value={query} onChangeText={setQuery} placeholder={tr("A friend, a group or a Qbix player")} className="min-w-0 flex-1" />
+      <Pill icon={UserPlus} label={tr("Add a friend")} onPress={onAddFriend} className="size-11" />
       <Pill icon={Plus} text={tr("Group")} label={tr("New group")} tone="soft" onPress={onNewGroup} className="h-11" />
     </View>
     <Segmented label={tr("Contacts")} value={filter} onChange={setFilter} options={[
@@ -162,7 +163,6 @@ export function Contacts({ onNewGroup, selected, aside = false }: { onNewGroup: 
             sub={plural(g.members, "member")} />)}</Cells>}
       </Part> : null}
     </ScrollView>}
-    {!aside ? <ShareLink /> : null}
   </View>;
 }
 
@@ -305,7 +305,7 @@ export function NewGroupSheet({ open, onClose }: { open: boolean; onClose: () =>
       const done = await community.createGroup(name.trim(), description.trim(), invite);
       setBusy(false);
       if (done) onClose();
-    }}><Text>{tr("Create the group")}</Text></Button>
+    }} accessibilityLabel={tr("Create the group")}><Text>{tr("Create")}</Text></Button>
   </Sheet>;
 }
 

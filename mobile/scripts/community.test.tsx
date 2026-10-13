@@ -134,11 +134,22 @@ test("the Community tab lists the friends; a friend opens their page, with the s
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
   expect(all("SearchField")[0]!.props.placeholder).toBe("A friend, a group or a Qbix player");
   expect(all("Segmented")[0]!.props.options.map((o: { id: string; count?: number }) => [o.id, o.count])).toEqual([["all", undefined], ["friends", 1], ["groups", 0], ["requests", 0]]);
-  expect(texts()).toContain("Your link");
+  // Adding a friend is a button beside the search, opening its sheet with the link to share.
+  const adding = () => all("Sheet").find(n => n.props.title === "Add a friend")!;
+  expect(adding().props.open).toBe(false);
+  await act(() => pressable("Add a friend")!.props.onPress());
+  expect(adding().props.open).toBe(true);
+  expect(adding().findAll(n => n.props.accessibilityLabel === "Your link")).not.toHaveLength(0);
+  await act(() => adding().props.onClose());
   await act(() => pressable("lena_speed")!.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "community", view: "people/u/u2" });
   expect(all("PushedBar")[0]!.props.title).toBe("Friend");
   expect(texts()).toContain("Your battles");
   expect(pressable("Challenge")).toBeDefined();
   expect(pressable("Write")).toBeDefined();
+  // Their battles are in the History sheet, from the head.
+  const history = () => all("Sheet").find(n => n.props.title === "History")!;
+  expect(history().props.open).toBe(false);
+  await act(() => all("HeadButton").find(n => n.props.label === "History")!.props.onPress());
+  expect(history().props.open).toBe(true);
 });

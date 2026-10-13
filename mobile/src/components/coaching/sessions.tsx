@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarDays, CalendarX, Check, MessageSquare, Star, Video, X } from "lucide-react-native";
+import { CalendarClock, CalendarDays, CalendarX, Check, History, MessageSquare, Search, Star, Video, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
@@ -13,17 +13,12 @@ import { useColors } from "../../theme";
 import { ask } from "../Confirm";
 import { ChoiceButton } from "../PuzzlePicker";
 import { Sheet, SheetInput, SheetScrollView } from "../Sheet";
-import { Empty, Numeric, Segmented } from "../layout";
+import { Empty, HeadButton, Numeric } from "../layout";
 import { Alert } from "@/components/ui/alert";
 import { callOpen, cancellationOpen, coaching, price, useCoaching, type Booking } from "./client";
 import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, longDay, toDate } from "./calendar";
 import { Face, Stars, day, dayKey, relative, span, time, useAction, useCoachingNav } from "./parts";
 import { tr } from "../../../../src/client/i18n";
-import { msg } from "../../../../src/client/i18n/msg";
-
-/** Every session on the shared calendar, filtered by status; a day opens its sessions and their actions (the web's coaching/sessions.tsx). */
-const SESSION_TABS = { upcoming: msg("Upcoming"), past: msg("Past"), cancelled: msg("Cancelled") };
-type Tab = keyof typeof SESSION_TABS;
 
 /** Redraws every half minute, so calls open and sessions end on time. */
 export function useMinute() {
@@ -35,35 +30,36 @@ export function useMinute() {
   return now;
 }
 
+/**
+ * The sessions to come on the shared calendar, a day opening its sessions and their actions; those over or cancelled in
+ * the History sheet, the latest first (the web's coaching/sessions.tsx).
+ */
 export function Sessions() {
   const c = useCoaching(), nav = useCoachingNav();
   useEffect(() => { void coaching.load("bookings"); }, []);
   const now = useMinute();
-  const [tab, setTab] = useState<Tab>("upcoming"), [month, setMonth] = useState(""), [picked, setPicked] = useState("");
+  const [month, setMonth] = useState(""), [picked, setPicked] = useState(""), [history, setHistory] = useState(false);
   const all = c.bookings;
-  const groups: Record<Tab, Booking[] | undefined> = {
-    upcoming: all?.filter(b => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
-    past: all?.filter(b => b.status === "booked" && b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt),
-    cancelled: all?.filter(b => b.status === "cancelled").sort((a, b) => b.startsAt - a.startsAt),
-  };
-  const list = groups[tab];
+  const list = all?.filter(b => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
+    past = all?.filter(b => b.status === "cancelled" || b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt) ?? [];
   const byDay = new Map<string, Booking[]>();
-  for (const b of [...(list ?? [])].sort((a, b) => a.startsAt - b.startsAt)) byDay.set(dayKey(b.startsAt), [...(byDay.get(dayKey(b.startsAt)) ?? []), b]);
+  for (const b of list ?? []) byDay.set(dayKey(b.startsAt), [...(byDay.get(dayKey(b.startsAt)) ?? []), b]);
   const today = dayKey(now), shown = month || dayKey(list?.[0]?.startsAt ?? now).slice(0, 7), sessions = byDay.get(picked) ?? [],
     hasSessions = [...byDay.keys()].some(d => d.startsWith(shown));
   return <View className="min-h-0 flex-1 gap-3">
-    <Segmented label={tr("Sessions")} value={tab} onChange={id => { setTab(id); setMonth(""); setPicked(""); }}
-      options={(Object.keys(SESSION_TABS) as Tab[]).map(id => ({ id, label: tr(SESSION_TABS[id]) + (groups[id] ? ` ${groups[id]!.length}` : "") }))} />
-    <MonthHeader month={shown} today={today} onMonth={setMonth} />
+    <MonthHeader month={shown} today={today} onMonth={setMonth}>
+      <View className="flex-1" />
+      <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />
+    </MonthHeader>
     {!list ? <CalendarSkeleton /> : <>
       {!hasSessions ? <View accessibilityRole="summary" className="flex-row flex-wrap items-center gap-3">
-        <Text className="text-sm text-muted-foreground">{tab === "upcoming" ? tr("No upcoming session this month.") : tab === "past" ? tr("No past session this month.") : tr("No cancelled session this month.")}</Text>
-        {tab === "upcoming" && !list.length ? <Button variant="outline" size="sm" className="h-10" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button> : null}
+        <Text className="text-sm text-muted-foreground">{tr("No upcoming session this month.")}</Text>
+        {!list.length ? <Button variant="outline" size="sm" className="h-10" accessibilityLabel={tr("Find a coach")} onPress={() => nav.go("coaches")}><Icon as={Search} size={16} /><Text>{tr("Find")}</Text></Button> : null}
       </View> : null}
       <Month month={shown} today={today} allowPast selected={d => d === picked} disabled={d => !byDay.has(d)} pick={setPicked}
         cell={d => ({
           body: byDay.get(d)?.length ? <DayBoxes items={byDay.get(d)!}>
-            {b => <DayChip key={b.id} tone={tab === "cancelled" ? "past" : "free"} label={time(b.startsAt)} testID={"session-" + b.id}
+            {b => <DayChip key={b.id} tone="free" label={time(b.startsAt)} testID={"session-" + b.id}
               accessibilityLabel={`${time(b.startsAt)}–${time(b.endsAt)} · ${b.with.username}`} onPress={() => setPicked(d)} />}
           </DayBoxes> : null,
         })} />
@@ -72,6 +68,11 @@ export function Sessions() {
       {sessions.length ? <SheetScrollView contentContainerClassName="gap-1">
         {sessions.map(b => <SessionRow key={b.id} b={b} now={now} />)}
       </SheetScrollView> : <Empty icon={CalendarDays} title={tr("No session for this filter on this day.")} />}
+    </Sheet>
+    <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")}>
+      {past.length ? <SheetScrollView contentContainerClassName="gap-1">
+        {past.map(b => <SessionRow key={b.id} b={b} now={now} />)}
+      </SheetScrollView> : <Empty icon={CalendarDays} title={tr("No past session yet.")} className="flex-none p-4" />}
     </Sheet>
   </View>;
 }
@@ -131,8 +132,8 @@ export function Offer({ b }: { b: Booking }) {
         <Button size="sm" className="h-10" disabled={pending} onPress={() => run(() => coaching.answer(b.id, true), tr("Session moved"))}>
           <Icon as={Check} size={16} className="text-primary-foreground" /><Text>{tr("Move it")}</Text>
         </Button>
-        <Button size="sm" variant="outline" className="h-10" disabled={pending} onPress={() => run(() => coaching.answer(b.id, false), tr("Session kept where it was"))}>
-          <Text>{tr("Keep the time")}</Text>
+        <Button size="sm" variant="outline" className="h-10" disabled={pending} accessibilityLabel={tr("Keep the time")} onPress={() => run(() => coaching.answer(b.id, false), tr("Session kept where it was"))}>
+          <Text>{tr("Keep")}</Text>
         </Button>
       </> : <Button size="sm" variant="outline" className="h-10" disabled={pending} onPress={() => run(() => coaching.propose(b.id, null), tr("Offer taken back"))}>
         <Text>{tr("Take back")}</Text>
@@ -182,8 +183,8 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
         </Button>)}
       </View>
     </View>}
-    <Button className="h-11" disabled={start == null || pending} onPress={async () => { if (await run(() => coaching.propose(b.id, start), tr("Offer sent to {0}", { 0: b.with.username }))) close(); }}>
-      <Text>{pending ? tr("Sending…") : tr("Send the offer")}</Text>
+    <Button className="h-11" disabled={start == null || pending} accessibilityLabel={tr("Send the offer")} onPress={async () => { if (await run(() => coaching.propose(b.id, start), tr("Offer sent to {0}", { 0: b.with.username }))) close(); }}>
+      <Text>{pending ? tr("Sending…") : tr("Send")}</Text>
     </Button>
   </View>;
 }

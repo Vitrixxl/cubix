@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BadgeCheck, CalendarDays, CircleHelp, Play, Undo2 } from "lucide-react-native";
+import { BadgeCheck, CircleHelp, History, Play, Undo2 } from "lucide-react-native";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { API_ORIGIN, api, authToken, local } from "../api";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { ask } from "../components/Confirm";
 import { Alg, Bar, Choice, Empty, Fade, HeadButton, Numeric, Segmented } from "../components/layout";
-import { Sheet } from "../components/Sheet";
+import { Sheet, SheetFlatList } from "../components/Sheet";
 import { SaveError, StopSurface, timerHint, useTimerChrome } from "../components/Practice";
 import { ScrambleCube } from "../components/ScrambleCube";
 import { Cap, SidePanel, TimerCard } from "../components/duel/parts";
@@ -34,22 +34,18 @@ import { localFormat, tn, tr } from "../../../src/client/i18n";
  * The daily scramble (src/client/lib/daily.ts), after the web's desktop/renderer/daily.tsx: the day's scramble of an
  * event and its one ranked attempt, the day's four figures, the field as bars. The attempt is timed on a screen of its
  * own (hold, then release), saved as a timer solve and ranked; where it stands follows in a sheet. The player's results
- * (records and days) are pushed (`day` "results"); a past day (`day` YYYY-MM-DD) shows its scramble and its field. On a
+ * (records and days) are in the History sheet; a past day (`day` YYYY-MM-DD) shows its scramble and its field. On a
  * tablet the scramble has its cube and the results come with the day: a card at its foot, or docked beside it on a wide
  * screen, where the day's stage and its field stand side by side.
  */
 export function DailyPage({ day }: { day?: string }) {
   const attempt = useAtomValue(attemptAtom);
-  if (day === RESULTS) return <Results />;
   if (day && day !== dailyDay()) return <PastDay day={day} />;
   return <>
     {attempt ? <Attempt event={attempt} /> : <Today />}
     <ResultSheet />
   </>;
 }
-
-/** The `day` of the route that opens the player's results. */
-export const RESULTS = "results";
 
 // What the page read, kept for its next opening: shown at once, then read anew. A ranking that cannot be read stays as
 // it was, "offline" only when none was read yet. The fields and histories are kept by account.
@@ -127,13 +123,21 @@ const shortDay = (day: string) => SHORT.format(new Date(day + "T12:00:00Z"));
 const axis = (ms: number) => (ms >= 60000 ? fmtTime(ms).replace(/\.\d+$/, "") : String(+(ms / 1000).toFixed(1))) + " s";
 const eventLabel = (id: string) => tr(eventInfo(id)?.label ?? id);
 
-/** Challenges › Daily: today's scramble of the event and its one action, the day's figures, the field. */
+/** Challenges › Daily: today's scramble of the event and its one action, the day's figures, the field; the player's results in the History sheet. */
 function Today() {
-  const navigate = useSetAtom(routeAtom), { wide } = useLayout();
+  const { wide } = useLayout(), [event, setEvent] = useEvent(), [history, setHistory] = useState(false);
+  const other = DAILY_EVENTS.find(id => id !== event)!;
   return <View className="flex-1">
-    <AppBar puzzle={false}>{wide ? null : <HeadButton icon={CalendarDays} label={tr("Your results")} onPress={() => navigate({ page: "daily", day: RESULTS })} />}</AppBar>
+    <AppBar puzzle={false}>{wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}</AppBar>
     <SectionTabs />
     <DayWithResults day={dailyDay()} />
+    {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} right={
+      <Pressable accessibilityRole="button" accessibilityLabel={tr("Show {0}", { 0: eventLabel(other) })} onPress={() => setEvent(other)}
+        className="h-10 justify-center rounded-full bg-muted px-3.5 active:bg-muted/70">
+        <Text className="text-sm font-bold">{eventLabel(event)}</Text>
+      </Pressable>}>
+      <YourResults event={event} onPick={() => setHistory(false)} />
+    </Sheet>}
   </View>;
 }
 
@@ -367,36 +371,22 @@ function ResultSheet() {
       </Button>)}
     </View> : null}
     <View className="flex-row gap-2">
-      {cancellable ? <Button variant="ghost" className="h-12 flex-1 gap-1.5 rounded-xl" onPress={() => void cancel()}>
-        <Icon as={Undo2} size={16} className="text-destructive" /><Text className="text-destructive">{tr("Cancel this time")}</Text>
+      {cancellable ? <Button variant="ghost" className="h-12 flex-1 gap-1.5 rounded-xl" accessibilityLabel={tr("Cancel this time")} onPress={() => void cancel()}>
+        <Icon as={Undo2} size={16} className="text-destructive" /><Text className="text-destructive">{tr("Cancel")}</Text>
       </Button> : null}
       <Button className="h-12 flex-1 rounded-xl" onPress={() => setShown(null)}><Text>{tr("Close")}</Text></Button>
     </View>
   </Sheet>;
 }
 
-/** The player's results, pushed: the event to show, then the records and the days. */
-function Results() {
-  const [event, setEvent] = useEvent(), { tablet } = useLayout();
-  const other = DAILY_EVENTS.find(id => id !== event)!;
-  return <View className="flex-1">
-    <PushedBar title={tr("Your results")}>
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("Show {0}", { 0: eventLabel(other) })} onPress={() => setEvent(other)}
-        className="h-10 justify-center rounded-full bg-muted px-3.5 active:bg-muted/70">
-        <Text className="text-sm font-bold">{eventLabel(event)}</Text>
-      </Pressable>
-    </PushedBar>
-    <View className={cn("min-h-0 flex-1 gap-2 px-4 pt-1 pb-3", tablet && "px-7")}><YourResults event={event} /></View>
-  </View>;
-}
-
 /**
  * The player's results on the event: best, mean, mean rank and the run of days, then each day newest first (today on
  * top while not tried), its time, rank and whether it is verified; a day opens its field. From the API once signed in,
- * else the attempts kept on this device. On a tablet they also come with the day: `peek`, the figures on one row and
- * the latest two days, in a card at its foot; `docked`, in the side panel, where a day opens in place of the one shown.
+ * else the attempts kept on this device. In the History sheet by default, which `onPick` closes as a day opens; on a
+ * tablet they also come with the day: `peek`, the figures on one row and the latest two days, in a card at its foot;
+ * `docked`, in the side panel, where a day opens in place of the one shown.
  */
-function YourResults({ event, peek = false, docked = false }: { event: DailyEvent; peek?: boolean; docked?: boolean }) {
+function YourResults({ event, peek = false, docked = false, onPick }: { event: DailyEvent; peek?: boolean; docked?: boolean; onPick?: () => void }) {
   useDaily();
   const verified = useAtomValue(verifiedAtom), signedIn = useAtomValue(signedInAtom), navigate = useSetAtom(routeAtom), replace = useSetAtom(replaceRouteAtom), goBack = useSetAtom(goBackAtom), solve = useSetAtom(attemptAtom);
   const today = dailyDay(), kept = doneAll()[`${today}:${event}`];
@@ -411,7 +401,7 @@ function YourResults({ event, peek = false, docked = false }: { event: DailyEven
   // The card at the foot of today leaves today out: its scramble and Solve it are right above.
   const rows: (DailyDay | null)[] = peek ? list.filter(v => v.day !== today).slice(0, 2) : [...(list.some(v => v.day === today) ? [] : [null]), ...list];
   // A card's ground stands out from the panel or the card around it.
-  const ground = docked ? "bg-muted" : "bg-card";
+  const ground = docked ? "bg-muted" : "bg-card", List = (docked ? FlatList : SheetFlatList) as typeof FlatList;
   const stat = (label: string, value: string | null, dot: string, tone?: string) => <View className={cn("min-w-0 flex-1 gap-0.5 rounded-2xl px-3.5 py-2.5", ground)}>
     <View className="flex-row items-center gap-1.5"><View className={cn("size-2 rounded-full", dot)} /><Text className="text-xs font-semibold text-muted-foreground">{label}</Text></View>
     <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", value ? tone : "text-muted-foreground/60")}>{value ?? "–"}</Numeric>
@@ -420,11 +410,11 @@ function YourResults({ event, peek = false, docked = false }: { event: DailyEven
     mean = stat(tr("Mean"), stats.mean != null ? fmtTime(stats.mean) : null, "bg-primary"),
     rank = stat(tr("Mean rank"), ranked && stats.rank != null ? stats.rank.toLocaleString() : null, "bg-muted-foreground"),
     streak = stat(tr("Streak"), tn(stats.streak, "{n} day"), "bg-warning", "text-warning");
-  // From the pushed results, a day opens over them and today goes back. Docked, a day opens over today, then replaces
-  // the past day shown, and today goes back to it.
-  const route = useAtomValue(routeAtom), onPast = route.page === "daily" && !!route.day && route.day !== RESULTS;
-  const toToday = () => { if (!docked || onPast) goBack(); };
+  // A day opens over today, then (docked) replaces the past day shown; today goes back to it.
+  const route = useAtomValue(routeAtom), onPast = route.page === "daily" && !!route.day;
+  const toToday = () => { if (onPast) goBack(); };
   const open = (v: DailyDay | null) => {
+    onPick?.();
     if (!v || v.day === today) toToday();
     else if (docked && onPast) replace({ page: "daily", day: v.day });
     else navigate({ page: "daily", day: v.day });
@@ -442,7 +432,7 @@ function YourResults({ event, peek = false, docked = false }: { event: DailyEven
           {!v ? tr("Not tried yet") : v.total ? [tr("{0} of {1}", { 0: v.rank, 1: v.total }), v.penalty !== "dnf" ? tr("beats {0} %", { 0: v.beats.toLocaleString() }) : null].filter(Boolean).join(" · ") : eventLabel(event)}
         </Numeric>
       </View>
-      {!v ? <Button size="sm" className="h-10 rounded-xl" onPress={() => { solve(event); toToday(); }}><Text>{tr("Solve it")}</Text></Button> : <Verified on={v.verified} />}
+      {!v ? <Button size="sm" className="h-10 rounded-xl" onPress={() => { onPick?.(); solve(event); toToday(); }}><Text>{tr("Solve it")}</Text></Button> : <Verified on={v.verified} />}
     </Pressable>;
   };
   if (peek) return <View accessibilityLabel={tr("Your results")} className="gap-2.5 rounded-[22px] border border-border bg-popover p-4">
@@ -455,8 +445,8 @@ function YourResults({ event, peek = false, docked = false }: { event: DailyEven
     <View className="flex-row gap-2">{best}{mean}</View>
     <View className="flex-row gap-2">{rank}{streak}</View>
     <Cap className="mt-1.5">{tr("Your days")}</Cap>
-    {history === null ? <Skeleton className="min-h-24 flex-1 rounded-2xl" />
-      : <FlatList data={rows} keyExtractor={v => v?.day ?? "today"} className="min-h-0 flex-1" contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
+    {history === null ? <Skeleton className={cn("min-h-24 rounded-2xl", docked && "flex-1")} />
+      : <List data={rows} keyExtractor={v => v?.day ?? "today"} className={docked ? "min-h-0 flex-1" : undefined} contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
         ListFooterComponent={!signedIn ? <Text className="px-1 pt-2 text-sm text-muted-foreground">{tr("Guests are not ranked.")}</Text> : null}
         renderItem={({ item }) => row(item)} />}
   </>;

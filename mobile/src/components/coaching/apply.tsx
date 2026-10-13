@@ -70,8 +70,8 @@ function Form() {
       </Field>
       {error?.field === "form" ? <Alert variant="destructive"><Text className="text-sm text-destructive">{error.text}</Text></Alert> : null}
     </ScrollView>
-    <Button size="lg" disabled={pending} onPress={submit} testID="apply-send">
-      <Icon as={Send} size={16} className="text-primary-foreground" /><Text>{pending ? tr("Sending…") : tr("Send my application")}</Text>
+    <Button size="lg" disabled={pending} accessibilityLabel={tr("Send my application")} onPress={submit} testID="apply-send">
+      <Icon as={Send} size={16} className="text-primary-foreground" /><Text>{pending ? tr("Sending…") : tr("Send")}</Text>
     </Button>
   </View>;
 }

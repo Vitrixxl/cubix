@@ -1,5 +1,5 @@
 import { useAtomValue } from "jotai";
-import { Ban, CalendarClock, Check, ChevronRight, FastForward, Flag, Gavel, Play, Plus, Trophy, Users } from "lucide-react-native";
+import { Ban, CalendarClock, Check, ChevronRight, FastForward, Flag, Gavel, History, Play, Plus, Trophy, Users } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { communityUrl, eventName, formatText, matchUrl, roundName, tournamentUrl, type Match, type Person, type Tournament, type TournamentDetail } from "../../../src/client/lib/community";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { ask } from "../components/Confirm";
-import { Bar, Empty, Figure, MenuItem, MoreMenu, Numeric } from "../components/layout";
+import { Bar, Empty, Figure, HeadButton, MenuItem, MoreMenu, Numeric } from "../components/layout";
 import { Sheet } from "../components/Sheet";
 import { TournamentSheet } from "../components/community/launch";
 import { Cap, RoundStrip, SidePanel, type Cell } from "../components/duel/parts";
@@ -25,8 +25,8 @@ import { said, tr } from "../../../src/client/i18n";
 
 /**
  * Tournaments, after the web's desktop/renderer/tournaments/page.tsx on a phone: the list in groups (under way,
- * registration open, past), the account's match ready on top of everything, the open tournament touched unfolding with
- * its registration; and a tournament's own screen: where it stands, its rounds one at a time, its players ranked, the
+ * registration open; the past ones in the History sheet), the account's match ready on top of everything, the open
+ * tournament touched unfolding with its registration; and a tournament's own screen: where it stands, its rounds one at a time, its players ranked, the
  * rare actions (giving up, the organiser's) in its ⋯ menu. On a tablet the cards stand on two columns and the open
  * tournament touched comes in full in a sheet, or docked beside the list on a wide screen; a tournament's page shows its
  * whole bracket, its players under it or docked beside it.
@@ -84,8 +84,9 @@ function TournamentList() {
   useEffect(() => { if (signedIn && !community.me) void community.load("me"); }, [signedIn]);
   const list = community.tournaments, mine = list?.find(t => t.myMatch);
   const open = list?.filter(t => t.status === "open") ?? [];
-  const [picked, setPicked] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null), [history, setHistory] = useState(false);
   const { tablet, wide } = useLayout(), sheet = tablet && !wide;
+  const past = list?.filter(t => t.status === "finished" || t.status === "cancelled") ?? [];
   const unfolded = picked ?? (open.find(t => t.registered) ?? open[0])?.id;
   // The open tournament in full: docked beside the list (wide), in a sheet once touched (portrait tablet).
   const detail = open.find(t => t.id === (sheet ? picked : wide ? unfolded : null));
@@ -94,21 +95,23 @@ function TournamentList() {
   const sections: [string, Tournament[]][] = [
     [tr("Under way"), list?.filter(t => t.status === "running") ?? []],
     [tr("Registration open"), open],
-    [tr("Past"), list?.filter(t => t.status === "finished" || t.status === "cancelled") ?? []],
   ];
   const card = (t: Tournament) => t.status === "open"
     ? <OpenCard key={t.id} t={community.summary(t)} unfolded={!tablet && t.id === unfolded} picked={wide && t.id === unfolded}
       onPress={() => t.id === unfolded && !sheet ? openUrl(tournamentUrl(t.id)) : setPicked(t.id)} />
     : <TournamentRow key={t.id} t={t} />;
   return <View className="flex-1">
-    <AppBar puzzle={false}><NewTournament /></AppBar>
+    <AppBar puzzle={false}>
+      {past.length ? <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} /> : null}
+      <NewTournament />
+    </AppBar>
     <SectionTabs />
     <View className="min-h-0 flex-1 flex-row">
       <View className="min-h-0 flex-1">
         {!list ? <View accessibilityLabel={tr("Loading")} className="gap-2.5 px-4 pt-3">
           <Skeleton className="h-16 rounded-2xl" /><Skeleton className="h-16 rounded-2xl" /><Skeleton className="h-36 rounded-3xl" />
         </View>
-          : !list.length ? <Empty icon={Trophy} title={tr("No tournament yet")} />
+          : list.length === past.length ? <Empty icon={Trophy} title={tr("No tournament yet")} />
           : <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-2.5 px-4 pt-3 pb-4", tablet && "gap-3 px-7 pt-4")}>
             {mine ? <MatchReady match={mine.myMatch!} title={tr("{0}: your match is ready", { 0: said(roundName(mine.round, mine.rounds)) })} text={`${mine.name} · ${formatText(mine)}`} /> : null}
             {sections.map(([title, items]) => items.length ? <View key={title} accessibilityLabel={title} className="gap-2">
@@ -120,6 +123,7 @@ function TournamentList() {
       {wide && detail ? <SidePanel><ScrollView contentContainerClassName="gap-3"><OpenDetail t={community.summary(detail)} /></ScrollView></SidePanel> : null}
     </View>
     {sheet ? <Sheet open={!!detail} onClose={() => setPicked(null)} title={detail?.name ?? ""} hideTitle scroll>{detail ? <OpenDetail t={community.summary(detail)} /> : null}</Sheet> : null}
+    <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} scroll contentClassName="gap-2">{past.map(t => <TournamentRow key={t.id} t={t} />)}</Sheet>
   </View>;
 }
 
@@ -211,8 +215,8 @@ function OpenDetail({ t }: { t: Tournament }) {
         <Icon as={FastForward} size={16} /><Text>{tr("Start now")}</Text>
       </Button> : null}
     </View>
-    <Button variant="ghost" className="h-12 gap-1.5 rounded-xl" onPress={() => openUrl(tournamentUrl(t.id))}>
-      <Text>{tr("See the tournament")}</Text><Icon as={ChevronRight} size={16} />
+    <Button variant="ghost" className="h-12 gap-1.5 rounded-xl" accessibilityLabel={tr("See the tournament")} onPress={() => openUrl(tournamentUrl(t.id))}>
+      <Text>{tr("Open")}</Text><Icon as={ChevronRight} size={16} />
     </Button>
   </>;
 }

@@ -191,8 +191,8 @@ function Picture() {
     <View className="flex-row items-center gap-4">
       <Face name={coach.username} src={coach.avatar} size={72} />
       <View className="flex-row gap-2">
-        <Button variant="outline" size="sm" className="h-10" disabled={pending} onPress={pick}>
-          <Icon as={ImageUp} size={16} /><Text>{coach.avatar ? tr("Change") : tr("Add a picture")}</Text>
+        <Button variant="outline" size="sm" className="h-10" disabled={pending} accessibilityLabel={coach.avatar ? tr("Change") : tr("Add a picture")} onPress={pick}>
+          <Icon as={ImageUp} size={16} /><Text>{coach.avatar ? tr("Change") : tr("Add")}</Text>
         </Button>
         {coach.avatar ? <Button variant="ghost" size="sm" className="h-10" disabled={pending}
           onPress={async () => (await ask({ title: tr("Remove your picture?"), action: tr("Remove") })) && run(() => coaching.setAvatar(null), tr("Picture removed"))}>

@@ -88,7 +88,7 @@ export function BattleCard({ match, onOpen }: { match: Match; onOpen: (m: Match)
     </View>
     <View className="flex-row gap-2">
       {actions.map(a => <Pill key={a.label} text={a.label} tone={a.tone} onPress={a.run} className="flex-1" />)}
-      {actions.length < 2 ? <Pill text={tr("See the detail")} tone="soft" onPress={() => onOpen(m)} className="flex-1" /> : null}
+      {actions.length < 2 ? <Pill text={tr("Details")} tone="soft" onPress={() => onOpen(m)} className="flex-1" /> : null}
     </View>
   </View>;
 }
@@ -154,7 +154,7 @@ function MatchBody({ m, onClose }: { m: Match; onClose: () => void }) {
       </SheetScrollView>
     </View> : null}
     {m.status === "ready" || m.status === "live" || m.status === "done" ? <Button variant="outline" className="h-11 rounded-lg" onPress={() => { onClose(); go(matchUrl(m.id)); }}>
-      <Text>{m.status === "done" ? tr("Open the match page") : seatIn(m, me()) !== null ? tr("Play") : tr("Watch")}</Text>
+      <Text>{m.status === "done" ? tr("Open") : seatIn(m, me()) !== null ? tr("Play") : tr("Watch")}</Text>
       <Icon as={ChevronRight} size={16} />
     </Button> : null}
   </>;
@@ -189,7 +189,7 @@ export function TournamentChatCard({ tournament }: { tournament: Tournament }) {
     {t.status === "open" || t.myMatch ? <View className="flex-row flex-wrap items-center gap-2">
       {t.registered ? <View className="flex-row items-center gap-1"><Icon as={Check} size={14} className="text-success" /><Text className="text-sm text-success">{tr("Registered")}</Text></View> : null}
       <RegisterButton t={t} />
-      {t.myMatch ? <CardButton icon={Play} label={tr("Play your match")} onPress={() => go(matchUrl(t.myMatch!))} /> : null}
+      {t.myMatch ? <CardButton icon={Play} label={tr("Play")} onPress={() => go(matchUrl(t.myMatch!))} /> : null}
     </View> : null}
   </Card>;
 }
@@ -213,7 +213,7 @@ export function waiting(messages: Message[]) {
       else if ((m.status === "ready" || m.status === "live") && seat !== null) out.push({ key, event, lead, text: tr("Your battle is on"), label: tr("Play"), run: () => go(matchUrl(m.id)), accent: true });
     } else if (message.tournament) {
       const t = community.summary(message.tournament), key = "t" + t.id, left = t.maxPlayers ? t.maxPlayers - t.players : null;
-      if (t.myMatch) out.push({ key, event: t.event, lead: t.name, text: tr("Your match is ready"), label: tr("Play your match"), run: () => go(matchUrl(t.myMatch!)), accent: true });
+      if (t.myMatch) out.push({ key, event: t.event, lead: t.name, text: tr("Your match is ready"), label: tr("Play"), run: () => go(matchUrl(t.myMatch!)), accent: true });
       else if (t.status === "open" && !t.registered && left !== 0)
         out.push({ key, event: t.event, lead: time(t.startsAt), text: left ? `${t.name} · ${tr("{0} places left", { 0: left })}` : t.name, label: tr("Register"), run: () => void community.register(t.id, true), accent: true });
     }

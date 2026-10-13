@@ -197,7 +197,7 @@ function Race({ m }: { m: Match }) {
         <Text numberOfLines={1} className="text-xs text-muted-foreground">{[m.tournament, m.tournament ? tr("Round {0}", { 0: m.round }) : m.group].filter(Boolean).join(" · ")}</Text>
         <Text className="text-sm font-bold">{[eventName(m.event), formatText(m)].join(" · ")}</Text>
       </View>
-      <Button variant="secondary" className="h-11 rounded-xl" onPress={() => openUrl(home(m))}><Text>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}</Text></Button>
+      <Button variant="secondary" className="h-11 rounded-xl" accessibilityLabel={m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")} onPress={() => openUrl(home(m))}><Text>{tr("Back")}</Text></Button>
     </SidePanel></Fade> : null}
     <Sheet open={solvesOpen} onClose={() => setSolvesOpen(false)} title={tr("Solves")} scroll><Solves m={m} own={own} /></Sheet>
     <Result m={m} />
@@ -369,7 +369,7 @@ function Result({ m }: { m: Match }) {
     </View>
     <View className="flex-row gap-2">
       <Button variant="ghost" size="lg" className="h-12 flex-1 rounded-xl" onPress={() => setClosed(m.id)}><Text>{tr("Stay")}</Text></Button>
-      <Button size="lg" className="h-12 flex-1 rounded-xl" onPress={() => openUrl(home(m))}><Text>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}</Text></Button>
+      <Button size="lg" className="h-12 flex-1 rounded-xl" accessibilityLabel={m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")} onPress={() => openUrl(home(m))}><Text>{tr("Back")}</Text></Button>
     </View>
   </Sheet>;
 }

@@ -47,7 +47,7 @@ const community = {
   competition: undefined,
   host: { account: () => ({ id: me.id, username: me.username }) },
   load: mock(async (key: string) => {
-    if (key === "tournaments") community.tournaments = [tournament];
+    if (key === "tournaments") community.tournaments = [tournament, { ...tournament, id: 8, name: "Winter Cup", status: "finished", winner: rival }];
     else if (key === "tournament:7") community.details.set(7, { ...tournament, entrants: [], matches: [], canManage: false });
     changed();
   }),
@@ -101,7 +101,14 @@ const button = (label: string) => all("Button").find(node => textOf(node) === la
 test("the list opens a tournament, where the player registers", async () => {
   await act(() => { renderer = create(createElement(Routed)); });
   expect(community.load).toHaveBeenCalledWith("tournaments");
+  // The past tournament is not on the page but in the History sheet, from the head.
   expect(all("Cap").map(textOf)).toEqual(["Registration open · 1"]);
+  const history = () => all("Sheet").find(node => node.props.title === "History")!;
+  expect(history().props.open).toBe(false);
+  expect(history().findAll(node => node.props.accessibilityLabel === "Open Winter Cup")).toHaveLength(1);
+  await act(() => all("HeadButton").find(node => node.props.label === "History")!.props.onPress());
+  expect(history().props.open).toBe(true);
+  await act(() => history().props.onClose());
   const card = all("Pressable").find(node => node.props.accessibilityLabel === "Open Spring Open")!;
   expect(textOf(card)).toContain("First to 3 solves");
   await act(() => card.props.onPress());
@@ -132,7 +139,9 @@ test("a match over shows its result, and goes back to its tournament", async () 
   // Stay closes it on the race.
   await act(() => button("Stay").props.onPress());
   expect(result().props.open).toBe(false);
-  await act(() => button("Back to the tournament").props.onPress());
+  const back = all("Button").find(node => node.props.accessibilityLabel === "Back to the tournament")!;
+  expect(textOf(back)).toBe("Back");
+  await act(() => back.props.onPress());
   expect(openUrl).toHaveBeenLastCalledWith("/tournaments/7");
   expect(live.close).toHaveBeenCalled();
   await act(() => renderer.unmount());

@@ -1,7 +1,7 @@
 import { getDefaultStore, useAtomValue } from "jotai";
 import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { CalendarPlus, MessagesSquare, Paperclip } from "lucide-react-native";
+import { CalendarPlus, MessagesSquare, Paperclip, Search } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { AppState, Image, Modal, Pressable, View } from "react-native";
 import { gist, type Conversation, type Media, type Message, type Upload } from "../../../../src/client/lib/coaching";
@@ -35,7 +35,7 @@ export function CoachingMessages({ conversationId }: { conversationId?: number }
   const route = useAtomValue(routeAtom) as { view?: string }, parts = route.view?.split("/") ?? [], section = parts[0] || "messages", open = parts[1] ?? "";
   if (conversationId == null) return <ConversationList>
     {!list ? <ListSkeleton className="px-2" />
-      : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10"><Button variant="outline" className="h-11 rounded-lg" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button>
+      : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10"><Button variant="outline" className="h-11 rounded-lg" accessibilityLabel={tr("Find a coach")} onPress={() => nav.go("coaches")}><Icon as={Search} size={16} /><Text>{tr("Find")}</Text></Button>
       </Empty>
         : list.map(c => <ConversationRow key={c.id} onPress={() => nav.go("messages/" + c.id, wide)} on={section === "messages" && String(c.id) === open} name={c.with.username} tag={c.role === "student" ? "coach" : "student"}
           face={<Face name={c.with.username} src={c.with.avatar} size={44} />} at={c.lastMessage?.at} unread={c.unread}

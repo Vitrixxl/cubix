@@ -26,7 +26,7 @@ for (const [path, names] of [
   ["../src/components/ui/skeleton", ["Skeleton"]], ["../src/components/Sheet", ["Sheet", "SheetInput", "SheetScrollView"]],
   ["../src/components/PuzzlePicker", ["ChoiceButton", "SheetChoice", "PuzzleIcon"]], ["../src/components/Chips", ["Chip", "ChipMenu"]], ["../src/components/AppBar", ["AppBar", "PushedBar", "SectionTabs"]],
   ["../src/components/ui/dropdown-menu", ["DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuLabel", "DropdownMenuSeparator", "DropdownMenuTrigger"]], ["../src/components/coaching/CoachingMessages", ["CoachingMessages"]],
-  ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"]],
+  ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "HeadButton", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"]],
 ] as const) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
 mock.module("../src/components/Confirm", () => ({ ask: async () => true }));
 mock.module("../src/components/tournaments/format", () => ({ day: () => "Thu 8 Oct", time: () => "18:00", relative: () => "now" }));
@@ -119,6 +119,11 @@ test("a player finds a coach, opens their page and books one of their free slots
   expect(book.mock.calls).toEqual([["c1", slot.start, ""]]);
   expect(store.get(toastAtom)?.title).toBe("Session booked");
   expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "sessions" });
+  // The sessions to come on the calendar; those over or cancelled behind History, in a sheet.
+  const history = () => all("Sheet").find(node => node.props.title === "History")!;
+  expect(history().props.open).toBe(false);
+  await press(all("HeadButton").find(node => node.props.label === "History")!);
+  expect(history().props.open).toBe(true);
 });
 
 test("a coach's dashboard: the figures, the forecast, the next sessions and what is left to set up", async () => {

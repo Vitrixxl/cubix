@@ -1,13 +1,12 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import * as Clipboard from "expo-clipboard";
-import { Box, Check, CircleHelp, Copy, Link2, LogOut, MessageSquare, Search, Send, Swords, Trophy, X, type LucideIcon } from "lucide-react-native";
+import { Box, CircleHelp, History, LogOut, MessageSquare, Send, Swords, Trophy, UserPlus, Users, X, type LucideIcon } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { Input } from "@/components/ui/input";
 import { fmtTime } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel, heldScramble, puzzleInfo } from "../../../src/shared/puzzles";
-import type { Conversation } from "../../../src/client/lib/community";
+import type { Conversation, Person } from "../../../src/client/lib/community";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,11 +14,13 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { ask } from "../components/Confirm";
-import { Alg, Empty, Fade, Figure, HeadButton, IconTile, Numeric } from "../components/layout";
+import { Alg, Empty, Fade, Figure, HeadButton, IconTile, ListSkeleton, Numeric } from "../components/layout";
 import { StopSurface, timerHint, useTimerChrome } from "../components/Practice";
 import { ScrambleCube } from "../components/ScrambleCube";
-import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
+import { Sheet, SheetFlatList, SheetInput, SheetScrollView } from "../components/Sheet";
 import { UserAvatar } from "../components/UserAvatar";
+import { Pill } from "../components/community/marks";
+import { AddFriendSheet, PersonRow, SheetSearch, ShareLink } from "../components/community/people";
 import { Cap, Fly, LiveDot, OpponentLive, Ping, RaceScore, RoundStrip, SidePanel, SolveActions, TimerCard, type Cell } from "../components/duel/parts";
 import { relative } from "../components/tournaments/format";
 import { useLayout } from "../hooks/useLayout";
@@ -31,12 +32,12 @@ import { eventAtom, guidesAtom, routeAtom, signedInAtom } from "../state";
 import { tr } from "../../../src/client/i18n";
 
 /**
- * The web app's duel (desktop/renderer/duel.tsx) on a phone. The lobby is three cards: playing an opponent at the
- * player's level, challenging a friend, the races played. The race is a screen of its own: the round and its scramble,
- * both players over the strip of rounds, the opponent live in a small card, the player's own timer large, the rounds
- * as a butterfly under it; the chat and the result in sheets. On a tablet the search is a stage of its own and the friends
- * go to the foot of the lobby; on a wide screen the races played, and during a race the rounds and the chat, are a docked
- * side panel.
+ * The web app's duel (desktop/renderer/duel.tsx) on a phone. The lobby is one card: racing an opponent at the player's
+ * level, or challenging a friend in a sheet; adding a friend and the races played (History) are sheets from its head.
+ * The race is a screen of its own: the round and its scramble, both players over the strip of rounds, the opponent live
+ * in a small card, the player's own timer large, the rounds as a butterfly under it; the chat and the result in sheets.
+ * On a tablet the search is a stage of its own; on a wide screen the races played, and during a race the rounds and the
+ * chat, are a docked side panel.
  */
 export function DuelPage() {
   const { duel } = useDuel();
@@ -55,25 +56,26 @@ const shortEvent = (id: string) => {
 };
 
 function Lobby() {
-  const { tablet, wide } = useLayout();
+  const { tablet, wide } = useLayout(), signedIn = useAtomValue(signedInAtom);
+  const [history, setHistory] = useState(false), [friends, setFriends] = useState(false), [adding, setAdding] = useState(false);
   return <View className="flex-1">
-    <AppBar />
+    <AppBar>
+      {signedIn ? <HeadButton icon={UserPlus} label={tr("Add a friend")} onPress={() => setAdding(true)} /> : null}
+      {wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}
+    </AppBar>
     <SectionTabs />
     <View className="min-h-0 flex-1 flex-row">
-      <View className={cn("min-h-0 flex-1 gap-3 px-4 pt-3.5 pb-3", tablet && "gap-4 px-7 pt-5")}>
-        <Play />
-        {tablet ? null : <Friends />}
-        {wide ? null : <Played />}
-        {/* A portrait tablet keeps the friends at the foot, as a card raised above the bar; a wide screen under the search. */}
-        {tablet ? <Friends className={wide ? undefined : "rounded-[22px] border border-border bg-popover"} /> : null}
-      </View>
+      <View className={cn("min-h-0 flex-1 px-4 pt-3.5 pb-3", tablet && "px-7 pt-5")}><Play onChallenge={() => setFriends(true)} /></View>
       {wide ? <SidePanel className="mt-5"><Played className="bg-transparent p-0" /></SidePanel> : null}
     </View>
+    {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} hideTitle><Played sheet /></Sheet>}
+    <FriendsSheet open={friends} onClose={() => setFriends(false)} onAdd={() => setAdding(true)} />
+    {signedIn ? <AddFriendSheet open={adding} onClose={() => setAdding(false)} /> : null}
   </View>;
 }
 
-/** Racing an opponent near the player's level: the level, the range it meets, who else searches, and the one button. */
-function Play() {
+/** Racing an opponent near the player's level: the level, the range it meets, who else searches; its button, a friend to challenge beside it. */
+function Play({ onChallenge }: { onChallenge: () => void }) {
   const { duel } = useDuel();
   const panel = useTourTarget("duel");
   const event = useAtomValue(eventAtom), openGuide = useSetAtom(guidesAtom);
@@ -106,10 +108,16 @@ function Play() {
       <Figure className="flex-1" label={tr("Matching")} value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} />
       <Figure className="flex-1" label={tr("Searching")} tone={searching && duel.searching ? "good" : ""} value={searching ? String(duel.searching) : "–"} />
     </View>;
-  const play = <Button size="lg" className="h-14 gap-2 rounded-2xl" onPress={() => void duel.search(event)}>
-    <Icon as={Swords} size={19} className="text-primary-foreground" />
-    <Text className="text-base font-bold">{tr("Play an opponent at your level")}</Text>
-  </Button>;
+  const play = <View className="flex-row gap-2">
+    <Button size="lg" className="h-14 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Play an opponent at your level")} onPress={() => void duel.search(event)}>
+      <Icon as={Swords} size={19} className="text-primary-foreground" />
+      <Text className="text-base font-bold">{tr("Face off")}</Text>
+    </Button>
+    <Button variant="secondary" size="lg" className="h-14 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Challenge a friend")} onPress={onChallenge}>
+      <Icon as={Users} size={19} />
+      <Text className="text-base font-bold">{tr("Challenge")}</Text>
+    </Button>
+  </View>;
   // A tablet gives the search a round stage beside the figures: the clock and what it looks for, the duel's mark before.
   if (tablet) return <View {...panel} className="flex-row items-center gap-7 rounded-3xl bg-card p-6">
     <View className="size-52 items-center justify-center gap-2 rounded-full bg-muted">
@@ -149,18 +157,17 @@ function Play() {
 }
 
 /**
- * The friends to challenge: their faces in a row, the one picked outlined, finding more players last; under them the
- * challenge to send (a battle on the puzzle chosen, first to three solves) and the link that adds the account.
+ * The friends to challenge, in a sheet: found by name, each a tap from a battle on the puzzle chosen (first to three
+ * solves), shown in the conversation with them; the link that adds the account last.
  */
-function Friends({ className }: { className?: string }) {
+function FriendsSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: () => void }) {
   useSocial();
-  const signedIn = useAtomValue(signedInAtom), navigate = useSetAtom(routeAtom), event = useAtomValue(eventAtom);
-  const me = community.me, list = me?.friends ?? [];
-  const [picked, setPicked] = useState<string | null>(null), [busy, setBusy] = useState(false), [copied, setCopied] = useState(false);
-  const friend = list.find(f => f.id === picked), label = tr(eventInfo(event)?.label ?? event);
+  const signedIn = useAtomValue(signedInAtom), event = useAtomValue(eventAtom);
+  const me = community.me, [query, setQuery] = useState(""), [busy, setBusy] = useState(false), q = query.trim().toLowerCase(),
+    list = (me?.friends ?? []).filter(f => f.username.toLowerCase().includes(q));
   useEffect(() => { if (signedIn && !community.me) void community.load("me"); }, [signedIn]);
-  const challenge = async () => {
-    if (!friend) return;
+  useEffect(() => { if (!open) setQuery(""); }, [open]);
+  const challenge = async (friend: Person) => {
     setBusy(true);
     // The battle shows in the conversation with the friend, made on first need.
     const c = await community.act<Conversation>("POST", "social/conversations", { userId: friend.id }, ["conversations"]);
@@ -168,59 +175,56 @@ function Friends({ className }: { className?: string }) {
     setBusy(false);
     if (!done) return;
     community.host.notify({ title: tr("Challenge sent to {0}", { 0: friend.username }), description: tr("It starts once they accept it.") });
-    setPicked(null);
+    onClose();
   };
-  if (!signedIn) return <View className={cn("flex-row items-center gap-3 rounded-3xl bg-card p-4", className)}>
-    <IconTile icon={Swords} />
-    <Text className="min-w-0 flex-1 text-sm text-muted-foreground">{tr("Sign in to race your friends on the scrambles you pick.")}</Text>
-  </View>;
-  const link = community.shareLink();
-  return <View className={cn("gap-2.5 rounded-3xl bg-card p-4", className)}>
-    <Text accessibilityRole="header" className="text-base font-bold">{tr("Your friends")} {list.length ? <Text className="text-base font-bold text-muted-foreground">{list.length}</Text> : null}</Text>
-    {!me ? <View className="flex-row gap-3">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="size-12 rounded-full" />)}</View>
-      : <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1" contentContainerClassName="gap-1 px-1">
-        {list.map(f => {
-          const on = picked === f.id;
-          return <Pressable key={f.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={tr("Challenge {0}", { 0: f.username })}
-            onPress={() => setPicked(on ? null : f.id)} className="w-16 items-center gap-1 py-0.5">
-            <View className={cn("rounded-full border-2 p-0.5", on ? "border-primary" : "border-transparent")}><UserAvatar user={{ username: f.username, isGuest: false }} size={42} /></View>
-            <Text numberOfLines={1} className={cn("max-w-full text-xs font-bold", on ? "text-foreground" : "text-muted-foreground")}>{f.username}</Text>
-          </Pressable>;
-        })}
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("Find players")} onPress={() => navigate({ page: "community", view: "people" })} className="w-16 items-center gap-1 py-0.5">
-          <View className="m-0.5 size-[42px] items-center justify-center rounded-full border-2 border-transparent bg-muted"><Icon as={Search} size={18} className="text-muted-foreground" /></View>
-          <Text className="text-xs font-bold">{tr("Find")}</Text>
-        </Pressable>
-      </ScrollView>}
-    {friend ? <View className="flex-row items-center gap-2.5 rounded-2xl bg-muted py-2.5 pr-2.5 pl-3.5">
-      <View className="min-w-0 flex-1">
-        <Text numberOfLines={1} className="text-sm font-bold">{tr("Challenge {0}", { 0: friend.username })}</Text>
-        <Text numberOfLines={1} className="text-xs text-muted-foreground">{label} · {tr("First to 3 solves")}</Text>
-      </View>
-      <Button size="sm" disabled={busy} className="h-10 gap-1.5 rounded-xl" onPress={() => void challenge()}>
-        <Icon as={Send} size={15} className="text-primary-foreground" /><Text>{tr("Send")}</Text>
-      </Button>
-    </View> : null}
-    <View className="flex-row items-center gap-2">
-      <Icon as={Link2} size={15} className="text-muted-foreground" />
-      <Text className="text-[13px] text-muted-foreground">{tr("Your link")}</Text>
-      <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] font-bold">{link.replace(/^https?:\/\//, "")}</Text>
-      <Button size="sm" variant="ghost" className="h-10 gap-1.5 rounded-xl px-2.5" onPress={() => void Clipboard.setStringAsync(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); })}>
-        <Icon as={copied ? Check : Copy} size={15} className="text-muted-foreground" /><Text className="text-muted-foreground">{copied ? tr("Copied") : tr("Copy")}</Text>
-      </Button>
-    </View>
-  </View>;
+  return <Sheet open={open} onClose={onClose} title={tr("Challenge a friend")}
+    right={<Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{tr(eventInfo(event)?.label ?? event)} · {tr("First to 3 solves")}</Text>}>
+    {!signedIn ? <Empty icon={Swords} className="flex-none p-4">{tr("Sign in to race your friends on the scrambles you pick.")}</Empty> : <>
+      <SheetSearch value={query} onChangeText={setQuery} placeholder={tr("Find a friend")} />
+      {!me ? <ListSkeleton rows={3} />
+        : !list.length ? <Empty icon={Users} className="flex-none p-4">
+          {q ? tr("No friend by that name.") : tr("No friend yet")}
+          {q ? null : <Button variant="outline" className="h-11 gap-1.5 rounded-xl" accessibilityLabel={tr("Add a friend")} onPress={onAdd}><Icon as={UserPlus} size={16} /><Text>{tr("Add")}</Text></Button>}
+        </Empty>
+        : <SheetScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="-mx-2 gap-0.5">
+          {list.map(f => <PersonRow key={f.id} p={f}>
+            <Pill icon={Send} text={tr("Challenge")} label={tr("Challenge {0}", { 0: f.username })} tone="soft" disabled={busy} onPress={() => void challenge(f)} />
+          </PersonRow>)}
+        </SheetScrollView>}
+      <ShareLink />
+    </>}
+  </Sheet>;
 }
 
 const MARK_BG = { win: "bg-success/15", loss: "bg-destructive/15", draw: "bg-muted" } as const, MARK_TEXT = { win: "text-success", loss: "text-destructive", draw: "text-muted-foreground" } as const;
-/** The races played on this device: the record, then each race newest first; "All" opens them in the profile. */
-function Played({ className }: { className?: string }) {
+/**
+ * The races played on this device: the record, then each race newest first; the record opens them all in the profile.
+ * In the History sheet (`sheet`) on a phone and a portrait tablet, docked in the side panel on a wide screen.
+ */
+function Played({ className, sheet = false }: { className?: string; sheet?: boolean }) {
   useDuel();
   const navigate = useSetAtom(routeAtom), { tablet } = useLayout();
   const list = battles(), count = (r: DuelRecord["result"]) => list.filter(b => b.result === r).length;
-  return <View className={cn("min-h-0 flex-1 gap-2 rounded-3xl bg-card px-4 pt-3.5 pb-1", className)}>
+  const row = ({ item: b }: { item: DuelRecord }) => {
+    const [a, z] = roundsWon(b.mine, b.theirs), [mine, theirs] = b.ao5;
+    return <View className={cn("min-h-12 flex-row items-center gap-2.5 py-1", tablet && "min-h-14 gap-3")}>
+      <View className={cn("size-6 items-center justify-center rounded-md", MARK_BG[b.result])}>
+        <Text className={cn("text-xs font-extrabold", MARK_TEXT[b.result])}>{tr(RESULT_MARK[b.result])}</Text>
+      </View>
+      <UserAvatar user={{ username: b.opponent, isGuest: false }} size={32} />
+      <View className="min-w-0 flex-1">
+        <Text numberOfLines={1} className="text-sm font-bold">{b.opponent}</Text>
+        <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{shortEvent(b.event)} · {relative(Date.parse(b.at))} · {a}–{z}</Numeric>
+      </View>
+      <View className="items-end">
+        <Numeric className="text-sm font-bold">{raceAverage(mine) || "–"}</Numeric>
+        <Numeric className="text-xs text-muted-foreground">{tr("vs {0}", { 0: raceAverage(theirs) || "–" })}</Numeric>
+      </View>
+    </View>;
+  };
+  return <View className={cn(sheet ? "min-h-0 shrink gap-2" : "min-h-0 flex-1 gap-2 rounded-3xl bg-card px-4 pt-3.5 pb-1", className)}>
     <View className="flex-row items-center gap-2">
-      <Text accessibilityRole="header" className="flex-1 text-base font-bold">{tr("Races played")}</Text>
+      <Text accessibilityRole="header" className="flex-1 text-base font-bold">{sheet ? tr("History") : tr("Races played")}</Text>
       {list.length ? <Pressable accessibilityRole="button" accessibilityLabel={tr("All your races")} onPress={() => navigate({ page: "profile", mode: "duels" })} className="-my-2 h-11 justify-center">
         <Text className="text-xs text-muted-foreground">
           <Text className="text-xs font-bold text-success">{tr("{0} won", { 0: count("win") })}</Text> · <Text className="text-xs font-bold text-destructive">{tr("{0} lost", { 0: count("loss") })}</Text>
@@ -231,24 +235,9 @@ function Played({ className }: { className?: string }) {
     {/* A tablet has the room for the record as a strip, the latest race last. */}
     {tablet && list.length ? <RoundStrip label={tr("Races played")} className="flex-none"
       cells={list.slice(0, 12).reverse().map(b => b.result === "win" ? "me" : b.result === "loss" ? "them" : "tie")} /> : null}
-    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className="p-2" />
-      : <FlatList data={list} keyExtractor={b => b.id} className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: 8 }} renderItem={({ item: b }) => {
-        const [a, z] = roundsWon(b.mine, b.theirs), [mine, theirs] = b.ao5;
-        return <View className={cn("min-h-12 flex-row items-center gap-2.5 py-1", tablet && "min-h-14 gap-3")}>
-          <View className={cn("size-6 items-center justify-center rounded-md", MARK_BG[b.result])}>
-            <Text className={cn("text-xs font-extrabold", MARK_TEXT[b.result])}>{tr(RESULT_MARK[b.result])}</Text>
-          </View>
-          <UserAvatar user={{ username: b.opponent, isGuest: false }} size={32} />
-          <View className="min-w-0 flex-1">
-            <Text numberOfLines={1} className="text-sm font-bold">{b.opponent}</Text>
-            <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{shortEvent(b.event)} · {relative(Date.parse(b.at))} · {a}–{z}</Numeric>
-          </View>
-          <View className="items-end">
-            <Numeric className="text-sm font-bold">{raceAverage(mine) || "–"}</Numeric>
-            <Numeric className="text-xs text-muted-foreground">{tr("vs {0}", { 0: raceAverage(theirs) || "–" })}</Numeric>
-          </View>
-        </View>;
-      }} />}
+    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className={sheet ? "flex-none p-4" : "p-2"} />
+      : sheet ? <SheetFlatList data={list} keyExtractor={b => b.id} contentContainerStyle={{ paddingBottom: 8 }} renderItem={row} />
+      : <FlatList data={list} keyExtractor={b => b.id} className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: 8 }} renderItem={row} />}
   </View>;
 }
 

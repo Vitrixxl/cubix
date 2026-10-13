@@ -51,14 +51,14 @@ export function BattleSheet({ conversation: c, group, open, onClose }: { convers
       <ChoiceButton label={tr("Opponent")} value={opponent} options={[{ id: "anyone", label: tr("Anyone in the group") }, ...others.map(m => ({ id: m.id, label: m.username }))]} onChange={setOpponent} className="justify-start" />
     </Field> : null}
     <FormatFields value={format} onChange={setFormat} />
-    <Button disabled={busy} className="h-11 rounded-lg" onPress={async () => {
+    <Button disabled={busy} className="h-11 rounded-lg" accessibilityLabel={tr("Launch the battle")} onPress={async () => {
       setBusy(true);
       const done = await community.battle(c.id, { ...format, opponentId: c.kind === "direct" || opponent === "anyone" ? null : opponent });
       setBusy(false);
       if (done) onClose();
     }}>
       <Icon as={Swords} size={16} />
-      <Text>{tr("Launch the battle")}</Text>
+      <Text>{tr("Launch")}</Text>
     </Button>
   </Sheet>;
 }
@@ -86,14 +86,14 @@ export function TournamentSheet({ group: g, open, onClose }: { group: Group; ope
       <View className="flex-1"><NumberField label={tr("Most players")} value={cap} min={2} max={MAX_PLAYERS} onChange={setCap} /></View>
     </View>
     <Field label={tr("Description")}><SheetInput value={description} onChangeText={setDescription} maxLength={500} multiline accessibilityLabel={tr("Description")} className="min-h-16 py-2.5" textAlignVertical="top" /></Field>
-    <Button disabled={busy || name.trim().length < 2 || Number.isNaN(startsAt)} className="h-11 rounded-lg" onPress={async () => {
+    <Button disabled={busy || name.trim().length < 2 || Number.isNaN(startsAt)} className="h-11 rounded-lg" accessibilityLabel={tr("Create the tournament")} onPress={async () => {
       setBusy(true);
       const done = await community.createTournament(g.id, { ...format, name: name.trim(), description: description.trim(), startsAt, maxPlayers: playersLimit(cap) });
       setBusy(false);
       if (done) { onClose(); setName(""); setDescription(""); }
     }}>
       <Icon as={Trophy} size={16} />
-      <Text>{tr("Create the tournament")}</Text>
+      <Text>{tr("Create")}</Text>
     </Button>
   </Sheet>;
 }

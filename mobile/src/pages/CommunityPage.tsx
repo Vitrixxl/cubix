@@ -68,9 +68,9 @@ export function CommunityPage({ view: address = "" }: { view?: string }) {
     <AppBar puzzle={false} />
     <SectionTabs />
     {view === "people" ? wide ? <View className="min-h-0 flex-1 flex-row">
-      <Contacts onNewGroup={() => setNewGroup(true)} selected={page ? `people/${arg}/${sub}` : undefined} aside={!page} />
+      <Contacts onAddFriend={() => setAddFriend(true)} onNewGroup={() => setNewGroup(true)} selected={page ? `people/${arg}/${sub}` : undefined} aside={!page} />
       <Docked>{page ?? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 p-4"><Requests empty narrow /><ShareLink /></ScrollView>}</Docked>
-    </View> : <Contacts onNewGroup={() => setNewGroup(true)} />
+    </View> : <Contacts onAddFriend={() => setAddFriend(true)} onNewGroup={() => setNewGroup(true)} />
       : wide ? <View className="min-h-0 flex-1 flex-row">
         <View className="w-[408px]">{inbox}</View>
         <Pane className="my-3 mr-7 ml-4">{chat ?? <Empty icon={MessagesSquare}>{tr("Your conversations open here.")}</Empty>}</Pane>
