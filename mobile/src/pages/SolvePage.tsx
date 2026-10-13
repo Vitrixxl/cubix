@@ -203,13 +203,13 @@ function PhaseDetail({ phase }: { phase: Phase }) {
 function CaseRow({ label, known, onOpen, small = false }: { label?: string; known?: { id: string; name: string }; onOpen: (id: string) => void; small?: boolean }) {
   const c = known && local.read.catalog("333").cases.find(x => x.id === known.id);
   if (!known) return <View className="gap-0.5">{label && <Label className="font-bold tracking-widest uppercase">{label}</Label>}<Text className="text-base">{tr("Not in the catalogue")}</Text></View>;
-  return <Pressable onPress={() => onOpen(known.id)} accessibilityRole="button" className="flex-row items-center gap-3 rounded-xl active:bg-muted/60">
+  return <Pressable onPress={() => onOpen(known.id)} accessibilityRole="button" accessibilityLabel={`${said(known.name)}: ${tr("Open the algorithms")}`} className="flex-row items-center gap-3 rounded-xl active:bg-muted/60">
     {c && <CaseDiagram c={c} size={small ? 40 : 52} />}
     <View className="min-w-0 flex-1 gap-0.5">
       {label && <Label className="font-bold tracking-widest uppercase">{label}</Label>}
       <Text className="text-base font-bold">{said(known.name)}</Text>
     </View>
-    <Text className="text-sm font-bold text-primary">{tr("Open the algorithms")}</Text>
+    <Text className="text-sm font-bold text-primary">{tr("Algorithms")}</Text>
     <Icon as={ChevronRight} size={15} className="text-primary" />
   </Pressable>;
 }

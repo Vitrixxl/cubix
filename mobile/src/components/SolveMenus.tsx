@@ -87,17 +87,6 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
   </MenuContext.Provider>;
 }
 
-/** One action of the solve sheet: a tile with its icon (tinted by `tone`; filled once `pressed`), its word under it. */
-function BigAction({ icon, label, tone = "", pressed, disabled, onPress, accessibilityLabel }: { icon: typeof Plus; label: string; tone?: Tone; pressed?: boolean; disabled?: boolean; onPress: () => void; accessibilityLabel?: string }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: pressed, disabled }} disabled={disabled} onPress={onPress}
-    className={cn("min-w-0 flex-1 items-center gap-1", disabled && "opacity-50")}>
-    <View className={cn("h-12 w-full items-center justify-center rounded-2xl", pressed ? "bg-accent" : "bg-muted")}>
-      <Icon as={icon} size={20} className={tone === "accent" && !pressed ? "text-foreground" : TONE_TEXT[tone] || "text-foreground"} />
-    </View>
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-xs font-bold", pressed ? TONE_TEXT[tone] || "text-foreground" : "text-muted-foreground")}>{said(label)}</Text>
-  </Pressable>;
-}
-
 /** The shared solve actions, for screens that draw their own buttons. */
 export const useSolveMenu = () => useContext(MenuContext);
 

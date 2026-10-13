@@ -65,8 +65,8 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
     <View className="items-center gap-3 rounded-xl border border-dashed border-border bg-card px-6 py-6">
       <IconTile icon={Upload} />
       <Text className="text-center text-xs text-muted-foreground">{IMPORT_APPS.join(" · ")}</Text>
-      <Button variant="outline" className="h-11" disabled={busy} onPress={() => void choose()}>
-        <Icon as={FileUp} size={16} /><Text>{tr("Choose files")}</Text>
+      <Button variant="outline" className="h-11" accessibilityLabel={tr("Choose files")} disabled={busy} onPress={() => void choose()}>
+        <Icon as={FileUp} size={16} /><Text>{tr("Choose")}</Text>
       </Button>
     </View>
     {files.length > 0 && <View className={cn("gap-2", tablet && "flex-row flex-wrap")} accessibilityLabel={tr("Files to import")}>
@@ -74,8 +74,8 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
         onEvent={event => setFiles(current => current.map((f, j) => j === i ? { ...f, event } : f))}
         onRemove={() => setFiles(current => current.filter((_, j) => j !== i))} />)}
     </View>}
-    {solves.length > 0 && <Button className={cn("h-11 self-start", tablet && "h-12 self-stretch")} disabled={busy} onPress={() => void save()}>
-      <Text>{busy ? tr("Importing…") : tr("Import {0}", { 0: plural(solves.length, "solve") })}</Text>
+    {solves.length > 0 && <Button className={cn("h-11 self-start", tablet && "h-12 self-stretch")} accessibilityLabel={tr("Import {0}", { 0: plural(solves.length, "solve") })} disabled={busy} onPress={() => void save()}>
+      <Text>{busy ? tr("Importing…") : `${tr("Import")} · ${solves.length.toLocaleString()}`}</Text>
     </Button>}
     {done && <Alert variant={done.imported ? "info" : "default"} icon={CircleCheck} title={done.imported ? tr("{0} imported", { 0: plural(done.imported, "solve") }) : tr("Nothing new")}>
       {done.duplicates ? tr("{0} already here", { 0: plural(done.duplicates, "solve") }) : undefined}

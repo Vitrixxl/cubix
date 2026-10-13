@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, History, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtTime, plural, shortDate } from "../../../src/client/lib/format";
@@ -22,7 +22,7 @@ import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Bar, Empty, Figure, HeadButton, Numeric, Segmented, Surface } from "../components/layout";
 import { ProfileCaseDialog, TrainingProgress } from "../components/ProfileProgress";
 import { Caption as SheetCaption, EventPicker, PuzzleGrid } from "../components/PuzzlePicker";
-import { Sheet } from "../components/Sheet";
+import { Sheet, SheetFlatList } from "../components/Sheet";
 import { StatsScreen } from "../components/Stats";
 import { UserAvatar } from "../components/UserAvatar";
 import { useTourTarget } from "../tour";
@@ -45,7 +45,7 @@ function BattlesPage() {
   useDuel();
   const list = battles();
   const setRoute = useSetAtom(routeAtom);
-  if (!list.length) return <Surface className="flex-1"><Empty icon={Swords} title={tr("No battles yet")}><Button variant="outline" onPress={() => setRoute({ page: "duel" })}><Icon as={Swords} size={16} /><Text>{tr("Find an opponent")}</Text></Button>
+  if (!list.length) return <Surface className="flex-1"><Empty icon={Swords} title={tr("No battles yet")}><Button variant="outline" accessibilityLabel={tr("Find an opponent")} onPress={() => setRoute({ page: "duel" })}><Icon as={Swords} size={16} /><Text>{tr("Duel")}</Text></Button>
   </Empty></Surface>;
   const count = (r: DuelRecord["result"]) => list.filter(b => b.result === r).length;
   const averages = list.map(b => b.ao5[0]).filter((v): v is number => v != null);
@@ -140,34 +140,45 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
 }
 
 /**
- * Each event's best single large and its best Ao5 under it, on small cards sliding sideways; one set this week in mint.
- * `list` (a tablet) makes it a card of its own, the events one per row, scrolling inside it.
+ * Each event's best single large and its best Ao5 beside it, one set this week in mint. A phone shows the profile's
+ * event (else the first) on one card, every event in a drawer behind it; `list` (a tablet) makes it a card of its own,
+ * the events one per row, scrolling inside it.
  */
 function Records({ d, onStatistics, list, className }: { d: PreparedProfile | null; onStatistics: () => void; list?: boolean; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const event = useProfileEvent();
   const week = Date.now() - 7 * 86_400_000;
   const records = (d?.profile.records ?? []).filter(r => r.best != null);
   const recent = (r: (typeof records)[number]) => !!r.lastAt && new Date(r.lastAt).getTime() > week;
+  const current = records.find(r => r.event === event.value) ?? records[0];
+  const row = (r: (typeof records)[number]) => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
+    <View className="min-w-0 flex-1">
+      <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
+      <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
+    </View>
+    <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
+  </View>;
   return <View className={cn("gap-1", list && "min-h-0 gap-2 rounded-3xl bg-card p-3.5", className)}>
     <Caption link={<Pressable accessibilityRole="button" onPress={onStatistics} className="h-8 flex-row items-center gap-0.5 pl-2">
       <Text className="text-[13px] font-bold text-primary">{tr("Statistics")}</Text><Icon as={ChevronRight} size={15} className="text-primary" />
     </Pressable>}>{tr("Records")}</Caption>
-    {!d ? <Skeleton className="h-[70px] rounded-2xl" /> : records.length && list ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-1.5" showsVerticalScrollIndicator={false}>
-      {records.map(r => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
+    {!d ? <Skeleton className="h-14 rounded-2xl" /> : records.length && list ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-1.5" showsVerticalScrollIndicator={false}>
+      {records.map(row)}
+    </ScrollView> : current ? <>
+      <Pressable accessibilityRole="button" accessibilityLabel={tr("Records")} onPress={() => setOpen(true)} className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2 active:bg-muted">
         <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
-          <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
+          <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(current.puzzle, current.solveMode))}</Text>
+          <View className="flex-row items-baseline gap-2">
+            <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(current) && "text-success")}>{fmtTime(current.best)}</Numeric>
+            {current.bestAo5 != null && <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{tr("Ao5 {0}", { 0: fmtTime(current.bestAo5) })}</Numeric>}
+          </View>
         </View>
-        <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
-      </View>)}
-    </ScrollView> : records.length ? <View className="-mx-4">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5 px-4">
-        {records.map(r => <View key={r.event} className="w-[98px] rounded-2xl bg-card px-3 py-2">
-          <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
-          <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
-          <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
-        </View>)}
-      </ScrollView>
-    </View> : <Text className="text-[13px] text-muted-foreground">{tr("No times yet")}</Text>}
+        <Icon as={Trophy} size={15} className="text-muted-foreground" />
+        <Numeric className="text-[13px] font-bold text-muted-foreground">{records.length}</Numeric>
+        <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
+      </Pressable>
+      <Sheet open={open} onClose={() => setOpen(false)} title={tr("Records")} scroll contentClassName="gap-1.5">{records.map(row)}</Sheet>
+    </> : <Text className="text-[13px] text-muted-foreground">{tr("No times yet")}</Text>}
   </View>;
 }
 
@@ -213,9 +224,9 @@ function Moment({ icon, badge, tone, children }: { icon?: LucideIcon; badge?: Re
 /**
  * The journal of the active days, newest first, scrolling inside its card: each day's solves, the event's best single
  * and Ao5, then what happened (records, achievements, battles). Its head names the puzzle (the profile's own) and the
- * kind shown; both are chosen in a sheet, which also opens the activity.
+ * kind shown; both are chosen in a sheet, which also opens the activity. `sheet`: drawn in a phone's drawer, not a card.
  */
-function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () => void }) {
+function Journal({ d, onActivity, sheet = false }: { d: PreparedProfile | null; onActivity: () => void; sheet?: boolean }) {
   useDuel();
   const event = useProfileEvent();
   const summary = useAtomValue(profileAchievementsAtom);
@@ -232,7 +243,8 @@ function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () 
   const shown = days.filter(day => filter === "all" || (filter === "records" ? day.records.length : filter === "achievements" ? day.unlocked.length : day.duels.length));
   const today = dayKey(new Date());
   const kinds: { id: Filter; label: string }[] = [{ id: "all", label: tr("All") }, { id: "records", label: tr("Records") }, { id: "achievements", label: tr("Awards") }, { id: "battles", label: tr("Battles") }];
-  return <View className="min-h-0 flex-1 gap-2 rounded-3xl bg-card px-3.5 pt-3">
+  const List = (sheet ? SheetFlatList : FlatList) as typeof FlatList;
+  return <View className={sheet ? "min-h-0 shrink gap-2 px-5" : "min-h-0 flex-1 gap-2 rounded-3xl bg-card px-3.5 pt-3"}>
     <View className="flex-row items-center gap-2">
       <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
         <Text accessibilityRole="header" className="text-lg font-extrabold tracking-tight">{tr("Journal")}</Text>
@@ -251,10 +263,10 @@ function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () 
       </Button>
     </Sheet>
     {!d ? <View className="flex-1 gap-3 pt-2"><Skeleton className="h-16 rounded-xl" /><Skeleton className="h-16 rounded-xl" /></View>
-      : <FlatList data={shown} keyExtractor={day => day.key} className="flex-1" contentContainerClassName="pb-3" showsVerticalScrollIndicator={false}
+      : <List data={shown} keyExtractor={day => day.key} className={sheet ? undefined : "flex-1"} contentContainerClassName="pb-3" showsVerticalScrollIndicator={false}
         initialNumToRender={8} windowSize={7}
         ListEmptyComponent={<Empty icon={NotebookPen} title={days.length ? tr("Nothing of this kind yet.") : tr("Your practice days appear here.")} />}
-        renderItem={({ item: day, index }) => <View className={cn("flex-row gap-3 pt-3 pb-3.5", index > 0 && "border-t border-background")}>
+        renderItem={({ item: day, index }) => <View className={cn("flex-row gap-3 pt-3 pb-3.5", index > 0 && (sheet ? "border-t border-border" : "border-t border-background"))}>
           <View className="w-11 items-center">
             <Numeric className={cn("text-[28px] leading-8 font-extrabold tracking-[-0.04em]", day.key === today && "text-primary")}>{day.date.getDate()}</Numeric>
             <Text className="text-xs font-bold text-muted-foreground">{day.date.toLocaleDateString(locale(), { weekday: "short" })}</Text>
@@ -294,6 +306,7 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   const unlocked = useAtomValue(profileAchievementsAtom)?.unlocked ?? null;
   useDuel();
   const tour = useTourTarget("profile-overview");
+  const [history, setHistory] = useState(false);
   const shortcuts = (layout?: "row" | "grid") => <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} layout={layout} />;
   if (tablet && (wide || height < 900)) return <View className="flex-1 flex-row">
     <View className="min-w-0 flex-1">
@@ -339,8 +352,17 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
         <Records d={d} onStatistics={() => show("playground")} />
       </View>
       <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} />
-      <Journal d={d} onActivity={() => show("activity")} />
+      {/* The journal is a history: behind this button, in a drawer. */}
+      <Pressable accessibilityRole="button" accessibilityLabel={tr("History")} onPress={() => setHistory(true)}
+        className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-card px-3.5 active:bg-muted">
+        <Icon as={History} size={19} className="text-primary" />
+        <Text className="min-w-0 flex-1 text-[15px] font-bold">{tr("History")}</Text>
+        <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
+      </Pressable>
     </View>
+    <Sheet open={history} onClose={() => setHistory(false)} title={tr("Journal")} hideTitle contentClassName="gap-0 px-0">
+      <Journal sheet d={d} onActivity={() => { setHistory(false); show("activity"); }} />
+    </Sheet>
   </View>;
 }
 

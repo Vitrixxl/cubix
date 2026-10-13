@@ -2,7 +2,6 @@ import { useAtomValue } from "jotai";
 import { Ban, CalendarDays, ChevronLeft, ChevronRight, ListOrdered, MessageSquare, Pencil, Plus, Rotate3d, Trash2 } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { effective, fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { practiceSummary, sessionExtremes, solveTone } from "../../../src/client/lib/practiceSummary";
@@ -80,7 +79,7 @@ const pillName = (x: SessionSummary) => x.name || (sameDay(new Date(x.at), new D
 /**
  * The session's times in a sheet: its figures, then every time newest first. A tap opens a time, holding it gives its
  * menu, swiping it to the left +2, DNF and Delete. On the timer (`context`), the session has its name (edited in
- * place), the sessions of the puzzle as pills ("New" starts one) and, behind the calendar, every day one was used.
+ * place), the latest sessions of the puzzle as pills ("New" starts one) and, behind the calendar, every day one was used.
  */
 export function TimesSheet({ open, onClose, solves, title, context, calendar = false, onEditFigures }: {
   open: boolean; onClose: () => void; solves: SolveDto[]; title: string;
@@ -142,7 +141,10 @@ function TimesBody({ solves, title, context, calendar, onCalendar, docked = fals
   </>;
 }
 
-/** The session's name (edited in place) and count, the calendar, then the sessions of the puzzle as pills or as a month. */
+/** Sessions offered as pills; the others wait in the calendar. */
+const PILLS = 5;
+
+/** The session's name (edited in place) and count, the calendar, then the latest sessions of the puzzle as pills or as a month. */
 function TimerSessionHead({ context, count, calendar, docked, onCalendar, onPicked }: { context: PracticeContext; count: number; calendar: boolean; docked: boolean; onCalendar: () => void; onPicked: () => void }) {
   const colors = useColors();
   // Out of a sheet, a plain field with the sheet field's look (the sheet's own needs its sheet).
@@ -178,11 +180,11 @@ function TimerSessionHead({ context, count, calendar, docked, onCalendar, onPick
       </Pressable>
     </View>
     {calendar ? <SessionCalendar list={list} current={currentId} disabled={locked} onPick={pick} />
-      : <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-5">
+      : <View className="flex-row flex-wrap gap-2 px-5">
         <Pill primary icon={Plus} label={tr("New")} disabled={locked} accessibilityLabel={tr("New session")} onPress={() => pick("new")} />
-        {list.slice(0, 50).filter(x => x.count || x.id === currentId).map(x => <Pill key={x.id} role="radio" on={x.id === currentId} label={pillName(x)} value={x.count}
+        {list.filter(x => x.count || x.id === currentId).slice(0, PILLS).map(x => <Pill key={x.id} role="radio" on={x.id === currentId} label={pillName(x)} value={x.count}
           disabled={locked} accessibilityLabel={sessionName(x, event)} onPress={() => pick(x.id!)} />)}
-      </ScrollView>}
+      </View>}
     {error ? <Text className="px-5 text-sm text-destructive">{error}</Text> : null}
   </View>;
 }

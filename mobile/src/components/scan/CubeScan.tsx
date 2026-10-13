@@ -174,7 +174,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
       <View className="size-12 items-center justify-center rounded-2xl bg-muted"><Icon as={CameraOff} size={22} className="text-muted-foreground" /></View>
       <Text className="text-lg font-semibold tracking-tight">{tr("No camera")}</Text>
       <View className="w-full max-w-xs gap-2 pt-2">
-        <Button size="lg" className="h-12" onPress={onHand}><Icon as={Paintbrush} size={18} /><Text>{tr("Enter the colours by hand")}</Text></Button>
+        <Button size="lg" className="h-12" accessibilityLabel={tr("Enter the colours by hand")} onPress={onHand}><Icon as={Paintbrush} size={18} /><Text>{tr("By hand")}</Text></Button>
         <View className="flex-row gap-2">
           <Button variant="outline" size="lg" className="h-12 flex-1" onPress={() => { setStatus("starting"); setAttempt(a => a + 1); }}><Icon as={RefreshCw} size={17} /><Text>{tr("Try again")}</Text></Button>
           <Button variant="outline" size="lg" className="h-12 flex-1" onPress={() => void Linking.openSettings()}><Icon as={Settings} size={17} /><Text>{tr("Settings")}</Text></Button>
@@ -218,12 +218,12 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
         </View>)}
       </View>
     </View>
-    <Button size="lg" className="h-14 rounded-2xl" disabled={status !== "live" || !found} onPress={() => send({ type: "read" })}>
-      <Icon as={Camera} size={19} className="text-primary-foreground" /><Text className="text-lg font-extrabold">{tr("Read this face")}</Text>
+    <Button size="lg" className="h-14 rounded-2xl" accessibilityLabel={tr("Read this face")} disabled={status !== "live" || !found} onPress={() => send({ type: "read" })}>
+      <Icon as={Camera} size={19} className="text-primary-foreground" /><Text className="text-lg font-extrabold">{tr("Read")}</Text>
     </Button>
     <View className="flex-row gap-2">
       <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Read the last face again")} disabled={last < 0} onPress={undo}>
-        <Icon as={Undo2} size={17} /><Text>{tr("Last face again")}</Text>
+        <Icon as={Undo2} size={17} /><Text>{tr("Undo")}</Text>
       </Button>
       <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={onHand}>
         <Icon as={Paintbrush} size={17} /><Text>{tr("By hand")}</Text>

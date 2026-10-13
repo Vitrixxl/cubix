@@ -226,8 +226,8 @@ function Catalogue() {
         </View>
         <Progress learned={learnedTotal} trained={trainedTotal} total={cases.length} className="mx-1" />
         <View className="min-h-0 flex-1">{list}</View>
-        <Button variant="secondary" className="h-11 gap-2 rounded-2xl" onPress={() => setMethods(true)}>
-          <Icon as={BookOpen} size={16} className="text-secondary-foreground" /><Text>{tr("Solving methods")}</Text>
+        <Button variant="secondary" className="h-11 gap-2 rounded-2xl" accessibilityLabel={tr("Solving methods")} onPress={() => setMethods(true)}>
+          <Icon as={BookOpen} size={16} className="text-secondary-foreground" /><Text>{tr("Methods")}</Text>
         </Button>
       </View>
       <View className="min-w-0 flex-1">
@@ -246,9 +246,9 @@ function Catalogue() {
             <Text numberOfLines={1} className="text-lg font-extrabold tracking-[-0.02em]">{said(puzzleInfo(puzzle)?.label ?? puzzle)}</Text>
             <Text className="text-sm text-muted-foreground">{tr("{0} of {1} learned", { 0: learnedTotal, 1: cases.length })}</Text>
           </View>
-          <Pressable onPress={() => setMethods(true)} accessibilityRole="button" className="h-10 flex-row items-center gap-2 rounded-full bg-primary/15 px-3.5 active:bg-primary/25">
+          <Pressable onPress={() => setMethods(true)} accessibilityRole="button" accessibilityLabel={tr("Solving methods")} className="h-10 flex-row items-center gap-2 rounded-full bg-primary/15 px-3.5 active:bg-primary/25">
             <Icon as={BookOpen} size={16} className="text-primary" />
-            <Text className="text-sm font-bold text-primary">{tr("Solving methods")}</Text>
+            <Text className="text-sm font-bold text-primary">{tr("Methods")}</Text>
           </Pressable>
         </View>
         <Progress learned={learnedTotal} trained={trainedTotal} total={cases.length} />
@@ -285,13 +285,13 @@ function CurrentSet({ row, learned, onOpen, onTrain }: { row: CatalogueSet; lear
       })}
     </View>}
     <View className="flex-row gap-2.5">
-      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={onOpen}>
-        <Icon as={LayoutGrid} size={18} className="text-secondary-foreground" /><Text>{tr("Open the set")}</Text>
+      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Open the set")} onPress={onOpen}>
+        <Icon as={LayoutGrid} size={18} className="text-secondary-foreground" /><Text>{tr("Cases")}</Text>
       </Button>
-      <Pressable onPress={onTrain} accessibilityRole="button" disabled={!list.length}
+      <Pressable onPress={onTrain} accessibilityRole="button" accessibilityLabel={tr("Train all")} disabled={!list.length}
         className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-primary active:bg-primary/85">
         <Icon as={Timer} size={18} className="text-primary-foreground" />
-        <Text className="text-base font-bold text-primary-foreground">{tr("Train all")} · {list.length}</Text>
+        <Text className="text-base font-bold text-primary-foreground">{tr("Train")} · {list.length}</Text>
       </Pressable>
     </View>
   </View>;
@@ -342,7 +342,7 @@ function SearchScreen() {
       <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search cases…")} autoFocus={!query} className="flex-1 rounded-2xl" />
     </View>
     <View className="flex-row items-center gap-1 px-4 pb-1" accessibilityRole="radiogroup">
-      {chip("all", tr("All puzzles' sets"))}
+      {chip("all", tr("All"))}
       {chip("puzzle", tr("{0} only", { 0: said(puzzleInfo(puzzle)?.label ?? puzzle) }))}
       <View className="flex-1" />
       {q ? <Numeric className="text-sm text-muted-foreground">{tr("{0} cases", { 0: found.length })}</Numeric> : null}
@@ -510,14 +510,14 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
       initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />
   </View>;
   const selectionBar = <View className="flex-row gap-2 border-t border-border px-4 py-2.5">
-    <Pressable disabled={!ids.some(id => !learned.has(id))} accessibilityRole="button"
+    <Pressable disabled={!ids.some(id => !learned.has(id))} accessibilityRole="button" accessibilityLabel={tr("Mark learned")}
       onPress={() => { for (const id of ids) if (!learned.has(id)) void api.setLearned(id, true).catch(() => { /* Reported by the sync indicator. */ }); setPicked(null); }}
       className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-success/15 active:bg-success/25", !ids.some(id => !learned.has(id)) && "opacity-40")}>
-      <Icon as={Check} size={18} className="text-success" /><Text className="text-base font-bold text-success">{tr("Mark learned")}</Text>
+      <Icon as={Check} size={18} className="text-success" /><Text className="text-base font-bold text-success">{tr("Learned")}</Text>
     </Pressable>
-    <Pressable disabled={!ids.length} accessibilityRole="button" onPress={() => train(ids)}
+    <Pressable disabled={!ids.length} accessibilityRole="button" accessibilityLabel={tr("Train selection")} onPress={() => train(ids)}
       className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-primary active:bg-primary/85", !ids.length && "opacity-40")}>
-      <Icon as={Timer} size={18} className="text-primary-foreground" /><Text className="text-base font-bold text-primary-foreground">{tr("Train selection")}</Text>
+      <Icon as={Timer} size={18} className="text-primary-foreground" /><Text className="text-base font-bold text-primary-foreground">{tr("Train")}</Text>
     </Pressable>
   </View>;
   const sheets = <>
@@ -554,20 +554,20 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     </Sheet>
     {picked
       ? selectionBar
-      : <Pressable onPress={() => train(all.map(c => c.id))} accessibilityRole="button" disabled={!all.length}
+      : <Pressable onPress={() => train(all.map(c => c.id))} accessibilityRole="button" accessibilityLabel={tr("Train all")} disabled={!all.length}
         className="absolute right-4 bottom-4 h-14 flex-row items-center gap-2 rounded-2xl bg-primary px-5 shadow-lg shadow-black/30 active:bg-primary/85">
         <Icon as={Timer} size={20} className="text-primary-foreground" />
-        <Text className="text-lg font-extrabold tracking-[-0.02em] text-primary-foreground">{tr("Train all")} · {all.length}</Text>
+        <Text className="text-lg font-extrabold tracking-[-0.02em] text-primary-foreground">{tr("Train")} · {all.length}</Text>
       </Pressable>}
     {sheets}
   </View>;
   const selectButton = (className?: string) => <Button variant="secondary" className={cn("h-12 gap-2 rounded-2xl px-4", className)} onPress={() => setPicked(new Set())}>
     <Icon as={SquareCheckBig} size={18} className="text-secondary-foreground" /><Text>{tr("Select")}</Text>
   </Button>;
-  const trainAll = (className?: string) => <Pressable onPress={() => train(all.map(c => c.id))} accessibilityRole="button" disabled={!all.length}
+  const trainAll = (className?: string) => <Pressable onPress={() => train(all.map(c => c.id))} accessibilityRole="button" accessibilityLabel={tr("Train all")} disabled={!all.length}
     className={cn("h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-primary px-5 active:bg-primary/85", className)}>
     <Icon as={Timer} size={18} className="text-primary-foreground" />
-    <Text className="text-base font-bold text-primary-foreground">{tr("Train all")} · {all.length}</Text>
+    <Text className="text-base font-bold text-primary-foreground">{tr("Train")} · {all.length}</Text>
   </Pressable>;
   const caseOver = wide
     ? <CaseSide caseId={caseOpen} ids={order} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
@@ -907,7 +907,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     <Pressable onPress={() => toggleLearned(c.id)} accessibilityRole="switch" accessibilityState={{ checked: learned }}
       className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl", learned ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
       <Icon as={Check} size={18} className={learned ? "text-success" : "text-muted-foreground"} />
-      <Text className={cn("text-base font-bold", learned ? "text-success" : "text-muted-foreground")}>{learned ? tr("Learned") : tr("Mark learned")}</Text>
+      <Text className={cn("text-base font-bold", learned ? "text-success" : "text-muted-foreground")}>{tr("Learned")}</Text>
     </Pressable>
   </View>;
   const tabs = <View className={cn("mt-2 flex-row gap-5 border-b border-border px-5", tablet && "mt-0 px-1")} accessibilityRole="tablist">
@@ -922,8 +922,8 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   </View>;
   const head = <>{ident}{actions}{tabs}</>;
   const others = items.length - used.length;
-  const addYours = <Pressable onPress={() => setWriting(true)} accessibilityRole="button" className="h-10 flex-row items-center gap-1.5 rounded-full px-2 active:bg-muted/50">
-    <Icon as={Plus} size={16} className="text-muted-foreground" /><Text className="text-sm font-bold text-muted-foreground">{tr("Add yours")}</Text>
+  const addYours = <Pressable onPress={() => setWriting(true)} accessibilityRole="button" accessibilityLabel={tr("Add yours")} className="h-10 flex-row items-center gap-1.5 rounded-full px-2 active:bg-muted/50">
+    <Icon as={Plus} size={16} className="text-muted-foreground" /><Text className="text-sm font-bold text-muted-foreground">{tr("Add")}</Text>
   </Pressable>;
   // A phone keeps under the player the algorithms used, if any, then the drawer's button: choosing one, adding one's
   // own and what each tells apart wait there.
@@ -932,9 +932,10 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     {used.length > 0 && <Caption className="px-1 pt-3 pb-1">{tr("You use")}</Caption>}
     {used.map(item => <AlgRow key={item.key} item={item} cube={cube} used here={item.key === current?.key} onPress={() => show(item)} />)}
     {items.length > 0 && <Pressable onPress={() => setDrawer(true)} accessibilityRole="button"
+      accessibilityLabel={used.length ? tr("Other algorithms · {0}", { 0: others }) : tr("Choose an algorithm · {0}", { 0: items.length })}
       className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-muted active:bg-muted/70">
       <Icon as={ListChecks} size={18} className="text-foreground" />
-      <Text className="text-base font-bold">{used.length ? tr("Other algorithms · {0}", { 0: others }) : tr("Choose an algorithm · {0}", { 0: items.length })}</Text>
+      <Text className="text-base font-bold">{used.length ? tr("Algorithms") : tr("Choose")} · {used.length ? others : items.length}</Text>
     </Pressable>}
   </View>;
   const times = <View className={cn("px-4 pt-3 pb-3", !sheet && "min-h-0 flex-1")}>
@@ -948,9 +949,9 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
           <HeadButton icon={CirclePlay} label={tr("Play it")} onPress={() => { show(item); setTab("algorithms"); setDrawer(false); }} />
           {item.own && <HeadButton icon={Trash2} label={tr("Delete")} onPress={() => removeOwn(item.alg)} />}
         </View>} />)}
-      <Pressable onPress={() => { setDrawer(false); setWriting(true); }} accessibilityRole="button"
+      <Pressable onPress={() => { setDrawer(false); setWriting(true); }} accessibilityRole="button" accessibilityLabel={tr("Add yours")}
         className="mt-1 h-12 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border active:bg-muted/50">
-        <Icon as={Plus} size={17} className="text-muted-foreground" /><Text className="text-base font-bold text-muted-foreground">{tr("Add yours")}</Text>
+        <Icon as={Plus} size={17} className="text-muted-foreground" /><Text className="text-base font-bold text-muted-foreground">{tr("Add")}</Text>
       </Pressable>
     </Sheet>
     <OwnAlgSheet open={writing} c={c} onClose={() => setWriting(false)} onAdd={alg => { addOwn(alg); setWriting(false); }} />

@@ -118,9 +118,9 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
         : <Skeleton accessibilityLabel={tr("Searching the solutions")} style={{ height: solutionFont * 1.4, width: solutionFont * 9 }} />}
     </View>}
     <View className="-ml-2.5 flex-row">
-      <Button variant="ghost" size="sm" className="h-11 gap-1.5 rounded-lg" disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)}>
+      <Button variant="ghost" size="sm" className="h-11 gap-1.5 rounded-lg" accessibilityLabel={revealed ? tr("Hide solution") : tr("Show solution")} disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)}>
         <Icon as={revealed ? EyeOff : Eye} size={16} className="text-muted-foreground" />
-        <Text className="text-sm text-muted-foreground">{revealed ? tr("Hide solution") : tr("Show solution")}</Text>
+        <Text className="text-sm text-muted-foreground">{tr("Solution")}</Text>
       </Button>
     </View>
   </>;

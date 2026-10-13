@@ -50,7 +50,7 @@ mock.module("../src/components/ImportTimes", () => ({ ImportSheet: "ImportSheet"
 mock.module("../src/components/Stats", () => ({ StatsScreen: "StatsScreen" }));
 mock.module("../src/components/Toast", () => ({ toastAtom: atom(null) }));
 mock.module("../src/components/PuzzlePicker", () => ({ Caption: "Caption", EventPicker: "EventPicker", PuzzleGrid: "PuzzleGrid" }));
-mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
+mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet", SheetFlatList: "FlatList" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
@@ -90,6 +90,8 @@ const all = (type: string) => renderer.root.findAllByType(type as any);
 const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
 const pressable = (label: string) => all("Pressable").find(node => node.props.accessibilityLabel === label)!;
 const journal = () => all("FlatList").at(-1)!;
+/** A drawer by its title; the journal's own drawer is the one with its title hidden (it draws its head itself). */
+const sheet = (title: string, hidden = false) => all("Sheet").find(node => node.props.title === title && !!node.props.hideTitle === hidden)!;
 
 test("the profile shows the account, its level, records, shortcuts and journal under the section's tabs", async () => {
   await mount();
@@ -97,11 +99,19 @@ test("the profile shows the account, its level, records, shortcuts and journal u
   expect(all("SectionTabs")).toHaveLength(1);
   expect(texts()).toContain("vitrix");
   expect(texts()).toContain("Level 2");
-  // The records, each event's best single.
+  // The records: the profile's event's best single on the page, every event's in a drawer behind it.
   expect(all("Numeric").some(node => node.props.children === "10.000")).toBe(true);
+  expect(all("ScrollView").some(node => node.props.horizontal)).toBe(false);
+  expect(sheet("Records").props.open).toBe(false);
+  await act(() => pressable("Records").props.onPress());
+  expect(sheet("Records").props.open).toBe(true);
   // The four shortcuts, with their counts.
   expect(["Analysis", "Cases 1", "Awards 1", "Battles 0"].every(label => pressable(label))).toBe(true);
-  // The journal: a day per active day, newest first, its puzzle named in its head and chosen in its sheet.
+  // The journal is a history: in a drawer behind the History button, a day per active day, newest first, its puzzle
+  // named in its head and chosen in its sheet.
+  expect(sheet("Journal", true).props.open).toBe(false);
+  await act(() => pressable("History").props.onPress());
+  expect(sheet("Journal", true).props.open).toBe(true);
   expect(journal().props.data.map((day: { key: string }) => day.key)).toEqual(["2026-09-23", "2026-09-22", "2026-09-21"]);
   expect(texts()).toContain("3×3");
   expect(all("PuzzleGrid")).toHaveLength(1);
@@ -133,7 +143,7 @@ test("the journal's sheet filters the kind of moments, counted on its button, an
   const button = () => all("HeadButton").find(node => node.props.label === "Filter")!;
   expect(button().props.badge).toBeUndefined();
   await act(() => button().props.onPress());
-  expect(all("Sheet")[0]!.props.open).toBe(true);
+  expect(sheet("Journal").props.open).toBe(true);
   await act(() => all("Segmented")[0]!.props.onChange("battles"));
   expect(button().props.badge).toBe(1);
   expect(texts()).toContain("3×3 · Battles");

@@ -78,7 +78,7 @@ export function AssistedPage({ method }: { method: string }) {
 function Frame({ phase, back, close, children }: { phase: number; back: () => void; close: () => void; children: ReactNode }) {
   const insets = useSafeAreaInsets(), { tablet } = useLayout();
   return <View className="flex-1" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-    <PushedBar title={tr("With my cube")} onBack={back}>
+    <PushedBar title={tr("My cube")} onBack={back}>
       <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={close} className="size-11 items-center justify-center rounded-full active:bg-muted">
         <Icon as={X} size={22} />
       </Pressable>
@@ -114,7 +114,7 @@ function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
     <Text accessibilityRole="header" className="py-2 text-center text-2xl font-extrabold tracking-[-0.04em]">{tr("How does Qbix see your cube?")}</Text>
     {/* The two ways side by side on a tablet. */}
     <View className={cn("min-h-0 flex-1 gap-2.5", tablet && "flex-row gap-3")}>
-      <WayTile icon={Camera} title={tr("Show the faces")} onPress={() => onChoose("scan")} />
+      <WayTile icon={Camera} title={tr("Camera")} onPress={() => onChoose("scan")} />
       <WayTile icon={Paintbrush} title={tr("By hand")} onPress={() => onChoose("hand")} />
     </View>
     <View className="flex-row items-center gap-3 rounded-[20px] bg-card px-4 py-3">
@@ -223,8 +223,8 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
       <Notice cube={plan ? <StaticCubeSvg state={solved(3)} size={120} /> : <Icon as={TriangleAlert} size={40} className="text-warning" />}
         title={plan ? tr("Your cube is already solved") : tr("This cube cannot be solved")}
         text={plan ? undefined : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-        {!plan && <Action primary icon={Check} title={tr("Check the colours")} onPress={() => again("check")} />}
-        <Action primary={!!plan} icon={ScanLine} title={plan ? tr("Read the cube again") : tr("Read everything again")} onPress={() => again()} />
+        {!plan && <Action primary icon={Check} title={tr("Colours")} accessibilityLabel={tr("Check the colours")} onPress={() => again("check")} />}
+        <Action primary={!!plan} icon={ScanLine} title={tr("Read again")} accessibilityLabel={plan ? tr("Read the cube again") : tr("Read everything again")} onPress={() => again()} />
       </Notice>
     </Frame>;
 
@@ -253,10 +253,10 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
           <Numeric className="w-8 text-right text-sm font-bold text-muted-foreground">{per[k]}</Numeric>
         </View>)}
       </View>
-      <Action primary icon={RotateCcw} title={tr("Solve again")} onPress={() => again()} />
+      <Action primary icon={RotateCcw} title={tr("Again")} accessibilityLabel={tr("Solve again")} onPress={() => again()} />
       <View className="flex-row gap-2">
-        <Action className="flex-1" icon={Timer} title={tr("On your own, with the timer")} onPress={() => replace({ page: "playground" })} />
-        <Action className="flex-1" icon={GraduationCap} title={tr("Back to the course")} onPress={leave} />
+        <Action className="flex-1" icon={Timer} title={tr("Timer")} accessibilityLabel={tr("On your own, with the timer")} onPress={() => replace({ page: "playground" })} />
+        <Action className="flex-1" icon={GraduationCap} title={tr("Course")} accessibilityLabel={tr("Back to the course")} onPress={leave} />
       </View>
       {lessonSheet}
     </Frame>;
@@ -266,9 +266,9 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
     return <Frame phase={2} back={back} close={leave}>
       <Route steps={steps} plan={plan} at={at.part} finished={false} onStep={setLesson} />
       <Notice cube={<StaticCubeSvg state={at.state} size={120} />} title={tr("Your cube left the plan")}>
-        <Action primary icon={ScanLine} title={tr("Read the cube again")} onPress={() => again()} />
-        <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : undefined} onPress={restart} />
-        <Action icon={Check} title={tr("Check the colours")} onPress={() => again("check")} />
+        <Action primary icon={ScanLine} title={tr("Read again")} accessibilityLabel={tr("Read the cube again")} onPress={() => again()} />
+        <Action icon={Undo2} title={tr("Restart")} accessibilityLabel={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : undefined} onPress={restart} />
+        <Action icon={Check} title={tr("Colours")} accessibilityLabel={tr("Check the colours")} onPress={() => again("check")} />
       </Notice>
       {lessonSheet}
     </Frame>;
@@ -324,11 +324,11 @@ function Solve({ course, start, back, leave, rescan }: { course: Course; start: 
     <Button variant="secondary" size="icon" className="h-14 w-14 rounded-2xl" accessibilityLabel={tr("Previous turn")} disabled={!at.part && !at.made} onPress={previous}>
       <Icon as={ChevronLeft} size={22} />
     </Button>
-    <Button className="h-14 flex-1 rounded-2xl" onPress={forward}><Text className="text-lg font-extrabold">{tr("Done, next turn")}</Text></Button>
+    <Button className="h-14 flex-1 rounded-2xl" accessibilityLabel={tr("Done, next turn")} onPress={forward}><Text className="text-lg font-extrabold">{tr("Next")}</Text></Button>
   </View>;
   const help = <View className="flex-row gap-2">
-    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => setLost(true)}><Icon as={Info} size={17} /><Text>{tr("I'm lost")}</Text></Button>
-    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => again()}><Icon as={ScanLine} size={17} /><Text>{tr("Read the cube again")}</Text></Button>
+    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("I'm lost")} onPress={() => setLost(true)}><Icon as={Info} size={17} /><Text>{tr("Lost?")}</Text></Button>
+    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Read the cube again")} onPress={() => again()}><Icon as={ScanLine} size={17} /><Text>{tr("Read again")}</Text></Button>
   </View>;
   return <Frame phase={2} back={back} close={leave}>
     {wide ? <View className="min-h-0 flex-1 flex-row gap-4">
@@ -392,9 +392,9 @@ function Notice({ cube, title, text, children }: { cube: ReactNode; title: strin
   </View>;
 }
 
-/** A way forward as a large card: its icon, title and a word on it. */
-function Action({ icon, title, text, onPress, primary = false, className }: { icon: LucideIcon; title: string; text?: string; onPress: () => void; primary?: boolean; className?: string }) {
-  return <Pressable accessibilityRole="button" onPress={onPress}
+/** A way forward as a large card: its icon, its word and a line on it; `accessibilityLabel` says it whole. */
+function Action({ icon, title, text, onPress, primary = false, className, accessibilityLabel }: { icon: LucideIcon; title: string; text?: string; onPress: () => void; primary?: boolean; className?: string; accessibilityLabel?: string }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress}
     className={cn("min-h-14 flex-row items-center gap-3 rounded-2xl px-4 py-2.5", primary ? "bg-primary active:bg-primary/85" : "bg-card active:bg-muted", className)}>
     <Icon as={icon} size={19} className={primary ? "text-primary-foreground" : "text-foreground"} />
     <View className="min-w-0 flex-1">

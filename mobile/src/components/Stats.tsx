@@ -81,7 +81,7 @@ export function StatsScreen() {
     <View className={cn("min-h-0 flex-1 px-4 pb-3", tablet && "px-7", listing ? "pt-1" : "pt-2.5")}>
       {!profile ? <View className="flex-1 gap-2.5"><Skeleton className="flex-1 rounded-3xl" /><Skeleton className="h-48 rounded-3xl" /></View>
         : !data?.summary.count ? <Empty icon={TimerIcon} title={tr("No times in this selection yet.")}>
-          <Button onPress={() => navigate({ page: "playground" })}><Text>{tr("Open the timer")}</Text></Button>
+          <Button accessibilityLabel={tr("Open the timer")} onPress={() => navigate({ page: "playground" })}><Text>{tr("Timer")}</Text></Button>
         </Empty>
         : <Board key={`${data.history[0]?.id}:${data.history.at(-1)?.id}:${data.history.length}:${sessions ? by : "solve"}`} data={data} by={sessions ? by : "solve"}
           title={`${eventLabel} · ${tr(scrambleLabel(scrambleType))}`} event={eventLabel} tool={tool} setTool={setTool} />}

@@ -1,12 +1,12 @@
 /**
  * The achievements, as the web's (desktop/renderer/profile/achievements.tsx) on a phone: a pushed screen with the puzzle
- * and Unlocked / To do, the categories as cards sliding sideways (each one's dots coloured once unlocked), then the
+ * and Unlocked / To do, the category on a button (every one a card in a drawer, its dots coloured once unlocked), then the
  * journal: the unlocked ones month by month, or those to do from the closest. A badge opens its sheet in a full-screen
  * dialog: what it asks, where it stands, its series and the closest ones of its category. On a tablet the journal's
  * achievements are rows, two by two, and on a wide screen the chosen one's sheet stays docked at the right.
  */
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, Eye, Flame, Gauge, Layers, Share2, Target, Timer, Trophy, X, type LucideIcon } from "lucide-react-native";
+import { BookOpen, ChevronDown, Eye, Flame, Gauge, Layers, Share2, Target, Timer, Trophy, X, type LucideIcon } from "lucide-react-native";
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Modal, Pressable, ScrollView, Share, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +29,7 @@ import { useLayout } from "../hooks/useLayout";
 import { PushedBar } from "./AppBar";
 import { Bar, Empty, Numeric, Segmented } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
+import { Sheet } from "./Sheet";
 import { useSolveMenu } from "./SolveMenus";
 import { localFormat, said, tr } from "../../../src/client/i18n";
 
@@ -88,11 +89,11 @@ function left(a: A) {
 /** What moves it on: the timer of its event, the training, or the algorithms of its set. */
 function useNext() {
   const navigate = useSetAtom(routeAtom), setEvent = useSetAtom(eventAtom), setPuzzle = useSetAtom(puzzleAtom);
-  return (a: A): { label: string; icon: LucideIcon; go: () => void } => {
+  return (a: A): { label: string; name?: string; icon: LucideIcon; go: () => void } => {
     const kind = achievementKind(a), puzzle = a.puzzle as PuzzleId | undefined;
     if (kind === "sets") {
       const set = catalogSets.find(v => `learn:${v.id}` === a.id);
-      return { label: tr("Learn {0}", { 0: said(set?.label ?? a.group) }), icon: BookOpen, go: () => {
+      return { label: tr("Learn"), name: tr("Learn {0}", { 0: said(set?.label ?? a.group) }), icon: BookOpen, go: () => {
         if (puzzle) setPuzzle(puzzle);
         navigate(set ? { page: "algorithms", set: set.id } : { page: "algorithms" });
       } };
@@ -170,7 +171,7 @@ function Journal({ summary, initialGroup, head }: { summary: AchievementSummaryD
   // Docked on a wide screen, the sheet shows the first of the list until one is picked.
   const docked = wide ? picked ?? rows.flatMap(row => row.kind === "tiles" ? row.items : [])[0] ?? null : null;
   const puzzle = <ChoiceButton label={tr("Puzzle")} value={group} onChange={setGroup} className="rounded-full border-0 bg-muted"
-    options={[{ id: "all", label: tr("All puzzles") }, ...groups.map(id => ({ id, label: said(id) }))]} />;
+    options={[{ id: "all", label: tr("All") }, ...groups.map(id => ({ id, label: said(id) }))]} />;
   const show = <Segmented label={tr("Show")} value={mode} onChange={setMode} className={tablet ? (wide ? "h-12 w-72" : "h-12") : "w-52"}
     options={[{ id: "unlocked", label: tr("Unlocked"), count: unlocked }, { id: "locked", label: tr("To do"), count: inGroup.length - unlocked }]} />;
   const l = level(summary.xp);
@@ -250,13 +251,20 @@ const Line = memo(function Line({ a, on, onPress }: { a: A; on: boolean; onPress
   </Pressable>;
 });
 
-/** The categories as cards sliding sideways that filter the journal: each one's count, and a dot per achievement. */
+/**
+ * The categories that filter the journal: the one chosen on a button, every one in a drawer behind it as a card with
+ * its count and a dot per achievement.
+ */
 function Categories({ items, category, onChange }: { items: A[]; category: string; onChange: (id: string) => void }) {
   const colors = useColors();
-  const card = (id: string, label: string, icon: LucideIcon, colour: string, list: A[]) => {
-    const done = list.filter(a => a.unlocked).length, on = category === id;
-    return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${said(label)}, ${done} / ${list.length}`} onPress={() => onChange(id)}
-      className={cn("w-[150px] gap-2 rounded-2xl px-3 py-2.5", on ? "bg-accent" : "bg-card active:bg-muted")}>
+  const [open, setOpen] = useState(false);
+  const all = [{ id: "all", label: "All", icon: Trophy, colour: colors.foreground, list: items },
+    ...CATEGORIES.map(c => ({ id: c.id as string, label: c.label, icon: c.icon, colour: colors.variables[`--${c.token}`] ?? colors.primary, list: items.filter(a => a.category === c.id) }))];
+  const current = all.find(c => c.id === category) ?? all[0]!, unlocked = (list: A[]) => list.filter(a => a.unlocked).length;
+  const card = ({ id, label, icon, colour, list }: (typeof all)[number]) => {
+    const done = unlocked(list), on = category === id;
+    return <View key={id} className="w-1/2 p-1"><Pressable accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${said(label)}, ${done} / ${list.length}`} onPress={() => { setOpen(false); onChange(id); }}
+      className={cn("gap-2 rounded-2xl px-3 py-2.5", on ? "bg-accent" : "bg-card active:bg-muted")}>
       <View className="flex-row items-center gap-2">
         <View className="size-7 items-center justify-center rounded-full" style={{ backgroundColor: colour }}><Icon as={icon} size={14} className="text-background" /></View>
         <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold">{said(label)}</Text>
@@ -266,14 +274,20 @@ function Categories({ items, category, onChange }: { items: A[]; category: strin
         : <View className="flex-row flex-wrap gap-[3px]" importantForAccessibility="no-hide-descendants">
         {list.map(a => <View key={a.id} className="size-[7px] rounded-full" style={{ backgroundColor: a.unlocked ? colour : colors.mutedForeground, opacity: a.unlocked ? 1 : 0.3 }} />)}
       </View>}
-    </Pressable>;
+    </Pressable></View>;
   };
-  return <View className="-mx-4">
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="items-start gap-2 px-4">
-      {card("all", "All", Trophy, colors.foreground, items)}
-      {CATEGORIES.map(c => card(c.id, c.label, c.icon, colors.variables[`--${c.token}`] ?? colors.primary, items.filter(a => a.category === c.id)))}
-    </ScrollView>
-  </View>;
+  return <>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${tr("Category")}: ${said(current.label)}`} onPress={() => setOpen(true)}
+      className="h-11 flex-row items-center gap-2 self-start rounded-full bg-muted pr-3 pl-1.5 active:bg-muted/70">
+      <View className="size-8 items-center justify-center rounded-full" style={{ backgroundColor: current.colour }}><Icon as={current.icon} size={15} className="text-background" /></View>
+      <Text numberOfLines={1} className="text-sm font-bold">{said(current.label)}</Text>
+      <Numeric className="text-xs font-bold text-muted-foreground">{unlocked(current.list)}/{current.list.length}</Numeric>
+      <Icon as={ChevronDown} size={15} className="text-muted-foreground" />
+    </Pressable>
+    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Category")} scroll>
+      <View className="-m-1 flex-row flex-wrap">{all.map(card)}</View>
+    </Sheet>
+  </>;
 }
 
 /** Shares the solve that unlocked it: a link to its public page. */
@@ -338,9 +352,9 @@ function AchievementDetail({ a, all, onPick, onLeave, docked }: { a: A; all: A[]
       </View>)}
     </View>
     {a.unlocked ? solve && <View className="flex-row gap-2">
-      <Button variant="secondary" className="h-11 flex-1" onPress={() => leave(() => openSolve(solve))}><Icon as={Eye} size={16} /><Text>{tr("View the solve")}</Text></Button>
+      <Button variant="secondary" className="h-11 flex-1" accessibilityLabel={tr("View the solve")} onPress={() => leave(() => openSolve(solve))}><Icon as={Eye} size={16} /><Text>{tr("Details")}</Text></Button>
       <Button variant="secondary" className="h-11 flex-1" onPress={() => void share()}><Icon as={Share2} size={16} /><Text>{tr("Share")}</Text></Button>
-    </View> : <Button className="h-11" onPress={() => leave(go.go)}><Icon as={go.icon} size={16} className="text-primary-foreground" /><Text>{go.label}</Text></Button>}
+    </View> : <Button className="h-11" accessibilityLabel={go.name ?? go.label} onPress={() => leave(go.go)}><Icon as={go.icon} size={16} className="text-primary-foreground" /><Text>{go.label}</Text></Button>}
     {series.length > 1 && <>
       <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("The series · {0}", { 0: `${said(SERIES[achievementKind(a)] ?? "")} ${said(a.group)}` })}</Text>
       <View className="flex-row flex-wrap gap-1.5">
@@ -359,7 +373,7 @@ function AchievementDetail({ a, all, onPick, onLeave, docked }: { a: A; all: A[]
 }
 
 /** A locked achievement to work on: its badge and what is left, which open it, and the way to move it on beside. */
-function NextRow({ a, title, onPick, go, onGo, className }: { a: A; title: string; onPick: (a: A) => void; go: { label: string; icon: LucideIcon; go: () => void }; onGo: (then: () => void) => void; className?: string }) {
+function NextRow({ a, title, onPick, go, onGo, className }: { a: A; title: string; onPick: (a: A) => void; go: { label: string; name?: string; icon: LucideIcon; go: () => void }; onGo: (then: () => void) => void; className?: string }) {
   return <View className="flex-row items-center gap-2">
     <Pressable accessibilityRole="button" onPress={() => onPick(a)} className={cn("min-w-0 flex-1 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2.5 active:bg-muted", className)}>
       <AchievementBadge a={a} size={40} />
@@ -368,6 +382,6 @@ function NextRow({ a, title, onPick, go, onGo, className }: { a: A; title: strin
         <Numeric numberOfLines={1} className="text-[13px] font-bold text-primary">{left(a)}</Numeric>
       </View>
     </Pressable>
-    <Button variant="secondary" className="h-11" accessibilityLabel={go.label} onPress={() => onGo(go.go)}><Icon as={go.icon} size={16} /><Text>{go.label.split(" · ")[0]}</Text></Button>
+    <Button variant="secondary" className="h-11" accessibilityLabel={go.name ?? go.label} onPress={() => onGo(go.go)}><Icon as={go.icon} size={16} /><Text>{go.label}</Text></Button>
   </View>;
 }

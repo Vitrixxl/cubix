@@ -144,8 +144,8 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
         <View className="h-px flex-1 bg-border" /><Text className="text-xs font-semibold text-muted-foreground">{tr("or")}</Text><View className="h-px flex-1 bg-border" />
       </View>
       <View className="items-center gap-1.5">
-        <Button variant="secondary" className="h-12 w-full rounded-full" disabled={busy} onPress={() => setGuest(true)}>
-          <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>
+        <Button variant="secondary" className="h-12 w-full rounded-full" accessibilityLabel={tr("Continue without an account")} disabled={busy} onPress={() => setGuest(true)}>
+          <Text className="text-[15px] font-bold">{tr("Without an account")}</Text>
         </Button>
         <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>
       </View>

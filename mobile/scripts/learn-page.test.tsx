@@ -38,7 +38,7 @@ mock.module("../src/api", () => ({ api: { setLearned: async (...args: any[]) => 
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: () => null }));
-mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
+mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null, ChoiceButton: "ChoiceButton" }));
 mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null, SheetScrollView: "SheetScrollView", SheetFlatList: "SheetFlatList" }));
 mock.module("react-native-svg", () => ({ default: "Svg", Svg: "Svg", Circle: "Circle" }));
 mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", SectionTabs: "SectionTabs" }));
@@ -107,6 +107,11 @@ test("the course to carry on and every method open as courses, remembered per ac
   expect(button("Train OLL")).toBeUndefined();
   await tap("Mark as mastered");
   expect(store.get(courseProgressAtom).courses["333:cfop"]!.learned).toEqual(["cross"]);
+  // The steps wait in a drawer behind the current one's button; a step picked there opens.
+  expect(control("3. OLL")).toBeUndefined();
+  await press("Steps");
+  await tap("3. OLL");
+  expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(2);
 });
 
 test("a step's workbench shows one case at a time, learns it, and trains the shown set", async () => {
@@ -157,7 +162,10 @@ test("the set picked stays for the session, even after leaving the step", async 
   await press("Start CFOP");
   await tap("Next step: F2L");
   await tap("Next step: OLL");
-  await tap("OLL");
+  // The step's sets on one button, opening them in a drawer.
+  const sets = renderer.root.findAllByType("ChoiceButton" as any)[0]!;
+  expect(sets.props.options.map((o: { label: string }) => o.label)).toEqual(["2-Look OLL · 1/2", "OLL · 0/1"]);
+  await act(() => sets.props.onChange("oll"));
   expect(strip()).toEqual(["OLL 1 · To learn"]);
   // Nothing learned in it: nothing to train yet.
   expect(button("Train OLL")!.props.disabled).toBe(true);

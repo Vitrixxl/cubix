@@ -217,8 +217,8 @@ function DeleteAccount({ open, onClose, onDeleted }: { open: boolean; onClose: (
   return <Sheet open={open} onClose={close} title={tr("Delete your account?")} description={tr("This cannot be undone.")}>
     {error ? <Alert variant="destructive">{error}</Alert> : null}
     <View className="flex-row justify-end gap-2">
-      <Button variant="ghost" onPress={close}><Text>{tr("Keep my account")}</Text></Button>
-      <Button variant="destructive" disabled={busy} onPress={() => void remove()}><Text>{busy ? tr("Deleting…") : tr("Delete for good")}</Text></Button>
+      <Button variant="ghost" accessibilityLabel={tr("Keep my account")} onPress={close}><Text>{tr("Cancel")}</Text></Button>
+      <Button variant="destructive" accessibilityLabel={tr("Delete for good")} disabled={busy} onPress={() => void remove()}><Text>{busy ? tr("Deleting…") : tr("Delete")}</Text></Button>
     </View>
   </Sheet>;
 }
@@ -252,7 +252,7 @@ function Version() {
   const outdated = !pending && updateAvailable(APP_BUILD, latest, APP_RUNTIME);
   return <View className="flex-row flex-wrap items-center justify-between gap-3 px-1">
     <Text className="text-xs text-muted-foreground" accessibilityLabel={tr("Installed version")}>Qbix {APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
-    {pending && <Button size="sm" onPress={() => void restartWithUpdate()}><Text>{tr("Restart to update")}</Text></Button>}
-    {outdated && <Button size="sm" accessibilityHint={tr("Build {0}", { 0: latest?.apkCommit?.slice(0, 7) })} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)}><Text>{tr("Download update")}</Text></Button>}
+    {pending && <Button size="sm" accessibilityLabel={tr("Restart to update")} onPress={() => void restartWithUpdate()}><Text>{tr("Install")}</Text></Button>}
+    {outdated && <Button size="sm" accessibilityLabel={tr("Download update")} accessibilityHint={tr("Build {0}", { 0: latest?.apkCommit?.slice(0, 7) })} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)}><Text>{tr("Download")}</Text></Button>}
   </View>;
 }

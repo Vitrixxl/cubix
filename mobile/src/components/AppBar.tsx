@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronDown, ChevronLeft, X } from "lucide-react-native";
-import { useEffect, useRef, type ReactNode } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
 export function SectionTabs() {
   const route = useAtomValue(routeAtom), replace = useSetAtom(replaceRouteAtom);
   const waiting = useWaiting();
-  const { tablet, width } = useLayout();
+  const { tablet } = useLayout();
   const pages = SECTION_PAGES[tabOf(route.page)];
   const tabs = pages.reduce<{ id: string; label: string; pages: SectionPage[] }[]>((list, page) => {
     const id = page.group ?? page.id, same = list.find(t => t.id === id);
@@ -71,25 +71,21 @@ export function SectionTabs() {
     return list;
   }, []);
   const open = tabs.find(t => t.pages.some(page => page.has(route))), shown = open?.pages.find(page => page.has(route));
-  // The tab shown is scrolled into view: one past the screen's edge would be cut off.
-  const scroll = useRef<ScrollView>(null), ends = useRef<Record<string, number>>({});
-  const reveal = () => { const end = open && ends.current[open.id]; if (end) scroll.current?.scrollTo({ x: Math.max(0, end + 20 - width), animated: false }); };
-  useEffect(reveal, [open?.id, width]);
   if (tabs.length < 2) return null;
   const count = (list: SectionPage[]) => list.reduce((n, page) => n + (waiting[page.id] ?? 0), 0);
   return <View className="border-b border-border">
-    <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName={cn("gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
+    {/* Three tabs at most: they hold on one row. */}
+    <View className={cn("flex-row gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
       {tabs.map(tab => {
         const here = tab === open, n = count(tab.pages);
         return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected: here }} onPress={() => { if (!here) replace(tab.pages[0]!.route); }}
-          onLayout={e => { ends.current[tab.id] = e.nativeEvent.layout.x + e.nativeEvent.layout.width; if (here) reveal(); }}
           className="h-11 flex-row items-center gap-1.5">
           <Text className={cn("text-sm font-bold", here ? "text-foreground" : "text-muted-foreground")}>{tr(tab.label)}</Text>
           {n > 0 && <View className="min-w-5 items-center rounded-full bg-primary px-1.5"><Text className="text-xs font-bold text-primary-foreground">{n}</Text></View>}
           {here && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
         </Pressable>;
       })}
-    </ScrollView>
+    </View>
     {open && shown && open.pages.length > 1 && <Segmented label={tr(open.label)} value={shown.id} className={cn("mx-4 mb-2.5", tablet && "mx-7")}
       onChange={id => replace(open.pages.find(page => page.id === id)!.route)}
       options={open.pages.map(page => ({ id: page.id, label: tr(page.label), count: waiting[page.id] || undefined }))} />}

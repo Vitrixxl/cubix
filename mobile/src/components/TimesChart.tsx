@@ -105,7 +105,7 @@ export function fitRange(start: number, width: number, last: number): Range {
 /**
  * Single times (accent) and the rolling Ao5 (series colour) over the visible period, four hairline levels with their
  * times on the left, the first and last dates below. A tap shows the solve under the finger; dragging across the chart
- * selects a period and zooms into it; "Reset zoom" shows every solve. `points` draws each time as a dot rather than a
+ * selects a period and zooms into it; Reset shows every solve. `points` draws each time as a dot rather than a
  * line, `marks` (indices) as larger mint dots (the records), `dnfs` a cross on top for each time missing (a DNF).
  */
 export const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height, points = false, marks, dnfs = false, label }: {
@@ -194,7 +194,7 @@ export const HistoryChart = memo(function HistoryChart({ history, averages, rang
           {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={colors.primary} stroke={colors.card} strokeWidth={2} />}
           {selection && <Rect x={x(selection[0]!)} y={0} width={Math.max(1, x(selection[1]!) - x(selection[0]!))} height={H} fill={colors.primary} fillOpacity={0.12} stroke={colors.primary} strokeWidth={1} />}
         </Svg>}
-        {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">{tr("Reset zoom")}</Text></Button>}
+        {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" accessibilityLabel={tr("Reset zoom")} onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">{tr("Reset")}</Text></Button>}
         {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-xs">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
         {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
           <Numeric className="text-base font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Numeric>
@@ -246,7 +246,7 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
       {v.comment ? <Text className="pt-0.5 pl-12 text-sm">{v.comment}</Text> : null}
     </SolveMenu>;
   };
-  const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" onPress={() => setShown(shown + PAGE)}><Text>{tr("Show more ({0} left)", { 0: rows.length - shown })}</Text></Button> : null;
+  const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" accessibilityLabel={tr("Show more ({0} left)", { 0: rows.length - shown })} onPress={() => setShown(shown + PAGE)}><Text>{tr("More")} · {rows.length - shown}</Text></Button> : null;
   const empty = <Empty>{tr("No solves match.")}</Empty>;
   return <>
     <View className="flex-row items-center justify-between gap-2">

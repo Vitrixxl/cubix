@@ -1,7 +1,7 @@
 import { Portal } from "@rn-primitives/portal";
 import { useSetAtom } from "jotai";
-import { Bluetooth, ChevronRight, CircleHelp, Dumbbell, GraduationCap, ListChecks, X } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Bluetooth, ChevronRight, CircleHelp, Dumbbell, GraduationCap, History, LayoutGrid, ListChecks, X } from "lucide-react-native";
+import { useEffect, useMemo, useState } from "react";
 import { BackHandler, FlatList, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
@@ -27,8 +27,8 @@ import { useLayout } from "../hooks/useLayout";
 
 /**
  * The analysis of the solves turned on a smart cube, as the web's (desktop/renderer/profile/analysis.tsx), as a board
- * of tiles: the average solve with the latest ones, a tile per step, the case sets and the training of the moment. A
- * set opens over the whole screen, one case large and the others as a film strip.
+ * of tiles: the average solve (the latest ones behind History, in a sheet), a tile per step, the case sets and the
+ * training of the moment. A set opens over the whole screen, one case large and the others as a grid behind its row.
  */
 
 /** Each step in the colour it has in a solve's bar. */
@@ -74,7 +74,7 @@ export function AnalysisPage() {
       : !method ? <Empty icon={Bluetooth} title={tr("Only available for solves done on a connected cube")}>
         <View className="flex-row gap-2">
           <Button variant="secondary" onPress={() => openGuide("smartCube")}><Icon as={CircleHelp} size={16} /><Text>{tr("Smart cubes")}</Text></Button>
-          <Button variant="secondary" onPress={() => setRoute({ page: "playground" })}><Text>{tr("Open the timer")}</Text></Button>
+          <Button variant="secondary" accessibilityLabel={tr("Open the timer")} onPress={() => setRoute({ page: "playground" })}><Text>{tr("Timer")}</Text></Button>
         </View>
       </Empty>
       : <Board key={method.id} a={a} method={method} pending={pending} onMethod={setMethod} />}
@@ -90,15 +90,11 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
     compare = method.count > RECENT * 2 && recent.length >= RECENT,
     sets = BOARD.filter(b => b.id !== "zbll" || method.cases.some(c => c.step === "zbll")).filter(b => method.steps.some(s => s.id === b.id) || method.cases.some(c => c.step === b.id)),
     openSolve = (id: number) => setRoute({ page: "solve", id });
-  const latestLink = <Pressable onPress={() => setAll(true)} className="min-h-9 flex-row items-center justify-between active:opacity-70">
-    <Text className="text-sm text-muted-foreground">{tr("Latest solves")}</Text>
-    <View className="flex-row items-center gap-0.5"><Text className="text-sm font-bold text-primary">{tr("All {0}", { 0: recent.length })}</Text><Icon as={ChevronRight} size={15} className="text-primary" /></View>
-  </Pressable>;
   // On a wide screen the case sets are docked at the right, the first one open.
   const docked = wide && sets.length ? set ?? sets[0]!.id : null;
   return <View className="min-h-0 flex-1 flex-row">
     <ScrollView className="flex-1" contentContainerClassName={cn("gap-2.5 px-4 pt-3 pb-4", tablet && "gap-3 px-7")}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
+      <View className="flex-row flex-wrap gap-1.5">
         {a.methods.map(m => {
           const on = m.id === method.id;
           return <Pressable key={m.id} onPress={() => onMethod(m.id)} accessibilityRole="radio" accessibilityState={{ checked: on }}
@@ -107,7 +103,7 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
             <Numeric className={cn("text-sm font-bold", on ? "text-primary" : "text-muted-foreground")}>{m.count}</Numeric>
           </Pressable>;
         })}
-      </ScrollView>
+      </View>
       <View className="gap-2.5 rounded-3xl bg-card p-4">
         <View className="flex-row items-center justify-between gap-2">
           <Label className="font-bold tracking-widest uppercase">{pending ? tr("analysing {0} more…", { 0: pending }) : tr("Your average solve")}</Label>
@@ -121,12 +117,14 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
           </View>
         </View>
         <StepsBar parts={steps.map(s => [s.id, s.share])} height={12} />
-        {/* A tablet lists the latest solves in their own card, beside the training. */}
-        {!tablet && <>
-          <View className="h-px bg-border" />
-          {recent.slice(0, 2).map(l => <LatestRow key={l.id} solve={l} onPress={() => openSolve(l.id)} />)}
-          {latestLink}
-        </>}
+        <View className="h-px bg-border" />
+        {/* The latest solves are a history: behind this row, in a sheet. */}
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("Latest solves")} onPress={() => setAll(true)} className="min-h-9 flex-row items-center gap-2 active:opacity-70">
+          <Icon as={History} size={16} className="text-primary" />
+          <Text className="flex-1 text-sm font-bold text-primary">{tr("History")}</Text>
+          <Numeric className="text-sm text-muted-foreground">{recent.length}</Numeric>
+          <Icon as={ChevronRight} size={15} className="text-muted-foreground" />
+        </Pressable>
       </View>
       <View className="flex-row gap-1.5">
         {steps.map(step => {
@@ -160,13 +158,7 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
           </Pressable>;
         })}
       </View>}
-      {tablet ? <View className="flex-row items-start gap-3">
-        <View className="min-w-0 flex-1"><Plan suggestions={a.suggestions} /></View>
-        <View className="min-w-0 flex-1 gap-1 rounded-3xl bg-card px-4 py-3">
-          {recent.slice(0, 6).map(l => <LatestRow key={l.id} solve={l} onPress={() => openSolve(l.id)} />)}
-          {latestLink}
-        </View>
-      </View> : <Plan suggestions={a.suggestions} />}
+      <Plan suggestions={a.suggestions} />
     </ScrollView>
     {docked ? <View className="w-[400px] py-3 pr-4"><CaseSet docked method={method} step={docked} sets={sets} onStep={setSet} onClose={() => setSet(null)} /></View>
       : set && <CaseSet method={method} step={set} sets={sets} onStep={setSet} onClose={() => setSet(null)} />}
@@ -208,29 +200,26 @@ function Ring({ ratio, label, size = 32 }: { ratio: number; label: string; size?
   </View>;
 }
 
-/** The training that would help most, one proposal at a time: swipe or tap the dots for the next. */
+/** The training that would help most, one proposal at a time: tap the dots for the next. */
 function Plan({ suggestions }: { suggestions: TrainingSuggestion[] }) {
-  const [index, setIndex] = useState(0), [width, setWidth] = useState(0), pager = useRef<ScrollView>(null);
-  const start = useStart();
+  const [index, setIndex] = useState(0);
+  const start = useStart(), shown = suggestions[Math.min(index, suggestions.length - 1)];
   if (!suggestions.length)
     return <View className="rounded-3xl bg-card px-4 py-3.5"><Text className="text-sm text-muted-foreground">{tr("Nothing stands out yet: keep solving on the cube.")}</Text></View>;
-  return <View className="gap-1.5 rounded-3xl bg-card py-3.5" onLayout={e => setWidth(e.nativeEvent.layout.width)}>
+  return <View className="gap-1.5 rounded-3xl bg-card py-3.5">
     <View className="flex-row items-center justify-between px-4">
       <Label className="font-bold tracking-widest uppercase">{tr("To work on")} · {tr("{0} of {1}", { 0: index + 1, 1: suggestions.length })}</Label>
       <View className="flex-row gap-1">
-        {suggestions.map((s, i) => <Pressable key={s.id} hitSlop={6} onPress={() => { setIndex(i); pager.current?.scrollTo({ x: i * width, animated: true }); }} accessibilityLabel={said(s.title)}>
+        {suggestions.map((s, i) => <Pressable key={s.id} hitSlop={6} onPress={() => setIndex(i)} accessibilityRole="button" accessibilityState={{ selected: i === index }} accessibilityLabel={said(s.title)}>
           <View className={cn("size-2 rounded-full", i === index ? "bg-primary" : "bg-muted")} />
         </Pressable>)}
       </View>
     </View>
-    {width > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-      onMomentumScrollEnd={e => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}>
-      {suggestions.map(s => <Proposal key={s.id} suggestion={s} width={width} start={start} />)}
-    </ScrollView>}
+    {shown && <Proposal key={shown.id} suggestion={shown} start={start} />}
   </View>;
 }
 
-function Proposal({ suggestion: t, width, start }: { suggestion: TrainingSuggestion; width: number; start: ReturnType<typeof useStart> }) {
+function Proposal({ suggestion: t, start }: { suggestion: TrainingSuggestion; start: ReturnType<typeof useStart> }) {
   // Cases to train: only the learned ones; none learned, the first is learned first.
   const ids = t.action.startsWith("trainCases:") ? t.action.slice("trainCases:".length).split(",") : null,
     learned = ids && learnedOnly(ids),
@@ -241,7 +230,7 @@ function Proposal({ suggestion: t, width, start }: { suggestion: TrainingSuggest
     else if (t.action === "trainingStart:cross") start.cross();
     else start.learn(t.action.split(":")[2] ?? "cfop");
   };
-  return <View className="flex-row items-center gap-3 px-4" style={{ width }}>
+  return <View className="flex-row items-center gap-3 px-4">
     <Text numberOfLines={2} className="min-w-0 flex-1 text-base font-extrabold tracking-tight">{said(t.title)}</Text>
     <Button onPress={go} accessibilityHint={said(t.detail)} className="h-11 gap-1.5 rounded-full px-4">
       <Icon as={learn ? GraduationCap : Dumbbell} size={17} className="text-primary-foreground" />
@@ -270,12 +259,13 @@ function boardOf(method: MethodStats, step: (typeof BOARD)[number], sort: Sort) 
 }
 
 /**
- * A set over the whole screen: its cases sorted, the chosen one large with its figures, the others as a film strip.
+ * A set over the whole screen: its cases sorted, the chosen one large with its figures, the others as a grid in its
+ * place behind the row of the cases.
  * `docked` (a wide screen): a card column beside the board, the cases as a grid and the chosen one under it.
  */
 function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { method: MethodStats; step: CaseStep; sets: typeof BOARD; onStep: (step: CaseStep) => void; onClose: () => void; docked?: boolean }) {
   const insets = useSafeAreaInsets(), colors = useColors(), start = useStart();
-  const [sort, setSort] = useState<Sort>("cost"), [picked, setPicked] = useState("");
+  const [sort, setSort] = useState<Sort>("cost"), [picked, setPicked] = useState(""), [grid, setGrid] = useState(false);
   const set = BOARD.find(b => b.id === step)!,
     { tiles, usual } = useMemo(() => boardOf(method, set, sort), [method, set, sort]),
     index = Math.max(0, tiles.findIndex(t => t.id === picked)),
@@ -312,8 +302,8 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
     <Label className="font-bold tracking-widest uppercase">{tr("Algorithm")}{c ? ` · ${tr("{0} turns", { 0: c.turns.toFixed(1) })}` : ""}</Label>
     <Alg text={alg} size={15} />
   </View>;
-  const caseTile = (t: Tile) => <Pressable onPress={() => setPicked(t.id)} accessibilityRole="button" accessibilityState={{ selected: t === tile }} accessibilityLabel={said(t.name)}
-    className={cn("items-center gap-0.5 rounded-2xl px-1 py-2", docked ? "w-full" : "w-[70px]", t === tile && "border-2 border-primary", !t.stats && "border border-muted")}
+  const caseTile = (t: Tile) => <Pressable onPress={() => { setPicked(t.id); setGrid(false); }} accessibilityRole="button" accessibilityState={{ selected: t === tile }} accessibilityLabel={said(t.name)}
+    className={cn("w-full items-center gap-0.5 rounded-2xl px-1 py-2", t === tile && "border-2 border-primary", !t.stats && "border border-muted")}
     style={t.stats ? { backgroundColor: mix(colors.variables["--destructive"]!, Math.round(t.heat * 35), colors.muted) } : undefined}>
     <View className={cn(!t.stats && "opacity-35")}>{t.known ? <CaseDiagram c={t.known} size={36} /> : <View className="size-9" />}</View>
     <Text numberOfLines={1} className="text-sm font-bold">{said(t.name)}</Text>
@@ -327,6 +317,10 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
     <Text className="text-xs text-muted-foreground">{tr("slow")}</Text>
   </View>;
 
+  const caseGrid = <FlatList key={step + sort} data={tiles} keyExtractor={t => t.id} numColumns={4} className="min-h-0 flex-1" initialNumToRender={16} windowSize={5}
+    ListEmptyComponent={<Empty>{tr("No case of the catalogue recognised yet.")}</Empty>}
+    renderItem={({ item: t }) => <View style={{ width: "25%", padding: 3 }}>{caseTile(t)}</View>} />;
+
   // Docked, nothing closes it: the actions stay where they are.
   if (docked) return <View className="min-h-0 flex-1 gap-2.5 rounded-[26px] bg-popover p-4">
     <View className="flex-row items-center justify-between gap-2">
@@ -334,9 +328,7 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
       {scale}
     </View>
     {segments}
-    <FlatList key={step + sort} data={tiles} keyExtractor={t => t.id} numColumns={4} className="min-h-0 flex-1" initialNumToRender={16} windowSize={5}
-      ListEmptyComponent={<Empty>{tr("No case of the catalogue recognised yet.")}</Empty>}
-      renderItem={({ item: t }) => <View style={{ width: "25%", padding: 3 }}>{caseTile(t)}</View>} />
+    {caseGrid}
     {tile && <View className="gap-2 rounded-3xl bg-card p-3">
       <View className="flex-row items-center gap-3">
         <View className={cn(!c && "opacity-40")}>{tile.known ? <CaseDiagram c={tile.known} size={60} /> : <View className="size-[60px]" />}</View>
@@ -353,10 +345,10 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
       {slowest.length > 1 && <Button variant="secondary" size="icon" className="size-12 rounded-full" accessibilityLabel={tr("Train the {0} slowest", { 0: slowest.length })} onPress={() => start.train(slowest)}>
         <Icon as={ListChecks} size={19} />
       </Button>}
-      {tile && <Button variant="secondary" className="h-12 rounded-full px-4" onPress={() => start.open(tile.id)}><Text>{tr("Open the case")}</Text></Button>}
-      {tile && <Button className="h-12 flex-1 gap-1.5 rounded-full" onPress={() => (learned ? start.train([tile.id]) : start.open(tile.id))}>
+      {tile && <Button variant="secondary" className="h-12 rounded-full px-4" accessibilityLabel={tr("Open the case")} onPress={() => start.open(tile.id)}><Text>{tr("Details")}</Text></Button>}
+      {tile && <Button className="h-12 flex-1 gap-1.5 rounded-full" accessibilityLabel={learned ? tr("Train this case") : undefined} onPress={() => (learned ? start.train([tile.id]) : start.open(tile.id))}>
         <Icon as={learned ? Dumbbell : GraduationCap} size={17} className="text-primary-foreground" />
-        <Text>{learned ? tr("Train this case") : tr("Learn")}</Text>
+        <Text>{learned ? tr("Train") : tr("Learn")}</Text>
       </Button>}
     </View>
   </View>;
@@ -375,7 +367,7 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
       </View>
       <View className="min-h-0 flex-1 gap-2.5 px-4">
         {segments}
-        {tile ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5">
+        {grid ? caseGrid : tile ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5">
           <View className="items-center gap-1 pt-1">
             <View className={cn(!c && "opacity-40")}>{tile.known ? <CaseDiagram c={tile.known} size={112} /> : <View className="size-28" />}</View>
             <Text className="text-3xl font-extrabold tracking-[-0.04em]">{said(tile.name)}</Text>
@@ -385,22 +377,23 @@ function CaseSet({ method, step, sets, onStep, onClose, docked = false }: { meth
           {figures}
           {algorithm}
         </ScrollView> : <Empty>{tr("No case of the catalogue recognised yet.")}</Empty>}
-        <View className="flex-row items-center justify-between">
-          <Label className="font-bold tracking-widest uppercase">{tr("Cases")} · {index + 1} / {tiles.length}</Label>
+        {/* The other cases, as a grid in place of the chosen one. */}
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: grid }} onPress={() => setGrid(!grid)} className="min-h-11 flex-row items-center justify-between gap-2 active:opacity-70">
+          <View className="flex-row items-center gap-1.5">
+            <Icon as={grid ? X : LayoutGrid} size={15} className="text-primary" />
+            <Label className="font-bold tracking-widest text-primary uppercase">{tr("Cases")} · {index + 1} / {tiles.length}</Label>
+          </View>
           {scale}
-        </View>
-        <FlatList horizontal data={tiles} keyExtractor={t => t.id} showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5" className="grow-0"
-          initialNumToRender={8} windowSize={5}
-          renderItem={({ item: t }) => caseTile(t)} />
+        </Pressable>
       </View>
       <View className="flex-row gap-2 border-t border-border px-4 pt-2.5">
         {slowest.length > 1 && <Button variant="secondary" size="icon" className="size-12 rounded-full" accessibilityLabel={tr("Train the {0} slowest", { 0: slowest.length })} onPress={close(() => start.train(slowest))}>
           <Icon as={ListChecks} size={19} />
         </Button>}
-        {tile && <Button variant="secondary" className="h-12 rounded-full px-4" onPress={close(() => start.open(tile.id))}><Text>{tr("Open the case")}</Text></Button>}
-        {tile && <Button className="h-12 flex-1 gap-1.5 rounded-full" onPress={close(() => (learned ? start.train([tile.id]) : start.open(tile.id)))}>
+        {tile && <Button variant="secondary" className="h-12 rounded-full px-4" accessibilityLabel={tr("Open the case")} onPress={close(() => start.open(tile.id))}><Text>{tr("Details")}</Text></Button>}
+        {tile && <Button className="h-12 flex-1 gap-1.5 rounded-full" accessibilityLabel={learned ? tr("Train this case") : undefined} onPress={close(() => (learned ? start.train([tile.id]) : start.open(tile.id)))}>
           <Icon as={learned ? Dumbbell : GraduationCap} size={17} className="text-primary-foreground" />
-          <Text>{learned ? tr("Train this case") : tr("Learn")}</Text>
+          <Text>{learned ? tr("Train") : tr("Learn")}</Text>
         </Button>}
       </View>
     </View>

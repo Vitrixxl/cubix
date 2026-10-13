@@ -109,9 +109,9 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
           </View>}
           <View className="flex-1" />
           {recorded && <SolutionFigures turns={recorded} />}
-          {!recorded && cube && <Button variant="outline" size="sm" className="h-10 gap-1.5" onPress={() => setEditing(true)}>
+          {!recorded && cube && <Button variant="outline" size="sm" className="h-10 gap-1.5" accessibilityLabel={annotation ? tr("Edit the turns") : tr("Write the turns")} onPress={() => setEditing(true)}>
             <Icon as={PenLine} size={15} />
-            <Text>{annotation ? tr("Edit the turns") : tr("Write the turns")}</Text>
+            <Text>{annotation ? tr("Edit") : tr("Write")}</Text>
           </Button>}
         </View>
         {alg && player

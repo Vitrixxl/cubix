@@ -211,16 +211,16 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
       <Label className="tracking-[1px] uppercase">{tr("Algorithm")}</Label>
       <Alg text={shownAlgorithm} size={Math.max(15, promptFont - 3)} className="opacity-85" />
     </View>}
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
-      {primary && <Chip icon={revealed ? EyeOff : Eye} disabled={busy} onPress={() => setRevealed(v => !v)}>{revealed ? tr("Hide solution") : tr("Show solution")}</Chip>}
+    <View className="flex-row flex-wrap gap-1.5">
+      {primary && <Chip icon={revealed ? EyeOff : Eye} on={revealed} disabled={busy} onPress={() => setRevealed(v => !v)} accessibilityLabel={revealed ? tr("Hide solution") : tr("Show solution")}>{tr("Solution")}</Chip>}
       {primary?.youtube && <Chip icon={CirclePlay} onPress={() => void Linking.openURL(primary.youtube!)}>{tr("Video")}</Chip>}
       {hasCube && <Chip icon={Box} on={showCube} onPress={() => setShowCube(v => !v)}>{tr("3D cube")}</Chip>}
       <Chip icon={Check} on={currentLearned} success disabled={busy} onPress={() => toggleLearned(current.c.id)}
-        accessibilityLabel={currentLearned ? tr("{0} learned", { 0: current.c.name }) : tr("Mark {0} learned", { 0: current.c.name })}>{currentLearned ? tr("Learned") : tr("Mark learned")}</Chip>
-    </ScrollView>
+        accessibilityLabel={currentLearned ? tr("{0} learned", { 0: current.c.name }) : tr("Mark {0} learned", { 0: current.c.name })}>{tr("Learned")}</Chip>
+    </View>
   </> : <View className="items-start gap-2 py-4">
     <Text className="text-xl font-extrabold tracking-tight">{free ? tr("Choose your cases") : tr("No learned case to train")}</Text>
-    <Chip icon={ListChecks} on onPress={onBack}>{tr("Choose cases")}</Chip>
+    <Chip icon={ListChecks} on accessibilityLabel={tr("Choose cases")} onPress={onBack}>{tr("Choose")}</Chip>
   </View>;
 
   const caseScreen = <View className="flex-1">
@@ -244,11 +244,11 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
           <View className={cn("flex-row gap-2", tablet && "flex-[3]")}>
             <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} disabled={busy || !canPrevious} onPress={previousCase}
               className={cn("h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-muted active:bg-muted/70", tablet && "w-14 flex-none", (busy || !canPrevious) && "opacity-40")}>
-              <Icon as={ChevronLeft} size={18} />{!tablet && <Text className="text-[15px] font-bold">{tr("Previous case")}</Text>}
+              <Icon as={ChevronLeft} size={18} />{!tablet && <Text className="text-[15px] font-bold">{tr("Previous")}</Text>}
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} disabled={busy || !current} onPress={nextCase}
               className={cn("h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-primary active:bg-primary/85", (busy || !current) && "opacity-40")}>
-              <Text className="text-[15px] font-bold text-primary-foreground">{tr("Next case")}</Text><Icon as={ChevronRight} size={18} className="text-primary-foreground" />
+              <Text className="text-[15px] font-bold text-primary-foreground">{tr("Next")}</Text><Icon as={ChevronRight} size={18} className="text-primary-foreground" />
             </Pressable>
           </View>
         </View>} />
@@ -362,13 +362,13 @@ function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo, dock
       </View>
       <View className="flex-row items-center justify-between">
         <Text className="text-base font-extrabold">{tr("Cases")} <Numeric className="text-base text-muted-foreground">{pool.length}</Numeric></Text>
-        <Chip icon={ListChecks} onPress={onChoose}>{tr("Choose cases")}</Chip>
+        <Chip icon={ListChecks} accessibilityLabel={tr("Choose cases")} onPress={onChoose}>{tr("Choose")}</Chip>
       </View>
       {bySet.map(([set, list]) => <View key={set} className="gap-1">
         <Text className="text-xs font-bold text-muted-foreground">{tr(set)} · <Numeric className="text-xs text-muted-foreground">{list.length}</Numeric></Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1">
+        <View className="flex-row flex-wrap gap-1">
           {list.map(c => <View key={c.id} accessibilityLabel={tr(c.name)} className={cn("rounded-xl border-2 p-0.5", c.id === currentId ? "border-primary" : "border-transparent")}><CaseDiagram c={c} size={36} /></View>)}
-        </ScrollView>
+        </View>
       </View>)}
       <View className="h-px bg-border" />
       {tab === "cases" ? rows.length ? <View className="gap-1">
@@ -442,7 +442,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
         </View>
         <View className="flex-row gap-2">
           <Chip icon={RotateCcw} on onPress={startOver}>{tr("Again")}</Chip>
-          <Chip onPress={onBack}>{tr("Change set")}</Chip>
+          <Chip accessibilityLabel={tr("Change set")} onPress={onBack}>{tr("Change")}</Chip>
         </View>
       </View>
       : <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={next} className="min-h-0 flex-1 items-center justify-center gap-6 px-4">

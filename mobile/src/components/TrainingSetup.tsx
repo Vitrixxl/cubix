@@ -240,12 +240,9 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     return <View className="flex-1">
       {head}
       <View className="min-h-0 flex-1 flex-row">
-        {/* Clipped: the row of ways scrolls sideways inside the column rather than running under the docked panel. */}
-        <View className="min-w-0 flex-1 overflow-hidden">
-          {wide && <View {...tour} accessibilityLabel={tr("Ways of training")}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-7 pt-4">
-              {tiles.map(t => <Chip key={t.label} icon={t.icon} on={t.on} onPress={openWays} className="h-11 px-4">{`${t.label} · ${t.detail}`}</Chip>)}
-            </ScrollView>
+        <View className="min-w-0 flex-1">
+          {wide && <View {...tour} accessibilityLabel={tr("Ways of training")} className="flex-row flex-wrap gap-2 px-7 pt-4">
+            {tiles.map(t => <Chip key={t.label} icon={t.icon} on={t.on} onPress={openWays} className="h-11 px-4">{`${t.label} · ${t.detail}`}</Chip>)}
           </View>}
           <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-7 pt-4 pb-3" showsVerticalScrollIndicator={false}>
             <Recommended data={data} grid />
@@ -379,7 +376,7 @@ function Recommended({ data, grid = false }: { data: TrainingData; grid?: boolea
   return <>
     <Text className={cn("text-xl font-extrabold tracking-tight", grid && "text-[26px]")}>{tr("Recommended")}</Text>
     {!data.totalLearned ? <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="flex-none py-6">
-      <Chip icon={GraduationCap} on onPress={() => setRoute({ page: "learn" })}>{tr("Open the courses")}</Chip>
+      <Chip icon={GraduationCap} on accessibilityLabel={tr("Open the courses")} onPress={() => setRoute({ page: "learn" })}>{tr("Courses")}</Chip>
     </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6" /> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
       {rows.slice(i * 2, i * 2 + 2).map(row => <View key={row.key} className="min-w-0 flex-1">{row}</View>)}
       {i * 2 + 1 >= rows.length && <View className="flex-1" />}

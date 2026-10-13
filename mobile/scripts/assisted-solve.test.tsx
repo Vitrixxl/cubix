@@ -82,7 +82,7 @@ async function paint(method: string, target: ReturnType<typeof colours>) {
 /** Every turn of the plan said done, to the end. */
 async function finish() {
   let turns = 0;
-  while (button("Done, next turn") && turns < 500) { await act(() => button("Done, next turn")!.props.onPress()); turns++; }
+  while (button("Next") && turns < 500) { await act(() => button("Next")!.props.onPress()); turns++; }
   return turns;
 }
 const turnsOf = (method: string, target: ReturnType<typeof colours>) => solveMethod(method, scannedState(target), catalog.cases as any)!.reduce((sum, p) => sum + p.alg.split(" ").length, 0);
@@ -93,12 +93,12 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   expect(shows("Step 1 · White cross")).toBe(true);
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
   // A turn made, then taken back.
-  await act(() => button("Done, next turn")!.props.onPress());
+  await act(() => button("Next")!.props.onPress());
   expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
   await press("Previous turn");
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
   // A step's lesson opens over the solve, from the part under way or any step across the top, and the solve stays where it was.
-  await act(() => button("Done, next turn")!.props.onPress());
+  await act(() => button("Next")!.props.onPress());
   await press("Review the lesson");
   expect(shows("lesson:0")).toBe(true);
   await press("Yellow cross · Lesson");
@@ -108,7 +108,7 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   await press("Previous turn");
   expect(await finish()).toBe(turnsOf("beginner", target));
   expect(shows("Solved!")).toBe(true);
-  expect(button("Solve again")).toBeDefined();
+  expect(button("Again")).toBeDefined();
 });
 
 test("another course plans with its own steps and opens their lessons", async () => {
@@ -129,7 +129,7 @@ test("a solved cube says so instead of planning", async () => {
   await paint("cfop", colours(solved(3)));
   expect(shows("Your cube is already solved")).toBe(true);
   // Read again: back on the net, painted as the cube stands.
-  await act(() => button("Read the cube again")!.props.onPress());
+  await press("Read the cube again");
   await layout();
   expect(button("Looks right")!.props.disabled).toBe(false);
 });

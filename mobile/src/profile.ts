@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 import { unwrap } from "jotai/utils";
-import { activityOf, heatDays, heatmap, heatYears, latestOf, streaks } from "../../src/client/lib/profile";
+import { activityOf, heatDays, streaks } from "../../src/client/lib/profile";
 import { puzzleInfo } from "../../src/shared/puzzles";
 import { local } from "./api";
 import { deletedSolveIdAtom, profileFiltersAtom, puzzleAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom } from "./state";
@@ -39,7 +39,7 @@ const preparedProfileAtom = atom(async (get, { signal }) => {
   // Every event's solves, as the web's: the figures, the streak and the graph count all of them.
   const activity = profile.activity ?? activityOf(profile), days = heatDays(activity), weekAgo = Date.now() - 7 * 86_400_000;
   return {
-    key, profile, activity, days, years: heatYears(days), heat: heatmap(days, null), latest: latestOf(activity), streak: streaks(activity),
+    key, profile, activity, days, streak: streaks(activity),
     week: activity.filter(v => new Date(v.at).getTime() > weekAgo).length,
   };
 });
