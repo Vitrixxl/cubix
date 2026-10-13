@@ -238,8 +238,10 @@ async function exportPhone(out: string): Promise<string> {
   // A page written ahead of time is never shown under the phone app, at any width (pageDocument.ts hides it, and shows the
   // app it covers, only up to a phone's width): the app is in view at once, over pageDocument.ts's more specific rule.
   // Like a native app, no text is selected by a long press or a drag, `selectable` texts included; only fields keep it.
+  // A drawing keeps its size: in a crowded row the browser would narrow an icon (flex items shrink on the web, never
+  // in React Native), squashing it.
   return [...tags, "<style>#prerendered{display:none}#prerendered~#root{position:static!important;visibility:visible!important;pointer-events:auto!important}" +
-    "#root *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none}#root :is(input,textarea,[contenteditable]){-webkit-user-select:text!important;user-select:text!important}</style>"].join("\n");
+    "#root *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none}#root :is(input,textarea,[contenteditable]){-webkit-user-select:text!important;user-select:text!important}#root svg{flex-shrink:0}</style>"].join("\n");
 }
 
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */
