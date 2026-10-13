@@ -11,9 +11,10 @@ bun run deploy:bg --status   # le déploiement en cours et le dernier log
 `scripts/deploy-background.ts` pousse `main`, extrait le commit dans un worktree
 sous `~/.cache/cubix-deploy`, puis y lance `bun run deploy` (`scripts/deploy.ts`,
 avec `--no-push`) détaché : le site est construit ici (`dist/deploy`) et envoyé
-dans `dist/web` du repo du Pi (hors git), puis `ssh vitrix@82.67.236.74 pihost update cubix`
-reconstruit l'image, qui le copie, et le script attend que le serveur réponde avec
-ce commit et serve le site. Un `pihost update` lancé à la main reprend le dernier
+dans le repo du Pi (hors git), où `dist/web` pointe vers lui, puis
+`ssh vitrix@82.67.236.74 pihost update cubix` reconstruit l'API, dont le conteneur
+monte `dist/web`, et le script attend que le serveur réponde avec ce commit et
+serve le site. Un `pihost update` lancé à la main reprend le dernier
 site envoyé. On peut continuer à modifier, commiter ou pousser
 pendant ce temps. Le log est dans
 `~/.cache/cubix-deploy/logs/` et une notification bureau dit comment il s'est

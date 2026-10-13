@@ -1,7 +1,8 @@
 /**
  * Deploy the current `main` commit: push, build the web app on this machine (it took minutes on the Pi) and send it to
- * the server's repository as dist/web, outside git, then rebuild the server on the Raspberry Pi through pihost (the
- * image copies that dist/web), and wait until it answers with this commit and serves the web app.
+ * the server's repository, outside git, where dist/web links to it, then rebuild the server on the Raspberry Pi through
+ * pihost (its container mounts dist/web, compose.yaml), and wait until it answers with this commit and serves the web
+ * app.
  *
  *   bun scripts/deploy.ts              full deployment
  *   bun scripts/deploy.ts --no-push    main is pushed already (scripts/deploy-background.ts deploys a copy of it)
@@ -43,9 +44,11 @@ if (!noPush) run("git", ["push"]);
 const WEB = resolve(root, "dist/deploy");
 const { EXPO_PUBLIC_API_ORIGIN: _, ...env } = process.env;
 run("bun", ["desktop/web.ts", WEB], { CUBIX_PRERENDER_JOBS: "3", ...env });
-// Unpacked beside the one the server has, then swapped: a failed transfer leaves it whole.
-const repo = `/srv/pihost/apps/${APP}/repo`;
-run("bash", ["-o", "pipefail", "-c", `tar -C "${WEB}" -cf - . | zstd -3 -T0 -q | ssh ${PI} 'set -e; cd ${repo}; rm -rf dist/web.next; mkdir -p dist/web.next; zstd -dcq | tar -xf - -C dist/web.next; rm -rf dist/web; mv dist/web.next dist/web'`]);
+// Unpacked in a directory of its own, then dist/web links to it: the running container keeps the build it mounted until
+// pihost replaces it. The previous build stays too (a failed deployment leaves the container on it); older ones go.
+const dist = `/srv/pihost/apps/${APP}/repo/dist`;
+const unpack = `set -e; mkdir -p ${dist}; cd ${dist}; rm -rf next; mkdir next; zstd -dcq | tar -xf - -C next; mv next web-$(date +%s); ls -d web-* | sort | head -n -2 | xargs -r rm -rf; [ -L web ] || rm -rf web; ln -sfn "$(ls -d web-* | sort | tail -n 1)" web`;
+run("bash", ["-o", "pipefail", "-c", `tar -C "${WEB}" -cf - . | zstd -3 -T0 -q | ssh ${PI} '${unpack}'`]);
 // The build number and the commit go to the image as build arguments (compose.yaml): it reads no git history.
 run("ssh", [PI, `CUBIX_BUILD_NUMBER=${build}`, `CUBIX_COMMIT=${head}`, "pihost", "update", APP]);
 // pihost returns once compose is up; wait until the new binary answers with this commit.

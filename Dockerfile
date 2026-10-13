@@ -1,5 +1,5 @@
-# The API (go-api/): a static binary, musl with SQLite linked in. The web app is built on the developer's machine
-# (scripts/deploy.ts) and only copied into the image, at the end.
+# The API (go-api/): a static binary, musl with SQLite linked in. The web app is not in the image: built on the
+# developer's machine (scripts/deploy.ts), it is mounted from the server's repository (compose.yaml).
 FROM golang:1.27-alpine AS backend
 RUN apk add --no-cache build-base
 WORKDIR /app/go-api
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked --mount=type=cache,targ
     CGO_ENABLED=1 ./build.sh -tags "sqlite_omit_load_extension $GO_TAGS" -trimpath -ldflags '-s -w -extldflags "-static"' \
     && cp cubix-api /cubix-api
 
-FROM debian:bookworm-slim AS api
+FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 1000 --create-home cubix \
@@ -37,8 +37,3 @@ RUN printf 'CUBIX_BUILD_NUMBER=%s\nCUBIX_COMMIT=%s\n' "$CUBIX_BUILD_NUMBER" "$CU
 USER cubix
 EXPOSE 3000
 CMD ["cubix-api"]
-
-# The web app, built by scripts/deploy.ts on the developer's machine and sent beside the repository on the server
-# (dist/web, outside git). The development stack serves its own and stops at `api` (compose.dev.yaml).
-FROM api
-COPY dist/web /app/web

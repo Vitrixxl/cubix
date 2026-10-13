@@ -42,9 +42,9 @@ bun run mobile          # lancer dans l'émulateur Android
 Prérequis Android et validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` pousse `main`, construit l'application web sur cette machine,
-l'envoie dans `dist/web` du dépôt sur le serveur (hors git), met à jour le serveur
-avec `pihost update cubix` (l'image copie ce `dist/web`), puis attend qu'il
-réponde avec ce commit et serve le site. Seul le web est livré : ni APK ni
+l'envoie dans le dépôt sur le serveur (hors git, `dist/web` pointe vers lui), met à
+jour le serveur avec `pihost update cubix` (le conteneur monte `dist/web`), puis
+attend qu'il réponde avec ce commit et serve le site. Seul le web est livré : ni APK ni
 mise à jour à la volée.
 
 ## API
