@@ -20,11 +20,10 @@ import {
 import { StaticCubeSvg, type CubeMask } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Figure, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
+import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
 import { FootBar, PlayDiagram } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { caseTitle, casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
-import { fmtTime } from "../../src/client/lib/format";
 import { Kbd } from "@/components/ui/kbd";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -451,20 +450,6 @@ function StepNav({ method, entry, touch: wide = false }: { method: SolvingMethod
   );
 }
 
-/** A case's figures: its times on it (average, best, attempts); the step's own algorithms have none. */
-function PieceFigures({ piece, touch = false }: { piece: Piece; touch?: boolean }) {
-  if (!piece.caseId) return null;
-  const st = s.stats.find((v) => v.caseId === piece.caseId),
-    size = touch ? "lg" : "2xl";
-  return (
-    <div className={cn("flex shrink-0 flex-wrap gap-y-2", touch ? "gap-x-5" : "gap-x-7")}>
-      <Figure size={size} label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} />
-      <Figure size={size} label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" />
-      <Figure size={size} label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} />
-    </div>
-  );
-}
-
 /**
  * The piece's diagram, large: a click opens a catalogue case whole (every algorithm, its times) in the shared dialog,
  * or plays one of the step's own algorithms in 3D.
@@ -591,7 +576,6 @@ function PieceHead({ piece, touch = false }: { piece: Piece; touch?: boolean }) 
         <h2 className={cn("truncate leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[32px]" : "text-[52px]")}>{said(piece.name)}</h2>
         {piece.sub && <span className={cn("text-sm font-semibold text-muted-foreground md:text-base", !touch && "truncate")}>{piece.sub}</span>}
       </div>
-      {!touch && <PieceFigures piece={piece} />}
     </div>
   );
 }
@@ -743,8 +727,7 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
               // A row of the group's grid: 4.5rem tiles at least, as its auto-fill grid would hold them.
               <div ref={measure} className="grid shrink-0 gap-1.5 pt-1" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
                 {v.pieces.map((p) => {
-                  const here = p === bench.piece,
-                    st = s.stats.find((v) => v.caseId === p.caseId);
+                  const here = p === bench.piece;
                   return (
                     <Tip key={p.key} content={p.sub ? `${p.name} · ${p.sub}` : p.name}>
                       <button
@@ -760,8 +743,8 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
                       >
                         <span className={cn(!p.learned && !here && "opacity-45 saturate-50")}>{p.diagram(60)}</span>
                         <span className={cn(NUMERIC, "max-w-full truncate text-[17px] leading-none font-extrabold tracking-[-0.02em]")}>{p.short ?? p.name}</span>
-                        <span className={cn(NUMERIC, "text-[11px] font-bold", p.learned ? "text-muted-foreground" : "text-warning")}>
-                          {p.learned ? (st?.mean != null ? fmtTime(st.mean) : "–") : tr("New")}
+                        <span className={cn("text-[11px] font-bold", p.learned ? "text-success" : "text-warning")}>
+                          {p.learned ? tr("Learned") : tr("New")}
                         </span>
                       </button>
                     </Tip>
@@ -1112,7 +1095,6 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
                         </div>
                         <PieceDiagram piece={bench.piece} size={136} />
                       </div>
-                      <PieceFigures piece={bench.piece} touch />
                       {bench.piece.note && <p className="text-[15px] leading-relaxed text-muted-foreground">{said(bench.piece.note)}</p>}
                       <AlgChoice piece={bench.piece} bench={bench} touch />
                     </>

@@ -9,7 +9,7 @@ import {
 } from "../../../src/client/lib/course";
 import { caseTitle, moveCount } from "../../../src/client/lib/caseState";
 import { isLearningTrack, orderedGroups } from "../../../src/client/lib/dailyLearning";
-import { fmtTime, plural } from "../../../src/client/lib/format";
+import { plural } from "../../../src/client/lib/format";
 import { applyAlg, solved } from "../../../src/shared/cube";
 import { viewForMask, type CubeMask } from "../../../src/shared/cubeDiagram";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../../src/shared/methods";
@@ -39,7 +39,7 @@ import { storage } from "../platform/storage";
 import { useColors } from "../theme";
 import {
   casesAtom, courseProgressAtom, goBackAtom, guidesAtom, learnMethodAtom, learnedCaseIdsAtom, learningFilterAtom, notationAtom, previousRouteAtom, puzzleAtom,
-  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsAtom, statsVersionAtom, trainingRunAtom, trainingSetupModeAtom, trainingStepAtom,
+  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom, trainingRunAtom, trainingSetupModeAtom, trainingStepAtom,
 } from "../state";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -613,9 +613,9 @@ function IntuitiveBench({ puzzle, method, entry, row = false, bare = false, head
 
 /**
  * A step with algorithms: the set and the filter of learned ones, then the case on the workbench (its name, diagram,
- * figures, whether it is learned, its algorithm hidden until asked for), then every group of the step one after
- * another, its cases wrapping in rows, to pick from, with the cases either side. A phone keeps the name, Learned,
- * diagram and algorithm on the card, its note, figures and choice of algorithm in a sheet from its name, and the filter
+ * whether it is learned, its algorithm hidden until asked for; never its times, learning is not training), then every
+ * group of the step one after another, its cases wrapping in rows, to pick from, with the cases either side. A phone
+ * keeps the name, Learned, diagram and algorithm on the card, its note and choice of algorithm in a sheet from its name, and the filter
  * in a sheet of its own. Wide, the step's cases dock in a panel, the set and the filter over them.
  */
 function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }: {
@@ -624,7 +624,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   onAbout: () => void; side?: ReactNode;
 }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
-  const cases = useAtomValue(casesAtom), stats = useAtomValue(statsAtom);
+  const cases = useAtomValue(casesAtom);
   const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const learnedAlgs = useAtomValue(learnedAlgsAtom);
@@ -684,7 +684,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const caseIds = useMemo(() => all.flatMap(p => p.c ? [p.c.id] : []), [all]);
   // Every group's cases wrap in rows across the page, as many to a row as fit.
   const listWidth = width - (tablet ? 56 : 32), columns = Math.max(5, Math.floor((listWidth + 6) / 70)), tileSize = Math.floor((listWidth - 6 * (columns - 1)) / columns) - 12;
-  const st = piece?.c ? stats.get(piece.c.id) : undefined;
   const diagramSize = Math.min(112, Math.round(width * 0.27));
   const options = [
     { id: "all" as const, label: tr("All"), count: count.total },
@@ -713,7 +712,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     {filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}
     {!tablet && <Chip icon={ListFilter} onPress={() => setFiltering(true)}>{tr("Filter")}</Chip>}
   </Empty>;
-  // A phone's card keeps what is practised with; the case's note, figures and algorithms to pick open in a sheet from its name.
+  // A phone's card keeps what is practised with; the case's note and algorithms to pick open in a sheet from its name (no times: learning is not training).
   let details: ReactNode = null;
   const card = piece && (() => {
     // Says its state in a word, in green once learned; its full sentence is for the screen reader.
@@ -724,12 +723,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       <PieceDiagram piece={piece} puzzle={puzzle} step={step} size={size} />
     </Pressable>;
     const note = piece.note ? <Text numberOfLines={3} className="text-[13px] leading-[18px] text-muted-foreground">{tr(piece.note)}</Text> : null;
-    // A case's times on it; the step's own algorithms have none.
-    const figures = piece.c && <View className="flex-row gap-2">
-      <Figure label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} className="flex-1" />
-      <Figure label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" className="flex-1" />
-      <Figure label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} className="flex-1" />
-    </View>;
     const choices = <>
       {piece.algs.length > 1 && <View accessibilityRole="tablist" accessibilityLabel={tr("Algorithms")} className="flex-row rounded-xl bg-muted p-1">
         {piece.algs.map((a, i) => <Pressable key={a} accessibilityRole="tab" accessibilityState={{ selected: i === choice }} onPress={() => setChoice(i)}
@@ -748,7 +741,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       </View>
       <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
     </View>;
-    // A tablet: the case and its diagram large on the left, its figures, algorithms and the cases either side on the right.
+    // A tablet: the case and its diagram large on the left, its note, algorithms and the cases either side on the right.
     if (tablet) {
       const previous = all[(index - 1 + all.length) % all.length]!, following = all[(index + 1) % all.length]!;
       return <View className="flex-row gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Workbench")}>
@@ -759,7 +752,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           <View className="flex-1 items-center justify-center pt-2">{diagram(wide ? 200 : 180)}</View>
         </View>
         <View className="min-w-0 flex-1 gap-3">
-          {figures}
           {note}
           <View className="flex-row flex-wrap items-center gap-1.5">{learnToggle()}<View className="flex-1" />{choices}</View>
           {well}
@@ -779,7 +771,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     }
     details = <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title={piece.name} description={piece.sub ? `${piece.context} · ${piece.sub}` : piece.context} scroll>
       {piece.note ? <Text className="text-[15px] leading-[22px] text-foreground/85">{tr(piece.note)}</Text> : null}
-      {figures}
       {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">{choices}</View>}
     </Sheet>;
     return <View className="gap-3 rounded-3xl bg-card p-4" accessibilityLabel={tr("Workbench")}>

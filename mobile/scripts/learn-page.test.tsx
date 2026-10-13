@@ -132,10 +132,11 @@ test("a step's workbench shows one case at a time, learns it, and trains the sho
   // A choice closes the sheet; opened again, back to every case.
   await act(() => button("Filter")!.props.onPress());
   await act(() => filter().props.onChange("all"));
-  // The case's note, figures and algorithms are in a sheet opened from its name; the diagram opens its case.
+  // The case's note and algorithms are in a sheet opened from its name; the diagram opens its case.
   expect(renderer.root.findAllByType("Figure" as any)).toEqual([]);
   await tap("Show the details");
-  expect(renderer.root.findAllByType("Figure" as any).map((n: any) => n.props.label)).toEqual(["Average", "Best", "Attempts"]);
+  // Learning shows no times of the case, not even in its details.
+  expect(renderer.root.findAllByType("Figure" as any)).toEqual([]);
   await tap("Open 2L-OLL Sune");
   expect(sheets()).toBe(2);
   // Learned is the only judgment: no verdicts on the card, its chip learns the case.
