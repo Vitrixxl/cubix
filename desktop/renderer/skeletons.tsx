@@ -595,7 +595,7 @@ function LearnSkeleton({ phone, method }: { phone: boolean; method: string }) {
   );
 }
 
-/** The duel's lobby: the friends, the stage, the races played. */
+/** The duel's lobby on a phone; on a desktop the Challenges' hub (duel.tsx HubBox): three boxes, each its icon and title, its figure, its action. */
 function DuelSkeleton({ phone }: { phone: boolean }) {
   if (phone)
     return (
@@ -606,19 +606,14 @@ function DuelSkeleton({ phone }: { phone: boolean }) {
     );
   return (
     <Page>
-      <div className="grid min-h-0 flex-1 gap-5 md:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-        <div className={cn(CARD, "gap-3.5 p-4 max-xl:hidden")}>
-          <PaneHead className="px-1" />
-          <div className="grid grid-cols-3 gap-x-1.5 gap-y-2.5 pt-1.5">
-            {times(5).map((i) => <div key={i} className="flex flex-col items-center gap-2 py-1"><Bone className="size-12 rounded-full" /><Bone className="h-3 w-14" /></div>)}
+      <div className="grid min-h-0 flex-1 grid-cols-3 gap-5">
+        {times(3).map((i) => (
+          <div key={i} className={cn(CARD, "items-center justify-between gap-6 p-7 lg:p-9")}>
+            <div className="flex flex-col items-center gap-3"><Bone className="size-16 rounded-[20px]" /><Bone className="h-7 w-28" /></div>
+            <Figure center value="h-14 w-36" />
+            <Bone className="h-[61px] w-[min(100%,24rem)] rounded-xl" />
           </div>
-          <Bone className="mt-auto h-[103px] rounded-[18px]" />
-        </div>
-        <Stage />
-        <div className={cn(CARD, "gap-3 p-4")}>
-          <PaneHead w="w-32" className="px-1" />
-          <Rows n={5} />
-        </div>
+        ))}
       </div>
     </Page>
   );

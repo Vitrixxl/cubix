@@ -2,7 +2,8 @@
  * The duel page, an arena: the one disc to press in the middle as the timer's digits are, the friends to challenge and
  * the races played each in a dialog of their own. Then the race: the round and the scramble across the top, both players
  * and the strip of rounds under it, the two timers either side of the cube, and beside it the rounds as a butterfly
- * over the chat. Its end rises over the race's foot.
+ * over the chat. Its end rises over the race's foot. On a desktop /duel first shows the Challenges' hub: a large box
+ * each for the duel, the tournaments and the daily, in place of the section's tabs.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,15 +12,18 @@ import { duel, ao5, clock, compare, matchRange, opponentStatus, raceAverage, rou
 import { Cube } from "./Cube";
 import { useSquare } from "./practice";
 import { PracticeTimer, timerHint, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
-import { fmtTime } from "../../src/client/lib/format";
+import { fmtSolve, fmtTime } from "../../src/client/lib/format";
+import { dailyDay, isDailyEvent } from "../../src/client/lib/daily";
+import type { Penalty } from "../../src/shared/types";
 import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
-import { Ban, Box, Check, Copy, History, Link2, MessageSquare, Plus, Send, Swords, Trophy, Undo2, UserPlus, Users, X } from "lucide-react";
+import { Ban, Box, CalendarDays, Check, Copy, History, Link2, MessageSquare, Play, Plus, Send, Swords, Trophy, Undo2, UserPlus, Users, X } from "lucide-react";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 import { ActionToggle, Alg, Avatar, Button, Empty, FADE, NUMERIC, MenuAction, Modal, PAGE, PageHead, PenaltyToggles, SearchField, Surface, Tip, isPhone, usePhone, useViewport } from "./ui";
 import { LiveDigits } from "./practice";
-import { StageAction, Fly, Gap, KICKER, LiveDot, NameTag, PanelHead, Record, StageMeter, RoundStrip, Stage, StageFigure, Ticket, Verdict, longest, type Cell } from "./tournaments/format";
-import { community, type Conversation } from "./community/client";
+import { StageAction, CARD_LINK, Fly, Gap, KICKER, LiveDot, NameTag, PanelHead, Record, StageMeter, RoundStrip, Stage, StageFigure, Ticket, Verdict, apart, longest, opens, roundName, type Cell } from "./tournaments/format";
+import { community, matchUrl, type Conversation } from "./community/client";
+import { go } from "./navigation";
 import { FriendsDialog } from "./community/dialogs";
 import { relative } from "./coaching/parts";
 import { cn } from "@/lib/utils";
@@ -29,7 +33,7 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { tr } from "../../src/client/i18n";
-import { keyed, said } from "./base";
+import { Back, IconTile, keyed, said } from "./base";
 
 export { PanelHead };
 const ROUND_LIST = [...Array(ROUNDS).keys()];
@@ -100,16 +104,22 @@ function useDuelTimer() {
 }
 
 export function DuelPage() {
+  // A desktop opens the Challenges on their hub; the duel's own page once its box is opened or a search started.
+  const [hub, setHub] = useState(true);
   useEffect(() => {
     void duel.loadLevel(s.event().id);
   }, [s.puzzle, s.solveMode]);
-  return duel.status === "racing" ? <Race /> : <Lobby />;
+  return duel.status === "racing" ? <Race /> : <Lobby hub={hub} setHub={setHub} />;
 }
 
-/** Before a race: the disc (or the search under way) alone; the friends to challenge, a friend to add and the races played each behind a button. */
-function Lobby() {
+/**
+ * Before a race: the disc (or the search under way) alone; the friends to challenge, a friend to add and the races
+ * played each behind a button. On a desktop, first the Challenges' hub, the duel's page a Back away from it.
+ */
+function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }) {
   const searching = duel.status === "searching",
     phone = usePhone(),
+    hubbed = hub && !phone,
     [open, setOpen] = useState<"" | "friends" | "history">(""),
     [adding, setAdding] = useState(false),
     [, setSecond] = useState(0);
@@ -122,20 +132,21 @@ function Lobby() {
     waited = searching ? Date.now() - duel.searchSince : 0,
     range = matchRange(duel.level, waited),
     seconds = (ms: number) => (ms / 1000).toFixed(1);
-  // The lobby's buttons: a word each on a desktop, icons in a phone's header.
-  const tool = (I: typeof Swords, label: string, tip: string, action: string, onClick: () => void) => (
+  // The lobby's buttons: a word each on a desktop, icons in a phone's header and in the corner of the hub's Duel box.
+  const tool = (I: typeof Swords, label: string, tip: string, action: string, onClick: () => void, icon = phone) => (
     <Tip key={action} content={tr(tip)}>
-      <UiButton variant={phone ? "outline" : "secondary"} size={phone ? "icon" : "default"} onClick={onClick} aria-label={tr(tip)} data-action={action}>
+      <UiButton variant={phone ? "outline" : icon ? "ghost" : "secondary"} size={icon ? "icon" : "default"} onClick={onClick} aria-label={tr(tip)} data-action={action}>
         <I />
-        {!phone && tr(label)}
+        {!icon && tr(label)}
       </UiButton>
     </Tip>
   );
   const tools = [
     tool(Swords, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends")),
-    s.signedIn && tool(UserPlus, "Add", "Add a friend", "duel:add-friend", () => setAdding(true)),
-    tool(History, "History", "Races played", "duel:history", () => setOpen("history")),
+    s.signedIn && tool(UserPlus, "Add", "Add a friend", "duel:add-friend", () => setAdding(true), phone || hubbed),
+    tool(History, "History", "Races played", "duel:history", () => setOpen("history"), phone || hubbed),
   ];
+  const level = duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level);
   return (
     <div className={cn(PAGE, "duel-lobby")}>
       {phone && (
@@ -143,30 +154,64 @@ function Lobby() {
           {tools}
         </PageHead>
       )}
-      <Stage
-        data-tour="duel"
-        className="duel-stage relative min-h-0 flex-1"
-        lead={duel.notice && <p className="-mt-2 max-w-md text-sm text-balance text-destructive md:-mt-4 md:text-[15px]">{duel.notice}</p>}
-        figures={
-          <>
-            <StageFigure value={duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level)} label={tr("Your {0} level", { 0: event.label })} />
-            <StageFigure value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} label="Your matching range" />
-            <StageFigure value={searching ? String(duel.searching) : "–"} label="Also searching" tone={searching && duel.searching ? "good" : undefined} />
-          </>
-        }
-      >
-        {!phone && <div className="absolute top-0 right-0 flex gap-1.5">{tools}</div>}
-        {searching ? (
-          <>
-            <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />
-            <Button action="duel:leave" icon={X} variant="secondary" className="duel-cancel">
-              {tr("Cancel")}
-            </Button>
-          </>
-        ) : (
-          <StageAction icon={Swords} title={tr("Play")} data-action="duel:search" onClick={run("duel:search")} />
-        )}
-      </Stage>
+      {hubbed ? (
+        <div className="challenges-hub grid min-h-0 flex-1 grid-cols-3 gap-5">
+          <HubBox
+            id="duel"
+            icon={Swords}
+            title={tr("Duel")}
+            value={searching ? clock(waited) : level}
+            label={searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}
+            tone={searching ? "accent" : undefined}
+            open={() => setHub(false)}
+            corner={tools.slice(1)}
+          >
+            {duel.notice && <p className="text-sm text-balance text-destructive">{duel.notice}</p>}
+            {searching ? (
+              <Button action="duel:leave" icon={X} variant="secondary">
+                {tr("Cancel")}
+              </Button>
+            ) : (
+              <StageAction icon={Swords} title={tr("Face off")} data-action="duel:search" onClick={(e) => (setHub(false), run("duel:search")(e))} />
+            )}
+            {tools[0]}
+          </HubBox>
+          <TournamentsBox />
+          <DailyBox />
+        </div>
+      ) : (
+        <Stage
+          data-tour="duel"
+          className="duel-stage relative min-h-0 flex-1"
+          lead={duel.notice && <p className="-mt-2 max-w-md text-sm text-balance text-destructive md:-mt-4 md:text-[15px]">{duel.notice}</p>}
+          figures={
+            <>
+              <StageFigure value={level} label={tr("Your {0} level", { 0: event.label })} />
+              <StageFigure value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} label="Your matching range" />
+              <StageFigure value={searching ? String(duel.searching) : "–"} label="Also searching" tone={searching && duel.searching ? "good" : undefined} />
+            </>
+          }
+        >
+          {!phone && (
+            <>
+              <div className="absolute top-0 left-0">
+                <Back onClick={() => setHub(true)} action="duel:hub" />
+              </div>
+              <div className="absolute top-0 right-0 flex gap-1.5">{tools}</div>
+            </>
+          )}
+          {searching ? (
+            <>
+              <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />
+              <Button action="duel:leave" icon={X} variant="secondary" className="duel-cancel">
+                {tr("Cancel")}
+              </Button>
+            </>
+          ) : (
+            <StageAction icon={Swords} title={tr("Play")} data-action="duel:search" onClick={run("duel:search")} />
+          )}
+        </Stage>
+      )}
       <Modal open={open === "friends"} onOpenChange={(next) => !next && setOpen("")} title={tr("Challenge")} tall className="flex max-h-[min(40rem,90svh)] flex-col">
         <Friends onAdd={() => (setOpen(""), setAdding(true))} onSent={() => setOpen("")} />
       </Modal>
@@ -175,6 +220,67 @@ function Lobby() {
       </Modal>
       <FriendsDialog open={adding} onOpenChange={setAdding} />
     </div>
+  );
+}
+
+/**
+ * A box of the Challenges' hub: its icon and title, one figure large in the middle, its actions at the foot (the main
+ * one filled), small buttons in its corner. The whole box opens its page; its buttons act on their own.
+ */
+function HubBox({ id, icon, title, value, label, tone, open, corner, children }: { id: string; icon: typeof Swords; title: string; value: React.ReactNode; label: React.ReactNode; tone?: "accent" | "good"; open: () => void; corner?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Surface {...opens(open, "link")} aria-label={title} data-hub={id} data-tour={id === "duel" ? "duel" : undefined} className={cn(CARD_LINK, "relative items-center justify-between gap-6 p-7 text-center lg:p-9")}>
+      {corner && (
+        <div className="absolute top-4 right-4 flex gap-1" {...apart}>
+          {corner}
+        </div>
+      )}
+      <div className="flex flex-col items-center gap-3">
+        <IconTile icon={icon} className="size-16 rounded-[20px] [&_svg]:size-7" />
+        <h2 className="text-[clamp(22px,2.2vw,30px)] leading-tight font-extrabold tracking-[-0.02em]">{title}</h2>
+      </div>
+      <div className="flex min-w-0 flex-col items-center gap-2">
+        <b className={cn(NUMERIC, "max-w-full text-[clamp(34px,4.2vw,60px)] leading-none font-extrabold tracking-[-0.04em] text-balance", tone === "accent" ? "text-primary" : tone === "good" && "text-success")}>{value}</b>
+        <span className="truncate text-[13px] font-semibold text-muted-foreground">{label}</span>
+      </div>
+      <div className="flex w-full flex-col items-center gap-2" {...apart}>
+        {children}
+      </div>
+    </Surface>
+  );
+}
+
+/** The hub's Tournaments box: the round of the account's match to play, else how many are under way. */
+function TournamentsBox() {
+  useEffect(() => void community.load("tournaments"), []);
+  const list = community.tournaments,
+    mine = list?.find((t) => t.myMatch),
+    open = () => void s.action("nav:tournaments");
+  return (
+    <HubBox
+      id="tournaments"
+      icon={Trophy}
+      title={tr("Tournaments")}
+      value={!list ? <Skeleton className="h-12 w-16" /> : mine ? said(roundName(mine.round, mine.rounds)) : list.filter((t) => t.status === "running").length}
+      label={mine ? tr("Your match") : tr("Under way")}
+      tone={mine ? "accent" : undefined}
+      open={open}
+    >
+      {mine ? <StageAction icon={Play} title={tr("Play")} data-action="tournament:play" onClick={() => go(matchUrl(mine.myMatch!))} /> : <StageAction icon={Trophy} title={tr("Open")} data-action="tournaments:open" onClick={open} />}
+    </HubBox>
+  );
+}
+
+/** The hub's Daily box: the time of today's attempt on the event (the 3×3's for one without a daily), or none yet; solving it, or its standing once made. */
+function DailyBox() {
+  const current = s.event().id,
+    event = isDailyEvent(current) ? current : "333",
+    done = s.dailyDone[`${dailyDay()}:${event}`],
+    open = () => void s.action("nav:daily");
+  return (
+    <HubBox id="daily" icon={CalendarDays} title={tr("Daily")} value={done ? fmtSolve(done.timeMs, done.penalty as Penalty) : "–"} label={done ? tr("Today") : tr("Not tried yet")} tone={done ? "good" : undefined} open={open}>
+      {done ? <StageAction icon={Trophy} title={tr("Standing")} data-action="daily:standing" onClick={open} /> : <StageAction icon={Play} title={tr("Solve")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />}
+    </HubBox>
   );
 }
 

@@ -1,4 +1,4 @@
-/** Two players, each signed in to an account in a headless Chromium of their own, race each other against a disposable API serving the web build: matchmaking,
+/** Two players, each signed in to an account in a headless Chromium of their own, race each other against a disposable API serving the web build: the Challenges' hub, matchmaking,
  * the same scrambles, the opponent's live timer, chat, DNF and Cancel, the result, a rematch and the profile's battles.
  * Build first: `bun run build:api && bun desktop/web.ts`. */
 import { chromium, type Page } from "playwright";
@@ -44,8 +44,27 @@ async function solve(page: Page, ms = 150) {
 try {
   const a = await open(), b = await open();
   assert.equal(await a.locator("[data-sonner-toast]").count() + await b.locator("[data-sonner-toast]").count(), 0, "no tab waits for another");
+  // The Challenges open on their hub: a box per activity and no section tabs; each box opens its page, Back returns.
+  await a.waitForSelector(".challenges-hub");
+  assert.equal(await a.locator(".challenges-hub [data-hub]").count(), 3, "a box for the duel, the tournaments and the daily");
+  assert.equal(await a.locator('[data-action="nav:tournaments"]:visible').count(), 0, "no section tabs on a desktop");
+  assert.ok(await fits(a), "the hub fits the window");
+  await a.screenshot({ path: `${SHOTS}/hub.png` });
+  await a.locator('[data-hub="tournaments"]').click();
+  await a.waitForSelector(".tournaments");
+  await a.locator('main [data-action="coaching:back"]').click();
+  await a.waitForSelector(".challenges-hub");
+  await a.locator('[data-hub="daily"]').click();
+  await a.waitForSelector(".daily-stage");
+  await a.locator('main [data-action="nav:duel"]').click();
+  await a.waitForSelector(".challenges-hub");
+  await a.locator('[data-hub="duel"]').click();
+  await a.waitForSelector(".duel-stage");
   assert.ok(await fits(a), "the lobby fits the window");
   await a.screenshot({ path: `${SHOTS}/lobby.png` });
+  await a.locator('[data-action="duel:hub"]').click();
+  await a.waitForSelector(".challenges-hub");
+  // Face off, from the hub, opens the duel's page on the search under way.
   await a.locator('[data-action="duel:search"]').click();
   await a.waitForSelector(".duel-lobby .duel-cancel");
   await b.locator('[data-action="duel:search"]').click();
@@ -125,8 +144,9 @@ try {
   await a.screenshot({ path: `${SHOTS}/battles.png` });
   // The finished race alone: the rematch left half-way is not a battle.
   await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
-  // The duel lobby's history, then its "All", opens the same page.
+  // The history in the hub's Duel box, then its "All", opens the same page.
   await a.locator('[data-action="nav:duel"]').first().click();
+  await a.waitForSelector(".challenges-hub");
   await a.locator('main [data-action="duel:history"]').first().click();
   await a.locator('[role="dialog"] [data-action="profileMode:duels"]').click();
   await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
