@@ -148,7 +148,6 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
           <span className="text-lg text-muted-foreground">admin</span>
         </div>
         <h1 className="text-xl font-semibold tracking-tight">Administration</h1>
-        <p className="text-sm text-muted-foreground">How every account uses the app.</p>
       </div>
       {notice && (
         <Alert role="status">
@@ -278,7 +277,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
               <SidebarMenuItem>
                 <SidebarMenuButton tooltip="Open the app" className="h-9 text-muted-foreground" render={<a href="/timer" />}>
                   <AppWindow />
-                  <span>Open the app</span>
+                  <span>Open app</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

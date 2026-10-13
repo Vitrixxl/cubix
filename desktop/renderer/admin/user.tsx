@@ -299,13 +299,14 @@ function Revoke({ id, sessions, onDone }: { id: string; sessions: number; onDone
   return (
     <Button
       variant="outline"
+      aria-label="Sign out everywhere"
       data-action="user:revoke"
       disabled={!sessions || pending}
       onClick={async () => {
         const yes = await ask({
           title: "Sign this account out everywhere?",
           text: `Its ${num(sessions)} signed-in ${sessions === 1 ? "device" : "devices"} will have to sign in again. Times already on those devices stay there and sync after signing in.`,
-          action: "Sign out everywhere",
+          action: "Revoke",
         });
         if (!yes) return;
         setPending(true);
@@ -321,7 +322,7 @@ function Revoke({ id, sessions, onDone }: { id: string; sessions: number; onDone
       }}
     >
       <LogOut />
-      {pending ? "Signing out…" : "Sign out everywhere"}
+      {pending ? "Revoking…" : "Revoke sessions"}
     </Button>
   );
 }

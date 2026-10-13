@@ -4,7 +4,7 @@ import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Box
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
-import { Avatar, FADE, FOCUS, Icon, PuzzlePicker, usePhone } from "./ui";
+import { Avatar, FADE, FOCUS, Icon, PuzzlePicker, Tip, usePhone } from "./ui";
 import { Brand } from "./logo";
 import { cn } from "@/lib/utils";
 import { Button as UiButton, buttonVariants } from "@/components/ui/button";
@@ -204,7 +204,7 @@ export function AccountMenu() {
         {phone && (
           <DropdownMenuItem data-action="coffee" className="font-bold text-primary data-highlighted:text-foreground" render={<a href={COFFEE} target="_blank" rel="noreferrer" />}>
             <Coffee className="text-primary" />
-            {tr("Buy me a coffee")}
+            {tr("Coffee")}
           </DropdownMenuItem>
         )}
         {!guest && (
@@ -315,18 +315,20 @@ export const Header = memo(function Header() {
       <SectionTabs className="hidden pl-3 2xl:flex" />
       <div className="ml-auto flex items-center gap-2.5">
         {/* Support for the app, in plain view: the app is free, a coffee keeps it going. */}
-        <a
-          href={COFFEE}
-          target="_blank"
-          rel="noreferrer"
-          data-action="coffee"
-          // A link drawn as the app's buttons are (shape and size), in the accent colour.
-          className={buttonVariants({ variant: "tint" })}
-        >
-          <Coffee />
-          <span className="max-lg:hidden">{tr("Buy me a coffee")}</span>
-          <span className="sr-only lg:hidden">{tr("Buy me a coffee")}</span>
-        </a>
+        <Tip content={tr("Buy me a coffee")}>
+          <a
+            href={COFFEE}
+            target="_blank"
+            rel="noreferrer"
+            data-action="coffee"
+            aria-label={tr("Buy me a coffee")}
+            // A link drawn as the app's buttons are (shape and size), in the accent colour.
+            className={buttonVariants({ variant: "tint" })}
+          >
+            <Coffee />
+            <span className="max-lg:hidden">{tr("Coffee")}</span>
+          </a>
+        </Tip>
         <CubeState />
         <PuzzlePill />
         {isGuest() && <SignIn />}

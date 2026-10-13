@@ -366,9 +366,9 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
           </div>
         </section>
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
-          <ActionCard primary icon={Camera} title={tr("Read this face")} kbd={tr("Space")} onClick={readNow} disabled={state !== "live" || !live} action="scan:read" className="max-md:col-span-2" />
-          <ActionCard icon={Undo2} title={tr("Read the last face again")} text={last >= 0 ? <span className="first-letter:uppercase max-md:hidden">{said(COLOUR_NAMES[ORDER[last]!.face])}</span> : undefined} kbd="⌫" onClick={undo} disabled={last < 0} action="scan:undo" />
-          <ActionCard icon={Paintbrush} title={tr("Enter the colours by hand")} onClick={onHand} action="scan:hand" />
+          <ActionCard primary icon={Camera} title={tr("Read")} kbd={tr("Space")} onClick={readNow} disabled={state !== "live" || !live} action="scan:read" className="max-md:col-span-2" />
+          <ActionCard icon={Undo2} title={tr("Undo")} text={last >= 0 ? <span className="first-letter:uppercase max-md:hidden">{said(COLOUR_NAMES[ORDER[last]!.face])}</span> : undefined} kbd="⌫" onClick={undo} disabled={last < 0} action="scan:undo" />
+          <ActionCard icon={Paintbrush} title={tr("By hand")} onClick={onHand} action="scan:hand" />
         </div>
       </div>
     </div>
@@ -432,8 +432,8 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
   if (impossible)
     return frame(
       <Notice icon={TriangleAlert} title={tr("This cube cannot be solved")} text={problem ? said(problem) : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-        <ActionCard primary icon={Paintbrush} title={tr("Check the colours")} onClick={() => setImpossible(false)} action="scan:check" />
-        {onCamera && <ActionCard icon={Camera} title={tr("Read everything again")} onClick={onCamera} action="scan:again" />}
+        <ActionCard primary icon={Paintbrush} title={tr("Check")} onClick={() => setImpossible(false)} action="scan:check" />
+        {onCamera && <ActionCard icon={Camera} title={tr("Read again")} onClick={onCamera} action="scan:again" />}
       </Notice>,
       () => setImpossible(false),
     );
@@ -491,8 +491,8 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
           </ToggleGroup>
         </section>
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
-          <ActionCard primary icon={Check} title={tr("The colours are right")} disabled={!complete} onClick={() => (problem ? setImpossible(true) : onDone(colours as Face[]))} action="scan:done" className={cn(!onCamera && "col-span-2")} />
-          {onCamera && <ActionCard icon={Camera} title={tr("Read again with the camera")} onClick={onCamera} action="scan:again" />}
+          <ActionCard primary icon={Check} title={tr("Confirm")} disabled={!complete} onClick={() => (problem ? setImpossible(true) : onDone(colours as Face[]))} action="scan:done" className={cn(!onCamera && "col-span-2")} />
+          {onCamera && <ActionCard icon={Camera} title={tr("Camera")} onClick={onCamera} action="scan:again" />}
         </div>
       </div>
     </div>,

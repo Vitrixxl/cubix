@@ -4,7 +4,7 @@ import { casePlayItem, displayAlg, moveCount, shortId } from "../../src/client/l
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronLeft, ChevronRight, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, Filter, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
 import { store as s } from "./store";
 import { fmtTime } from "../../src/client/lib/format";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
@@ -103,7 +103,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
         <Surface data-tour="algorithms" className="w-[min(19rem,32%)] shrink-0 gap-3 p-3 pt-4">
           <Button action="search" variant="secondary" className="shrink-0 justify-start text-muted-foreground">
             <Search />
-            <span className="truncate">{tr("Search cases")}</span>
+            <span className="truncate">{tr("Find")}</span>
             <Kbd className="ml-auto max-lg:hidden">{tr("Ctrl K")}</Kbd>
           </Button>
           <div className="flex shrink-0 items-baseline justify-between px-2.5">
@@ -112,7 +112,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
           </div>
           <SetTree sections={sections} active={set.id} />
           <Button action="methods" icon={BookOpen} variant="ghost" className="shrink-0 justify-start text-muted-foreground">
-            {tr("Solving methods")}</Button>
+            {tr("Methods")}</Button>
         </Surface>
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <SetHead set={set} section={section} />
@@ -219,18 +219,21 @@ function SetHead({ set, section }: { set: any; section: any }) {
   );
 }
 
+/** Which cases the shelves show, as a menu: all, the learned ones or those to learn, each with its count. */
 function FilterChoice({ section }: { section: any }) {
   const total = section.all.length,
     learned = section.learnedCount;
   return (
-    <Choice
-      prefix="learningFilter:"
-      label={tr("Filter")}
+    <SelectMenu
+      action="learningFilter"
+      label="Filter"
+      icon={<Filter className="text-muted-foreground" />}
+      align="start"
       value={s.learningFilter}
       options={[
-        { id: "all", label: "All", count: total },
-        { id: "learned", label: "Learned", count: learned },
-        { id: "not-learned", label: "To learn", count: total - learned },
+        { id: "all", label: `${tr("All")} · ${total}` },
+        { id: "learned", label: `${tr("Learned")} · ${learned}` },
+        { id: "not-learned", label: `${tr("To learn")} · ${total - learned}` },
       ]}
     />
   );
@@ -352,10 +355,10 @@ function PickBar({ picked, clear }: { picked: Set<string>; clear: () => void }) 
         }}
       >
         <Check />
-        {tr("Mark learned")}</UiButton>
+        {tr("Learned")}</UiButton>
       <UiButton disabled={!ids.length} data-action="trainPicked" onClick={() => void s.action("trainCases:" + ids.join(","))}>
         <Timer />
-        {tr("Train selection")}</UiButton>
+        {tr("Train")}</UiButton>
       <Tip content={tr("Cancel")}>
         <UiButton variant="ghost" size="icon" aria-label={tr("Cancel")} onClick={clear}>
           <X />

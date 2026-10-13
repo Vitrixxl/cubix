@@ -414,17 +414,15 @@ function useBench(pieces: StepPieces) {
 }
 type Bench = ReturnType<typeof useBench>;
 
-/** The step's way on: Previous quietly, then Next step with the next one's name, or Finish on the last; `wide` fills the row with Next step as the main action. */
+/** The step's way on: Previous quietly, then Next (the next one's name in its tip), or Finish on the last; `wide` fills the row with Next as the main action. */
 function StepNav({ method, entry, touch: wide = false }: { method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
   const next = method.steps[entry.step + 1];
   return (
     <span className={cn("flex min-w-0 items-center gap-2", wide ? "flex-1" : "ml-auto shrink-0")}>
       <Button action="previous" icon={ChevronLeft} variant="secondary" tip={tr("Previous step")} disabled={entry.step === 0} />
       {next ? (
-        <Button action={"learnStep:" + (entry.step + 1)} variant={wide ? "default" : "secondary"} className={cn("min-w-0 justify-between", wide && "ml-auto flex-1")}>
-          <span className="truncate">
-            {tr("Next step")} · {said(next.title)}
-          </span>
+        <Button action={"learnStep:" + (entry.step + 1)} variant={wide ? "default" : "secondary"} tip={`${tr("Next step")} · ${said(next.title)}`} className={cn("min-w-0 justify-between", wide && "ml-auto flex-1")}>
+          {tr("Next")}
           <ChevronRight />
         </Button>
       ) : (
@@ -790,8 +788,8 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
               {tr("Train")}
             </Button>
           )}
-          <Button action="nav:playground" icon={Timer} variant="secondary">
-            {tr("Practise with the timer")}
+          <Button action="nav:playground" icon={Timer} variant="secondary" tip={tr("Practise with the timer")}>
+            {tr("Timer")}
           </Button>
           <StepNav method={method} entry={entry} touch />
         </div>
@@ -882,15 +880,15 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
     entry = courseEntry(s.course, puzzle, method.id);
   const actions = (
     <div className={cn("flex gap-2", touch ? "flex-col" : "flex-wrap")}>
-      <Button action="nav:playground" icon={Timer} variant="default">
-        {tr("Practise with the timer")}
+      <Button action="nav:playground" icon={Timer} variant="default" tip={tr("Practise with the timer")}>
+        {tr("Timer")}
       </Button>
-      <Button action="learnMethods" icon={GraduationCap} variant="secondary">
-        {tr("Learn another method")}
+      <Button action="learnMethods" icon={GraduationCap} variant="secondary" tip={tr("Learn another method")}>
+        {tr("Methods")}
       </Button>
       {assisted(puzzle, method) && (
-        <Button action="assisted" icon={Route} variant="ghost">
-          {tr("Again with my cube")}
+        <Button action="assisted" icon={Route} variant="ghost" tip={tr("Again with my cube")}>
+          {tr("My cube")}
         </Button>
       )}
     </div>
@@ -951,11 +949,9 @@ function Course({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMe
 const assisted = (puzzle: PuzzleId, method: SolvingMethod) => solvable(puzzle, method.id);
 function AssistedButton({ puzzle, method, phone = false }: { puzzle: PuzzleId; method: SolvingMethod; phone?: boolean }) {
   if (!assisted(puzzle, method)) return null;
-  return phone ? (
-    <Button action="assisted" icon={Route} variant="secondary" tip={tr("With my cube")} />
-  ) : (
-    <Button action="assisted" icon={Route} variant="secondary">
-      {tr("With my cube")}
+  return (
+    <Button action="assisted" icon={Route} variant="secondary" tip={tr("With my cube")}>
+      {!phone && tr("My cube")}
     </Button>
   );
 }

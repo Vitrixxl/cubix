@@ -455,12 +455,12 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
       <Page phase={2} skipped={!manual} back={leave}>
         {plan ? (
           <Notice cube={<StaticCubeSvg state={solved(3)} size={phone ? 110 : 150} />} title={tr("Your cube is already solved")} text={manual ? tr("Scramble it, then read it again.") : tr("Scramble it, then start.")}>
-            <ActionCard primary icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read the cube again") : tr("Start")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+            <ActionCard primary icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read again") : tr("Start")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
           </Notice>
         ) : (
           <Notice icon={TriangleAlert} title={tr("This cube cannot be solved")} text={tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-            {manual && <ActionCard primary icon={Check} title={tr("Check the colours")} onClick={() => rescan("check")} action="assisted:check" />}
-            <ActionCard primary={!manual} icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read everything again") : tr("Try again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+            {manual && <ActionCard primary icon={Check} title={tr("Check")} onClick={() => rescan("check")} action="assisted:check" />}
+            <ActionCard primary={!manual} icon={manual ? ScanLine : RefreshCw} title={manual ? tr("Read again") : tr("Try again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
           </Notice>
         )}
       </Page>
@@ -530,9 +530,9 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
               ))}
             </section>
             <div className="grid gap-2 md:grid-cols-3 md:gap-3">
-              <ActionCard primary icon={RotateCcw} title={tr("Solve again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
-              <ActionCard icon={Timer} title={tr("On your own, with the timer")} onClick={() => void s.action("nav:playground")} action="nav:playground" />
-              <ActionCard icon={GraduationCap} title={tr("Back to the course")} onClick={() => void s.action("assisted:off")} action="assisted:off" />
+              <ActionCard primary icon={RotateCcw} title={tr("Again")} onClick={manual ? () => rescan() : replan} action="assisted:again" />
+              <ActionCard icon={Timer} title={tr("Timer")} onClick={() => void s.action("nav:playground")} action="nav:playground" />
+              <ActionCard icon={GraduationCap} title={tr("Course")} onClick={() => void s.action("assisted:off")} action="assisted:off" />
             </div>
           </div>
         </div>
@@ -579,14 +579,14 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
         >
           {manual ? (
             <>
-              <ActionCard primary icon={ScanLine} title={tr("Read the cube again")} onClick={() => rescan()} action="assisted:rescan" />
-              <ActionCard icon={Undo2} title={tr("Back to the start of this part")} text={made ? tr("Undo {0}", { 0: turns.slice(0, made).reverse().map(invertToken).join(" ") }) : said(steps[step]!.title)} onClick={restart} action="assisted:restart" />
-              <ActionCard icon={Check} title={tr("Check the colours")} onClick={() => rescan("check")} action="assisted:check" />
+              <ActionCard primary icon={ScanLine} title={tr("Read again")} onClick={() => rescan()} action="assisted:rescan" />
+              <ActionCard icon={Undo2} title={tr("Restart")} text={made ? tr("Undo {0}", { 0: turns.slice(0, made).reverse().map(invertToken).join(" ") }) : said(steps[step]!.title)} onClick={restart} action="assisted:restart" />
+              <ActionCard icon={Check} title={tr("Check")} onClick={() => rescan("check")} action="assisted:check" />
             </>
           ) : (
             <>
-              <ActionCard primary icon={RefreshCw} title={tr("Continue from here")} onClick={replan} action="assisted:replan" />
-              <ActionCard icon={GraduationCap} title={tr("Review the lesson")} text={said(steps[step]!.title)} onClick={reviewLesson} action={"learnStep:" + step} />
+              <ActionCard primary icon={RefreshCw} title={tr("Continue")} onClick={replan} action="assisted:replan" />
+              <ActionCard icon={GraduationCap} title={tr("Lesson")} text={said(steps[step]!.title)} onClick={reviewLesson} action={"learnStep:" + step} />
             </>
           )}
         </Notice>
@@ -611,7 +611,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
                   </>
                 )}
                 <button type="button" data-action={"learnStep:" + step} onClick={reviewLesson} className={cn("flex items-center gap-1 self-start rounded-md text-[13px] font-bold text-primary hover:text-primary/80", FOCUS)}>
-                  {tr("Review the lesson")}
+                  {tr("Lesson")}
                   <ChevronRight className="size-3.5" />
                 </button>
               </div>
@@ -680,9 +680,9 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
                   <ChevronLeft className="size-5" />
                 </button>
               </Tip>
-              <ActionCard primary title={<span className="text-lg md:text-xl md:font-extrabold">{tr("Done, next turn")}</span>} kbd={tr("Space")} onClick={forward} disabled={next < 0} action="assisted:next" className="min-h-14 max-md:col-span-2 md:px-5" />
-              <ActionCard icon={Info} title={tr("I'm lost")} onClick={() => setGaveUp(true)} action="assisted:lost" className="max-md:col-span-2" />
-              <ActionCard icon={ScanLine} title={tr("Read the cube again")} onClick={() => rescan()} action="assisted:rescan" />
+              <ActionCard primary title={<span className="text-lg md:text-xl md:font-extrabold">{tr("Next")}</span>} kbd={tr("Space")} onClick={forward} disabled={next < 0} action="assisted:next" className="min-h-14 max-md:col-span-2 md:px-5" />
+              <ActionCard icon={Info} title={tr("Lost?")} onClick={() => setGaveUp(true)} action="assisted:lost" className="max-md:col-span-2" />
+              <ActionCard icon={ScanLine} title={tr("Read again")} onClick={() => rescan()} action="assisted:rescan" />
             </>
           ) : (
             <>
@@ -701,7 +701,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
                   <StateMark tone="good">{tr("Following your cube")}</StateMark>
                 </div>
               )}
-              <ActionCard icon={RefreshCw} title={tr("Continue from here")} onClick={replan} action="assisted:replan" />
+              <ActionCard icon={RefreshCw} title={tr("Continue")} onClick={replan} action="assisted:replan" />
               <ActionCard
                 icon={Unplug}
                 title={link.name}

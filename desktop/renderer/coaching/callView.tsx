@@ -55,7 +55,7 @@ export function CallView({ id }: { id: string }) {
                   ? tr("The call opens 15 minutes before the session, {0}.", { 0: relative(b.startsAt - 15 * 60_000, now) })
                   : tr("This session is over.")}
             <UiButton variant="outline" onClick={() => go(url("sessions"))}>
-              {tr("Every session")}
+              {tr("Sessions")}
             </UiButton>
           </Empty>
         </Surface>
@@ -160,7 +160,7 @@ function Room({ b, now }: { b: Booking; now: number }) {
               {call.camera ? <Video /> : <VideoOff />}
             </Control>
             {!phone && (
-              <Control active={call.sharing} onClick={() => void call.toggleScreen()} tip={call.sharing ? tr("Stop sharing") : tr("Share your screen")} label={call.sharing ? tr("Stop sharing") : tr("Share your screen")} action="call:screen">
+              <Control active={call.sharing} onClick={() => void call.toggleScreen()} tip={call.sharing ? tr("Stop sharing") : tr("Share your screen")} label={call.sharing ? tr("Stop") : tr("Share")} action="call:screen">
                 <MonitorUp />
               </Control>
             )}
@@ -259,7 +259,7 @@ function SelfView({ call }: { call: Call }) {
   const [screenRatio, setScreenRatio] = useState(16 / 9);
   const ratio = call.sharing ? screenRatio : 16 / 9;
   const stop = async () => {
-    if (await ask({ title: tr("Stop sharing your screen?"), text: tr("{0} sees your camera again.", { 0: call.booking.with.username }), action: tr("Stop sharing"), cancel: tr("Keep sharing") })) if (call.sharing) void call.toggleScreen();
+    if (await ask({ title: tr("Stop sharing your screen?"), text: tr("{0} sees your camera again.", { 0: call.booking.with.username }), action: tr("Stop"), cancel: tr("Cancel") })) if (call.sharing) void call.toggleScreen();
   };
   return (
     // Clear of the bar of controls at the bottom and of the one at the top.
@@ -285,13 +285,14 @@ function SelfView({ call }: { call: Call }) {
             {call.sharing && (
               <UiButton
                 variant="secondary"
+                aria-label={tr("Stop sharing")}
                 data-action="call:stop-sharing"
                 onClick={stop}
                 // On the corner facing the middle of the room, so it never hides against an edge.
                 className={cn("absolute shadow-sm hover:text-destructive", at.y > 0.5 ? "top-1.5" : "bottom-1.5", at.x > 0.5 ? "left-1.5" : "right-1.5")}
               >
                 <ScreenShareOff />
-                {tr("Stop sharing")}
+                {tr("Stop")}
               </UiButton>
             )}
           </>

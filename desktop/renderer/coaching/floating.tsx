@@ -42,9 +42,9 @@ export function FloatingCall() {
       {/* The other party is heard whether the window is open or folded. */}
       <Sound stream={call.remote} />
       {live.hidden ? (
-        <UiButton className="shadow-lg" onClick={() => fold(false)} onMouseDown={(e) => e.preventDefault()} data-action="call:show">
+        <UiButton className="shadow-lg" onClick={() => fold(false)} onMouseDown={(e) => e.preventDefault()} aria-label={`${tr("Call with")} ${b.with.username}`} data-action="call:show">
           <span className={cn("size-2 rounded-full ring-2 ring-primary-foreground/30", call.phase === "connected" ? "bg-success" : "animate-pulse bg-warning")} />
-          {tr("Call with")}{" "}{b.with.username}
+          {b.with.username}
           <Maximize2 />
         </UiButton>
       ) : (

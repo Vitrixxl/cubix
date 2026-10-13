@@ -1,7 +1,7 @@
 /**
  * Tournaments, drawn as the duel's arena: the ones open to every player (the administration creates them) and those of
- * the account's groups listed on the left, the one picked on the stage in the middle with its one action (play your
- * match, register, see the bracket), its players on the right. And one tournament's page: where it stands and what can
+ * the account's groups listed on the left, the past ones in the history, the one picked on the stage in the middle with
+ * its one action (play your match, register, see the bracket), its players on the right. And one tournament's page: where it stands and what can
  * be done on a line over it, its bracket, its players beside.
  */
 import { useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import { ask } from "../confirm";
 import { Avatar, Empty, FADE, ListSkeleton, NUMERIC, PAGE, PageHead, Surface, usePhone, useViewport } from "../ui";
 import { Back, day, relative, time } from "../coaching/parts";
 import { community, communityUrl, eventName, formatText, matchUrl, tournamentUrl, type Tournament, type TournamentDetail } from "../community/client";
+import { HistoryDialog } from "../community/dialogs";
 import { Bracket, roundName } from "./bracket";
 import { StageAction, KICKER, PanelHead, Rank, StageMeter, Stage, StageFigure, Steps } from "./format";
 import { VirtualList } from "../virtual";
@@ -63,13 +64,13 @@ function MatchReady({ title, text, match, action }: { title: string; text?: stri
       </div>
       <Button onClick={() => go(matchUrl(match))} data-action={action}>
         <Play />
-        {tr("Play your match")}
+        {tr("Play")}
       </Button>
     </div>
   );
 }
 
-/** The order the list keeps: under way, then registration open, then the past. */
+/** The order the list keeps: under way, then registration open, then the past (in the history). */
 const SECTIONS: [string, (t: Tournament) => boolean][] = [
   ["Under way", (t) => t.status === "running"],
   ["Registration open", (t) => t.status === "open"],
@@ -88,10 +89,21 @@ function TournamentList() {
     mine = list?.find((t) => t.myMatch),
     [picked, setPicked] = useState<number | null>(null),
     scroller = useRef<HTMLDivElement>(null),
-    shown = ordered.find((t) => t.id === picked) ?? mine ?? ordered.find((t) => t.status === "open") ?? ordered[0];
+    shown = ordered.find((t) => t.id === picked) ?? mine ?? ordered.find((t) => t.status === "open") ?? ordered[0],
+    past = list?.filter(SECTIONS[2]![1]) ?? [];
+  // ponytail: every past tournament drawn at once; a VirtualList in the dialog when they run to hundreds.
+  const history = past.length > 0 && (
+    <HistoryDialog action="tournaments:history">
+      <div className="-mx-1 flex flex-col gap-0.5">
+        {past.map((t) => (
+          <TournamentRow key={t.id} t={t} current={false} onClick={() => go(tournamentUrl(t.id))} />
+        ))}
+      </div>
+    </HistoryDialog>
+  );
   const rows = (
     <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
-      {SECTIONS.map(([title, keep]) => {
+      {SECTIONS.slice(0, 2).map(([title, keep]) => {
         const items = list?.filter(keep) ?? [];
         return (
           items.length > 0 && (
@@ -115,7 +127,7 @@ function TournamentList() {
   );
   return (
     <div className={cn(PAGE, "tournaments")}>
-      {phone && <PageHead title={tr("Tournaments")} />}
+      {phone && <PageHead title={tr("Tournaments")}>{history}</PageHead>}
       {!list ? (
         <div className="grid min-h-0 flex-1 gap-5 md:grid-cols-[340px_minmax(0,1fr)]" aria-busy="true" aria-label={tr("Loading")}>
           <Surface className="p-4">
@@ -131,7 +143,11 @@ function TournamentList() {
       ) : (
         <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "md:grid-cols-[320px_minmax(0,1fr)]", wide && "md:grid-cols-[340px_minmax(0,1fr)_320px]")}>
           <Surface className="gap-3.5 p-4 pt-5">
-            {!phone && <PanelHead title="Tournaments" meta={list.length} className="px-1" />}
+            {!phone && (
+              <PanelHead title="Tournaments" meta={list.length - past.length || undefined} className="px-1">
+                {history}
+              </PanelHead>
+            )}
             {rows}
             {mine && (
               <MatchReady title={tr("{0} · your match is ready", { 0: said(roundName(mine.round, mine.rounds)) })} text={`${mine.name} · ${formatText(mine)}`} match={mine.myMatch!} action="tournament:play" />
@@ -191,7 +207,7 @@ function TournamentStage({ t }: { t: Tournament }) {
         <div className="-mt-1 flex flex-wrap items-center justify-center gap-2">
           {t.registered && t.status === "open" && <RegisterButton t={t} />}
           <Button variant="ghost" onClick={open} data-action="tournament:open">
-            {t.status === "open" ? tr("See the tournament") : tr("Open the tournament")}
+            {tr("Open")}
           </Button>
         </div>
       }
@@ -301,7 +317,7 @@ function TournamentView({ id }: { id: number }) {
       {t.myMatch && !held && (
         <Button onClick={() => go(matchUrl(t.myMatch!))}>
           <Play />
-          {tr("Play your match")}
+          {tr("Play")}
         </Button>
       )}
       {held && (
@@ -330,7 +346,7 @@ function TournamentView({ id }: { id: number }) {
           variant="ghost"
           className="text-muted-foreground hover:text-destructive"
           aria-label={tr("Cancel the tournament")}
-          onClick={() => confirm({ title: tr("Cancel the tournament?"), text: tr("Its matches stop where they are. This cannot be undone."), action: tr("Cancel the tournament") }, () => community.manage(t.id, "cancel"))}
+          onClick={() => confirm({ title: tr("Cancel the tournament?"), text: tr("Its matches stop where they are. This cannot be undone."), action: tr("Cancel") }, () => community.manage(t.id, "cancel"))}
         >
           <X />
           <span className="max-md:hidden">{tr("Cancel")}</span>

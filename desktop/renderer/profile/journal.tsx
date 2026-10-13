@@ -41,7 +41,7 @@ import {
   MenuAction,
   NUMERIC,
   PuzzleButton,
-  Segmented,
+  SelectMenu,
   Surface,
   Tip,
   plural,
@@ -351,7 +351,8 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
           </h2>
         )}
         <PuzzleButton profile />
-        <Segmented
+        <SelectMenu
+          action="journal"
           className="ml-auto"
           label={tr("Show")}
           value={filter}

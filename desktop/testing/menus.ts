@@ -59,7 +59,7 @@ try {
   await page.waitForTimeout(500);
   await shot(page, "after-plus-two");
   // Header menu and puzzle picker.
-  await page.locator('[data-action="menu:scrambleType"]').click();
+  await page.locator('[data-action="menu:timer"]').click();
   await page.waitForTimeout(300);
   await shot(page, "scramble-menu");
   await page.keyboard.press("Escape");

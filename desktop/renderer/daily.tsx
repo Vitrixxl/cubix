@@ -1,7 +1,7 @@
 /**
- * The daily scramble (src/client/lib/daily.ts), drawn as the duel's arena: the days the player tried on the left, the
- * day's scramble and its one action in the middle (solve it, or the share of the field beaten once done), the field as
- * a histogram on the right with the player's bar raised. The same standing in a dialog after the solve.
+ * The daily scramble (src/client/lib/daily.ts), drawn as the duel's arena: the day's scramble and its one action (solve
+ * it, or the share of the field beaten once done), the days the player tried behind its History button, the field as a
+ * histogram on the right with the player's bar raised. The same standing in a dialog after the solve.
  */
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, CalendarDays, History, Play, Undo2 } from "lucide-react";
@@ -182,12 +182,14 @@ export function DailyDialog() {
       )}
       <DialogFooter>
         {cancellable && (
-          <UiButton variant="destructive" className="sm:mr-auto" data-action="daily:cancel" onClick={() => void s.dailyCancel()}>
-            <Undo2 />
-            {tr("Cancel this time")}
-          </UiButton>
+          <Tip content={tr("Cancel this time")}>
+            <UiButton variant="destructive" className="sm:mr-auto" data-action="daily:cancel" onClick={() => void s.dailyCancel()}>
+              <Undo2 />
+              {tr("Cancel")}
+            </UiButton>
+          </Tip>
         )}
-        <Button action="nav:daily" variant="outline">{tr("Today's ranking")}</Button>
+        <Button action="nav:daily" variant="outline" tip={tr("Today's ranking")}>{tr("Standing")}</Button>
         <UiButton onClick={s.closeOverlay}>{tr("Close")}</UiButton>
       </DialogFooter>
     </Modal>
@@ -200,7 +202,6 @@ export function DailyPage() {
     today = dailyDay(),
     { w } = useViewport(),
     phone = isPhone(w),
-    wide = w >= 1280,
     [event, setEvent] = useState<DailyEvent>(isDailyEvent(current) ? current : "333"),
     [day, setDay] = useState(today),
     [results, setResults] = useState(false),
@@ -225,11 +226,13 @@ export function DailyPage() {
       <StageAction icon={Play} title={tr("Solve it")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />
     );
   const pick = (d: string, e: DailyEvent) => (setDay(d), setEvent(e), setResults(false));
-  const resultsButton = !wide && (
-    <UiButton variant="outline" onClick={() => setResults(true)} data-action="daily:results">
-      <History />
-      {tr("Your results")}
-    </UiButton>
+  const resultsButton = (
+    <Tip content={tr("Your results")}>
+      <UiButton variant="outline" onClick={() => setResults(true)} data-action="daily:results">
+        <History />
+        {tr("History")}
+      </UiButton>
+    </Tip>
   );
   return (
     <div className={cn(PAGE, "daily")}>
@@ -238,12 +241,7 @@ export function DailyPage() {
           {events}
         </PageHead>
       )}
-      <div className={cn("grid min-h-0 flex-1 gap-5", phone ? "grid-rows-[auto_minmax(0,1fr)]" : wide ? "grid-cols-[300px_minmax(0,1fr)_360px]" : "grid-cols-[minmax(0,1fr)_340px]")}>
-        {wide && (
-          <Surface className="daily-results gap-3.5 p-4 pt-5">
-            <Results day={day} event={event} onPick={pick} />
-          </Surface>
-        )}
+      <div className={cn("grid min-h-0 flex-1 gap-5", phone ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]")}>
         <Stage
           className="daily-stage gap-4"
           lead={
@@ -274,7 +272,7 @@ export function DailyPage() {
             {past && (
               <UiButton variant="secondary" onClick={() => setDay(today)} data-action="daily:today">
                 <CalendarDays />
-                {tr("Back to today")}
+                {tr("Today")}
               </UiButton>
             )}
             {resultsButton}
@@ -286,11 +284,9 @@ export function DailyPage() {
           {board === null ? <Skeleton className="min-h-24 flex-1 rounded-[20px]" /> : board === "offline" ? <Empty title={tr("The ranking comes once you are online.")} className="flex-1" /> : <DailyChart board={board} place={place} />}
         </Surface>
       </div>
-      {!wide && (
-        <Modal open={results} onOpenChange={setResults} title={tr("Your results")} description={eventLabel(event)} className="flex h-[min(86vh,640px)] flex-col sm:max-w-md" tall>
-          <Results day={day} event={event} onPick={pick} bare />
-        </Modal>
-      )}
+      <Modal open={results} onOpenChange={setResults} title={tr("Your results")} description={eventLabel(event)} className="flex h-[min(86vh,640px)] flex-col sm:max-w-md" tall>
+        <Results day={day} event={event} onPick={pick} />
+      </Modal>
     </div>
   );
 }
@@ -310,7 +306,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
  * days above, each day its time, rank and whether it is verified; one picked shows its field. From the API once signed
  * in (in the view picked: all results or the verified ones), else the attempts kept on this device.
  */
-function Results({ day, event, onPick, bare = false }: { day: string; event: DailyEvent; onPick: (day: string, event: DailyEvent) => void; bare?: boolean }) {
+function Results({ day, event, onPick }: { day: string; event: DailyEvent; onPick: (day: string, event: DailyEvent) => void }) {
   const today = dailyDay(),
     verified = s.dailyVerified,
     local = s.dailyDone[`${today}:${event}`],
@@ -329,7 +325,6 @@ function Results({ day, event, onPick, bare = false }: { day: string; event: Dai
     scroller = useRef<HTMLDivElement>(null);
   return (
     <>
-      {!bare && <PanelHead title="Your results" meta={list.length || undefined} className="px-1" />}
       <dl className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-3 px-1" aria-label={tr("Your results")}>
         <Stat label="Best" value={stats.best != null ? fmtTime(stats.best) : null} />
         <Stat label="Mean" value={stats.mean != null ? fmtTime(stats.mean) : null} />

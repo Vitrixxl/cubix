@@ -44,8 +44,8 @@ export function Messages({ id }: { id: number | null }) {
             <ListSkeleton />
           ) : !list.length ? (
             <Empty icon={MessagesSquare} title="No conversation yet.">
-              <UiButton variant="outline" onClick={() => go(url("coaches"))}>
-                {tr("Find a coach")}
+              <UiButton variant="outline" onClick={() => go(url("coaches"))} aria-label={tr("Find a coach")}>
+                {tr("Find")}
               </UiButton>
             </Empty>
           ) : (

@@ -101,12 +101,12 @@ try {
   await scrambled(page);
   await check("timer");
   // A typed time enables the actions of the last solve under the timer.
-  await act(page, "menu:entry");
+  await act(page, "menu:timer");
   await page.getByRole("menuitemradio", { name: "Typing", exact: true }).click();
   await page.getByRole("textbox", { name: "Time", exact: true }).fill("1234");
   await page.keyboard.press("Enter");
   await page.waitForSelector('[data-action^="penalty:"]:not([disabled]):not([data-disabled])');
-  await act(page, "menu:entry");
+  await act(page, "menu:timer");
   await page.getByRole("menuitemradio", { name: "Timer", exact: true }).click();
   await check("timer-solved");
 

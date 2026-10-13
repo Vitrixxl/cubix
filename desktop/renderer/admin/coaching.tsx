@@ -1,14 +1,15 @@
-/** Coaching: the applications to become a coach (with the address to answer on), and every coach. */
+/** Coaching: the applications waiting to become a coach (with the address to answer on), those answered in a history, and every coach. */
 import { useState } from "react";
-import { Check, Headset, Inbox, Mail, Pause, Play, X } from "lucide-react";
+import { Check, Headset, History, Inbox, Mail, Pause, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { admin, useAdmin } from "./api";
 import { Avatar, adminScroll, date, Failure, LINK, NUMERIC, num, SectionHead, TableSkeleton, UserLink, VIEW, when } from "./parts";
 import { VirtualList } from "../virtual";
-import { Empty, Events, PageHead, Segmented, Surface, Tip } from "../base";
+import { Count, Empty, Events, PageHead, Surface, Tip } from "../base";
 import { ask } from "../confirm";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -18,7 +19,7 @@ type Data = { applications: Application[]; coaches: Coach[]; pending: number };
 
 export function Coaching({ phone }: { phone: boolean }) {
   const data = useAdmin<Data>("/coaching");
-  const [filter, setFilter] = useState("pending");
+  const [history, setHistory] = useState(false);
   const [busy, setBusy] = useState("");
   const d = data.data;
   async function act(key: string, path: string, done: string) {
@@ -33,36 +34,83 @@ export function Coaching({ phone }: { phone: boolean }) {
       setBusy("");
     }
   }
-  const applications = d?.applications.filter((a) => filter === "all" || a.status === filter);
+  const pending = d?.applications.filter((a) => a.status === "pending"),
+    decided = d?.applications.filter((a) => a.status !== "pending");
   const active = d?.coaches.filter((c) => c.active).length ?? 0;
+  /** An application: who, when, the address to answer on, the events, then their words; approved or rejected here while pending. */
+  const card = (a: Application) => (
+    <Surface className="gap-3 p-4 text-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <Avatar name={a.username} size={32} />
+        <span className="flex min-w-0 flex-col">
+          <UserLink id={a.userId} name={a.username} />
+          <Tip content={when(a.createdAt)}>
+            <span className="w-fit text-xs text-muted-foreground">Applied {date(a.createdAt)}</span>
+          </Tip>
+        </span>
+        <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className={cn(LINK, "flex items-center gap-1.5 text-muted-foreground")} data-slot="email">
+          <Mail className="size-4" />
+          {a.email}
+        </a>
+        <Events events={a.events} />
+        <span className="ml-auto flex items-center gap-2">
+          {a.status === "pending" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!!busy}
+                onClick={async () =>
+                  (await ask({ title: `Reject ${a.username}'s application?`, text: "The application is closed; write to the player to say why.", action: "Reject" })) &&
+                  act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")
+                }
+                data-action="coaching:reject"
+              >
+                <X />
+                Reject
+              </Button>
+              <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
+                <Check />
+                Approve
+              </Button>
+            </>
+          ) : (
+            <Badge variant={a.status === "approved" ? "success" : "secondary"} className="capitalize">
+              {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
+            </Badge>
+          )}
+        </span>
+      </div>
+      {a.experience && (
+        <p>
+          <span className="text-muted-foreground">Level · </span>
+          {a.experience}
+        </p>
+      )}
+      <p className="whitespace-pre-line">{a.message}</p>
+    </Surface>
+  );
   return (
     <div className={VIEW}>
-      <PageHead title="Coaching" sub={d ? `${num(d.pending)} applications waiting · ${num(active)} active coaches` : "Players asking to coach, and every coach"} />
-      <div className="flex flex-wrap items-center gap-2">
-        <Segmented
-          label="Applications"
-          action="coaching:filter:"
-          value={filter}
-          onChange={setFilter}
-          options={(["pending", "approved", "rejected", "all"] as const).map((id) => ({
-            id,
-            label: id === "pending" ? "Pending" : id === "approved" ? "Approved" : id === "rejected" ? "Rejected" : "All",
-            count: d ? (id === "all" ? d.applications : d.applications.filter((a) => a.status === id)).length : undefined,
-          }))}
-        />
-      </div>
+      <PageHead title="Coaching" sub={d ? `${num(d.pending)} applications waiting · ${num(active)} active coaches` : undefined}>
+        <Button variant="outline" onClick={() => setHistory(true)} data-action="coaching:history">
+          <History />
+          History
+          <Count n={decided?.length ?? 0} tone="muted" className="ml-0" />
+        </Button>
+      </PageHead>
       <section className="flex flex-col gap-3" aria-label="Coach applications">
-        <SectionHead rule title="Coach applications" meta={applications?.length || undefined} />
+        <SectionHead rule title="Coach applications" meta={pending?.length || undefined} />
         {data.error && !d ? (
           <Failure error={data.error} retry={data.reload} />
-        ) : !applications ? (
+        ) : !pending ? (
           <TableSkeleton cols={phone ? 2 : 5} rows={4} />
-        ) : !applications.length ? (
-          <Empty icon={Inbox} title={filter === "pending" ? "No application waiting." : "No application here."} />
+        ) : !pending.length ? (
+          <Empty icon={Inbox} title="No application waiting." />
         ) : (
           <ul className="flex flex-col gap-3" data-slot="applications">
             <VirtualList
-              items={applications}
+              items={pending}
               scroller={adminScroll}
               estimate={150}
               gap={12}
@@ -70,62 +118,33 @@ export function Coaching({ phone }: { phone: boolean }) {
               rowKey={(a) => a.id}
               row={(a, _, measure) => (
                 <li ref={measure} data-application={a.id}>
-                  <Surface className="gap-3 p-4 text-sm">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Avatar name={a.username} size={32} />
-                      <span className="flex min-w-0 flex-col">
-                        <UserLink id={a.userId} name={a.username} />
-                        <Tip content={when(a.createdAt)}>
-                          <span className="w-fit text-xs text-muted-foreground">Applied {date(a.createdAt)}</span>
-                        </Tip>
-                      </span>
-                      <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className={cn(LINK, "flex items-center gap-1.5 text-muted-foreground")} data-slot="email">
-                        <Mail className="size-4" />
-                        {a.email}
-                      </a>
-                      <Events events={a.events} />
-                      <span className="ml-auto flex items-center gap-2">
-                        {a.status === "pending" ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={!!busy}
-                              onClick={async () =>
-                                (await ask({ title: `Reject ${a.username}'s application?`, text: "The application is closed; write to the player to say why.", action: "Reject" })) &&
-                                act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")
-                              }
-                              data-action="coaching:reject"
-                            >
-                              <X />
-                              Reject
-                            </Button>
-                            <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
-                              <Check />
-                              Approve
-                            </Button>
-                          </>
-                        ) : (
-                          <Badge variant={a.status === "approved" ? "success" : "secondary"} className="capitalize">
-                            {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
-                          </Badge>
-                        )}
-                      </span>
-                    </div>
-                    {a.experience && (
-                      <p>
-                        <span className="text-muted-foreground">Level · </span>
-                        {a.experience}
-                      </p>
-                    )}
-                    <p className="whitespace-pre-line">{a.message}</p>
-                  </Surface>
+                  {card(a)}
                 </li>
               )}
             />
           </ul>
         )}
       </section>
+      {/* The applications answered, newest first as the server sends them. */}
+      <Dialog open={history} onOpenChange={setHistory}>
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>History</DialogTitle>
+          </DialogHeader>
+          {!decided?.length ? (
+            <Empty icon={Inbox} title="No application answered yet." />
+          ) : (
+            // ponytail: drawn whole, not virtualised; a VirtualList on this scroller if answers grow to hundreds.
+            <ul className="-mx-1 flex min-h-0 flex-col gap-3 overflow-y-auto px-1" data-slot="applications-history">
+              {decided.map((a) => (
+                <li key={a.id} data-application={a.id}>
+                  {card(a)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
       <section className="flex flex-col gap-3" aria-label="Coaches">
         <SectionHead rule title="Coaches" meta={d?.coaches.length || undefined} />
         {!d ? (

@@ -93,9 +93,9 @@ export function ViewButtons({ player, className }: { player: Pick<AlgPlayer, "su
         <Focus />
         {tr("Show front")}</Button>
       {turned && (
-        <Button variant="secondary" onClick={player.resetView}>
+        <Button variant="secondary" aria-label={tr("Reset view")} onClick={player.resetView}>
           <Rotate3d />
-          {tr("Reset view")}</Button>
+          {tr("Reset")}</Button>
       )}
     </div>
   );

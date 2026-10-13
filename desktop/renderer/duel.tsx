@@ -1,6 +1,6 @@
 /**
- * The duel page, an arena: the one disc to press in the middle as the timer's digits are, the friends to challenge on
- * the left and the races played on the right. Then the race: the round and the scramble across the top, both players
+ * The duel page, an arena: the one disc to press in the middle as the timer's digits are, the friends to challenge and
+ * the races played each in a dialog of their own. Then the race: the round and the scramble across the top, both players
  * and the strip of rounds under it, the two timers either side of the cube, and beside it the rounds as a butterfly
  * over the chat. Its end rises over the race's foot.
  */
@@ -14,9 +14,9 @@ import { PracticeTimer, timerHint, type TimerSnapshot } from "../../src/client/l
 import { fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
-import { Ban, Box, Check, Copy, History, Link2, MessageSquare, Plus, Search, Send, Swords, Trophy, Undo2, Users, X } from "lucide-react";
+import { Ban, Box, Check, Copy, History, Link2, MessageSquare, Plus, Send, Swords, Trophy, Undo2, UserPlus, Users, X } from "lucide-react";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
-import { ActionToggle, Alg, Avatar, Button, Empty, FADE, NUMERIC, MenuAction, PAGE, PageHead, PenaltyToggles, Surface, isPhone, usePhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Avatar, Button, Empty, FADE, NUMERIC, MenuAction, Modal, PAGE, PageHead, PenaltyToggles, SearchField, Surface, Tip, isPhone, usePhone, useViewport } from "./ui";
 import { LiveDigits } from "./practice";
 import { StageAction, Fly, Gap, KICKER, LiveDot, NameTag, PanelHead, Record, StageMeter, RoundStrip, Stage, StageFigure, Ticket, Verdict, longest, type Cell } from "./tournaments/format";
 import { community, type Conversation } from "./community/client";
@@ -36,8 +36,6 @@ const ROUND_LIST = [...Array(ROUNDS).keys()];
 /** The latest solve's buttons under the player's digits: quiet words in one row (`PENS`). */
 export const SOLVE_ACTION = "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground";
 export const PENS = cn("flex items-center gap-1.5", FADE);
-/** At this width the friends have their own pane; narrower, they open in a sheet. */
-const FRIENDS_PANE = 1280;
 
 /**
  * The player's own timer: Space (or a touch) like the timer page; every phase is relayed to the opponent. The race
@@ -108,13 +106,12 @@ export function DuelPage() {
   return duel.status === "racing" ? <Race /> : <Lobby />;
 }
 
-/** Before a race: the friends on the left, the disc (or the search under way) in the middle, the races played on the right. */
+/** Before a race: the disc (or the search under way) alone; the friends to challenge, a friend to add and the races played each behind a button. */
 function Lobby() {
   const searching = duel.status === "searching",
-    { w } = useViewport(),
-    phone = isPhone(w),
-    pane = w >= FRIENDS_PANE,
-    [friends, setFriends] = useState(false),
+    phone = usePhone(),
+    [open, setOpen] = useState<"" | "friends" | "history">(""),
+    [adding, setAdding] = useState(false),
     [, setSecond] = useState(0);
   useEffect(() => {
     if (!searching) return;
@@ -125,83 +122,72 @@ function Lobby() {
     waited = searching ? Date.now() - duel.searchSince : 0,
     range = matchRange(duel.level, waited),
     seconds = (ms: number) => (ms / 1000).toFixed(1);
-  const friendsButton = (
-    <UiButton variant={phone ? "outline" : "secondary"} size={phone ? "icon" : "default"} onClick={() => setFriends(true)} aria-label={tr("Your friends")} data-action="duel:friends">
-      <Users />
-      {!phone && tr("Friends")}
-    </UiButton>
+  // The lobby's buttons: a word each on a desktop, icons in a phone's header.
+  const tool = (I: typeof Swords, label: string, tip: string, action: string, onClick: () => void) => (
+    <Tip key={action} content={tr(tip)}>
+      <UiButton variant={phone ? "outline" : "secondary"} size={phone ? "icon" : "default"} onClick={onClick} aria-label={tr(tip)} data-action={action}>
+        <I />
+        {!phone && tr(label)}
+      </UiButton>
+    </Tip>
   );
+  const tools = [
+    tool(Swords, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends")),
+    s.signedIn && tool(UserPlus, "Add", "Add a friend", "duel:add-friend", () => setAdding(true)),
+    tool(History, "History", "Races played", "duel:history", () => setOpen("history")),
+  ];
   return (
     <div className={cn(PAGE, "duel-lobby")}>
       {phone && (
         <PageHead title={tr("Duel")} puzzle>
-          {friendsButton}
-          <Button action="profileMode:duels" icon={History} tip={tr("Races played")} />
+          {tools}
         </PageHead>
       )}
-      <div className="grid min-h-0 flex-1 gap-5 md:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-        {pane && (
-          <Surface className="duel-friends p-4 pt-5">
-            <Friends />
-          </Surface>
-        )}
-        <Stage
-          data-tour="duel"
-          className="duel-stage relative"
-          lead={duel.notice && <p className="-mt-2 max-w-md text-sm text-balance text-destructive md:-mt-4 md:text-[15px]">{duel.notice}</p>}
-          figures={
-            <>
-              <StageFigure value={duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level)} label={tr("Your {0} level", { 0: event.label })} />
-              <StageFigure value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} label="Your matching range" />
-              <StageFigure value={searching ? String(duel.searching) : "–"} label="Also searching" tone={searching && duel.searching ? "good" : undefined} />
-            </>
-          }
-        >
-          {!pane && !phone && <div className="absolute top-0 right-0">{friendsButton}</div>}
-          {searching ? (
-            <>
-              <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />
-              <Button action="duel:leave" icon={X} variant="secondary" className="duel-cancel">
-                {tr("Cancel")}
-              </Button>
-            </>
-          ) : (
-            <StageAction icon={Swords} title={tr("Play")} data-action="duel:search" onClick={run("duel:search")} />
-          )}
-        </Stage>
-        {!phone && (
-          <Surface className="duel-history gap-3.5 p-4 pt-[18px]">
-            <Played />
-          </Surface>
-        )}
-      </div>
-      {!pane &&
-        (phone ? (
-          <PhoneSheet open={friends} onOpenChange={setFriends} title={tr("Your friends")} tall>
-            <Friends bare />
-          </PhoneSheet>
+      <Stage
+        data-tour="duel"
+        className="duel-stage relative min-h-0 flex-1"
+        lead={duel.notice && <p className="-mt-2 max-w-md text-sm text-balance text-destructive md:-mt-4 md:text-[15px]">{duel.notice}</p>}
+        figures={
+          <>
+            <StageFigure value={duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level)} label={tr("Your {0} level", { 0: event.label })} />
+            <StageFigure value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} label="Your matching range" />
+            <StageFigure value={searching ? String(duel.searching) : "–"} label="Also searching" tone={searching && duel.searching ? "good" : undefined} />
+          </>
+        }
+      >
+        {!phone && <div className="absolute top-0 right-0 flex gap-1.5">{tools}</div>}
+        {searching ? (
+          <>
+            <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />
+            <Button action="duel:leave" icon={X} variant="secondary" className="duel-cancel">
+              {tr("Cancel")}
+            </Button>
+          </>
         ) : (
-          <Sheet open={friends} onOpenChange={setFriends}>
-            <SheetContent side="left" className="w-80 gap-0 p-4 pt-5">
-              <SheetTitle className="sr-only">{tr("Your friends")}</SheetTitle>
-              <Friends />
-            </SheetContent>
-          </Sheet>
-        ))}
+          <StageAction icon={Swords} title={tr("Play")} data-action="duel:search" onClick={run("duel:search")} />
+        )}
+      </Stage>
+      <Modal open={open === "friends"} onOpenChange={(next) => !next && setOpen("")} title={tr("Challenge")} tall className="flex max-h-[min(40rem,90svh)] flex-col">
+        <Friends onAdd={() => (setOpen(""), setAdding(true))} onSent={() => setOpen("")} />
+      </Modal>
+      <Modal open={open === "history"} onOpenChange={(next) => !next && setOpen("")} title={tr("Races played")} tall className="flex max-h-[min(40rem,90svh)] flex-col">
+        <Played />
+      </Modal>
+      <FriendsDialog open={adding} onOpenChange={setAdding} />
     </div>
   );
 }
 
 /**
- * The friends to challenge: their faces, the one picked outlined, finding more players last; under them the challenge
- * to send (a battle on the puzzle chosen, first to three solves) and the link that adds the account as a friend.
+ * The friends to challenge, found by name: their faces, the one picked outlined, adding one last; under them the
+ * challenge to send (a battle on the puzzle chosen, first to three solves) and the link that adds the account as a friend.
  */
-function Friends({ bare = false }: { bare?: boolean }) {
+function Friends({ onAdd, onSent }: { onAdd: () => void; onSent: () => void }) {
   const signedIn = s.signedIn,
     me = community.me,
-    list = me?.friends ?? [],
+    [query, setQuery] = useState(""),
+    list = (me?.friends ?? []).filter((f) => f.username.toLowerCase().includes(query.trim().toLowerCase())),
     [picked, setPicked] = useState<string | null>(null),
-    [finding, setFinding] = useState(false),
     [busy, setBusy] = useState(false),
     [copied, setCopied] = useState(false),
     friend = list.find((f) => f.id === picked),
@@ -220,11 +206,11 @@ function Friends({ bare = false }: { bare?: boolean }) {
     if (!done) return;
     toast(tr("Challenge sent to {0}", { 0: friend.username }));
     setPicked(null);
+    onSent();
   };
   const link = signedIn ? community.shareLink() : "";
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3.5" data-slot="duel-friends">
-      {!bare && <PanelHead title="Your friends" meta={list.length || undefined} className="px-1" />}
       {!signedIn ? (
         <Empty icon={Users} title={tr("Challenge your friends")} className="flex-1">
           <UiButton variant="outline" onClick={() => s.askSignIn()}>
@@ -238,32 +224,35 @@ function Friends({ bare = false }: { bare?: boolean }) {
           ))}
         </div>
       ) : (
-        <div className="-mx-1 grid min-h-0 grid-cols-3 content-start gap-x-1.5 gap-y-2.5 overflow-y-auto px-1 pt-1.5">
-          {list.map((f) => (
+        <>
+          {me.friends.length > 0 && <SearchField value={query} onChange={setQuery} placeholder="Find a friend" className="shrink-0" />}
+          <div className="-mx-1 grid min-h-0 grid-cols-3 content-start gap-x-1.5 gap-y-2.5 overflow-y-auto px-1 pt-1.5">
+            {list.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={picked === f.id}
+                onClick={() => setPicked(picked === f.id ? null : f.id)}
+                data-friend={f.username}
+                className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-muted aria-pressed:ring-[1.5px] aria-pressed:ring-primary aria-pressed:ring-inset"
+              >
+                <Avatar name={f.username} src={f.avatar} size={52} />
+                <b className="max-w-full truncate text-[13px] font-bold">{f.username}</b>
+              </button>
+            ))}
             <button
-              key={f.id}
               type="button"
-              aria-pressed={picked === f.id}
-              onClick={() => setPicked(picked === f.id ? null : f.id)}
-              data-friend={f.username}
-              className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-muted aria-pressed:ring-[1.5px] aria-pressed:ring-primary aria-pressed:ring-inset"
+              onClick={onAdd}
+              data-action="duel:find-players"
+              className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <Avatar name={f.username} src={f.avatar} size={52} />
-              <b className="max-w-full truncate text-[13px] font-bold">{f.username}</b>
+              <span className="flex size-[52px] items-center justify-center rounded-full bg-muted">
+                <UserPlus className="size-5" />
+              </span>
+              <b className="text-[13px] font-bold text-foreground">{tr("Add")}</b>
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setFinding(true)}
-            data-action="duel:find-players"
-            className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <span className="flex size-[52px] items-center justify-center rounded-full bg-muted">
-              <Search className="size-5" />
-            </span>
-            <b className="text-[13px] font-bold text-foreground">{tr("Find")}</b>
-          </button>
-        </div>
+          </div>
+        </>
       )}
       {signedIn && me && (
         <div className="mt-auto grid shrink-0 gap-2.5 rounded-[18px] bg-muted p-3.5">
@@ -282,7 +271,7 @@ function Friends({ bare = false }: { bare?: boolean }) {
               </div>
               <UiButton disabled={busy} onClick={() => void challenge()} data-action="duel:challenge">
                 <Swords />
-                {tr("Send the challenge")}
+                {tr("Challenge")}
               </UiButton>
             </>
           )}
@@ -307,7 +296,6 @@ function Friends({ bare = false }: { bare?: boolean }) {
           </div>
         </div>
       )}
-      <FriendsDialog open={finding} onOpenChange={setFinding} />
     </div>
   );
 }
@@ -316,56 +304,49 @@ const shortEvent = (id: string) => {
   const e = eventInfo(id);
   return e ? eventLabel(e.puzzle, e.solveMode) : id;
 };
-/** The races played on this device: the record as one bar, then each race as a ticket, newest first. */
+/** The races played on this device: the record as one bar, then each race as a ticket, newest first; all of them on the profile. */
 function Played() {
   const list: DuelRecord[] = s.prefs[DUELS_KEY] ?? [],
     count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length,
     scroller = useRef<HTMLDivElement>(null);
+  if (!list.length) return <Empty icon={Swords} title={tr("No race yet")} className="flex-1" />;
   return (
-    <>
-      <PanelHead title="Races played" meta={list.length || undefined} className="px-1">
-        {list.length > 0 && (
-          <Button action="profileMode:duels" variant="ghost" className="text-muted-foreground">
-            {tr("All")}
-          </Button>
-        )}
-      </PanelHead>
-      {!list.length ? (
-        <Empty icon={Swords} title={tr("No race yet")} className="flex-1" />
-      ) : (
-        <>
-          <div className="px-1">
-            <Record won={count("win")} drawn={count("draw")} lost={count("loss")} />
-          </div>
-          <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
-            <VirtualList
-              items={list}
-              scroller={scroller}
-              estimate={60}
-              rowKey={(b) => b.id}
-              row={(b, _, measure) => {
-                const [a, z] = roundsWon(b.mine, b.theirs),
-                  [mine, theirs] = b.ao5;
-                return (
-                  <Ticket
-                    // Ticket hands `ref` to its root like its other attributes.
-                    {...{ ref: measure }}
-                    role="listitem"
-                    result={b.result}
-                    score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
-                    name={said(b.opponent)}
-                    level={shortEvent(b.event)}
-                    sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
-                    aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
-                    className="hover:bg-muted"
-                  />
-                );
-              }}
-            />
-          </div>
-        </>
-      )}
-    </>
+    <div className="flex min-h-0 flex-1 flex-col gap-3.5">
+      <div className="flex items-center gap-3 px-1">
+        <div className="min-w-0 flex-1">
+          <Record won={count("win")} drawn={count("draw")} lost={count("loss")} />
+        </div>
+        <Button action="profileMode:duels" variant="ghost" className="text-muted-foreground">
+          {tr("All")}
+        </Button>
+      </div>
+      <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
+        <VirtualList
+          items={list}
+          scroller={scroller}
+          estimate={60}
+          rowKey={(b) => b.id}
+          row={(b, _, measure) => {
+            const [a, z] = roundsWon(b.mine, b.theirs),
+              [mine, theirs] = b.ao5;
+            return (
+              <Ticket
+                // Ticket hands `ref` to its root like its other attributes.
+                {...{ ref: measure }}
+                role="listitem"
+                result={b.result}
+                score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
+                name={said(b.opponent)}
+                level={shortEvent(b.event)}
+                sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
+                aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
+                className="hover:bg-muted"
+              />
+            );
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -516,7 +497,7 @@ function Race() {
             <>
               {duel.over && !verdict && <MenuAction action="duel:result" icon={Trophy}>{tr("Result")}</MenuAction>}
               {!duel.opponentHere && <MenuAction action="duel:next" icon={Swords}>{tr("New opponent")}</MenuAction>}
-              <MenuAction action="duel:leave" icon={X}>{tr("Leave the race")}</MenuAction>
+              <MenuAction action="duel:leave" icon={X}>{tr("Leave")}</MenuAction>
             </>
           }
         >
@@ -789,7 +770,7 @@ function Result() {
             {tr("New opponent")}
           </Button>
           <Button action="duel:rematch" variant="default" disabled={!duel.opponentHere || asked}>
-            {offered && !asked ? tr("Accept rematch") : tr("Rematch")}
+            {offered && !asked ? tr("Accept") : tr("Rematch")}
           </Button>
         </>
       }

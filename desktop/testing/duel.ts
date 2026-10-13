@@ -96,7 +96,7 @@ try {
 
   // Rematch: B offers, A accepts, the dialog closes on new scrambles.
   await b.locator('[data-action="duel:rematch"]').click();
-  await a.waitForSelector('.duel-result [data-action="duel:rematch"]:has-text("Accept rematch")');
+  await a.waitForSelector('.duel-result [data-action="duel:rematch"]:has-text("Accept")');
   await a.locator('[data-action="duel:rematch"]').click();
   await Promise.all([a.waitForSelector(".duel-result", { state: "detached" }), b.waitForSelector(".duel-result", { state: "detached" })]);
   await a.waitForFunction(() => document.querySelector('.duel-board-row[aria-current="true"]')?.getAttribute("data-round") === "0");
@@ -125,9 +125,10 @@ try {
   await a.screenshot({ path: `${SHOTS}/battles.png` });
   // The finished race alone: the rematch left half-way is not a battle.
   await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
-  // The duel lobby's "Races played" opens the same page.
+  // The duel lobby's history, then its "All", opens the same page.
   await a.locator('[data-action="nav:duel"]').first().click();
-  await a.locator('main [data-action="profileMode:duels"]').first().click();
+  await a.locator('main [data-action="duel:history"]').first().click();
+  await a.locator('[role="dialog"] [data-action="profileMode:duels"]').click();
   await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
   assert.deepEqual(errors, []);
   console.log("Duel UI: OK");

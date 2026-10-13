@@ -49,7 +49,7 @@ export function Apply() {
           </p>
           {application.status === "rejected" && (
             <UiButton variant="outline" onClick={() => setAgain(true)} data-action="coaching:apply:again">
-              {tr("Apply again")}
+              {tr("Apply")}
             </UiButton>
           )}
         </Empty>
@@ -111,9 +111,9 @@ function Form() {
         )}
       </div>
       <div className="shrink-0 px-6 pt-2 pb-6 max-md:px-4 max-md:pb-4">
-        <UiButton type="submit" className="w-full" disabled={pending} data-action="coaching:apply:send">
+        <UiButton type="submit" className="w-full" disabled={pending} aria-label={tr("Send my application")} data-action="coaching:apply:send">
           <Send />
-          {pending ? tr("Sending…") : tr("Send my application")}
+          {pending ? tr("Sending…") : tr("Send")}
         </UiButton>
       </div>
       </Surface>

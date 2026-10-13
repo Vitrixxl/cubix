@@ -315,12 +315,11 @@ export function Onboarding() {
             <div className="flex items-center gap-2">
               {step === LAST && !existing && (
                 <Button variant="outline" disabled={saving} onClick={() => void finish(false)}>
-                  <span className="max-sm:hidden">{tr("Skip the tour")}</span>
-                  <span className="sm:hidden">{tr("Skip")}</span>
+                  {tr("Skip")}
                 </Button>
               )}
               <Button disabled={saving} onClick={advance}>
-                {saving ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? (existing ? tr("Save") : tr("Start the tour")) : tr("Continue")}
+                {saving ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? (existing ? tr("Save") : tr("Start")) : tr("Continue")}
                 {!saving && <ArrowRight className="max-sm:hidden" />}
                 {!saving && (
                   <Kbd aria-hidden="true" className="ml-1 bg-primary-foreground/15 text-primary-foreground max-md:hidden">
@@ -560,7 +559,7 @@ function Tour() {
         </motion.div>
         <footer className="flex items-center justify-between gap-3">
           <Button variant="ghost" className="-ml-2.5" onClick={back}>
-            {step ? <><ArrowLeft />{tr("Back")}</> : tr("Skip tour")}
+            {step ? <><ArrowLeft />{tr("Back")}</> : tr("Skip")}
           </Button>
           <Button onClick={next}>
             {step === last ? tr("Done") : tr("Next")}

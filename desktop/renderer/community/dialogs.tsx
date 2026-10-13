@@ -3,7 +3,7 @@
  * invite, and the people: finding players, the link that adds the account, the friends, and the requests waiting.
  */
 import { cloneElement, useEffect, useMemo, useState } from "react";
-import { Bell, Check, Copy, MessageSquare, MoreHorizontal, Share2, Swords, Trophy, UserMinus, UserPlus, UserRoundX, Users, X } from "lucide-react";
+import { Bell, Check, Copy, History, MessageSquare, MoreHorizontal, Share2, Swords, Trophy, UserMinus, UserPlus, UserRoundX, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { Avatar, Modal, plural } from "../ui";
 import { Count, Empty, LABEL, ListSkeleton, NUMERIC, ROW, SearchField, SectionHead, Tip } from "../base";
@@ -126,7 +126,7 @@ export function BattleDialog({ conversation: c, group, trigger }: { conversation
           <DialogFooter>
             <Button type="submit" disabled={busy}>
               <Swords />
-              {tr("Launch the battle")}</Button>
+              {tr("Launch")}</Button>
           </DialogFooter>
         </form>
       </Modal>
@@ -193,9 +193,27 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
           <DialogFooter>
             <Button type="submit" disabled={busy || name.trim().length < 2 || !starts}>
               <Trophy />
-              {tr("Create the tournament")}</Button>
+              {tr("Create")}</Button>
           </DialogFooter>
         </form>
+      </Modal>
+    </>
+  );
+}
+
+/** What is over, off the page: a History button opening it in a dialog (a drawer on phones). */
+export function HistoryDialog({ action, children }: { action: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)} data-action={action}>
+        <History />
+        {tr("History")}
+      </Button>
+      <Modal open={open} onOpenChange={setOpen} title={tr("History")} tall className="flex max-h-[min(44rem,90svh)] flex-col sm:max-w-lg">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto" data-slot="history">
+          {children}
+        </div>
       </Modal>
     </>
   );
@@ -283,7 +301,7 @@ export function NewGroupDialog({ trigger }: { trigger?: React.ReactElement }) {
           </FieldGroup>
           <DialogFooter>
             <Button type="submit" disabled={busy || name.trim().length < 2}>
-              {tr("Create the group")}</Button>
+              {tr("Create")}</Button>
           </DialogFooter>
         </form>
       </Modal>
@@ -453,7 +471,7 @@ export function FriendsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                       <DropdownMenuContent align="end" className="w-auto">
                         <DropdownMenuItem variant="destructive" onClick={() => void community.removeFriend(p.id)}>
                           <UserMinus />
-                          {tr("Remove from friends")}</DropdownMenuItem>
+                          {tr("Remove")}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </PersonRow>

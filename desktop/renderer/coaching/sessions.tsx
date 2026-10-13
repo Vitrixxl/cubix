@@ -1,12 +1,12 @@
-/** Every session as a line under its day, filtered by status; the one chosen beside, with what can be done with it. */
+/** The sessions to come as lines under their day, those over or cancelled in a history; the one chosen beside, with what can be done with it. */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, CalendarDays, CalendarX, Check, Star, X } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarX, Check, History, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, Modal, NUMERIC, ROW, StateMark, Surface, Tip, usePhone } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, price, type Booking } from "./client";
 import { Tools, day, dayKey, relative, span, time, url } from "./parts";
-import { Empty, LINK, LINK_ACCENT, ListSkeleton, Segmented, Stars } from "../base";
+import { Empty, LINK, LINK_ACCENT, ListSkeleton, Stars } from "../base";
 import { PersonDialog, SessionCard } from "./person";
 import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
 import { store as s } from "../store";
@@ -22,9 +22,6 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { ask } from "../confirm";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
-import { msg } from "../../../src/client/i18n/msg";
-
-const SESSION_TABS = { upcoming: msg("Upcoming"), past: msg("Past"), cancelled: msg("Cancelled") };
 
 /** Redraws every half minute, so calls open and sessions end on time. */
 export function useMinute() {
@@ -42,51 +39,52 @@ export function Sessions() {
   }, []);
   const now = useMinute(),
     phone = usePhone();
-  const [tab, setTab] = useState("upcoming"),
-    [picked, setPicked] = useState(""),
+  const [picked, setPicked] = useState(""),
+    [history, setHistory] = useState(false),
     [person, setPerson] = useState<Booking | null>(null);
   const all = coaching.bookings;
-  const groups = {
-    upcoming: all?.filter((b) => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
-    past: all?.filter((b) => b.status === "booked" && b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt),
-    cancelled: all?.filter((b) => b.status === "cancelled").sort((a, b) => b.startsAt - a.startsAt),
-  };
-  const list = groups[tab as keyof typeof groups],
-    current = list?.find((b) => b.id === picked) ?? (phone ? undefined : list?.[0]);
+  const upcoming = all?.filter((b) => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
+    past = all?.filter((b) => b.status === "cancelled" || b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt);
+  // A session picked in the list or in the history; on a wide window the next one by default.
+  const current = all?.find((b) => b.id === picked) ?? (phone ? undefined : upcoming?.[0]);
   const detail = current && <SessionCard key={current.id} b={current} onProfile={() => setPerson(current)} />;
   return (
     <>
       <Tools>
-        <Segmented
-          label="Sessions"
-          value={tab}
-          action="sessions:"
-          onChange={(v) => {
-            setTab(v);
-            setPicked("");
-          }}
-          options={(["upcoming", "past", "cancelled"] as const).map((id) => ({ id, label: said(SESSION_TABS[id]), count: groups[id]?.length }))}
-        />
+        <UiButton variant="outline" onClick={() => setHistory(true)} data-action="sessions:history">
+          <History />
+          {tr("History")}
+        </UiButton>
       </Tools>
       <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "grid-cols-[minmax(0,1fr)_minmax(24rem,30rem)]")}>
         <Surface className="min-w-0 px-2.5 pt-3 pb-2.5" aria-label={tr("Sessions")}>
-          {!list ? (
+          {!upcoming ? (
             <ListSkeleton />
-          ) : !list.length ? (
+          ) : !upcoming.length ? (
             <Empty icon={CalendarDays} className="h-full">
-              {tab === "upcoming" ? tr("No upcoming session.") : tab === "past" ? tr("No past session yet.") : tr("No cancelled session.")}
-              {tab === "upcoming" && (
-                <UiButton variant="outline" onClick={() => go(url("coaches"))} data-action="coaching:find">
-                  {tr("Find a coach")}
-                </UiButton>
-              )}
+              {tr("No upcoming session.")}
+              <UiButton variant="outline" onClick={() => go(url("coaches"))} aria-label={tr("Find a coach")} data-action="coaching:find">
+                {tr("Find")}
+              </UiButton>
             </Empty>
           ) : (
-            <SessionDays list={list} now={now} active={current?.id} onPick={(b) => setPicked(b.id)} />
+            <SessionDays list={upcoming} now={now} active={current?.id} onPick={(b) => setPicked(b.id)} />
           )}
         </Surface>
         {!phone && <Surface className="min-w-0 overflow-y-auto">{detail ?? <Empty icon={CalendarDays} title="Pick a session." />}</Surface>}
       </div>
+      {/* Sessions over or cancelled, newest first; one picked shows like the others. */}
+      <Modal open={history} onOpenChange={setHistory} title={tr("History")} tall className="flex h-[min(80vh,40rem)] flex-col sm:max-w-xl">
+        {!past ? (
+          <ListSkeleton />
+        ) : !past.length ? (
+          <Empty icon={History} className="h-full">
+            {tr("No past session yet.")}
+          </Empty>
+        ) : (
+          <SessionDays list={past} now={now} active={current?.id} onPick={(b) => (setPicked(b.id), setHistory(false))} />
+        )}
+      </Modal>
       {phone && (
         <Modal open={!!current} onOpenChange={(open) => !open && setPicked("")} title={current ? span(current.startsAt, current.endsAt) : tr("Sessions")} hideHeader>
           {detail}
@@ -197,7 +195,7 @@ export function Offer({ b }: { b: Booking }) {
               {tr("Move it")}
             </UiButton>
             <UiButton size="sm" variant="outline" disabled={pending} onClick={() => act(() => coaching.answer(b.id, false), tr("Session kept where it was"))} data-action="offer:decline">
-              {tr("Keep the time")}
+              {tr("Keep it")}
             </UiButton>
           </>
         ) : (
@@ -217,7 +215,7 @@ export function MoveButton({ b, label = false }: { b: Booking; label?: boolean }
     <>
       {label ? (
         <button type="button" className={LINK_ACCENT} onClick={() => setOpen(true)} data-action="coaching:move">
-          {tr("Offer another time")}
+          {tr("Reschedule")}
         </button>
       ) : (
         <Tip content={tr("Offer another time")}>
@@ -307,7 +305,7 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
       )}
       <DialogFooter>
         <UiButton disabled={start == null || pending} onClick={send} data-action="coaching:move:send">
-          {pending ? tr("Sending…") : tr("Send the offer")}
+          {pending ? tr("Sending…") : tr("Send")}
         </UiButton>
       </DialogFooter>
     </div>
@@ -320,7 +318,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
   const when = `${day(b.startsAt)} ${tr("at")} ${time(b.startsAt)} ${tr("with")} ${b.with.username}.`;
   async function cancel() {
     if (!cancellationOpen(b.startsAt)) return setClosed(true);
-    if (!(await ask({ title: tr("Cancel this session?"), text: when + tr(" They are told at once and the slot opens again."), action: tr("Cancel the session"), cancel: tr("Keep it") }))) return;
+    if (!(await ask({ title: tr("Cancel this session?"), text: when + tr(" They are told at once and the slot opens again."), action: tr("Cancel"), cancel: tr("Keep it") }))) return;
     if (!cancellationOpen(b.startsAt)) return setClosed(true);
     try {
       await coaching.cancel(b.id);
@@ -332,8 +330,8 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
   return (
     <>
       {label ? (
-        <button type="button" className={cn(LINK, "hover:text-destructive")} onClick={cancel} data-action="coaching:cancel">
-          {tr("Cancel the session")}
+        <button type="button" className={cn(LINK, "hover:text-destructive")} onClick={cancel} aria-label={tr("Cancel the session")} data-action="coaching:cancel">
+          {tr("Cancel")}
         </button>
       ) : (
         <Tip content={tr("Cancel the session")}>
@@ -399,7 +397,7 @@ export function ReviewButton({ b }: { b: Booking }) {
         <Textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} rows={4} placeholder={tr("What helped you most?")} aria-label={tr("Comment")} className="resize-none" />
         <DialogFooter>
           <UiButton disabled={!rating || pending} onClick={save} data-action="coaching:review:save">
-            {pending ? tr("Saving…") : tr("Save review")}
+            {pending ? tr("Saving…") : tr("Save")}
           </UiButton>
         </DialogFooter>
       </Modal>

@@ -121,7 +121,7 @@ try {
   await page.getByText("3×3 2 · Pyraminx 1", { exact: false }).waitFor();
   await page.getByRole("button", { name: "Import 3 solves", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "3 solves imported" }).waitFor();
-  await page.getByRole("button", { name: "Start the tour", exact: true }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await tour("desktop", { desktop: true });
   assert.equal(new URL(page.url()).searchParams.get("puzzle") ?? "333", "333");

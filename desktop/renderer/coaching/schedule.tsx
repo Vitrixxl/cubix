@@ -201,9 +201,9 @@ function ScheduleForm() {
             </UiButton>
           </span>
         ) : (
-          <UiButton onClick={() => setStep({ kind: "menu" })} data-action="schedule:edit">
+          <UiButton onClick={() => setStep({ kind: "menu" })} aria-label={tr("Edit availability")} data-action="schedule:edit">
             <CalendarCog />
-            {tr("Edit availability")}</UiButton>
+            {tr("Edit")}</UiButton>
         )}
       </Tools>
       <div className="flex min-h-0 flex-1 max-lg:overflow-y-auto">
@@ -311,9 +311,9 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
         <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{tr("Edit availability")}</DialogTitle>
       </DialogHeader>
       <div className="flex flex-col gap-2">
-        <ActionCard icon={<CalendarPlus />} title={tr("Add a date")} onClick={() => choose("open")} action="schedule:add-date" />
-        <ActionCard icon={<CalendarX />} title={tr("Cancel a date")} onClick={() => choose("close")} action="schedule:cancel-date" />
-        <ActionCard icon={<Repeat />} title={tr("Add weekly hours")} onClick={() => choose("rule")} action="schedule:rule" />
+        <ActionCard icon={<CalendarPlus />} title={tr("Add hours")} onClick={() => choose("open")} action="schedule:add-date" />
+        <ActionCard icon={<CalendarX />} title={tr("Cancel hours")} onClick={() => choose("close")} action="schedule:cancel-date" />
+        <ActionCard icon={<Repeat />} title={tr("Weekly hours")} onClick={() => choose("rule")} action="schedule:rule" />
       </div>
       {!!saved.rules.length && (
         <div className="flex flex-col gap-1.5" data-slot="rules">
@@ -510,10 +510,10 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
       <DialogFooter>
         <UiButton variant="outline" onClick={() => go("close")} disabled={dayOff} data-action="schedule:day-close">
           <CalendarX />
-          {tr("Cancel hours")}</UiButton>
+          {tr("Remove")}</UiButton>
         <UiButton variant="outline" onClick={() => go("open")} data-action="schedule:day-open">
           <CalendarPlus />
-          {tr("Add hours")}</UiButton>
+          {tr("Add")}</UiButton>
       </DialogFooter>
     </>
   );
@@ -562,7 +562,7 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
       </div>
       <DialogFooter>
         <UiButton disabled={pending} onClick={() => apply(start, end, kind === "close" && wholeDay)} data-action={kind === "open" ? "schedule:extra" : "schedule:confirm"}>
-          {pending ? tr("Saving…") : kind === "open" ? tr("Add hours") : wholeDay ? days.length > 1 ? tr("Take these days off") : tr("Take the day off") : tr("Take these hours off")}
+          {pending ? tr("Saving…") : kind === "open" ? tr("Add") : tr("Confirm")}
         </UiButton>
       </DialogFooter>
     </>

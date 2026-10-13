@@ -1,11 +1,12 @@
 /**
  * The community's contacts (/community/people): one list of the friends and the groups, the requests waiting on top,
- * the players found by name and the link that adds the account; beside it the open one's page. A friend's: the battles
- * between the two and their score, what waits for the account between them. A group's: its members, its battles and
- * its tournaments. The address keeps the open one (/community/people/u/<id>, /community/people/g/<id>).
+ * finding players and the link that adds the account in the friends' dialog; beside it the open one's page. A friend's:
+ * the score between the two, what waits for the account between them, their battles in the history. A group's: its
+ * members and its tournaments to come, its battles and past tournaments in the history. The address keeps the open
+ * one (/community/people/u/<id>, /community/people/g/<id>).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, Copy, MoreHorizontal, Pencil, Share2, Swords, Trophy, UserMinus, UserRoundX, Users } from "lucide-react";
+import { Check, ChevronLeft, MoreHorizontal, Pencil, Swords, Trophy, UserMinus, UserPlus, UserRoundX, Users } from "lucide-react";
 import { Link } from "react-router";
 import { store as s } from "../store";
 import { go } from "../navigation";
@@ -15,7 +16,7 @@ import { MATCH_STATUS, community, communityUrl, eventName, formatText, scoreOf, 
 import { GroupMark, organiser, waiting } from "./messages";
 import { InviteDialog, MemberGrid } from "./groups";
 import { MatchDialog, TournamentChatCard } from "./cards";
-import { BattleDialog, EditGroupDialog, NewGroupDialog, TournamentDialog } from "./dialogs";
+import { BattleDialog, EditGroupDialog, FriendsDialog, HistoryDialog, NewGroupDialog, TournamentDialog } from "./dialogs";
 import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -83,27 +84,30 @@ export function PeoplePage({ kind, id }: { kind: string; id: string }) {
   );
 }
 
-/** The list: its title and a new group, the search, the filters, the requests, the friends and the groups, the link. */
+/** The list: its title, a new group and adding friends, the search, the filters, the requests, the friends and the groups. */
 function Contacts({ kind, id, className }: { kind: string; id: string; className?: string }) {
   const me = community.me,
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState<Filter>("all"),
-    found = useFound(query),
+    [adding, setAdding] = useState(false),
     q = query.trim().toLowerCase(),
     friends = (me?.friends ?? []).filter((f) => f.username.toLowerCase().includes(q)),
     groups = (me?.groups ?? []).filter((g) => g.name.toLowerCase().includes(q)),
     requests = (me?.incoming.length ?? 0) + (me?.invitations.length ?? 0) + (me?.outgoing.length ?? 0),
-    // Players found on Qbix who are not friends already (those show in the list above).
-    strangers = found?.filter((p) => p.relation !== "friend"),
     scroller = useRef<HTMLDivElement>(null);
   return (
     <Surface className={cn("w-[380px] shrink-0 gap-3 pt-4 pb-3 max-md:w-full", className)} data-slot="contacts">
       <div className="flex shrink-0 items-center gap-2 px-5">
         <h1 className="mr-auto text-2xl font-extrabold tracking-[-0.02em]">{tr("Contacts")}</h1>
         <NewGroupDialog trigger={<Button variant="outline" data-action="community:new-group">+ {tr("Group")}</Button>} />
+        <Button variant="outline" onClick={() => setAdding(true)} data-action="contacts:add">
+          <UserPlus />
+          {tr("Add")}
+        </Button>
+        <FriendsDialog open={adding} onOpenChange={setAdding} />
       </div>
       <div className="shrink-0 px-3">
-        <SearchField value={query} onChange={setQuery} placeholder="A friend, a group or a Qbix player" label="Search players" action="community:search" className="h-10" />
+        <SearchField value={query} onChange={setQuery} placeholder="A friend or a group" action="contacts:search" className="h-10" />
       </div>
       <Segmented
         value={filter}
@@ -123,19 +127,6 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
           <ListSkeleton className="p-0" />
         ) : (
           <>
-            {q && strangers && (
-              <Part title={tr("On Qbix · “{0}”", { 0: query.trim() })}>
-                {!strangers.length ? (
-                  <p className="px-2 text-[13px] text-muted-foreground">{tr("No other player by that name.")}</p>
-                ) : (
-                  strangers.map((p) => (
-                    <PersonLine key={p.id} p={p} sub={RELATION[p.relation]} data-found={p.username}>
-                      <RelationLink p={p} />
-                    </PersonLine>
-                  ))
-                )}
-              </Part>
-            )}
             {!q && (filter === "all" || filter === "requests") && <Requests empty={filter === "requests"} />}
             {(filter === "all" || filter === "friends") && (
               <Part title={tr("Friends")} count={filter === "all" ? friends.length : undefined}>
@@ -175,7 +166,6 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
           </>
         )}
       </div>
-      <ShareLink />
     </Surface>
   );
 }
@@ -230,50 +220,6 @@ function FriendRow({ f, active, ref }: { f: Person & { since: number }; active: 
       }
     />
   );
-}
-
-/** A player with a line under them and an action on the right, the action a word. */
-function PersonLine({ p, sub, children, ...rest }: { p: Person; sub?: React.ReactNode; children?: React.ReactNode } & Record<`data-${string}`, unknown>) {
-  return (
-    <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-2.5 py-2" {...rest}>
-      <Avatar name={p.username} src={p.avatar} size={40} />
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-[15px] font-bold">{p.username}</span>
-        {sub && <span className="truncate text-xs text-muted-foreground">{said(sub)}</span>}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-const RELATION = { none: "", friend: "Already your friend", incoming: "Wants to be your friend", outgoing: "Request sent" } as const;
-type Found = Person & { relation: keyof typeof RELATION };
-
-/** What can be done with a player found by name, in a word: add, accept, write. */
-function RelationLink({ p }: { p: Found }) {
-  if (p.relation === "outgoing") return null;
-  return (
-    <button
-      type="button"
-      className={p.relation === "friend" ? LINK : LINK_ACCENT}
-      onClick={() => void (p.relation === "none" ? community.addFriend(p.username) : p.relation === "incoming" ? community.acceptFriend(p.id) : community.message(p.id))}
-      data-action={"friend:" + (p.relation === "none" ? "add" : p.relation === "incoming" ? "accept" : "write") + ":" + p.username}
-    >
-      {p.relation === "none" ? tr("Add") : p.relation === "incoming" ? tr("Accept") : tr("Write")}
-    </button>
-  );
-}
-
-/** Players whose name starts with what is typed, a moment after the last key; found again as relations change. */
-function useFound(query: string) {
-  const [found, setFound] = useState<Found[] | null>(null);
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) return void setFound(null);
-    const timer = setTimeout(() => void community.search(q).then(setFound), 200);
-    return () => clearTimeout(timer);
-  }, [query, community.me]);
-  return found;
 }
 
 /** What waits for an answer, each in a card of its own: friend requests, group invitations, then the requests sent. */
@@ -337,42 +283,6 @@ function Requests({ empty }: { empty: boolean }) {
         ))}
       </ul>
     </Part>
-  );
-}
-
-/** The link that adds the account as a friend: copied or shared in a word. */
-function ShareLink() {
-  const link = community.shareLink(),
-    [copied, setCopied] = useState(false);
-  return (
-    <section className="mx-3 flex shrink-0 items-center gap-3 rounded-2xl bg-muted px-3.5 py-2.5" aria-label={tr("Your link")}>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[11px] text-muted-foreground">{tr("Your link")}</span>
-        <span className="truncate text-sm font-bold" title={link}>
-          {link.replace(/^https?:\/\//, "")}
-        </span>
-      </span>
-      <button
-        type="button"
-        className={LINK_ACCENT}
-        onClick={() =>
-          void navigator.clipboard?.writeText(link).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          })
-        }
-        data-action="friends:copy-link"
-      >
-        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        {copied ? tr("Copied") : tr("Copy")}
-      </button>
-      {typeof navigator.share === "function" && (
-        <button type="button" className={LINK} onClick={() => void navigator.share({ title: "Qbix", text: tr("Add me on Qbix"), url: link }).catch(() => {})}>
-          <Share2 className="size-3.5" />
-          {tr("Share")}
-        </button>
-      )}
-    </section>
   );
 }
 
@@ -445,7 +355,7 @@ function BattleLines({ battles, group = false }: { battles: Match[]; group?: boo
   );
 }
 
-/** A friend's page: the battles between you and their score, what waits for you, and a rematch to launch. */
+/** A friend's page: the score between you, what waits for you, a rematch to launch, and your battles in the history. */
 function FriendPage({ friend: f, phone }: { friend: Person & { since: number }; phone: boolean }) {
   const [c, setC] = useState<Conversation | undefined>(() => directWith(f.id));
   useEffect(() => {
@@ -489,6 +399,11 @@ function FriendPage({ friend: f, phone }: { friend: Person & { since: number }; 
         <Button variant="outline" onClick={() => void community.message(f.id)} data-action="friend:write">
           {tr("Write")}
         </Button>
+        {battles.length > 0 && (
+          <HistoryDialog action="friend:history">
+            <BattleLines battles={battles} />
+          </HistoryDialog>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={tr("More about {0}", { 0: f.username })} />}>
             <MoreHorizontal />
@@ -496,7 +411,7 @@ function FriendPage({ friend: f, phone }: { friend: Person & { since: number }; 
           <DropdownMenuContent align="end" className="w-auto">
             <DropdownMenuItem variant="destructive" onClick={() => void community.removeFriend(f.id)}>
               <UserMinus />
-              {tr("Remove from friends")}
+              {tr("Remove")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -525,13 +440,6 @@ function FriendPage({ friend: f, phone }: { friend: Person & { since: number }; 
               <Avatar name={f.username} src={f.avatar} size={36} />
             </span>
           </div>
-          {!messages ? (
-            <ListSkeleton rows={3} className="p-0" />
-          ) : !battles.length ? (
-            <p className="text-[13px] text-muted-foreground">{tr("No battle yet between you.")}</p>
-          ) : (
-            <BattleLines battles={battles} />
-          )}
         </section>
         <section className="flex min-w-0 flex-col gap-3" aria-label={tr("Waiting for you")}>
           <Caption>{tr("Waiting for you")}</Caption>
@@ -577,7 +485,7 @@ function Offer({ lead, title, sub, action, accent, run }: { lead: React.ReactNod
   );
 }
 
-/** A group's page: its members, its battles, its tournaments; launching them, writing, running the group. */
+/** A group's page: its members, its tournaments to come; launching them, writing, running the group; the rest in the history. */
 function GroupPage({ id, phone }: { id: number; phone: boolean }) {
   useEffect(() => {
     void community.load(`group:${id}`);
@@ -637,6 +545,24 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
         <Button variant="outline" onClick={() => go(communityUrl("messages/" + g.conversationId))} data-action="group:write">
           {tr("Write")}
         </Button>
+        {(g.battles.length > 0 || over.length > 0) && (
+          <HistoryDialog action="group:history">
+            {g.battles.length > 0 && (
+              <section className="flex flex-col gap-2" aria-label={tr("Battles")}>
+                <Caption>{tr("Battles")}</Caption>
+                <BattleLines battles={g.battles.map((b) => community.card(b))} group />
+              </section>
+            )}
+            {over.length > 0 && (
+              <section className="flex flex-col gap-2" aria-label={tr("Tournaments")}>
+                <Caption>{tr("Tournaments")}</Caption>
+                {over.map((t) => (
+                  <TournamentChatCard key={t.id} tournament={t} />
+                ))}
+              </section>
+            )}
+          </HistoryDialog>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={tr("More about {0}", { 0: g.name })} />}>
             <MoreHorizontal />
@@ -645,12 +571,12 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
             {run && (
               <DropdownMenuItem onClick={() => setEditing(true)}>
                 <Pencil />
-                {tr("Edit the group")}
+                {tr("Edit")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem variant="destructive" onClick={() => void (g.role === "owner" ? community.deleteGroup(g.id) : community.remove(g.id, s.user.id))}>
               <UserMinus />
-              {g.role === "owner" ? tr("Delete the group") : tr("Leave the group")}
+              {g.role === "owner" ? tr("Delete") : tr("Leave")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -662,26 +588,15 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
             <Caption action={run && <InviteDialog g={g} />}>{tr("Members")}</Caption>
             <MemberGrid g={g} members={[...members, ...invited]} scroller={scroller} />
           </section>
-          <section className="flex flex-col gap-2" aria-label={tr("Battles")}>
-            <Caption>{tr("Battles of the group")}</Caption>
-            {g.battles.length ? <BattleLines battles={g.battles.map((b) => community.card(b))} group /> : <p className="text-[13px] text-muted-foreground">{tr("No battles yet")}</p>}
-          </section>
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           {g.description && <p className="text-[15px] leading-relaxed text-muted-foreground">{g.description}</p>}
           <section className="flex flex-col gap-2" aria-label={tr("Tournaments")}>
             <Caption>{tr("Tournaments")}</Caption>
-            {!g.tournaments.length ? (
+            {!upcoming.length ? (
               <p className="text-[13px] text-muted-foreground">{tr("No tournament yet")}</p>
             ) : (
-              <>
-                {upcoming.map((t) => (
-                  <TournamentChatCard key={t.id} tournament={t} />
-                ))}
-                {over.map((t) => (
-                  <TournamentChatCard key={t.id} tournament={t} />
-                ))}
-              </>
+              upcoming.map((t) => <TournamentChatCard key={t.id} tournament={t} />)
             )}
           </section>
         </div>

@@ -44,6 +44,7 @@ import {
   PlayCircle,
   Plus,
   Rotate3d,
+  SlidersHorizontal,
   RotateCcw,
   Shuffle,
   Trash2,
@@ -62,13 +63,13 @@ import {
   ActionToggle,
   Alg,
   Button,
-  Choice,
   Diagram,
   Empty,
   FADE,
   FOCUS,
   Figure,
   LABEL,
+  LearnToggle,
   InHead,
   NUMERIC,
   StatCard,
@@ -79,7 +80,6 @@ import {
   PageHead,
   PenaltyToggles,
   ROW,
-  SectionHead,
   Segmented,
   StateMark,
   SelectMenu,
@@ -469,14 +469,10 @@ export function Practice() {
   );
   const solutionToggle = (
     <Button action="solution" icon={cross && s.revealed ? EyeOff : Eye} tip={cross && s.revealed ? tr("Hide solution · Alt+H") : tr("Show solution · Alt+H")} className="-ml-2.5 text-muted-foreground">
-      {cross && s.revealed ? tr("Hide solution") : tr("Show solution")}
+      {tr("Solution")}
     </Button>
   );
-  const learnedToggle = training && c && (
-    <ActionToggle action={"learn:" + c.id} pressed={s.learned.has(c.id)} icon={s.learned.has(c.id) ? Check : undefined} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-      {s.learned.has(c.id) ? tr("Learned") : tr("Mark learned")}
-    </ActionToggle>
-  );
+  const learnedToggle = training && c && <LearnToggle action={"learn:" + c.id} learned={s.learned.has(c.id)} />;
   // A case's setup: on a connected cube, the turns to make on it, coloured as they are made from a solved cube; all
   // done once the case is there, however it was set up.
   const caseSetup = training && ready && (
@@ -492,7 +488,7 @@ export function Practice() {
   );
   const video = training && ready && c.algorithms[0]?.youtube && (
     <Button action={"url:" + c.algorithms[0].youtube} icon={PlayCircle} className="text-muted-foreground">
-      {mobile ? tr("Video") : tr("Watch video")}
+      {tr("Video")}
     </Button>
   );
   // Only learned cases are trained: none in the cases chosen, the way back to choose, or to the courses to learn them.
@@ -501,8 +497,8 @@ export function Practice() {
     <div data-no-timer>
       <Empty icon={LayoutList} title={tr("No learned case to train")} className="py-8">
         <div className="flex gap-2">
-          <Button action="trainingSetup" variant="default">{tr("Choose cases")}</Button>
-          {unlearned && <Button action="nav:learn">{tr("Open the courses")}</Button>}
+          <Button action="trainingSetup" variant="default" tip={tr("Choose cases")}>{tr("Cases")}</Button>
+          {unlearned && <Button action="nav:learn" tip={tr("Open the courses")}>{tr("Courses")}</Button>}
         </div>
       </Empty>
     </div>
@@ -641,15 +637,17 @@ export function Practice() {
         : s.metrics().filter(([label]) => !(label === "Solves" && timesColumn));
   const columns = balancedColumns(metrics.length, bandWidth),
     rows = Math.ceil(metrics.length / columns);
-  // The last solve's actions, there before the first solve too (disabled) so nothing moves.
-  const lastSolve = (
+  // The last solve's actions, once there is one.
+  const lastSolve = last && (
     <div className="flex min-w-0 flex-1 gap-2" role="group" aria-label={tr("Last solve")}>
-                <PenaltyToggles penalty={last?.penalty} prefix={"penalty:" + last?.id + ":"} disabled={!last || s.saving} className={LAST_SOLVE} />
-                <Button action={"comment:" + last?.id} disabled={!last || s.saving} variant="outline" label={last?.comment ? tr("Edit comment") : tr("Add comment")} className={cn(LAST_SOLVE, last?.comment && "text-primary")}>
-                  {tr("Note")}</Button>
-                <Button action={"delete:" + last?.id} disabled={!last || s.saving} variant="outline" label={tr("Delete solve")} className={cn(LAST_SOLVE, "hover:text-destructive")}>
-                  {tr("Delete")}</Button>
-                  </div>
+      <PenaltyToggles penalty={last.penalty} prefix={"penalty:" + last.id + ":"} disabled={s.saving} className={LAST_SOLVE} />
+      <Button action={"comment:" + last.id} disabled={s.saving} variant="outline" label={last.comment ? tr("Edit comment") : tr("Add comment")} className={cn(LAST_SOLVE, last.comment && "text-primary")}>
+        {tr("Note")}
+      </Button>
+      <Button action={"delete:" + last.id} disabled={s.saving} variant="outline" label={tr("Delete solve")} className={cn(LAST_SOLVE, "hover:text-destructive")}>
+        {tr("Delete")}
+      </Button>
+    </div>
   );
   const statistics = chosen ? (
     <FiguresBand />
@@ -677,18 +675,13 @@ export function Practice() {
             )
           }
         >
-          {!mobile && (w <= 1100 ? (
-            // Narrower windows keep the two choices as pills, their options in a menu.
+          {/* The two choices as pills, their options in a menu. */}
+          {!mobile && (
             <>
               <SelectMenu action="crossTarget" caption="Build" value={s.crossTarget} options={crossTargetOptions} />
               <SelectMenu action="crossMoves" caption="Moves" value={String(s.crossMoves)} options={crossMoveOptions()} />
             </>
-          ) : (
-            <>
-              <Choice prefix="crossTarget:" label={tr("What to build")} value={s.crossTarget} options={crossTargetOptions} />
-              <Choice prefix="crossMoves:" label={tr("Moves")} value={String(s.crossMoves)} options={crossMoveOptions()} />
-            </>
-          ))}
+          )}
           {replay}
           {timesToggle}
         </PageHead>
@@ -727,9 +720,7 @@ export function Practice() {
           // The desktop's timer has no title: its controls stand at the top right, beside the scramble.
           <InHead.Provider value={true}>
             <div className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", FADE)} data-no-timer>
-              <SelectMenu action="scrambleType" caption="Scramble" value={s.scrambleChoice()} options={s.scrambleOptions()} />
-              <SelectMenu action="entry" caption="Entry" value={s.entry} options={TIME_ENTRIES} />
-              {!blind && !typing && <SelectMenu action="inspection" caption={msg("Inspection")} value={s.inspection} options={INSPECTIONS} />}
+              <TimerSettings inspection={!blind && !typing} />
               <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
               {dailyButton}
               {connect}
@@ -746,13 +737,11 @@ export function Practice() {
   const caseTools = training && !mobile && ready && (
     <div className={cn("flex flex-wrap items-center gap-1.5", short ? "basis-full" : "mt-1.5")} data-no-timer>
       <Button action="solution" variant="outline" icon={Eye} tip={tr("Show solution · Alt+H")}>
-        {tr("Show solution")}
+        {tr("Solution")}
       </Button>
       {c.algorithms[0]?.youtube && <Button action={"url:" + c.algorithms[0].youtube} variant="outline" icon={PlayCircle}>{tr("Video")}</Button>}
       {hasCube && !live && <ActionToggle action="cube" variant="outline" pressed={s.showCube} icon={Box} tip={tr(s.showCube ? "Show the diagram" : "Show the cube")}>{tr("3D cube")}</ActionToggle>}
-      <ActionToggle action={"learn:" + c.id} variant="outline" pressed={s.learned.has(c.id)} icon={s.learned.has(c.id) ? Check : undefined} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-        {s.learned.has(c.id) ? tr("Learned") : tr("Mark learned")}
-      </ActionToggle>
+      {learnedToggle}
     </div>
   );
   const caseBlock = training && !mobile && (
@@ -794,7 +783,7 @@ export function Practice() {
       {/* The timer's row of the last solve's actions, then the previous and the next case side by side. */}
       <div className="flex items-center gap-2">
         {lastSolve}
-        <div className="ml-2 flex shrink-0 gap-2">
+        <div className="ml-auto flex shrink-0 gap-2">
           {!recognition && <CaseStep action="previous" disabled={!s.training?.canPrevious} label={tr("Previous case")} keys="Alt+P" short={short || compact} />}
           <CaseStep action="next" disabled={!ready} label={tr("Next case")} keys="Alt+N" short={short || compact} />
           {recognition && <Button action="recognitionClose" icon={X}>{tr("Close")}</Button>}
@@ -910,10 +899,14 @@ export function Practice() {
             {/* Phones: the last solve's actions and the next scramble as large targets at the thumb, under the stage. */}
             {mobile && (
               <TouchBar className={cn("shrink-0 px-2 pt-1 pb-2", FADE)}>
-                <TouchAction action={"penalty:" + last?.id + ":+2"} label="+2" icon={Plus} pressed={last?.penalty === "+2"} disabled={!last || s.saving} tone="warning" />
-                <TouchAction action={"penalty:" + last?.id + ":dnf"} label={tr("DNF")} icon={Ban} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} tone="bad" />
-                <TouchAction action={"comment:" + last?.id} label={tr("Comment")} icon={MessageSquare} disabled={!last || s.saving} />
-                <TouchAction action={"delete:" + last?.id} label={tr("Delete")} icon={Trash2} disabled={!last || s.saving} />
+                {last && (
+                  <>
+                    <TouchAction action={"penalty:" + last.id + ":+2"} label="+2" icon={Plus} pressed={last.penalty === "+2"} disabled={s.saving} tone="warning" />
+                    <TouchAction action={"penalty:" + last.id + ":dnf"} label={tr("DNF")} icon={Ban} pressed={last.penalty === "dnf"} disabled={s.saving} tone="bad" />
+                    <TouchAction action={"comment:" + last.id} label={tr("Note")} icon={MessageSquare} disabled={s.saving} />
+                    <TouchAction action={"delete:" + last.id} label={tr("Delete")} icon={Trash2} disabled={s.saving} />
+                  </>
+                )}
                 {training ? (
                   <TouchAction action="next" label={tr("Next case")} icon={ChevronRight} />
                 ) : (
@@ -925,7 +918,7 @@ export function Practice() {
           {!mobile && live && !training && analysis && !running && <SolveStrip analysis={analysis} />}
           {mobile ? <SessionPeek training={training} /> : chosen ? <FiguresBand actions={lastSolve} /> : training ? sessionFoot : (
             <div className="flex shrink-0 flex-col gap-3">
-              <div className={cn("flex gap-2", FADE)} data-no-timer>{lastSolve}</div>
+              {lastSolve && <div className={cn("flex gap-2", FADE)} data-no-timer>{lastSolve}</div>}
               {statistics}
             </div>
           )}
@@ -1202,7 +1195,7 @@ function SessionCases() {
           {tr("Cases")} <span className={cn(NUMERIC, "font-semibold text-faint")}>{pool.size}</span>
         </h3>
         <Button action="trainingSetup" variant="outline" icon={ListChecks} tip={tr("Change what to train")}>
-          {tr("Choose cases")}
+          {tr("Edit")}
         </Button>
       </div>
       <div className="flex max-h-[32vh] flex-col gap-2 overflow-y-auto">
@@ -1304,6 +1297,30 @@ function SessionMenu() {
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuGroup>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The desktop timer's settings in one menu: the scramble, how times are entered and, when there is one, the inspection. */
+function TimerSettings({ inspection }: { inspection: boolean }) {
+  return (
+    <DropdownMenu>
+      <Tip content={tr("Settings")}>
+        <DropdownMenuTrigger render={<UiButton variant="outline" size="icon" data-action="menu:timer" aria-label={tr("Settings")} />}>
+          <SlidersHorizontal />
+        </DropdownMenuTrigger>
+      </Tip>
+      <DropdownMenuContent align="end" className="max-h-[min(36rem,var(--available-height))] w-auto min-w-52">
+        <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
+        <DropdownMenuSeparator />
+        <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
+        {inspection && (
+          <>
+            <DropdownMenuSeparator />
+            <MenuChoice label={msg("Inspection")} action="inspection" value={s.inspection} options={INSPECTIONS} />
           </>
         )}
       </DropdownMenuContent>

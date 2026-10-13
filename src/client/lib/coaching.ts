@@ -18,10 +18,10 @@ export const COACH_SECTIONS = [
   ["dashboard", msg("Dashboard")],
   ["students", msg("Students")],
   ["schedule", msg("Schedule")],
-  ["profile", msg("Coach profile")],
+  ["profile", msg("Profile")],
 ] as const;
 export const PLAYER_SECTIONS = [
-  ["coaches", msg("Find a coach")],
+  ["coaches", msg("Coaches")],
   ["sessions", msg("Sessions")],
   ["messages", msg("Messages")],
 ] as const;

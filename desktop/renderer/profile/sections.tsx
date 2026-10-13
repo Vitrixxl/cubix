@@ -72,8 +72,8 @@ export function ResultMark({ result }: { result: DuelRecord["result"] }) {
 export function NoBattles({ compact = false }: { compact?: boolean }) {
   return (
     <Empty icon={compact ? undefined : Swords} title={tr("No battles yet")} className={cn(compact && "p-0")}>
-      <Button action="nav:duel" icon={Swords} variant="outline">
-        {tr("Find an opponent")}
+      <Button action="nav:duel" icon={Swords} variant="outline" tip={tr("Find an opponent")}>
+        {tr("Play")}
       </Button>
     </Empty>
   );

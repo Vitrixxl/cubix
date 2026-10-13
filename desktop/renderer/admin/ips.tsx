@@ -23,7 +23,7 @@ export function Ips({ phone }: { phone: boolean }) {
   const head = (id: string, label: string, className = "text-right") => <SortHead id={id} label={label} sort={sort} order={order} params={params} className={className} />;
   return (
     <div className={VIEW}>
-      <PageHead title="IP addresses" sub={d ? `Since ${d.since} · UTC days` : "Where the app is used from"} />
+      <PageHead title="IP addresses" sub={d ? `Since ${d.since} · UTC days` : undefined} />
       <div className="flex flex-wrap items-center gap-2">
         <SearchField value={q} onChange={(v) => navigate(withParams(params, { q: v, page: null }), true)} delay={300} placeholder="Filter addresses" numeric action="ips:search" className="w-full sm:w-72" />
         <Segmented

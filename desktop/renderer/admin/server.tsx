@@ -21,7 +21,7 @@ export function Server() {
   const d = overview.data?.server;
   return (
     <div className={VIEW}>
-      <PageHead title="Server" sub={d ? `Version ${d.version}${d.build ? ` · build ${d.build}` : ""}` : "The running API"} />
+      <PageHead title="Server" sub={d ? `Version ${d.version}${d.build ? ` · build ${d.build}` : ""}` : undefined} />
       {overview.error && !d ? (
         <Failure error={overview.error} retry={overview.reload} />
       ) : !d ? (

@@ -17,7 +17,7 @@ import { PhoneSheet } from "./phone";
 import { Practice } from "./practice";
 import { Cube } from "./Cube";
 import { ActionToggle, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
-import { CaseTile, FootBar, TILES } from "./algorithms";
+import { CaseTile, TILES } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -378,7 +378,7 @@ function RecognitionDone() {
         </div>
         <div className="flex gap-2">
           <Button action="trainingStart:recognition" variant="default" icon={RotateCcw}>{tr("Again")}</Button>
-          <Button action="trainingSetup">{tr("Change set")}</Button>
+          <Button action="trainingSetup">{tr("Change")}</Button>
         </div>
       </div>
     </RecognitionPage>
@@ -483,7 +483,7 @@ function Recommended({ learned, phone = false }: { learned: number; phone?: bool
     >
       {!learned ? (
         <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="my-auto py-8">
-          <Button action="nav:learn" variant="default">{tr("Open the courses")}</Button>
+          <Button action="nav:learn" variant="default" tip={tr("Open the courses")}>{tr("Courses")}</Button>
         </Empty>
       ) : !shown.length ? (
         <Empty icon={Timer} title={tr("No recommendation yet")} className="my-auto py-8" />
@@ -645,7 +645,7 @@ function CrossCard() {
       </div>
       <div className="flex items-center gap-2">
         <span className="flex-1 text-sm text-muted-foreground">{tr("{0} in {1} moves", { 0: tr(CROSS_TARGET_LABELS[s.crossTarget]), 1: s.crossMoves })}</span>
-        <Button action="trainingStart:cross" variant="outline">{tr("Start the cross")}</Button>
+        <Button action="trainingStart:cross" variant="outline" icon={Play} tip={tr("Start the cross")}>{tr("Start")}</Button>
       </div>
     </Card>
   );

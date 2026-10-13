@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,7 +45,7 @@ function List() {
   const [creating, setCreating] = useState(false);
   return (
     <div className={VIEW}>
-      <PageHead title="Tournaments" sub="Open to every player">
+      <PageHead title="Tournaments">
         <Button onClick={() => setCreating(true)} variant="default" data-action="tournaments:new">
           <Plus />
           New tournament
@@ -203,7 +203,6 @@ function Create({ onCreated }: { onCreated: () => void }) {
           <Field>
             <FieldLabel htmlFor="t-start">Starts</FieldLabel>
             <Input id="t-start" type="datetime-local" value={form.startsAt} onChange={(e) => set({ startsAt: e.target.value })} />
-            <FieldDescription>Registration closes then and the bracket is drawn.</FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor="t-cap">Most players</FieldLabel>
@@ -218,7 +217,7 @@ function Create({ onCreated }: { onCreated: () => void }) {
       <DialogFooter>
         <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
         <Button type="submit" disabled={busy || form.name.trim().length < 2 || !form.startsAt}>
-          Create the tournament
+          Create
         </Button>
       </DialogFooter>
     </form>

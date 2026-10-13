@@ -1660,7 +1660,7 @@ export class Store {
     const result = this.dailyResult;
     if (!result?.ranked) return;
     const key = `${result.day}:${result.event}`, entry = this.dailyDone[key];
-    if (!(await ask({ title: tr("Cancel this time?"), text: tr("Your ranked attempt goes, and you may solve the daily scramble again. Once a day, within two minutes of the solve."), action: tr("Cancel the time") }))) return;
+    if (!(await ask({ title: tr("Cancel this time?"), text: tr("Your ranked attempt goes, and you may solve the daily scramble again. Once a day, within two minutes of the solve."), action: tr("Cancel"), cancel: tr("Keep it") }))) return;
     try {
       if (this.signedIn) {
         await this.dailyFlush();

@@ -243,7 +243,7 @@ export function waiting(messages: Message[]) {
       const t = community.summary(message.tournament),
         key = "t" + t.id,
         left = t.maxPlayers ? t.maxPlayers - t.players : null;
-      if (t.myMatch) out.push({ key, lead: t.name, text: tr("Your match is ready"), label: tr("Play your match"), run: () => go(matchUrl(t.myMatch!)), accent: true });
+      if (t.myMatch) out.push({ key, lead: t.name, text: tr("Your match is ready"), label: tr("Play"), run: () => go(matchUrl(t.myMatch!)), accent: true });
       else if (t.status === "open" && !t.registered && left !== 0)
         out.push({ key, lead: time(t.startsAt), text: left ? `${t.name} · ${tr("{0} places left", { 0: left })}` : t.name, label: tr("Register"), run: () => void community.register(t.id, true), accent: true });
     }
@@ -251,12 +251,12 @@ export function waiting(messages: Message[]) {
   return out;
 }
 
-/** What waits for the account here, in a line under the header: each thing in a few words and its step. Nothing when nothing waits. */
+/** What waits for the account here, in lines under the header: each thing in a few words and its step. Nothing when nothing waits. */
 function Agenda({ messages }: { messages: Message[] | undefined }) {
   const items = messages ? waiting(messages) : [];
   if (!items.length) return null;
   return (
-    <section className="flex shrink-0 items-center gap-x-6 gap-y-1 overflow-x-auto border-y border-muted px-5 py-2.5 text-[13px] whitespace-nowrap text-muted-foreground [scrollbar-width:none]" aria-label={tr("Waiting for you here")} data-slot="agenda">
+    <section className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-1 border-y border-muted px-5 py-2.5 text-[13px] whitespace-nowrap text-muted-foreground" aria-label={tr("Waiting for you here")} data-slot="agenda">
       <span className="text-xs font-bold">{tr("Waiting for you here")}</span>
       {items.slice(0, 4).map((w) => (
         <span key={w.key} className="flex items-center gap-2">

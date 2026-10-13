@@ -200,8 +200,10 @@ try {
 
     await nav(page, phone, "requests");
     await shot(page, `admin-requests-${tag}`);
+    await page.locator('[data-action="requests:filters"]').click();
     await page.locator('[data-action="requests:status"]').click();
     await page.getByRole("option", { name: "4xx", exact: true }).click();
+    await page.keyboard.press("Escape");
     await loaded(page);
     await settle(page);
     const statuses = await page.locator(phone ? "[data-slot=requests-list] [data-slot=badge]" : "[data-slot=requests-table] [data-slot=badge]").allInnerTexts();

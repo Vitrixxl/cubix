@@ -177,8 +177,13 @@ try {
   await chip.click();
   await coach.waitForSelector('[data-slot="session-card"]:has-text("My F2L is slow")');
   await coach.locator('[data-action="person:profile"]').click();
-  await coach.waitForSelector('[data-slot="person-dialog"] :text("Sessions together")');
+  await coach.waitForSelector('[data-slot="person-dialog"] [data-slot="person-activity"]');
   await coach.screenshot({ path: `${SHOTS}/person.png` });
+  // Their sessions together, in a dialog of their own over the file.
+  await coach.locator('[data-action="person:history"]').click();
+  await coach.waitForSelector(`[data-slot="person-sessions"] li`);
+  await coach.keyboard.press("Escape");
+  await coach.waitForSelector('[data-slot="person-sessions"]', { state: "detached" });
   await coach.keyboard.press("Escape");
   await coach.waitForSelector('[data-slot="person-dialog"]', { state: "detached" });
 
@@ -244,9 +249,10 @@ try {
   sql("UPDATE coach_bookings SET starts_at=?,ends_at=? WHERE id=?", Date.now() - 7_200_000, Date.now() - 3_600_000, booking);
   // The list on screen still holds the session as it was before the change above.
   await player.reload();
-  await player.waitForSelector('[data-action="sessions:past"]');
-  await player.locator('[data-action="sessions:past"]').click();
-  await player.locator(`[data-slot="sessions"] [data-session="${booking}"]`).click();
+  // Over, the session has left the list for the history, which shows it once picked.
+  await player.waitForSelector('[data-action="sessions:history"]');
+  await player.locator('[data-action="sessions:history"]').click();
+  await player.locator(`[role="dialog"] [data-slot="sessions"] [data-session="${booking}"]`).click();
   await player.locator('[data-action="coaching:review"]').click();
   await player.locator('[data-rating="5"]').click();
   await player.getByLabel("Comment").fill("Clear and patient, my F2L is already faster.");

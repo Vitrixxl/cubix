@@ -1,15 +1,16 @@
-/** The request log, newest first: filters in the address (important, kind, status, method, IP, path, account, period),
- * live while the socket brings traffic, older rows loaded with the `before` cursor. */
+/** The request log, newest first: filters in a popover and in the address (important, kind, status, method, IP, path,
+ * account, period), live while the socket brings traffic, older rows loaded with the `before` cursor. */
 import { useEffect, useMemo, useState } from "react";
-import { Flag, ListX, Radio } from "lucide-react";
+import { Flag, ListFilter, ListX, Radio } from "lucide-react";
 import { navigate, useAdmin, useLiveState, useRoute, withParams, type LogRow, type Requests as Data } from "./api";
 import { admin } from "./api";
 import { Choose, Failure, IpLink, Kind, NUMERIC, adminScroll, num, TableSkeleton, Status, UserLink, VIEW, when } from "./parts";
 import { VirtualList } from "../virtual";
-import { Empty, FOCUS, PageHead, SearchField, Tip } from "../base";
+import { Count, Empty, FOCUS, PageHead, SearchField, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const LIMIT = 50;
@@ -56,7 +57,7 @@ export function Requests({ phone }: { phone: boolean }) {
     total = d ? num(d.total) + (d.totalCapped ? "+" : "") : "";
   return (
     <div className={VIEW}>
-      <PageHead title="Requests" sub={d ? `${total} ${any ? "matching" : "logged"} · newest first` : "The request log, newest first"}>
+      <PageHead title="Requests" sub={d ? `${total} ${any ? "matching" : "logged"} · newest first` : undefined}>
         <Toggle
           variant="outline"
           pressed={following}
@@ -67,70 +68,83 @@ export function Requests({ phone }: { phone: boolean }) {
           <Radio className={cn(following && live.connected ? "text-success" : "text-muted-foreground")} />
           Live
         </Toggle>
+        {/* The filters in a popover, the button counting those set. */}
+        <Popover>
+          <PopoverTrigger render={<Button variant="outline" data-action="requests:filters" />}>
+            <ListFilter />
+            Filter
+            <Count n={FILTERS.filter((k) => value(k)).length} className="ml-0" />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="flex w-72 flex-col gap-2 p-3" role="group" aria-label="Filters">
+            <Toggle
+              variant="outline"
+              pressed={value("important") === "1"}
+              onPressedChange={(on: boolean) => set({ important: on ? "1" : null })}
+              data-action="requests:important"
+              className="justify-start"
+            >
+              <Flag />
+              Important
+            </Toggle>
+            <Choose
+              label="Kind"
+              action="requests:kind"
+              value={value("kind") || "any"}
+              onChange={(v) => set({ kind: v === "any" ? null : v })}
+              options={[{ value: "any", label: "All kinds" }, ...(d?.kinds ?? KINDS).map((k) => ({ value: k, label: k }))]}
+              className="w-full"
+            />
+            <Choose
+              label="Status"
+              action="requests:status"
+              value={value("status") || "any"}
+              onChange={(v) => set({ status: v === "any" ? null : v })}
+              options={[
+                { value: "any", label: "Any status" },
+                { value: "error", label: "Errors (4xx, 5xx)" },
+                { value: "2xx", label: "2xx" },
+                { value: "3xx", label: "3xx" },
+                { value: "4xx", label: "4xx" },
+                { value: "5xx", label: "5xx" },
+                { value: "401", label: "401" },
+                { value: "404", label: "404" },
+                { value: "429", label: "429" },
+              ]}
+              className="w-full"
+            />
+            <Choose
+              label="Method"
+              action="requests:method"
+              value={value("method") || "any"}
+              onChange={(v) => set({ method: v === "any" ? null : v })}
+              options={[{ value: "any", label: "Any method" }, ...["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => ({ value: m, label: m }))]}
+              className="w-full"
+            />
+            <Choose
+              label="Period"
+              action="requests:range"
+              value={range || "any"}
+              onChange={(v) => set({ range: v === "any" ? null : v })}
+              options={[
+                { value: "any", label: "Any time" },
+                { value: "1h", label: "Last hour" },
+                { value: "24h", label: "Last 24 h" },
+                { value: "7d", label: "Last 7 days" },
+                { value: "30d", label: "Last 30 days" },
+              ]}
+              className="w-full"
+            />
+            <SearchField value={value("ip")} onChange={(v) => set({ ip: v || null })} delay={300} placeholder="IP" numeric action="requests:ip" />
+            <SearchField value={value("path")} onChange={(v) => set({ path: v || null })} delay={300} placeholder="Path" numeric action="requests:path" />
+            <SearchField value={value("user")} onChange={(v) => set({ user: v || null })} delay={300} placeholder="Account" action="requests:user" />
+            {any && (
+              <Button variant="outline" onClick={() => navigate("/admin/requests", true)} data-action="requests:reset">
+                Reset
+              </Button>
+            )}
+          </PopoverContent>
+        </Popover>
       </PageHead>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
-        <Toggle
-          variant="outline"
-          pressed={value("important") === "1"}
-          onPressedChange={(on: boolean) => set({ important: on ? "1" : null })}
-          data-action="requests:important"
-        >
-          <Flag />
-          Important
-        </Toggle>
-        <Choose
-          label="Kind"
-          action="requests:kind"
-          value={value("kind") || "any"}
-          onChange={(v) => set({ kind: v === "any" ? null : v })}
-          options={[{ value: "any", label: "All kinds" }, ...(d?.kinds ?? KINDS).map((k) => ({ value: k, label: k }))]}
-        />
-        <Choose
-          label="Status"
-          action="requests:status"
-          value={value("status") || "any"}
-          onChange={(v) => set({ status: v === "any" ? null : v })}
-          options={[
-            { value: "any", label: "Any status" },
-            { value: "error", label: "Errors (4xx, 5xx)" },
-            { value: "2xx", label: "2xx" },
-            { value: "3xx", label: "3xx" },
-            { value: "4xx", label: "4xx" },
-            { value: "5xx", label: "5xx" },
-            { value: "401", label: "401" },
-            { value: "404", label: "404" },
-            { value: "429", label: "429" },
-          ]}
-        />
-        <Choose
-          label="Method"
-          action="requests:method"
-          value={value("method") || "any"}
-          onChange={(v) => set({ method: v === "any" ? null : v })}
-          options={[{ value: "any", label: "Any method" }, ...["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => ({ value: m, label: m }))]}
-        />
-        <Choose
-          label="Period"
-          action="requests:range"
-          value={range || "any"}
-          onChange={(v) => set({ range: v === "any" ? null : v })}
-          options={[
-            { value: "any", label: "Any time" },
-            { value: "1h", label: "Last hour" },
-            { value: "24h", label: "Last 24 h" },
-            { value: "7d", label: "Last 7 days" },
-            { value: "30d", label: "Last 30 days" },
-          ]}
-        />
-        <SearchField value={value("ip")} onChange={(v) => set({ ip: v || null })} delay={300} placeholder="IP" numeric action="requests:ip" className="w-full sm:w-40" />
-        <SearchField value={value("path")} onChange={(v) => set({ path: v || null })} delay={300} placeholder="Path" numeric action="requests:path" className="w-full sm:w-48" />
-        <SearchField value={value("user")} onChange={(v) => set({ user: v || null })} delay={300} placeholder="Account" action="requests:user" className="w-full sm:w-40" />
-        {any && (
-          <Button variant="outline" onClick={() => navigate("/admin/requests", true)} data-action="requests:reset">
-            Reset
-          </Button>
-        )}
-      </div>
       <div className={cn("min-w-0", first.loading && d && !following && "opacity-70 transition-opacity")}>
         {first.error && !d ? (
           <Failure error={first.error} retry={first.reload} className="my-2" />

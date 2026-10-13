@@ -328,7 +328,7 @@ function Detail({ a, all, pick }: { a: A; all: A[]; pick: (a: A) => void }) {
             <>
               <UiButton variant="outline" data-action={"solve:" + a.solveId} onClick={() => void s.action("solve:" + a.solveId)}>
                 <Eye />
-                {tr("View the solve")}
+                {tr("View")}
               </UiButton>
               <UiButton variant="outline" data-action={"share:" + a.solveId} onClick={() => void s.action("share:" + a.solveId)}>
                 <Share2 />

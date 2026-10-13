@@ -90,7 +90,7 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
         <span className="max-w-md text-xs leading-relaxed text-muted-foreground">{IMPORT_APPS.join(" · ")}</span>
         <Button onClick={() => input.current?.click()} disabled={busy} className="mt-1">
           <FileUp data-icon="inline-start" />
-          {tr("Choose files")}</Button>
+          {tr("Choose")}</Button>
         <input
           ref={input}
           type="file"

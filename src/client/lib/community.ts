@@ -480,7 +480,7 @@ export class Community {
   updateGroup = (group: number, name: string, description: string) => this.regroup("PUT", `social/groups/${group}`, { name, description }, ["me"]);
   async deleteGroup(group: number) {
     const name = this.groups.get(group)?.name;
-    if (!(await this.host.confirm({ title: tr("Delete {0}?", { 0: name }), text: tr("Its chat, tournaments and battles go with it, for every member. This cannot be undone."), action: tr("Delete the group") }))) return;
+    if (!(await this.host.confirm({ title: tr("Delete {0}?", { 0: name }), text: tr("Its chat, tournaments and battles go with it, for every member. This cannot be undone."), action: tr("Delete") }))) return;
     if (!(await this.act("DELETE", `social/groups/${group}`, undefined, ["me", "conversations"]))) return;
     this.groups.delete(group);
     this.host.navigate(communityUrl());

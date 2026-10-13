@@ -127,13 +127,13 @@ function GroupDetails({ id, scroller }: { id: number; scroller: RefObject<HTMLDi
       </Part>
       <div className="mt-auto flex flex-col gap-1 p-3">
         {g.role !== "owner" ? (
-          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" onClick={() => void community.remove(g.id, s.user.id)}>
+          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" aria-label={tr("Leave the group")} onClick={() => void community.remove(g.id, s.user.id)}>
             <LogOut />
-            {tr("Leave the group")}</Button>
+            {tr("Leave")}</Button>
         ) : (
-          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" onClick={() => void community.deleteGroup(g.id)}>
+          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" aria-label={tr("Delete the group")} onClick={() => void community.deleteGroup(g.id)}>
             <Trash2 />
-            {tr("Delete the group")}</Button>
+            {tr("Delete")}</Button>
         )}
       </div>
     </>
@@ -197,11 +197,11 @@ export function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
             {m.id !== s.user.id && m.role !== "invited" && (friend ? (
               <DropdownMenuItem onClick={() => void community.message(m.id)}>
                 <MessageSquare />
-                {tr("Write to {0}", { 0: m.username })}</DropdownMenuItem>
+                {tr("Write")}</DropdownMenuItem>
             ) : (
               <DropdownMenuItem onClick={() => void community.addFriend(m.username)}>
                 <UserPlus />
-                {tr("Add as a friend")}</DropdownMenuItem>
+                {tr("Add friend")}</DropdownMenuItem>
             ))}
             {g.role === "owner" && m.role === "member" && (
               <DropdownMenuItem onClick={() => void community.setRole(g.id, m.id, "admin")}>
@@ -216,7 +216,7 @@ export function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
             {removable && (
               <DropdownMenuItem variant="destructive" onClick={() => void community.remove(g.id, m.id)}>
                 <X />
-                {m.role === "invited" ? tr("Withdraw the invitation") : tr("Remove from the group")}
+                {m.role === "invited" ? tr("Withdraw") : tr("Remove")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -355,9 +355,9 @@ function FriendDetails({ c }: { c: Conversation }) {
       </Part>
       {friend && (
         <div className="mt-auto flex flex-col gap-1 p-3">
-          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" onClick={() => void community.removeFriend(other.id)}>
+          <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" aria-label={tr("Remove from friends")} onClick={() => void community.removeFriend(other.id)}>
             <UserMinus />
-            {tr("Remove from friends")}</Button>
+            {tr("Remove")}</Button>
         </div>
       )}
     </>

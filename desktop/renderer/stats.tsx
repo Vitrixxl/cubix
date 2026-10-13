@@ -50,7 +50,7 @@ export function StatsPage({ phone }: { phone: boolean }) {
     <Surface className="flex-1">
       <Empty icon={Timer} title={tr("No times yet")}>
         <Button action="nav:playground" icon={Timer} variant="outline">
-          {tr("Open the timer")}
+          {tr("Timer")}
         </Button>
       </Empty>
     </Surface>
@@ -240,12 +240,7 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
   const chartCard = (
     <Surface className={cn(CARD, "pb-3")} aria-label={tr("Chart")}>
       <CardHead title={perSession ? "One value per session" : "All solves"}>
-        {perSession &&
-          (stacked ? (
-            <SelectMenu action="sessionMetric" label="Figure per session" variant="ghost" onChange={(id) => setMetric(id as SessionMetric)} value={metric} options={[...SESSION_METRICS]} className="ml-auto" />
-          ) : (
-            <Segmented label={tr("Figure per session")} value={metric} onChange={(id) => setMetric(id as SessionMetric)} options={SESSION_METRICS.map((m) => ({ id: m.id, label: tr(m.label) }))} className="bg-muted/60" />
-          ))}
+        {perSession && <SelectMenu action="sessionMetric" label="Figure per session" variant="ghost" onChange={(id) => setMetric(id as SessionMetric)} value={metric} options={[...SESSION_METRICS]} className={stacked ? "ml-auto" : undefined} />}
         {!stacked && legendRow}
       </CardHead>
       {stacked && legendRow}

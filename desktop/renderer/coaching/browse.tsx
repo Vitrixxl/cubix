@@ -4,7 +4,7 @@
  * cuber, their reviews) and the booking alone (from a conversation) keep the same booking panel.
  */
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, Star, Timer, UserRoundX, Users } from "lucide-react";
+import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, ListFilter, MessageSquare, SearchX, Star, Timer, UserRoundX, Users } from "lucide-react";
 import { useLocation } from "react-router";
 import { toast } from "sonner";
 import { store as s } from "../store";
@@ -14,7 +14,7 @@ import { EVENTS, eventInfo } from "../../../src/shared/puzzles";
 import { coaching, price, type Coach } from "./client";
 import { fmtTime } from "../../../src/client/lib/format";
 import { Back, Tools, dayKey, day, span, time, url } from "./parts";
-import { Bar, Empty, LINK, ListSkeleton, SearchField, Stars, Surface, Tip } from "../base";
+import { Bar, Count, Empty, LINK, ListSkeleton, SearchField, Stars, Surface, Tip } from "../base";
 import { Activity, Learned, PuzzleCard } from "./person";
 import { SLOT } from "./calendar";
 import { VirtualList } from "../virtual";
@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Toggle } from "@/components/ui/toggle";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen } from "./policy";
 import { tr, localFormat, locale } from "../../../src/client/i18n";
 import { said } from "../base";
@@ -79,17 +80,23 @@ export function CoachList() {
   return (
     <>
       <Tools>
-        <SearchField value={query} onChange={setQuery} placeholder="Name, method, speciality…" label="Search coaches" action="coaching:search" className="w-full sm:w-64" />
-        {!phone && (
-          <>
-            <SelectMenu action="coaching:event" variant="outline" value={event} onChange={setEvent} label="Event" options={[{ id: "all", label: "Every event" }, ...taught.map((e) => ({ id: e.id, label: e.label, icon: <Icon name={"Puzzle" + e.id} size={14} /> }))]} />
-            <Toggle variant="outline" pressed={soon} onPressedChange={setSoon} data-action="coaching:soon" className="aria-pressed:text-foreground">
+        <SearchField value={query} onChange={setQuery} placeholder="Name, method, speciality…" label="Search coaches" action="coaching:search" className="min-w-0 flex-1 sm:w-64 sm:flex-none" />
+        {/* The filters in a popover, the button counting those set. */}
+        <Popover>
+          <PopoverTrigger render={<UiButton variant="outline" data-action="coaching:filters" />}>
+            <ListFilter />
+            {tr("Filter")}
+            <Count n={[event !== "all", soon, language !== "all", most !== "any"].filter(Boolean).length} className="ml-0" />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="flex w-64 flex-col gap-2 p-3">
+            <SelectMenu action="coaching:event" variant="outline" value={event} onChange={setEvent} label="Event" align="start" className="w-full justify-between" options={[{ id: "all", label: "Every event" }, ...taught.map((e) => ({ id: e.id, label: e.label, icon: <Icon name={"Puzzle" + e.id} size={14} /> }))]} />
+            {spoken.length > 1 && <SelectMenu action="coaching:language" variant="outline" value={language} onChange={setLanguage} label="Language" align="start" className="w-full justify-between" options={[{ id: "all", label: "Every language" }, ...spoken.map((l) => ({ id: l, label: l }))]} />}
+            <SelectMenu action="coaching:price" variant="outline" value={most} onChange={setMost} label="Price" align="start" className="w-full justify-between" options={PRICES} />
+            <Toggle variant="outline" pressed={soon} onPressedChange={setSoon} data-action="coaching:soon" className="w-full aria-pressed:bg-accent aria-pressed:text-primary">
               {tr("Free this week")}
             </Toggle>
-            {spoken.length > 1 && <SelectMenu action="coaching:language" variant="outline" value={language} onChange={setLanguage} label="Language" options={[{ id: "all", label: "Every language" }, ...spoken.map((l) => ({ id: l, label: l }))]} />}
-            <SelectMenu action="coaching:price" variant="outline" value={most} onChange={setMost} label="Price" options={PRICES} />
-          </>
-        )}
+          </PopoverContent>
+        </Popover>
       </Tools>
       <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)]")}>
         <Surface className="min-w-0 gap-2 px-2.5 pt-4 pb-2.5" aria-label={tr("Coaches")}>
@@ -106,7 +113,7 @@ export function CoachList() {
                 {list?.length ? tr("No coach matches your search.") : tr("No coach has opened their page yet.")}
                 {!coaching.isCoach && !list?.length && (
                   <UiButton variant="outline" onClick={() => go(url("apply"))} data-action="coaching:apply-first">
-                    {tr("Become the first coach")}
+                    {tr("Apply")}
                   </UiButton>
                 )}
               </Empty>
@@ -329,8 +336,8 @@ export function CoachPage({ id }: { id: string }) {
           {own ? (
             <Empty icon={CalendarCheck}>
               {tr("Players book you here.")}
-              <UiButton variant="outline" onClick={() => go(url("schedule"))}>
-                {tr("Edit your schedule")}
+              <UiButton variant="outline" onClick={() => go(url("schedule"))} aria-label={tr("Edit your schedule")}>
+                {tr("Schedule")}
               </UiButton>
             </Empty>
           ) : (

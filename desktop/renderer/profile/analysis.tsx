@@ -81,7 +81,7 @@ function NoSmartSolves({ pending }: { pending: number }) {
       {!pending && (
         <>
           <Button action="nav:playground" icon={Timer} variant="outline">
-            {tr("Open the timer")}
+            {tr("Timer")}
           </Button>
         </>
       )}
@@ -233,15 +233,15 @@ function CaseSheet({ tile, usual, step, className }: { tile?: Tile; usual: numbe
       <div className="grid grid-cols-2 gap-2">
         {learned ? (
           <Button action={"trainCases:" + tile.id} icon={Dumbbell} variant="default">
-            {tr("Train this case")}
+            {tr("Train")}
           </Button>
         ) : (
           <Button action={"case:" + tile.id} icon={GraduationCap} variant="default" tip={tr("Only learned cases are trained")}>
             {tr("Learn")}
           </Button>
         )}
-        <Button action={"caseDialog:" + tile.id} variant="secondary">
-          {tr("Open the case")}
+        <Button action={"caseDialog:" + tile.id} variant="secondary" tip={tr("Open the case")}>
+          {tr("Open")}
         </Button>
       </div>
       {c && (

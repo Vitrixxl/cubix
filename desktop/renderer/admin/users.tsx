@@ -25,7 +25,7 @@ export function Users({ phone }: { phone: boolean }) {
   };
   return (
     <div className={VIEW}>
-      <PageHead title="Users" sub={d ? `${num(d.counts.all)} accounts · ${num(d.counts.registered)} registered · ${num(d.counts.guests)} guests` : "Every account"} />
+      <PageHead title="Users" sub={d ? `${num(d.counts.all)} accounts · ${num(d.counts.registered)} registered · ${num(d.counts.guests)} guests` : undefined} />
       <div className="flex flex-wrap items-center gap-2">
         <SearchField
           value={q}

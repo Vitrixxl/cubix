@@ -1,10 +1,10 @@
 /**
  * Someone the account coaches (or is coached by), from a session in the calendar or a conversation: a card in a
  * popover with the session and what matters at a glance, and their whole file in a dialog: figures, activity,
- * progress per puzzle, cases learned, the coach's notes and every session together.
+ * progress per puzzle, cases learned, the coach's notes, and every session together behind History.
  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, GraduationCap, MessageSquare, Timer, TrendingDown, TrendingUp, UserRound, Video } from "lucide-react";
+import { CalendarDays, GraduationCap, History as HistoryIcon, MessageSquare, Timer, TrendingDown, TrendingUp, UserRound, Video } from "lucide-react";
 import { Avatar, Icon, Modal, NUMERIC, plural } from "../ui";
 import { catalog } from "../store";
 import { go } from "../navigation";
@@ -60,7 +60,7 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
       <div className="flex flex-col gap-1">
         <span className={cn(NUMERIC, "text-2xl font-extrabold tracking-[-0.02em] first-letter:uppercase", b.status === "cancelled" && "text-muted-foreground line-through")}>{span(b.startsAt, b.endsAt)}</span>
         <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>
-          {b.status === "cancelled" ? (b.cancelledByMe ? tr("Cancelled by you") : tr("Cancelled by {0}", { 0: b.with.username })) : over ? tr("Session over") : relative(b.startsAt, now)} · {price(b.priceCents)}
+          {b.status === "cancelled" ? (b.cancelledByMe ? tr("Cancelled by you") : tr("Cancelled by {0}", { 0: b.with.username })) : over ? tr("Session over") : open && waiting ? tr("{0} is waiting", { 0: b.with.username }) : relative(b.startsAt, now)} · {price(b.priceCents)}
         </span>
         {b.note && <p className="pt-2 text-[15px] leading-normal whitespace-pre-line">“{b.note}”</p>}
       </div>
@@ -82,7 +82,7 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
         {open && (
           <UiButton onClick={() => go(url("call/" + b.id))} data-action="coaching:join">
             <Video />
-            {waiting ? tr("{0} is waiting", { 0: b.with.username }) : tr("Join call")}
+            {tr("Join call")}
           </UiButton>
         )}
         {over && b.status === "booked" && b.role === "student" && <ReviewButton b={b} />}
@@ -92,9 +92,9 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
             {tr("Message")}
           </UiButton>
         )}
-        <UiButton variant="outline" onClick={onProfile} data-action="person:profile">
+        <UiButton variant="outline" onClick={onProfile} data-action="person:profile" aria-label={b.role === "coach" ? tr("Student file") : tr("Coach file")}>
           <UserRound />
-          {b.role === "coach" ? tr("Student file") : tr("Coach file")}
+          {tr("Profile")}
         </UiButton>
       </div>
       {over && b.role === "coach" && b.review && (
@@ -119,8 +119,8 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
 
 /**
  * Someone's whole file: their figures, their activity over a year, how each puzzle goes, the cases they learned, the
- * coach's notes (written here) and every session together. `inChat`: opened from their conversation, which it then
- * does not offer again.
+ * coach's notes (written here), and every session together in a dialog of its own. `inChat`: opened from their
+ * conversation, which it then does not offer again.
  */
 export function PersonDialog({ id, name, open, onOpenChange, inChat = false }: { id: string; name: string; open: boolean; onOpenChange: (open: boolean) => void; inChat?: boolean }) {
   return (
@@ -136,7 +136,7 @@ const SECTION = "gap-3 p-5";
 function PersonBody({ id, name, inChat, close }: { id: string; name: string; inChat: boolean; close: () => void }) {
   const p = usePerson(id),
     now = Date.now(),
-    scroller = useRef<HTMLDivElement>(null);
+    [history, setHistory] = useState(false);
   const booked = p?.sessions.filter((b) => b.status === "booked") ?? [],
     done = booked.filter((b) => b.endsAt <= now),
     rated = done.filter((b) => b.review),
@@ -157,18 +157,25 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
                 ].join(" · ")
               : tr("Loading…")}
           </p>
-          {p && !inChat && (
-            <UiButton
-              variant="outline"
-              className="mt-1"
-              onClick={() => {
-                close();
-                go(url(p.role === "student" ? "students/" + p.id : "messages/" + p.conversationId));
-              }}
-            >
-              <MessageSquare />
-              {tr("Message")}
-            </UiButton>
+          {p && (
+            <span className="mt-1 flex flex-wrap gap-2">
+              {!inChat && (
+                <UiButton
+                  variant="outline"
+                  onClick={() => {
+                    close();
+                    go(url(p.role === "student" ? "students/" + p.id : "messages/" + p.conversationId));
+                  }}
+                >
+                  <MessageSquare />
+                  {tr("Message")}
+                </UiButton>
+              )}
+              <UiButton variant="outline" onClick={() => setHistory(true)} data-action="person:history">
+                <HistoryIcon />
+                {tr("History")}
+              </UiButton>
+            </span>
           )}
         </div>
       </header>
@@ -181,7 +188,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
           </div>
         </div>
       ) : (
-        <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6 max-md:p-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6 max-md:p-5">
           <dl className="grid shrink-0 grid-cols-3 gap-x-6 gap-y-3 px-1 lg:grid-cols-6">
             {(
               [
@@ -199,7 +206,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
               </div>
             ))}
           </dl>
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
+          <div className={cn("grid items-start gap-4", p.note !== null && "lg:grid-cols-[minmax(0,1fr)_23rem]")}>
             <div className="flex min-w-0 flex-col gap-4">
               <Activity days={p.history.days} />
               <Surface className={SECTION} aria-label={tr("Puzzles")}>
@@ -218,49 +225,60 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
               </Surface>
               <Learned ids={p.history.learned} />
             </div>
-            <div className="flex min-w-0 flex-col gap-4">
-              {p.note !== null && <Suspense fallback={<Skeleton className="h-96" />}><PrivateNotes conversation={p.conversationId} note={p.note} className="h-96" /></Suspense>}
-              <Surface className={SECTION} aria-label={tr("Sessions together")}>
-                <SectionHead title="Sessions together" meta={p.sessions.length || undefined} />
-                {!p.sessions.length ? (
-                  <Empty icon={CalendarDays} className="p-4">
-                    {tr("No session yet.")}
-                  </Empty>
-                ) : (
-                  <ul className="-mx-2 flex flex-col gap-0.5" data-slot="person-sessions">
-                    <VirtualList
-                      items={p.sessions}
-                      scroller={scroller}
-                      estimate={40}
-                      gap={2}
-                      spacerAs="li"
-                      rowKey={(b) => b.id}
-                      row={(b, _, measure) => (
-                        <li ref={measure} className={cn("flex flex-col gap-1 rounded-xl px-2 py-2", b.status === "cancelled" && "opacity-60")}>
-                          <span className="flex items-center gap-2">
-                            <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
-                            <span className="ml-auto">
-                              {b.status === "cancelled" ? (
-                                <StateMark tone="off">{tr("cancelled")}</StateMark>
-                              ) : b.endsAt > now ? (
-                                <StateMark tone="good">{day(b.startsAt) === day(now) ? tr("today") : tr("to come")}</StateMark>
-                              ) : (
-                                b.review && <Stars rating={b.review.rating} size={11} figure={false} />
-                              )}
-                            </span>
-                          </span>
-                          {b.note && <span className="text-xs whitespace-pre-line text-muted-foreground">{b.note}</span>}
-                          {b.review?.comment && <span className="text-xs text-muted-foreground italic">“{b.review.comment}”</span>}
-                        </li>
-                      )}
-                    />
-                  </ul>
-                )}
-              </Surface>
-            </div>
+            {p.note !== null && (
+              <Suspense fallback={<Skeleton className="h-96" />}>
+                <PrivateNotes conversation={p.conversationId} note={p.note} className="h-96" />
+              </Suspense>
+            )}
           </div>
         </div>
       )}
+      <Modal open={history} onOpenChange={setHistory} title={tr("Sessions together")} tall className="flex h-[min(80vh,40rem)] flex-col sm:max-w-md">
+        {p && <SessionsTogether sessions={p.sessions} now={now} />}
+      </Modal>
+    </div>
+  );
+}
+
+/** Every session together, newest first as the server sends them: when, where it stands, its note and its review. */
+function SessionsTogether({ sessions, now }: { sessions: Booking[]; now: number }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  if (!sessions.length)
+    return (
+      <Empty icon={CalendarDays} className="h-full">
+        {tr("No session yet.")}
+      </Empty>
+    );
+  return (
+    <div ref={scroller} className="-mx-2 min-h-0 flex-1 overflow-y-auto">
+      <ul className="flex flex-col gap-0.5" data-slot="person-sessions">
+        <VirtualList
+          items={sessions}
+          scroller={scroller}
+          estimate={40}
+          gap={2}
+          spacerAs="li"
+          rowKey={(b) => b.id}
+          row={(b, _, measure) => (
+            <li ref={measure} className={cn("flex flex-col gap-1 rounded-xl px-2 py-2", b.status === "cancelled" && "opacity-60")}>
+              <span className="flex items-center gap-2">
+                <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
+                <span className="ml-auto">
+                  {b.status === "cancelled" ? (
+                    <StateMark tone="off">{tr("cancelled")}</StateMark>
+                  ) : b.endsAt > now ? (
+                    <StateMark tone="good">{day(b.startsAt) === day(now) ? tr("today") : tr("to come")}</StateMark>
+                  ) : (
+                    b.review && <Stars rating={b.review.rating} size={11} figure={false} />
+                  )}
+                </span>
+              </span>
+              {b.note && <span className="text-xs whitespace-pre-line text-muted-foreground">{b.note}</span>}
+              {b.review?.comment && <span className="text-xs text-muted-foreground italic">“{b.review.comment}”</span>}
+            </li>
+          )}
+        />
+      </ul>
     </div>
   );
 }

@@ -287,8 +287,8 @@ export function HistoryChart({ history, averages, range, onRange, points = false
             ) : null,
           )}
         {zoomed && (
-          <Button variant="secondary" className="absolute top-2 right-2" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} onClick={reset}>
-            {tr("Reset zoom")}
+          <Button variant="secondary" aria-label={tr("Reset zoom")} className="absolute top-2 right-2" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} onClick={reset}>
+            {tr("Reset")}
           </Button>
         )}
         {selection && (

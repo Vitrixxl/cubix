@@ -120,7 +120,7 @@ function SignIn() {
       <div className="mt-auto flex flex-col gap-4">
         {!expired && (
           <Button type="button" variant="ghost" data-action="login:guest" onClick={s.closeOverlay} className="w-full text-muted-foreground">
-            {tr("Continue without an account")}
+            {tr("No account")}
           </Button>
         )}
         {s.localData && (

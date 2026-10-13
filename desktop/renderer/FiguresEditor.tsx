@@ -182,7 +182,7 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
           title={editing ? undefined : tr("Edit the figures")}
           data-action="figures:edit"
           onClick={() => (editing ? finish() : setEditing(true))}
-          className={cn("shrink-0", !editing && "bg-card text-muted-foreground hover:bg-muted")}
+          className={cn("ml-auto shrink-0", !editing && "bg-card text-muted-foreground hover:bg-muted")}
         >
           {editing ? <Check data-icon="inline-start" /> : <Pencil />}
           {editing && tr("Done")}

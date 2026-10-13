@@ -231,7 +231,7 @@ function CaseButton({ id, name, size }: { id: string; name: string; size: number
       <span className="flex flex-col gap-1">
         <span className="text-xl font-bold tracking-[-0.02em]">{name}</span>
         <span className="flex items-center gap-1 text-sm text-muted-foreground group-hover:text-foreground">
-          {tr("Open the algorithms")}{" "}<ChevronRight className="size-4" />
+          {tr("Algorithms")}{" "}<ChevronRight className="size-4" />
         </span>
       </span>
     </button>

@@ -96,9 +96,9 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         <div className="ml-auto flex items-center gap-1">
           {recorded && solve.id !== undefined && <SolveAnalysisButton solve={solve} turns={recorded} />}
           {owner && !recorded && cube && (
-            <UiButton variant="outline" onClick={() => setEditing(true)} data-action="annotate">
+            <UiButton variant="outline" onClick={() => setEditing(true)} data-action="annotate" aria-label={annotation ? tr("Edit the turns") : tr("Write the turns")}>
               <PenLine />
-              {annotation ? tr("Edit the turns") : tr("Write the turns")}
+              {annotation ? tr("Edit") : tr("Write")}
             </UiButton>
           )}
         </div>

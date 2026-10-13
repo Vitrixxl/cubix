@@ -96,7 +96,7 @@ export function BattleCard({ match }: { match: Match }) {
           </button>
         )}
         <button type="button" className={LINK} onClick={() => setOpen(true)} data-action={"battle:detail:" + m.id}>
-          {tr("See the detail")}
+          {tr("Details")}
         </button>
       </div>
       <MatchDialog match={m} open={open} onOpenChange={setOpen} />
@@ -106,7 +106,7 @@ export function BattleCard({ match }: { match: Match }) {
 
 /**
  * A seat of a battle: the face, the name and, once it is played, the solves or sets won (the winner's seat in green).
- * With `take` it is the way in: dashed, the account's face or a plus, "Accept" or "Take the seat". An empty seat no
+ * With `take` it is the way in: dashed, the account's face or a plus, "Accept" or "Join". An empty seat no
  * one may take here stays dashed and quiet.
  */
 function Seat({ p, name, score, won, take, action, order }: { p: Person | null; name: string; score?: number; won: boolean; take?: () => void; action: string; order?: string }) {
@@ -123,7 +123,7 @@ function Seat({ p, name, score, won, take, action, order }: { p: Person | null; 
         )}
         <span className="flex items-center gap-1">
           {p && <Check className="size-3.5" />}
-          {p ? tr("Accept") : tr("Take the seat")}
+          {p ? tr("Accept") : tr("Join")}
         </span>
       </button>
     );
@@ -234,7 +234,7 @@ export function MatchDialog({ match, open, onOpenChange }: { match: Match; open:
       {(m.status === "ready" || m.status === "live" || m.status === "done") && (
         <DialogFooter>
           <Button variant="outline" onClick={() => go(matchUrl(m.id))}>
-            {m.status === "done" ? tr("Open the match page") : seatIn(m, s.user.id) !== null ? tr("Play") : tr("Watch")}
+            {m.status === "done" ? tr("Open") : seatIn(m, s.user.id) !== null ? tr("Play") : tr("Watch")}
             <ChevronRight />
           </Button>
         </DialogFooter>
@@ -277,7 +277,7 @@ export function TournamentChatCard({ tournament }: { tournament: Tournament }) {
       <span className="justify-self-end" {...apart}>
         {t.myMatch ? (
           <button type="button" className={LINK_ACCENT} onClick={() => go(matchUrl(t.myMatch!))}>
-            {tr("Play your match")}
+            {tr("Play")}
           </button>
         ) : t.status === "open" && t.registered ? (
           <button type="button" className={cn(LINK, "hover:text-destructive")} onClick={() => void community.register(t.id, false)} data-action={"tournament:unregister:" + t.id}>

@@ -22,7 +22,6 @@ import { Button as UiButton } from "@/components/ui/button";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList, Command } from "@/components/ui/command";
 import { Command as CommandPrimitive } from "cmdk";
 import { CaseTile } from "./algorithms";
-import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { FieldError } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -149,12 +148,12 @@ function AccountData() {
       <div className="flex flex-wrap gap-2 pt-1">
         <UiButton variant="secondary" onClick={() => void s.action("exportData")} data-action="exportData">
           <Download />
-          {tr("Download my data")}
+          {tr("Export")}
         </UiButton>
         <AlertDialog onOpenChange={() => setError("")}>
-          <AlertDialogTrigger render={<UiButton variant="ghost" className="text-muted-foreground hover:text-destructive" data-action="deleteAccount" />}>
+          <AlertDialogTrigger render={<UiButton variant="ghost" className="text-muted-foreground hover:text-destructive" data-action="deleteAccount" aria-label={tr("Delete my account")} />}>
             <Trash2 />
-            {tr("Delete my account")}
+            {tr("Delete")}
           </AlertDialogTrigger>
           <AlertDialogContent>
             <form onSubmit={remove} className="flex flex-col gap-5">
@@ -164,9 +163,9 @@ function AccountData() {
               </AlertDialogHeader>
               {error && <FieldError>{error}</FieldError>}
               <AlertDialogFooter>
-                <AlertDialogCancel type="button">{tr("Keep my account")}</AlertDialogCancel>
+                <AlertDialogCancel type="button">{tr("Keep it")}</AlertDialogCancel>
                 <UiButton type="submit" variant="destructive" disabled={busy}>
-                  {busy ? tr("Deleting…") : tr("Delete for good")}
+                  {busy ? tr("Deleting…") : tr("Delete")}
                 </UiButton>
               </AlertDialogFooter>
             </form>
@@ -216,8 +215,8 @@ function GuidesDialog() {
         </ToggleGroup>
         {/* Replays: the app tour (the shared `tour` action) and the introduction, which leaves the guides behind. */}
         <div className="flex gap-0.5 md:mt-auto md:flex-col md:pt-2 max-md:pl-1">
-          <Button action="tour" icon={Compass} className="justify-start font-normal text-muted-foreground">
-            {tr("Replay tour")}</Button>
+          <Button action="tour" icon={Compass} label="Replay tour" className="justify-start font-normal text-muted-foreground">
+            {tr("Tour")}</Button>
           <UiButton
             variant="ghost"
             data-action="onboarding"
@@ -268,7 +267,7 @@ function MethodsDialog() {
             <p className="text-sm text-muted-foreground">{said(method.summary)}</p>
           </div>
           <Button action={`learnFrom:${s.guidePuzzle}:${method.id}`} icon={GraduationCap} variant="outline" className="shrink-0">
-            {tr("Learn this method")}</Button>
+            {tr("Learn")}</Button>
         </div>
         <ol className="flex flex-col gap-4">
           {method.steps.map((step, i) => (

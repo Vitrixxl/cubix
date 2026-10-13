@@ -484,7 +484,7 @@ function Forfeit() {
       className="text-muted-foreground hover:text-destructive"
       onClick={async () => {
         const text = tr("Your opponent wins it at once") + (live.match?.tournamentId ? tr(" and goes through to the next round") : "") + ".";
-        if (await ask({ title: tr("Give up the match?"), text, action: tr("Forfeit"), cancel: tr("Keep playing") })) live.forfeit();
+        if (await ask({ title: tr("Give up the match?"), text, action: tr("Forfeit"), cancel: tr("Continue") })) live.forfeit();
       }}
     >
       <Flag />
@@ -528,7 +528,9 @@ function Result({ m, left, onClose }: { m: Match; left: number; onClose: () => v
               <X />
             </Button>
           </Tip>
-          <Button onClick={() => go(home(m))}>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}</Button>
+          <Tip content={m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}>
+            <Button onClick={() => go(home(m))}>{tr("Back")}</Button>
+          </Tip>
         </>
       }
     />

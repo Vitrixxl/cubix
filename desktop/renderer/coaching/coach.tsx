@@ -55,9 +55,9 @@ export function Dashboard() {
     month = d.weeks.reduce((sum, w) => sum + w.incomeCents, 0),
     most = Math.max(1, ...d.weeks.map((w) => w.sessions + w.openSlots));
   const todo = [
-    !c.windows?.length && !c.overrides?.some((o) => o.open) && ["Add your hours so players can book you.", "schedule", "Set my hours"],
-    !c.headline && ["Introduce yourself on your public page.", "profile", "Edit my profile"],
-    !c.accepting && ["Your bookings are paused.", "profile", "Open bookings"],
+    !c.windows?.length && !c.overrides?.some((o) => o.open) && ["Add your hours so players can book you.", "schedule", "Schedule"],
+    !c.headline && ["Introduce yourself on your public page.", "profile", "Profile"],
+    !c.accepting && ["Your bookings are paused.", "profile", "Open"],
   ].filter(Boolean) as [string, string, string][];
   const figures: [React.ReactNode, string][] = [
     [week.sessions, msg("sessions in the next 7 days")],
@@ -288,7 +288,7 @@ function ProfileForm() {
           <Field>
             <FieldLabel>{tr("New students")}</FieldLabel>
             <div>
-              <Segmented label="New students" value={newStudents ? "newcomers" : "regulars"} onChange={(v) => setNewStudents(v === "newcomers")} action="profile:" className="w-fit bg-muted" options={[{ id: "newcomers", label: "Welcome" }, { id: "regulars", label: "My students only" }]} />
+              <Segmented label="New students" value={newStudents ? "newcomers" : "regulars"} onChange={(v) => setNewStudents(v === "newcomers")} action="profile:" className="w-fit bg-muted" options={[{ id: "newcomers", label: "Yes" }, { id: "regulars", label: "No" }]} />
             </div>
           </Field>
         </div>
@@ -375,9 +375,9 @@ function Picture() {
         />
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <UiButton type="button" variant="outline" disabled={pending} onClick={() => input.current?.click()} data-action="profile:picture">
+            <UiButton type="button" variant="outline" disabled={pending} onClick={() => input.current?.click()} aria-label={coach.avatar ? undefined : tr("Add a picture")} data-action="profile:picture">
               <ImageUp />
-              {coach.avatar ? tr("Change") : tr("Add a picture")}
+              {coach.avatar ? tr("Change") : tr("Add")}
             </UiButton>
             {coach.avatar && (
               <UiButton type="button" variant="ghost" disabled={pending} onClick={async () => (await ask({ title: tr("Remove your picture?"), action: tr("Remove") })) && set(null)}>
