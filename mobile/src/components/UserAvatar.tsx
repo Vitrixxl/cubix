@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * The player's face: the initials of the account on the accent, a person without one. `className` shapes it (a
- * rounded square on the profile and in the account menu, a disc elsewhere).
+ * rounded square on the profile and in the settings, a disc elsewhere).
  */
 export function UserAvatar({ user, size = 32, className }: { user: Pick<UserDto, "username" | "isGuest"> | null; size?: number; className?: string }) {
   if (!user || user.isGuest) return <View className={cn("items-center justify-center rounded-full bg-muted", className)} style={{ width: size, height: size }}>

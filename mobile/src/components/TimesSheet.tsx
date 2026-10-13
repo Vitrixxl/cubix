@@ -82,8 +82,10 @@ const pillName = (x: SessionSummary) => x.name || (sameDay(new Date(x.at), new D
  * menu, swiping it to the left +2, DNF and Delete. On the timer (`context`), the session has its name (edited in
  * place), the sessions of the puzzle as pills ("New" starts one) and, behind the calendar, every day one was used.
  */
-export function TimesSheet({ open, onClose, solves, title, context, calendar = false }: {
+export function TimesSheet({ open, onClose, solves, title, context, calendar = false, onEditFigures }: {
   open: boolean; onClose: () => void; solves: SolveDto[]; title: string;
+  /** Chooses the figures the timer's card shows (its pencil, beside the sheet's figures). */
+  onEditFigures?: () => void;
   /** The timer's practice context: its sessions can be named, started and chosen. */
   context?: PracticeContext;
   /** Opens on the calendar of the sessions. */
@@ -92,7 +94,13 @@ export function TimesSheet({ open, onClose, solves, title, context, calendar = f
   const [showCalendar, setShowCalendar] = useState(calendar);
   useEffect(() => { if (open) setShowCalendar(calendar); }, [open, calendar]);
   return <Sheet open={open} onClose={onClose} title={title} hideTitle contentClassName="gap-3 px-0">
-    <TimesBody solves={solves} title={title} context={context} calendar={showCalendar} onCalendar={setShowCalendar} />
+    <TimesBody solves={solves} title={title} context={context} calendar={showCalendar} onCalendar={setShowCalendar}
+      figures={onEditFigures && <View className="flex-row items-start pr-3">
+        <View className="min-w-0 flex-1"><SessionFigures solves={solves} wide={false} /></View>
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("Choose the figures")} hitSlop={8} onPress={onEditFigures} className="size-9 items-center justify-center rounded-full active:bg-muted">
+          <Icon as={Pencil} size={16} className="text-muted-foreground" />
+        </Pressable>
+      </View>} />
   </Sheet>;
 }
 

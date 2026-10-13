@@ -24,7 +24,6 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 // The app bar (whose section names the bar shows) without its sheets and the social clients.
-mock.module("../src/components/AccountMenu", () => ({ AccountMenu: "AccountMenu" }));
 mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: "PuzzleIcon", sessionSheetAtom: atom(null) }));
 mock.module("../src/lib/social", () => ({ coaching: {}, community: {}, useSocial: () => 0 }));
 mockLucide();

@@ -28,7 +28,7 @@ export type Route =
   | { page: "duel" }
   /** The daily scramble; `day` (YYYY-MM-DD) opens a past day, "results" the player's results (DailyPage). */
   | { page: "daily"; day?: string }
-  /** The settings, pushed from the account menu. */
+  /** The settings, pushed from the profile. */
   | { page: "settings" }
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string }
   /** The beginner course's assisted solve (AssistedPage), over the course. */
@@ -150,7 +150,7 @@ export function urlOfRoute(route: Route) {
 }
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
-/** Whether the notation guide is open in a sheet of its own (from Learn and the account menu). */
+/** Whether the notation guide is open in a sheet of its own (from Learn and the settings). */
 export const notationAtom = atom(false);
 
 const LAST_TAB_KEY = "cubix.ui.lastTab";

@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import { api, local } from "../api";
 import { sourceLabel } from "../components/AlgText";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "../components/AlgPlayer";
-import { AccountMenu } from "../components/AccountMenu";
 import { AppBar, PuzzleChip, PushedBar } from "../components/AppBar";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
@@ -607,7 +606,6 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     {wide && set.description ? <Text numberOfLines={1} className="min-w-0 flex-1 px-2 text-sm text-muted-foreground">{said(set.description)}</Text> : <View className="flex-1" />}
     {menu}
     <PuzzleChip />
-    <AccountMenu />
   </View>;
   if (embedded) return <View className="flex-1">
     {picked && pickedBar}

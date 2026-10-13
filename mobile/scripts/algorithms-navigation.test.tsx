@@ -45,7 +45,6 @@ mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) 
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: () => null }));
 mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", PuzzleChip: "PuzzleChip" }));
-mock.module("../src/components/AccountMenu", () => ({ AccountMenu: "AccountMenu" }));
 mock.module("../src/components/AlgPlayer", () => ({ PlayerAlg: () => null, PlayerControls: () => null, PlayerCube: () => null, ViewButtons: () => null, useAlgPlayer: () => null }));
 mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet", SheetScrollView: "SheetScrollView", SheetInput: "SheetInput" }));
 mockLucide();

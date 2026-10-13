@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
@@ -106,7 +106,7 @@ function Caption({ children, link }: { children: ReactNode; link?: ReactNode }) 
 
 /**
  * Who they are: the face, the name with the streak (which opens the activity), the method and the date they joined,
- * the level and its XP. Importing, the settings (with the exports) and signing out are in the account menu. On a
+ * the level and its XP. Importing, the exports and signing out are in the settings, behind the head's gear. On a
  * tablet it is a card: `large` (portrait) with a bigger face, `compact` beside other columns.
  */
 function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivity: () => void; size?: "large" | "compact" }) {
@@ -298,7 +298,7 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   const shortcuts = (layout?: "row" | "grid") => <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} layout={layout} />;
   if (tablet && (wide || height < 900)) return <View className="flex-1 flex-row">
     <View className="min-w-0 flex-1">
-      <AppBar />
+      <AppBar><SettingsButton /></AppBar>
       <SectionTabs />
       <View className="min-h-0 flex-1 flex-row gap-3 pt-4 pb-3 pl-7">
         <View {...tour} className="min-h-0 flex-1 gap-3">
@@ -316,7 +316,7 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
     <View className={cn("py-3 pr-3 pl-3", wide ? "w-[404px]" : "flex-1")}><Journal d={d} onActivity={() => show("activity")} /></View>
   </View>;
   if (tablet) return <View className="flex-1">
-    <AppBar />
+    <AppBar><SettingsButton /></AppBar>
     <SectionTabs />
     <View className="min-h-0 flex-1 gap-3 px-7 pt-4">
       <View {...tour} className="gap-3">
@@ -332,7 +332,7 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
     </View>
   </View>;
   return <View className="flex-1">
-    <AppBar />
+    <AppBar><SettingsButton /></AppBar>
     <SectionTabs />
     <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3">
       <View {...tour} className="gap-2.5">
@@ -477,4 +477,10 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
     </View>;
     default: return <Overview show={show} />;
   }
+}
+
+/** The settings (with the account, the guides, importing times…), from the profile's head: the app bar has no account menu. */
+function SettingsButton() {
+  const navigate = useSetAtom(routeAtom);
+  return <HeadButton icon={Settings} label={tr("Settings")} onPress={() => navigate({ page: "settings" })} />;
 }

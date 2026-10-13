@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, BookOpen, Check, CircleHelp, Download, Hourglass, Languages, LogOut, Monitor, Moon, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
+import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Hourglass, Languages, LogIn, LogOut, Monitor, Moon, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { INSPECTIONS, joinedDate, type Inspection } from "../../../src/client/lib/format";
@@ -24,11 +24,11 @@ import { useLayout } from "../hooks/useLayout";
 import { exportData } from "../lib/files";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
-import { colorModeAtom, guidesAtom, notationAtom, themeAtom, userAtom } from "../state";
+import { colorModeAtom, guestModeAtom, guidesAtom, notationAtom, themeAtom, userAtom } from "../state";
 import { said, tr } from "../../../src/client/i18n";
 
 /**
- * The settings, pushed from the account menu (direction A): the account and signing out, then grouped rows: the
+ * The settings, pushed from the profile (direction A): the account and signing out, then grouped rows: the
  * appearance (mode and accent), the timer and the language, the data (importing, a copy to keep, the account deleted),
  * the guides, the legal documents and the installed version. A tablet sets the inspection and the language in place
  * and lays the groups in two columns; a wide screen docks the account, the help and the version at the right.
@@ -96,6 +96,8 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   </>;
 }
 
+/** Where the coffee is bought. */
+const COFFEE = "https://buymeacoffee.com/vitrixxl";
 /** A row's icon: plain, muted. */
 const glyph = (icon: LucideIcon, className = "text-muted-foreground") => <Icon as={icon} size={20} className={className} />;
 
@@ -113,7 +115,7 @@ function ChoiceRow<T extends string>({ icon, title, value, options, onChange, fi
 
 function Account() {
   const user = useAtomValue(userAtom);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false), setGuest = useSetAtom(guestModeAtom);
   if (!user) return null;
   const signOut = async () => { setBusy(true); try { await api.logout(); } finally { setBusy(false); } };
   return <View className="flex-row items-center gap-3 rounded-2xl bg-primary/10 py-2.5 pr-2 pl-3" accessibilityLabel={tr("Account")}>
@@ -122,7 +124,10 @@ function Account() {
       <Text numberOfLines={1} className="text-lg font-extrabold tracking-[-0.02em]">{user.username}</Text>
       <Text numberOfLines={1} className="text-xs text-muted-foreground">{user.isGuest ? tr("Your times stay on this device.") : tr("Joined {0}", { 0: joinedDate(user.createdAt) })}</Text>
     </View>
-    {!user.isGuest && <Button variant="ghost" className="h-11 gap-1.5" disabled={busy} onPress={() => void signOut()}>
+    {user.isGuest ? <Button className="h-11 gap-1.5 rounded-full" onPress={() => setGuest(false)}>
+      <Icon as={LogIn} size={16} className="text-primary-foreground" />
+      <Text>{tr("Sign in")}</Text>
+    </Button> : <Button variant="ghost" className="h-11 gap-1.5" disabled={busy} onPress={() => void signOut()}>
       <Icon as={LogOut} size={16} className="text-muted-foreground" />
       <Text className="text-muted-foreground">{busy ? tr("Logging out…") : tr("Sign out")}</Text>
     </Button>}
@@ -228,6 +233,7 @@ function Help() {
   return <Group title={tr("Help")}>
     <ListRow first iconNode={glyph(BookOpen)} title={tr("Guides")} detail={tr("How each part of Qbix works")} onPress={() => openGuides("about")} />
     <ListRow iconNode={glyph(BookA)} title={tr("Notation")} detail={tr("What every move letter means")} onPress={() => openNotation(true)} />
+    <ListRow iconNode={glyph(Coffee)} title={tr("Buy me a coffee")} onPress={() => void Linking.openURL(COFFEE)} />
   </Group>;
 }
 

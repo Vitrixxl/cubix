@@ -84,7 +84,7 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
   </View>;
 }
 
-/** The import in a tall sheet, as the account menu, the profile and the settings open it. */
+/** The import in a tall sheet, as the profile and the settings open it. */
 export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return <Sheet open={open} onClose={onClose} title={tr("Import times")} description={tr("From another timer, or a file exported from Qbix. The file is read on this device.")} scroll>
     <ImportTimes />

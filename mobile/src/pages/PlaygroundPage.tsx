@@ -1,12 +1,12 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Bluetooth, CalendarDays, ChevronDown, ChevronRight, Copy, ListOrdered, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
+import { Bluetooth, CalendarDays, ChevronDown, Copy, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { fmtTime, INSPECTIONS, plural, shortDate, TIME_ENTRIES } from "../../../src/client/lib/format";
+import { fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, practiceSummary, sessionFigures } from "../../../src/client/lib/practiceSummary";
+import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, sessionFigures } from "../../../src/client/lib/practiceSummary";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
 import { contextKey, eventOf, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty } from "../../../src/shared/types";
@@ -27,7 +27,7 @@ import {
 } from "../components/Practice";
 import { AppBar, SectionTabs } from "../components/AppBar";
 import { Caption, inspectionAtom, Pill, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
-import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet, useTimerSessions } from "../components/TimesSheet";
+import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar, PillAction } from "../components/SolveMenus";
 import { Sheet, SheetInput } from "../components/Sheet";
 import { useLayout } from "../hooks/useLayout";
@@ -126,7 +126,6 @@ function TimerSession({ context }: { context: PracticeContext }) {
     </View>
   </View>;
 
-  const summary = useMemo(() => practiceSummary(shown), [shown]);
   const figures = useMemo(() => sessionFigures(shown, figureIds).map((f, i) => [...f, figureIds[i]!] as const), [shown, figureIds]);
   const inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
   const hint = blind && timer.phase === "running"
@@ -135,7 +134,6 @@ function TimerSession({ context }: { context: PracticeContext }) {
     ? tr("Memo {0} · execution {1}", { 0: fmtTime(timer.memo), 1: fmtTime(timer.elapsed - timer.memo) })
     : timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? tr("One moment…") : false });
   const event = tr(eventOf(context.puzzle, context.solveMode)?.label ?? info.label);
-  const sessions = useTimerSessions(context), session = sessions.list.find(x => x.id === sessions.current);
   const editFigures = <Pressable accessibilityRole="button" accessibilityLabel={tr("Choose the figures")} hitSlop={8} onPress={() => setEditingFigures(true)} className="size-8 items-center justify-center rounded-full active:bg-muted">
     <Icon as={Pencil} size={16} className="text-muted-foreground" />
   </Pressable>;
@@ -183,17 +181,8 @@ function TimerSession({ context }: { context: PracticeContext }) {
             </View>} />
           {!wide && <Fade hidden={running} className="pt-2.5">
             <View {...sessionTarget}>
-              <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times")} onPress={() => setTimes("list")} className="gap-2 rounded-2xl bg-card p-3 active:bg-card/80">
-                <View className="flex-row items-center gap-2">
-                  <Icon as={ListOrdered} size={16} className="text-foreground" />
-                  <Text numberOfLines={1} className="min-w-0 shrink text-[13px] font-bold">
-                    {session?.name || shortDate(session?.at ?? new Date().toISOString())} · {plural(shown.length, "solve")}
-                    {summary.ao5 != null && !figureIds.includes("ao5") ? <Text className="text-[13px] font-bold text-chart-2"> · {tr("Ao5")} {fmtTime(summary.ao5)}</Text> : null}
-                  </Text>
-                  <View className="flex-1" />
-                  {editFigures}
-                  <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
-                </View>
+              {/* The figures alone; a tap opens the session: its name to edit, every figure, its times. */}
+              <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times")} onPress={() => setTimes("list")} className="rounded-2xl bg-card p-3 active:bg-card/80">
                 <View className="flex-row">{figureGrid(columns)}</View>
               </Pressable>
             </View>
@@ -208,7 +197,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
         </View>
       </Fade>}
     </View>
-    <TimesSheet open={times !== null} calendar={times === "calendar"} onClose={() => setTimes(null)} solves={shown} title={event} context={context} />
+    <TimesSheet open={times !== null} calendar={times === "calendar"} onClose={() => setTimes(null)} solves={shown} title={event} context={context} onEditFigures={() => setEditingFigures(true)} />
     <FiguresSheet open={editingFigures} onClose={() => setEditingFigures(false)} />
     <StopSurface timer={timer} />
   </View>;

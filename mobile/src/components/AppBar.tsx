@@ -11,7 +11,6 @@ import { coaching, community, useSocial } from "../lib/social";
 import { eventInfo } from "../../../src/shared/puzzles";
 import { said, tr } from "../../../src/client/i18n";
 import { PuzzleIcon, sessionSheetAtom } from "./PuzzlePicker";
-import { AccountMenu } from "./AccountMenu";
 
 /** The section names, as the bottom bar and the app bar show them. */
 export const SECTION_LABELS: Record<Tab, string> = { timer: "Timer", learn: "Learn", algorithms: "Algs", compete: "Challenges", me: "Me" };
@@ -44,7 +43,7 @@ export function PuzzleChip({ scramble = false }: { scramble?: boolean }) {
 
 /**
  * The head of a section's page: the section's name in large, the page's own buttons (`children`), the puzzle (unless
- * `puzzle` is false) and the account's face, which opens its menu. The section's pages follow as tabs (`SectionTabs`).
+ * `puzzle` is false). The section's pages follow as tabs (`SectionTabs`).
  */
 export function AppBar({ title, puzzle = true, scramble = false, children }: { title?: ReactNode; puzzle?: boolean; scramble?: boolean; children?: ReactNode }) {
   const route = useAtomValue(routeAtom);
@@ -53,7 +52,6 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
     <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]", narrow && "text-2xl", tablet && "text-[40px]")}>{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
     {children}
     {puzzle && <PuzzleChip scramble={scramble} />}
-    <AccountMenu />
   </View>;
 }
 
