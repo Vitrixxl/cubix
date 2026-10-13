@@ -174,15 +174,13 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
       <View className={cn("gap-3.5 rounded-3xl bg-card p-6", wide ? "w-[440px]" : "mt-auto w-full max-w-[720px] self-center")}>{form}</View>
     </KeyboardAwareScrollView>
   </KeyboardAvoidingView>;
-  // A phone: the self-solving cube of the launcher over a soft halo, the welcome under it (its words say what the
+  // A phone: the self-solving cube of the launcher, the welcome under it (its words say what the
   // tablet's promises do), then the ways in on a panel rising from the bottom, under the thumb.
   const cube = Math.round(Math.min(width * 0.68, height * 0.34, 300));
   return <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
     <KeyboardAwareScrollView {...scroll} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12 }}>
       <View className="px-5">{brand}</View>
       <View className="min-h-0 flex-1 items-center justify-center py-3" importantForAccessibility="no-hide-descendants">
-        <View className="absolute rounded-full bg-primary/10" style={{ width: cube * 1.1, height: cube * 1.1 }} />
-        <View className="absolute rounded-full bg-primary/10" style={{ width: cube * 0.7, height: cube * 0.7 }} />
         <LauncherCube size={cube} finish={false} />
       </View>
       <View className="gap-1.5 px-5 pb-5">
