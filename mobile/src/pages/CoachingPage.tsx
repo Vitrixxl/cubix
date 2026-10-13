@@ -10,7 +10,7 @@ import { AppBar, SectionTabs } from "../components/AppBar";
 import { Docked, Pane } from "../components/chat/kit";
 import { Empty, ListSkeleton, Numeric, Segmented } from "../components/layout";
 import { Apply } from "../components/coaching/apply";
-import { BookPage, CoachList, CoachPage, zone } from "../components/coaching/browse";
+import { BookPage, CoachList, CoachPage } from "../components/coaching/browse";
 import { CoachProfile, Dashboard, StudentsView } from "../components/coaching/coach";
 import { CoachingMessages } from "../components/coaching/CoachingMessages";
 import { COACH_SECTIONS, coaching, useCoaching, type SectionId } from "../components/coaching/client";
@@ -50,7 +50,6 @@ export function CoachingPage({ view: path = "" }: { view?: string }) {
   if (view === "students" && arg && !wide) return <StudentsView id={arg} />;
   // Docked, a coach's page leaves the list of coaches its sub-page.
   const section = coach ? "coaches" : view;
-  const times = section === "coaches" ? <Text numberOfLines={1} className="ml-auto shrink text-xs text-muted-foreground">{tr("times in {0}", { 0: zone() })}</Text> : null;
   // On a wide screen a conversation or a student opens beside their list.
   const detail = (list: ReactNode, open: ReactNode) => wide ? <View className="min-h-0 flex-1 flex-row gap-4">
     <View className="w-[380px]">{list}</View>
@@ -61,13 +60,8 @@ export function CoachingPage({ view: path = "" }: { view?: string }) {
     <SectionTabs />
     <View className="min-h-0 flex-1 flex-row">
       <View className={cn("min-h-0 flex-1 gap-3 px-4 pt-3 pb-2", tablet && "px-7")}>
-        {!tablet ? <View className="flex-row items-center gap-2">
-          <SectionMenu view={view} />
-          {times}
-        </View> : wide ? <View className="flex-row items-center gap-3">
-          <SectionSegments view={section} className="min-w-0 max-w-[760px] flex-1" />
-          {times}
-        </View> : times}
+        {/* The time zone of the slots is told in the list's filter sheet. */}
+        {!tablet ? <SectionMenu view={view} /> : wide ? <SectionSegments view={section} className="max-w-[760px]" /> : null}
         <View className="min-h-0 flex-1">
           {view === "dashboard" ? <Dashboard />
             : view === "students" ? detail(<StudentsView id="" selected={arg} />, arg ? <StudentsView id={arg} /> : null)
@@ -100,7 +94,7 @@ const ICONS: Record<SectionId, LucideIcon> = {
   coaches: Search, sessions: CalendarDays, messages: MessagesSquare, apply: Sparkles,
 };
 
-/** The sub-pages in a menu at the top of the content: the current one in the button, each with what waits on it; the way to become a coach apart. */
+/** The sub-pages in a menu at the top of the content, quiet as a title: the current one in the button, each with what waits on it; the way to become a coach apart. */
 function SectionMenu({ view }: { view: string }) {
   const c = useCoaching(), nav = useCoachingNav();
   const groups = c.sections(), current = groups.flat().find(([id]) => id === view),
@@ -108,7 +102,7 @@ function SectionMenu({ view }: { view: string }) {
     waiting = groups.flat().reduce((n, [id]) => n + (id === view ? 0 : c.badge(id)), 0);
   return <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <Button variant="outline" className="h-11 gap-2 rounded-xl px-3.5" accessibilityLabel={tr("Sections: {0}", { 0: current ? tr(current[1]) : tr("Sections") })} testID="coaching-sections">
+      <Button variant="ghost" className="-ml-2 h-11 gap-2 self-start rounded-xl px-2" accessibilityLabel={tr("Sections: {0}", { 0: current ? tr(current[1]) : tr("Sections") })} testID="coaching-sections">
         <Icon as={current ? ICONS[current[0]] : Search} size={17} />
         <Text numberOfLines={1} className="shrink text-[15px] font-bold">{current ? tr(current[1]) : tr("Sections")}</Text>
         <Count n={waiting} />

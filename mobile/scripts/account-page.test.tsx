@@ -26,9 +26,7 @@ const achievements = { unlocked: 1, total: 3, xp: 120, achievements: [
   { id: "c", title: "Sub-15", description: "", group: "3×3", category: "speed", ratio: 0.6, unlocked: false, detail: "Best 9.980" },
 ] };
 const profileCalls: unknown[] = [];
-const logout = mock(async () => ({ ok: true }));
-const exportData = mock(async (_kind: string) => {});
-mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "token" }, local: {
+mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => ["OLL 1"],
   read: {
     journey: () => ({}), goals: () => [],
@@ -44,7 +42,6 @@ mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "tok
   },
 } }));
 mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5, RESULT_MARK: {}, ao5Text: String }));
-mock.module("../src/lib/files", () => ({ exportData }));
 mockLucide();
 mock.module("../src/components/ProfileProgress", () => ({ ProfileCaseDialog: "ProfileCaseDialog", TrainingProgress: "TrainingProgress" }));
 mock.module("../src/components/Achievements", () => ({ AchievementBadge: "AchievementBadge", AchievementDialog: "AchievementDialog", AchievementsScreen: "AchievementsScreen" }));
@@ -52,14 +49,15 @@ mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "P
 mock.module("../src/components/ImportTimes", () => ({ ImportSheet: "ImportSheet" }));
 mock.module("../src/components/Stats", () => ({ StatsScreen: "StatsScreen" }));
 mock.module("../src/components/Toast", () => ({ toastAtom: atom(null) }));
-mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker" }));
+mock.module("../src/components/PuzzlePicker", () => ({ Caption: "Caption", EventPicker: "EventPicker", PuzzleGrid: "PuzzleGrid" }));
+mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/skeleton", () => ({ Skeleton: "Skeleton" }));
 mock.module("../src/components/ui/dropdown-menu", () => ({ DropdownMenu: "DropdownMenu", DropdownMenuContent: "DropdownMenuContent", DropdownMenuTrigger: "DropdownMenuTrigger" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "MenuItem", "Numeric", "Segmented", "Surface"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "HeadButton", "Numeric", "Segmented", "Surface"].map(name => [name, name])));
 mock.module("../src/theme", () => ({ useColors: () => ({ primary: "#f5609f", variables: {} }) }));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
@@ -104,9 +102,10 @@ test("the profile shows the account, its level, records, shortcuts and journal u
   expect(all("Numeric").some(node => node.props.children === "10.000")).toBe(true);
   // The four shortcuts, with their counts.
   expect(["Analysis", "Cases 1", "Awards 1", "Battles 0"].every(label => pressable(label))).toBe(true);
-  // The journal: a day per active day, newest first, the profile's puzzle beside it.
+  // The journal: a day per active day, newest first, its puzzle named in its head and chosen in its sheet.
   expect(journal().props.data.map((day: { key: string }) => day.key)).toEqual(["2026-09-23", "2026-09-22", "2026-09-21"]);
-  expect(all("EventPicker")).toHaveLength(1);
+  expect(texts()).toContain("3×3");
+  expect(all("PuzzleGrid")).toHaveLength(1);
   expect(all("Segmented")[0]!.props.options.map((o: { id: string }) => o.id)).toEqual(["all", "records", "achievements", "battles"]);
 });
 
@@ -124,20 +123,25 @@ test("opening the profile never works it out during its render: placeholders fir
   expect(all("FlatList")).toHaveLength(1);
 });
 
-test("the identity's buttons: import, exports, the settings and signing out", async () => {
+test("the identity leaves importing, exporting, the settings and signing out to the account menu", async () => {
+  await mount();
+  for (const label of ["Import", "Export", "Account", "Log out", "Sign in"]) expect(pressable(label)).toBeUndefined();
+  expect(all("ImportSheet")).toHaveLength(0);
+});
+
+test("the journal's sheet filters the kind of moments, counted on its button, and opens the activity", async () => {
   const store = await mount();
-  expect(all("ImportSheet")[0]!.props.open).toBe(false);
-  await act(() => pressable("Import").props.onPress());
-  expect(all("ImportSheet")[0]!.props.open).toBe(true);
-  const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
-  await act(() => item("My solves, as a table (CSV)").props.onPress());
-  await act(() => item("All my profile's data (JSON)").props.onPress());
-  expect(exportData.mock.calls.map(call => call[0])).toEqual(["csv", "json"]);
-  await act(() => pressable("Account").props.onPress());
-  expect(store.get(routeAtom)).toEqual({ page: "settings" });
-  await act(() => store.set(routeAtom, { page: "profile" }));
-  await act(async () => { pressable("Log out").props.onPress(); await Promise.resolve(); });
-  expect(logout).toHaveBeenCalled();
+  const button = () => all("HeadButton").find(node => node.props.label === "Filter")!;
+  expect(button().props.badge).toBeUndefined();
+  await act(() => button().props.onPress());
+  expect(all("Sheet")[0]!.props.open).toBe(true);
+  await act(() => all("Segmented")[0]!.props.onChange("battles"));
+  expect(button().props.badge).toBe(1);
+  expect(texts()).toContain("3×3 · Battles");
+  expect(journal().props.data).toHaveLength(0);
+  const activity = all("Button").find(node => node.findAllByType("Text" as any).some(t => t.props.children === "Activity"))!;
+  await act(() => activity.props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "activity" });
 });
 
 test("the statistics, the shortcuts and the activity are screens pushed over the profile", async () => {
@@ -171,11 +175,11 @@ test("the statistics, the shortcuts and the activity are screens pushed over the
 test("the journal's puzzle changes the profile's own selection", async () => {
   const store = await mount();
   profileCalls.length = 0;
-  await act(() => all("EventPicker")[0]!.props.onChange("222"));
+  await act(() => all("PuzzleGrid")[0]!.props.onChange("222"));
   await prepared();
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
-  await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
+  await act(() => all("PuzzleGrid")[0]!.props.onChange("333oh"));
   await prepared();
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });

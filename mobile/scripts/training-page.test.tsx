@@ -56,12 +56,12 @@ mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
-mock.module("../src/components/ui/dropdown-menu", () => ({ DropdownMenuItem: "DropdownMenuItem" }));
+mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "Bar", "Empty", "Fade", "Figure", "HeadButton", "Label", "MenuItem", "MoreMenu", "Numeric", "SearchField", "Segmented"].map(name => [name, name])));
+  ["Alg", "Bar", "Choice", "Empty", "Fade", "Figure", "HeadButton", "Label", "MenuItem", "MoreMenu", "Numeric", "SearchField", "Segmented"].map(name => [name, name])));
 const { TrainingPage } = await import("../src/pages/TrainingPage");
 const { trainingRunAtom, trainingStepAtom, trainingSetupModeAtom, routeAtom, selectedCaseIdsAtom } = await import("../src/state");
-const { trainPicksAtom, trainSetsAtom } = await import("../src/components/TrainingSetup");
+const { recognitionSecondsAtom, trainPicksAtom, trainSetsAtom } = await import("../src/components/TrainingSetup");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); stored.clear(); });
@@ -81,7 +81,10 @@ test("the five ways of training; Train drills the recommended cases and the whol
   const store = await mount();
   expect(texts()).toEqual(expect.arrayContaining(["Cross", "Recognition", "Learned", "Whole sets", "Free practice"]));
   // The slowest learned case against its set's usual is recommended, and picked until the player picks.
-  expect(texts()).toContain("1 recommended");
+  expect(texts()).toContain("1 recommended · 0 picked by hand");
+  // The whole sets are chosen in their drawer.
+  expect(chip("OLL, 3 learned")).toBeUndefined();
+  await act(() => pressable("Whole sets")!.props.onPress());
   await act(() => chip("OLL, 3 learned")!.props.onPress());
   expect(store.get(trainSetsAtom)).toEqual(["oll"]);
   // The PLL has nothing learned: it leads to its course.
@@ -92,6 +95,19 @@ test("the five ways of training; Train drills the recommended cases and the whol
   // The recommended picked are kept as they were at the start.
   expect(store.get(trainPicksAtom)).toEqual(["OLL 3"]);
   expect(texts().some(t => ["Runway", "Zamboni", "Anti-Nazi"].includes(t))).toBe(true);
+});
+
+test("a way's settings are in its drawer, and its Start runs it with them", async () => {
+  const store = await mount();
+  expect(renderer.root.findAll((n: any) => n.type === "Segmented").length).toBe(0);
+  await act(() => pressable("Recognition")!.props.onPress());
+  const seconds = renderer.root.findAll((n: any) => n.type === "Segmented" && n.props.label === "Seconds per case")[0]!;
+  await act(() => seconds.props.onChange("5"));
+  expect(texts()).toContain("OLL · 3 of 3 · 5 s · AUF");
+  await act(() => pressable("Start")!.props.onPress());
+  expect(store.get(recognitionSecondsAtom)).toBe(5);
+  expect(store.get(trainingRunAtom)).toBe("recognition");
+  expect(store.get(trainingStepAtom)).toBe("practice");
 });
 
 test("Learned opens its screen; a selection from elsewhere drills its learned cases alone", async () => {

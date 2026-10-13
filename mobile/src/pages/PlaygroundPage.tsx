@@ -1,9 +1,9 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Bluetooth, CalendarDays, ChevronDown, ChevronRight, Copy, ListOrdered, Pencil, Plus, Shuffle, X } from "lucide-react-native";
+import { Bluetooth, CalendarDays, ChevronDown, ChevronRight, Copy, ListOrdered, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { fmtTime, INSPECTIONS, plural, shortDate, TIME_ENTRIES } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, practiceSummary, sessionFigures } from "../../../src/client/lib/practiceSummary";
@@ -106,7 +106,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const loading = generating && (slow || !scramble) || !scramble && !generationError;
   const scrambleTarget = useTourTarget("scramble"), timerTarget = useTourTarget("timer"), sessionTarget = useTourTarget("session");
 
-  // The scramble's settings as pills: under the bar on a phone, in the scramble's card on a tablet.
+  // The scramble's settings as pills in the scramble's card on a tablet; a phone keeps them in the sheet behind its sliders button.
   const settings = <>
     <Pill label={tr("Scramble")} value={tr(scrambleLabel(context.scrambleType))} trailing={ChevronDown} onPress={() => openSheet("timer")} />
     <Pill label={tr("Entry")} value={said(TIME_ENTRIES.find(e => e.id === entry)?.label ?? entry)} trailing={ChevronDown} onPress={() => openSheet("timer")} />
@@ -150,11 +150,12 @@ function TimerSession({ context }: { context: PracticeContext }) {
       <View className="min-w-0 flex-1">
         <Fade hidden={running}>
           <AppBar title={tr("Timer")} scramble>
-            <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
+            {/* A phone's bar has room for one: the sheet of the settings (puzzle, scramble, entry, inspection); its calendar is in the times' sheet. */}
+            {tablet ? <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
+              : <HeadButton icon={SlidersHorizontal} label={tr("Puzzle and scramble")} onPress={() => openSheet("timer")} />}
             <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
           </AppBar>
           <SectionTabs />
-          {!tablet && <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="gap-2 px-4 pt-2.5 pb-1">{settings}</ScrollView>}
         </Fade>
         <View className={cn("min-h-0 flex-1 px-4 pt-2 pb-3", tablet && "px-7 pt-4")}>
           <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
@@ -171,11 +172,14 @@ function TimerSession({ context }: { context: PracticeContext }) {
                 </>}
             </View>}
             bar={<View className="gap-2.5">
-              {/* The shared row of the last five sets its own top margin (mt-6), for a place under the digits. */}
-              <View className={cn("-mt-6", tablet && "items-center")}><AverageWindow solves={shown} hidden={running} large={tablet} /></View>
-              {/* A tablet has room for the next scramble in the row, under the thumb, as the fifth action. */}
-              <LastSolveBar look="pills" solve={saving ? null : lastSolve}
-                extra={tablet ? <PillAction primary icon={Shuffle} label={tr("Next")} accessibilityLabel={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} /> : undefined} />
+              {/* The shared row of the last five sets its own top margin (mt-6), for a place under the digits; out of sight until a first time. */}
+              <View className={cn("-mt-6", tablet && "items-center")}><AverageWindow solves={shown} hidden={running || !shown.length} large={tablet} /></View>
+              {/* On a phone the last solve's actions show once there is one to act on (their place kept, so the digits never
+                  move); a tablet keeps them, with the next scramble as the fifth action, under the thumb. */}
+              <Fade hidden={!tablet && !lastSolve}>
+                <LastSolveBar look="pills" solve={saving ? null : lastSolve}
+                  extra={tablet ? <PillAction primary icon={Shuffle} label={tr("Next")} accessibilityLabel={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} /> : undefined} />
+              </Fade>
             </View>} />
           {!wide && <Fade hidden={running} className="pt-2.5">
             <View {...sessionTarget}>
@@ -184,7 +188,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
                   <Icon as={ListOrdered} size={16} className="text-foreground" />
                   <Text numberOfLines={1} className="min-w-0 shrink text-[13px] font-bold">
                     {session?.name || shortDate(session?.at ?? new Date().toISOString())} · {plural(shown.length, "solve")}
-                    {summary.ao5 != null ? <Text className="text-[13px] font-bold text-chart-2"> · {tr("Ao5")} {fmtTime(summary.ao5)}</Text> : null}
+                    {summary.ao5 != null && !figureIds.includes("ao5") ? <Text className="text-[13px] font-bold text-chart-2"> · {tr("Ao5")} {fmtTime(summary.ao5)}</Text> : null}
                   </Text>
                   <View className="flex-1" />
                   {editFigures}

@@ -1,5 +1,5 @@
 import { useAtomValue } from "jotai";
-import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, Star, Timer, UserRoundX, Users } from "lucide-react-native";
+import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, SlidersHorizontal, Star, Timer, UserRoundX, Users } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { plural } from "../../../../src/client/lib/format";
@@ -14,15 +14,18 @@ import { useLayout } from "../../hooks/useLayout";
 import { userAtom } from "../../state";
 import { useColors } from "../../theme";
 import { PushedBar } from "../AppBar";
-import { ChoiceButton } from "../PuzzlePicker";
+import { Chip } from "../Chips";
+import { SheetChoice } from "../PuzzlePicker";
+import { Sheet } from "../Sheet";
+import { Pill } from "../community/marks";
 import { Bar, Empty, Numeric, SearchField } from "../layout";
 import { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen, coaching, price, useCoaching, type Coach } from "./client";
 import { Activity, Learned, PuzzleCard } from "./person";
 import { CheckRow, Face, Stars, day, dayKey, span, time, useAction, useCoachingNav } from "./parts";
 
 /**
- * Finding a coach (the web's coaching/browse.tsx): every coach as a card with their next slot and price, filtered by
- * chips and sorted; a coach pushes their page, who they are and their week of slots to book, the booking stuck at the
+ * Finding a coach (the web's coaching/browse.tsx): every coach as a card with their next slot and price, searched,
+ * then filtered and sorted in a sheet; a coach pushes their page, who they are and their week of slots to book, the booking stuck at the
  * bottom; then their times, practice and reviews. The booking alone (from a conversation) keeps the same panel.
  */
 
@@ -33,15 +36,13 @@ const PRICES = [
   { id: "2000", label: "Up to €20" }, { id: "3000", label: "Up to €30" }, { id: "5000", label: "Up to €50" },
 ];
 export const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-/** A filter as a chip that scrolls with the others: a filled pill, the accent's tint once it narrows the list. */
-const CHIP = "h-10 rounded-full border-0 bg-muted px-3.5";
 
 /** Every coach, in two columns on a tablet; on a wide screen a coach's page docks beside the list, `selected` marked. */
 export function CoachList({ selected }: { selected?: string }) {
   const c = useCoaching(), nav = useCoachingNav(), { tablet, wide } = useLayout(), columns = tablet ? 2 : 1;
   useEffect(() => { void coaching.load("coaches"); }, []);
   const [query, setQuery] = useState(""), [event, setEvent] = useState("all"), [language, setLanguage] = useState("all"), [most, setMost] = useState("any"),
-    [soon, setSoon] = useState(false), [sort, setSort] = useState("next");
+    [soon, setSoon] = useState(false), [sort, setSort] = useState("next"), [filtering, setFiltering] = useState(false);
   const list = c.coaches;
   const taught = useMemo(() => EVENTS.filter(e => list?.some(c => c.events.includes(e.id))), [list]),
     spoken = useMemo(() => [...new Set(list?.flatMap(c => c.languages) ?? [])].sort(), [list]);
@@ -50,22 +51,24 @@ export function CoachList({ selected }: { selected?: string }) {
     (most === "any" || c.priceCents <= Number(most)) && (!soon || (!!c.nextSlot && c.nextSlot < now + WEEK)) &&
     query.toLowerCase().split(/\s+/).every(w => [c.username, c.headline, c.bio, ...c.languages].join(" ").toLowerCase().includes(w)))
     .sort((a, b) => sort === "price" ? a.priceCents - b.priceCents : sort === "rating" ? (b.rating ?? 0) - (a.rating ?? 0) : (a.nextSlot ?? Infinity) - (b.nextSlot ?? Infinity));
+  // What narrows the list (the order does not), counted on the filter button.
+  const active = [event !== "all", soon, language !== "all", most !== "any"].filter(Boolean).length;
+  const reset = () => { setEvent("all"); setSoon(false); setLanguage("all"); setMost("any"); setSort("next"); };
   return <View className="min-h-0 flex-1 gap-2.5">
-    <SearchField value={query} onChangeText={setQuery} placeholder={tr("Name, method, speciality…")} />
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-4 grow-0" contentContainerClassName="gap-2 px-4">
-      <ChoiceButton label={tr("Event")} value={event} onChange={setEvent} className={cn(CHIP, event !== "all" && "bg-accent")}
-        options={[{ id: "all", label: tr("Every event") }, ...taught.map(e => ({ id: e.id as string, label: e.label }))]} />
-      <Pressable accessibilityRole="switch" accessibilityState={{ checked: soon }} onPress={() => setSoon(!soon)} className={cn("h-10 justify-center rounded-full px-3.5", soon ? "bg-accent" : "bg-muted")}>
-        <Text className={cn("text-sm font-semibold", soon ? "text-foreground" : "text-muted-foreground")}>{tr("Free this week")}</Text>
-      </Pressable>
-      {spoken.length > 1 ? <ChoiceButton label={tr("Language")} value={language} onChange={setLanguage} className={cn(CHIP, language !== "all" && "bg-accent")}
-        options={[{ id: "all", label: tr("Every language") }, ...spoken.map(l => ({ id: l, label: l }))]} /> : null}
-      <ChoiceButton label={tr("Price")} value={most} onChange={setMost} options={PRICES} className={cn(CHIP, most !== "any" && "bg-accent")} />
-    </ScrollView>
-    <View className="flex-row items-center justify-between">
-      <Text className="text-base font-bold tracking-tight">{shown ? plural(shown.length, "coach") : tr("Coaches")}</Text>
-      <ChoiceButton label={tr("Sort")} value={sort} onChange={setSort} options={SORTS} variant="ghost" className="-mr-2 h-10" />
+    <View className="flex-row items-center gap-2">
+      <SearchField value={query} onChangeText={setQuery} placeholder={tr("Name, method, speciality…")} className="min-w-0 flex-1" />
+      <Pill icon={SlidersHorizontal} text={active ? String(active) : undefined} label={tr("Filter")} tone={active ? "soft" : "muted"} onPress={() => setFiltering(true)} className={cn("h-11", !active && "w-11")} />
     </View>
+    <Text className="text-base font-bold tracking-tight">{shown ? plural(shown.length, "coach") : tr("Coaches")}</Text>
+    {/* The filters, the order and the time zone of the slots in one sheet. */}
+    <Sheet open={filtering} onClose={() => setFiltering(false)} title={tr("Filter")} description={tr("times in {0}", { 0: zone() })} scroll
+      right={active || sort !== "next" ? <Button variant="ghost" size="sm" onPress={reset}><Text>{tr("Reset")}</Text></Button> : null}>
+      <SheetChoice label={tr("Event")} columns={2} value={event} onChange={setEvent} options={[{ id: "all", label: tr("Every event") }, ...taught.map(e => ({ id: e.id as string, label: e.label }))]} />
+      <Chip icon={CalendarCheck} on={soon} onPress={() => setSoon(!soon)} className="self-start">{tr("Free this week")}</Chip>
+      {spoken.length > 1 ? <SheetChoice label={tr("Language")} columns={2} value={language} onChange={setLanguage} options={[{ id: "all", label: tr("Every language") }, ...spoken.map(l => ({ id: l, label: l }))]} /> : null}
+      <SheetChoice label={tr("Price")} columns={2} value={most} onChange={setMost} options={PRICES} />
+      <SheetChoice label={tr("Sort")} columns={1} value={sort} onChange={setSort} options={SORTS} />
+    </Sheet>
     {!shown ? <View accessibilityLabel={tr("Loading")} className="gap-2">{[0, 1, 2].map(i => <Skeleton key={i} className="h-32 rounded-3xl" />)}</View>
       : !shown.length ? <Empty icon={list?.length ? SearchX : Users}>
         {list?.length ? tr("No coach matches your search.") : tr("No coach has opened their page yet.")}

@@ -24,7 +24,7 @@ for (const [path, names] of [
   ["../src/components/ui/text", ["Text"]], ["../src/components/ui/icon", ["Icon"]], ["../src/components/ui/button", ["Button"]],
   ["../src/components/ui/badge", ["Badge"]], ["../src/components/ui/alert", ["Alert"]], ["../src/components/ui/input", ["Input"]],
   ["../src/components/ui/skeleton", ["Skeleton"]], ["../src/components/Sheet", ["Sheet", "SheetInput", "SheetScrollView"]],
-  ["../src/components/PuzzlePicker", ["ChoiceButton", "PuzzleIcon"]], ["../src/components/AppBar", ["AppBar", "PushedBar", "SectionTabs"]],
+  ["../src/components/PuzzlePicker", ["ChoiceButton", "SheetChoice", "PuzzleIcon"]], ["../src/components/Chips", ["Chip", "ChipMenu"]], ["../src/components/AppBar", ["AppBar", "PushedBar", "SectionTabs"]],
   ["../src/components/ui/dropdown-menu", ["DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuLabel", "DropdownMenuSeparator", "DropdownMenuTrigger"]], ["../src/components/coaching/CoachingMessages", ["CoachingMessages"]],
   ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"]],
 ] as const) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
@@ -86,11 +86,22 @@ const press = (node: { props: Record<string, any> }) => act(async () => { await 
 
 test("a player finds a coach, opens their page and books one of their free slots", async () => {
   const store = await mount("coaches");
-  // The Me section's head and tabs; the sub-page in a menu over the content, the filters as chips.
+  // The Me section's head and tabs; the sub-page in a menu over the content, the filters in a sheet beside the search.
   expect(all("AppBar")).toHaveLength(1);
   expect(byTest("coaching-sections")).toBeDefined();
   expect(all("SearchField")[0]!.props.placeholder).toBe("Name, method, speciality…");
-  expect(all("ChoiceButton")[0]!.props.options.map((o: { label: string }) => o.label)).toEqual(["Every event", "3×3"]);
+  const filter = () => all("Pressable").find(node => node.props.accessibilityLabel === "Filter")!;
+  const choice = (label: string) => all("SheetChoice").find(node => node.props.label === label)!;
+  expect(choice("Event").props.options.map((o: { label: string }) => o.label)).toEqual(["Every event", "3×3"]);
+  expect(texts()).toContain("1 coach");
+  // A filter that leaves nobody: counted on the button, the list says so; reset, the coach is back.
+  await press(filter());
+  expect(all("Sheet")[0]!.props.open).toBe(true);
+  await act(() => choice("Price").props.onChange("1000"));
+  expect(filter().findAllByType("Text" as any).map(node => node.props.children)).toEqual(["1"]);
+  expect(all("Empty")).toHaveLength(1);
+  await press(all("Sheet")[0]!.props.right);
+  expect(filter().findAllByType("Text" as any)).toHaveLength(0);
   expect(texts()).toContain("1 coach");
   await press(byTest("coach-lena_speed"));
   expect(store.get(routeAtom)).toEqual({ page: "coaching", view: "coach/c1" });

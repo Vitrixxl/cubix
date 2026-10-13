@@ -1,15 +1,14 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Check, ChevronRight, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
+import { Check, ChevronRight, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, SlidersHorizontal, Target, Timer, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
-import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS, type CrossTarget } from "../../../src/shared/crossTraining";
+import { CROSS_MOVES, CROSS_TARGET_DETAILS, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
-import { METHODS } from "../../../src/shared/methods";
-import { puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
+import { puzzleInfo } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -20,8 +19,8 @@ import {
 import { AppBar, PushedBar, SectionTabs } from "./AppBar";
 import { CaseDiagram } from "./CaseDiagram";
 import { CaseSelector } from "./CaseSelector";
-import { Chip, ChipMenu } from "./Chips";
-import { Bar, Empty, HeadButton, Numeric, SearchField } from "./layout";
+import { Chip } from "./Chips";
+import { Bar, Choice, Empty, HeadButton, Label, Numeric, SearchField, Segmented } from "./layout";
 import { useBackTo } from "./Practice";
 import { useLayout } from "../hooks/useLayout";
 import { Sheet } from "./Sheet";
@@ -40,9 +39,6 @@ export const recognitionSecondsAtom = persisted<number>("cubix.training.recognit
 /** Whether the recognition draws a last layer case from above with all its sides, or as held, its back unseen. */
 export const recognitionBackAtom = persisted<boolean>("cubix.training.recognitionBack", true);
 const RECOGNITION_SECONDS = [1, 2, 3, 5, 8];
-
-/** The course that teaches a set, if one does. */
-const courseOf = (puzzle: PuzzleId, setId: string) => METHODS[puzzle]?.find(m => m.steps.some(step => step.sets?.includes(setId)))?.id;
 
 /**
  * What the training stands on: the sets with their learned cases (those with some first), the recommended cases (the
@@ -80,17 +76,16 @@ export function useTrainingData() {
 }
 export type TrainingData = ReturnType<typeof useTrainingData>;
 
-/** Opens the course that teaches a set (a set with nothing learned leads there). */
-function useOpenCourse() {
-  const puzzle = useAtomValue(puzzleAtom), setRoute = useSetAtom(routeAtom);
-  return (setId: string) => setRoute({ page: "learn", method: courseOf(puzzle, setId) });
-}
 
-/** A way of training as a card: its icon, name and line, its number large with what it counts, then its settings. */
-function ModeCard({ icon, title, summary, count, unit, lit = false, onPress, children, accessibilityLabel }: {
-  icon: LucideIcon; title: string; summary: string; count?: number; unit?: string; lit?: boolean; onPress?: () => void; children?: ReactNode; accessibilityLabel?: string;
+/**
+ * A way of training as a card: its icon, name and line, its number large with what it counts, then its settings in
+ * one quiet line and its action (Start, or Choose). A tap anywhere else opens its settings.
+ */
+function ModeCard({ icon, title, summary, count, unit, lit = false, setting, action, onPress, children, accessibilityLabel }: {
+  icon: LucideIcon; title: string; summary: string; count?: number; unit?: string; lit?: boolean; setting: string; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
 }) {
-  const body = <>
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} onPress={onPress}
+    className={cn("gap-2.5 rounded-2xl p-3 active:opacity-80", lit ? "border border-primary bg-primary/10" : "bg-card")}>
     <View className="flex-row items-center gap-3">
       <View className={cn("size-10 items-center justify-center rounded-xl", lit ? "bg-card" : "bg-muted")}><Icon as={icon} size={20} className={lit ? "text-primary" : "text-muted-foreground"} /></View>
       <View className="min-w-0 flex-1 gap-0.5">
@@ -103,31 +98,46 @@ function ModeCard({ icon, title, summary, count, unit, lit = false, onPress, chi
       </View>}
     </View>
     {children}
-  </>;
-  const className = cn("gap-2.5 rounded-2xl p-3", lit ? "border border-primary bg-primary/10" : "bg-card");
-  return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} onPress={onPress} className={cn(className, "active:opacity-80")}>{body}</Pressable>
-    : <View className={className}>{body}</View>;
-}
-
-/** A small pill of figures (4 recommended, 0 picked). */
-function Pill({ children, accent = false }: { children: ReactNode; accent?: boolean }) {
-  return <View className={cn("h-7 justify-center rounded-full px-2.5", accent ? "bg-primary/15" : "bg-muted")}>
-    <Text className={cn("text-xs font-bold", accent ? "text-primary" : "text-muted-foreground")}>{children}</Text>
-  </View>;
+    <View className="h-10 flex-row items-center gap-2">
+      <Icon as={SlidersHorizontal} size={14} className="text-muted-foreground" />
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] font-semibold text-muted-foreground">{setting}</Text>
+      {action}
+    </View>
+  </Pressable>;
 }
 
 /** The start of a card's training, as a pill. */
 const StartChip = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
   <Chip icon={Play} onPress={onPress} disabled={disabled}>{tr("Start")}</Chip>;
 
+/** A card's action that opens its own settings (the tap on the card does it). */
+const ChooseLink = () => <View className="flex-row items-center gap-0.5">
+  <Text className="text-sm font-bold text-primary">{tr("Choose")}</Text>
+  <Icon as={ChevronRight} size={16} className="text-primary" />
+</View>;
+
+/** The start of a way of training at the bottom of its settings' drawer. */
+const StartButton = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
+  <Button accessibilityLabel={tr("Start")} disabled={disabled} onPress={onPress} className="h-12 rounded-full">
+    <Icon as={Play} size={16} className="text-primary-foreground" fill="currentColor" />
+    <Text className="text-base font-bold">{tr("Start")}</Text>
+  </Button>;
+
+/** A setting in a drawer: its name small above its choices. */
+const Field = ({ label, children }: { label: string; children: ReactNode }) => <View className="gap-2">
+  <Label className="font-bold tracking-widest uppercase">{label}</Label>
+  {children}
+</View>;
+
 /**
- * The Training tab: the five ways of training, each with its settings in chips under its name (the cross's goal and
- * moves, the recognition's set and seconds, the whole sets); Learned opens its own screen; the bottom bar counts the
+ * The Training tab: the five ways of training, each a card with its settings in one quiet line and Start; a tap opens
+ * its settings in a drawer (the cross's goal and moves, the recognition's set, seconds and AUF, the whole sets, the free
+ * practice's cases), Start at the bottom; Learned opens its own screen; the bottom bar counts the
  * cases the training drills, with Random AUF and Train. A tablet shows Learned on the page and the ways in a sheet.
  */
 export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void; onStart: (run: TrainingRun) => void }) {
   const data = useTrainingData();
-  const openGuide = useSetAtom(guidesAtom), openCourse = useOpenCourse();
+  const openGuide = useSetAtom(guidesAtom);
   const [target, setTarget] = useAtom(crossTargetAtom), [moves, setMoves] = useAtom(crossMovesAtom);
   const [trainSets, setTrainSets] = useAtom(trainSetsAtom);
   const setRecognition = useSetAtom(recognitionChoiceAtom);
@@ -139,71 +149,74 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const [query, setQuery] = useState("");
   const learnedCases = useMemo(() => data.cases.filter(c => data.learned.has(c.id)), [data.cases, data.learned]);
   const [picking, setPicking] = useState(false);
+  // The way whose settings show in their drawer.
+  const [settings, setSettings] = useState<"" | "cross" | "recognition" | "sets">("");
   const [waysOpen, setWaysOpen] = useState(false), [searching, setSearching] = useState(false);
   const { tablet, wide } = useLayout();
-  // From the tablet's sheet of the ways, a start closes it first.
-  const start = (run: TrainingRun) => { setWaysOpen(false); onStart(run); };
+  // A start closes the drawers it was made from first (a way's settings, the tablet's sheet of the ways).
+  const start = (run: TrainingRun) => { setSettings(""); setPicking(false); setWaysOpen(false); onStart(run); };
   const cube = !!puzzleInfo(data.puzzle).cubeSize;
   const free = freePicks.filter(id => data.cases.some(c => c.id === id)).length;
   const chosen = data.recognition;
   const handPicked = data.hand.filter(id => data.learned.has(id)).length, recommendedPicked = data.picks.filter(id => data.learned.has(id)).length;
   const tour = useTourTarget("training");
+  const top = cube && !!chosen && viewForStage(chosen.set.stage) === "top";
+  const toggleSet = (id: string) => setTrainSets(trainSets.includes(id) ? trainSets.filter(x => x !== id) : [...trainSets, id]);
+  const ofSet = (x: TrainingData["setRows"][number]) => tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length });
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
-        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} summary={tr("Plan the cross in inspection, by its exact number of moves")} count={moves} unit={tr("moves")}>
-          <View className="flex-row flex-wrap items-center gap-1.5">
-            <ChipMenu label={tr("What to build")} value={target} onChange={t => setTarget(t as CrossTarget)} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))}>{tr(CROSS_TARGET_LABELS[target])}</ChipMenu>
-            <ChipMenu label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))}>{tr("{0} moves", { 0: moves })}</ChipMenu>
-            <View className="flex-1" />
-            <StartChip onPress={() => start("cross")} />
-          </View>
-        </ModeCard>}
-        <ModeCard icon={Eye} title={tr("Recognition")} summary={tr("The learned cases of a set at random, until you stop")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}>
+        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} summary={tr("Plan the cross in inspection, by its exact number of moves")} count={moves} unit={tr("moves")}
+          setting={`${tr(CROSS_TARGET_LABELS[target])} · ${tr("{0} moves", { 0: moves })}`} onPress={() => setSettings("cross")} action={<StartChip onPress={() => start("cross")} />} />}
+        <ModeCard icon={Eye} title={tr("Recognition")} summary={tr("The learned cases of a set at random, until you stop")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}
+          setting={[chosen ? ofSet(chosen) : tr("Nothing learned yet"), tr("{0} s", { 0: seconds }), ...(cube && auf ? [tr("AUF")] : [])].join(" · ")}
+          onPress={() => setSettings("recognition")} action={<StartChip onPress={() => start("recognition")} disabled={!chosen} />}>
           {chosen && <Bar ratio={chosen.learned / chosen.all.length} />}
-          <View className="flex-row flex-wrap items-center gap-1.5">
-            <ChipMenu label={tr("Set")} value={chosen?.set.id ?? ""} onChange={setRecognition} disabled={!chosen}
-              options={data.setRows.filter(x => x.learned).map(x => ({ id: x.set.id, label: tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length }) }))}
-              extra={data.setRows.filter(x => !x.learned).map(x => <DropdownMenuItem key={x.set.id} className="min-h-11" onPress={() => openCourse(x.set.id)}>
-                <Text className="text-base text-muted-foreground">{tr("{0} · none learned · see Courses", { 0: tr(x.set.label) })}</Text>
-              </DropdownMenuItem>)}>
-              {chosen ? tr("{0} · {1} of {2}", { 0: tr(chosen.set.label), 1: chosen.learned, 2: chosen.all.length }) : tr("Nothing learned yet")}
-            </ChipMenu>
-            <ChipMenu label={tr("Seconds per case")} icon={Timer} value={String(seconds)} onChange={n => setSeconds(Number(n))} options={RECOGNITION_SECONDS.map(n => ({ id: String(n), label: tr("{0} s", { 0: n }) }))}>{tr("{0} s", { 0: seconds })}</ChipMenu>
-            {cube && <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)} accessibilityLabel={tr("Random AUF")}>{tr("AUF")}</Chip>}
-            {cube && chosen && viewForStage(chosen.set.stage) === "top" && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the top layer's stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
-            <View className="flex-1" />
-            <StartChip onPress={() => start("recognition")} disabled={!chosen} />
-          </View>
         </ModeCard>
         <ModeCard icon={GraduationCap} title={tr("Learned")} summary={tr("Your slowest learned cases, and cases picked by hand")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
-          lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}>
-          <View className="flex-row items-center gap-1.5">
-            <Pill accent>{tr("{0} recommended", { 0: recommendedPicked })}</Pill>
-            <Pill>{tr("{0} picked", { 0: handPicked })}</Pill>
-            <View className="flex-1" />
-            <Text className="text-sm font-bold text-primary">{tr("Choose")}</Text>
-            <Icon as={ChevronRight} size={16} className="text-primary" />
-          </View>
-        </ModeCard>
-        <ModeCard icon={Layers} title={tr("Whole sets")} summary={tr("Every learned case of the sets you choose")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
-            {data.setRows.map(({ set, learned }) => learned
-              ? <Chip key={set.id} on={trainSets.includes(set.id)} onPress={() => setTrainSets(trainSets.includes(set.id) ? trainSets.filter(id => id !== set.id) : [...trainSets, set.id])}
-                accessibilityLabel={tr("{0}, {1} learned", { 0: tr(set.label), 1: learned })}>
-                <Text className={cn("text-sm font-bold", trainSets.includes(set.id) && "text-primary-foreground")}>{tr(set.label)} <Numeric className={cn("text-sm font-bold", trainSets.includes(set.id) ? "text-primary-foreground" : "text-primary")}>{learned}</Numeric></Text>
-              </Chip>
-              : <Chip key={set.id} onPress={() => openCourse(set.id)} className="bg-transparent">
-                <Text className="text-sm text-muted-foreground">{tr("{0} · see Courses", { 0: tr(set.label) })}</Text>
-              </Chip>)}
-          </ScrollView>
-        </ModeCard>
-        <ModeCard icon={Dices} title={tr("Free practice")} summary={tr("Any case of the catalogue, learned or not")} count={free || undefined} unit={free ? tr(free === 1 ? "case" : "cases") : undefined}>
-          <View className="flex-row items-center gap-1.5">
-            <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>
-            <View className="flex-1" />
-            {free > 0 && <StartChip onPress={() => start("free")} />}
-          </View>
-        </ModeCard>
+          lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
+          setting={tr("{0} recommended · {1} picked by hand", { 0: recommendedPicked, 1: handPicked })} action={<ChooseLink />} />
+        <ModeCard icon={Layers} title={tr("Whole sets")} summary={tr("Every learned case of the sets you choose")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}
+          setting={data.setRows.filter(x => x.learned && trainSets.includes(x.set.id)).map(x => tr(x.set.label)).join(" · ") || tr("Nothing picked yet")}
+          onPress={() => setSettings("sets")} action={<ChooseLink />} />
+        <ModeCard icon={Dices} title={tr("Free practice")} summary={tr("Any case of the catalogue, learned or not")} count={free || undefined} unit={free ? tr(free === 1 ? "case" : "cases") : undefined}
+          setting={free ? tr("{0} picked", { 0: free }) : tr("Nothing picked yet")} onPress={() => setPicking(true)}
+          action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>} />
       </View>;
+  // Each way's settings in a drawer over the page, Start at the bottom; free practice's are its cases to pick.
+  const sheets = <>
+    <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Cross")} description={tr(CROSS_TARGET_DETAILS[target])}>
+      <Field label={tr("What to build")}>
+        <Segmented label={tr("What to build")} value={target} onChange={setTarget} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))} />
+      </Field>
+      <Field label={tr("Moves")}>
+        <Segmented label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))} />
+      </Field>
+      <StartButton onPress={() => start("cross")} />
+    </Sheet>
+    <Sheet open={settings === "recognition"} onClose={() => setSettings("")} title={tr("Recognition")} description={tr("The learned cases of a set at random, until you stop")} scroll>
+      <Field label={tr("Set")}>
+        {chosen && <Choice label={tr("Set")} value={chosen.set.id} onChange={setRecognition} options={data.setRows.filter(x => x.learned).map(x => ({ id: x.set.id, label: ofSet(x) }))} />}
+      </Field>
+      <Field label={tr("Seconds per case")}>
+        <Segmented label={tr("Seconds per case")} value={String(seconds)} onChange={n => setSeconds(Number(n))} options={RECOGNITION_SECONDS.map(n => ({ id: String(n), label: tr("{0} s", { 0: n }) }))} />
+      </Field>
+      {cube && <View className="flex-row flex-wrap gap-1.5">
+        <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)}>{tr("Random AUF")}</Chip>
+        {top && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the top layer's stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
+      </View>}
+      <StartButton onPress={() => start("recognition")} disabled={!chosen} />
+    </Sheet>
+    <Sheet open={settings === "sets"} onClose={() => setSettings("")} title={tr("Whole sets")} description={tr("Every learned case of the sets you choose")} scroll>
+      <View className="flex-row flex-wrap gap-1.5">
+        {data.setRows.filter(x => x.learned).map(({ set, learned }) => <Chip key={set.id} on={trainSets.includes(set.id)} onPress={() => toggleSet(set.id)}
+          accessibilityLabel={tr("{0}, {1} learned", { 0: tr(set.label), 1: learned })}>
+          <Text className={cn("text-sm font-bold", trainSets.includes(set.id) && "text-primary-foreground")}>{tr(set.label)} <Numeric className={cn("text-sm font-bold", trainSets.includes(set.id) ? "text-primary-foreground" : "text-primary")}>{learned}</Numeric></Text>
+        </Chip>)}
+      </View>
+      {/* The sets join the cases Train drills, with the recommended and those picked by hand. */}
+      <CasesBar data={data} onTrain={() => start("cases")} className="-mx-5 px-5" />
+    </Sheet>
+    <PickSheet open={picking} onClose={() => setPicking(false)} free onStart={free > 0 ? () => start("free") : undefined} />
+  </>;
   const head = <>
     <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("training")} /></AppBar>
     <SectionTabs />
@@ -287,7 +300,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
         </View>}
       </View>
       <Sheet open={waysOpen} onClose={() => setWaysOpen(false)} title={tr("Ways of training")} scroll>{ways}</Sheet>
-      <PickSheet open={picking} onClose={() => setPicking(false)} free />
+      {sheets}
       <PickSheet open={searching} onClose={() => setSearching(false)} />
     </View>;
   }
@@ -297,15 +310,15 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       {ways}
     </ScrollView>
     <CasesBar data={data} onTrain={() => onStart("cases")} />
-    <PickSheet open={picking} onClose={() => setPicking(false)} free />
+    {sheets}
   </View>;
 }
 
 /** What the cases' training drills (the recommended, the whole sets, those by hand), with Random AUF and Train. */
-function CasesBar({ data, onTrain }: { data: TrainingData; onTrain: () => void }) {
+function CasesBar({ data, onTrain, className }: { data: TrainingData; onTrain: () => void; className?: string }) {
   const [auf, setAuf] = useAtom(randomAufAtom);
   const cube = !!puzzleInfo(data.puzzle).cubeSize;
-  return <View className="flex-row items-center gap-2 border-t border-border px-4 py-2">
+  return <View className={cn("flex-row items-center gap-2 border-t border-border px-4 py-2", className)}>
     <View className="min-w-0 flex-1">
       <View className="flex-row items-baseline gap-1.5">
         <Numeric className="text-2xl font-extrabold tracking-tight">{data.pool.length}</Numeric>
@@ -421,9 +434,9 @@ function RecommendedRow({ r, c, scale, picked, onToggle, large = false }: { r: R
 
 /**
  * The cases to pick by hand, in a sheet: the search on top, then set by set (the learned cases for Learned, every
- * case for free practice), the count picked and Clear.
+ * case for free practice), the count picked and Clear; `onStart` puts Start under them.
  */
-function PickSheet({ open, onClose, free = false }: { open: boolean; onClose: () => void; free?: boolean }) {
+function PickSheet({ open, onClose, free = false, onStart }: { open: boolean; onClose: () => void; free?: boolean; onStart?: () => void }) {
   const cases = useAtomValue(casesAtom), sets = useAtomValue(setsAtom), learnedIds = useAtomValue(learnedCaseIdsAtom);
   const [hand, setHand] = useAtom(selectedCaseIdsAtom), [freePicks, setFreePicks] = useAtom(freePicksAtom);
   const [query, setQuery] = useState("");
@@ -438,6 +451,7 @@ function PickSheet({ open, onClose, free = false }: { open: boolean; onClose: ()
         <Chip onPress={() => setSelected([])} disabled={!selected.length}>{tr("Clear")}</Chip>
       </View>
       <CaseSelector cases={shown} sets={sets as SetDto[]} selected={selected} onChange={setSelected} query={query} inSheet />
+      {onStart && <View className="px-5"><StartButton onPress={onStart} /></View>}
     </>}
   </Sheet>;
 }

@@ -64,7 +64,7 @@ function GoogleButton({ id, busy, onCredential, onError }: { id: string; busy: b
       if (!live || !element) return;
       if (initialized !== id) gsi.initialize({ client_id: id, callback: ({ credential }) => onGoogle(credential) });
       initialized = id;
-      gsi.renderButton(element, { size: "large", shape: "pill", text: "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
+      gsi.renderButton(element, { size: "large", shape: "pill", "text": "continue_with", width: Math.min(400, element.clientWidth), locale: language() });
     }, (reason: Error) => live && onError(reason.message));
     return () => { live = false; };
   }, [id]);

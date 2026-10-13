@@ -1,7 +1,7 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import {
-  BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CirclePlay, Grid3x3, LayoutGrid, List, ListChecks, Plus, Search, SearchX, SquareCheckBig, Timer, Trash2, Video, X,
+  BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CirclePlay, Grid3x3, LayoutGrid, List, ListChecks, Plus, Search, SearchX, SlidersHorizontal, SquareCheckBig, Timer, Trash2, Video, X,
   type LucideIcon,
 } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
@@ -416,7 +416,7 @@ function Pills<T extends string>({ value, options, onChange, label, className }:
     {options.map(o => {
       const on = o.id === value;
       return <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={o.icon ? o.label : undefined} onPress={() => onChange(o.id)}
-        className={cn("flex-row items-center justify-center gap-1 rounded-xl", o.icon ? "w-10" : "px-2.5", on && "bg-background")}>
+        className={cn("grow flex-row items-center justify-center gap-1 rounded-xl", o.icon ? "w-10" : "px-2.5", on && "bg-background")}>
         {o.icon ? <Icon as={o.icon} size={17} className={on ? "text-foreground" : "text-muted-foreground"} />
           : <Text numberOfLines={1} className={cn("text-sm font-bold", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>}
         {o.count !== undefined ? <Numeric className={cn("text-sm", on ? "font-bold text-foreground" : "text-muted-foreground")}>{o.count}</Numeric> : null}
@@ -439,7 +439,7 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
   const [filter, setFilter] = useAtom(learningFilterAtom), [tiles, setTiles] = useAtom(tileSizeAtom);
   const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom), goBack = useSetAtom(goBackAtom), openGuides = useSetAtom(guidesAtom);
   const train = useTrain();
-  const [methods, setMethods] = useState(false), [switching, setSwitching] = useState(false);
+  const [methods, setMethods] = useState(false), [switching, setSwitching] = useState(false), [filtering, setFiltering] = useState(false);
   // The case open over the set, on a tablet.
   const [caseOpen, setCaseOpen] = useState<string | null>(null);
   // The selection: null outside it.
@@ -501,9 +501,7 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
         ? <Button variant="secondary" className="h-10 rounded-full px-3.5" onPress={() => setPicked(toggleSelection(picked, groupIds))}>
           <Text>{allPicked ? tr("Unselect") : tr("Select")}</Text>
         </Button>
-        : <Button variant="secondary" className="h-10 gap-1.5 rounded-full px-3.5" accessibilityLabel={tr("Train {0}", { 0: said(row.group) })} onPress={() => train(groupIds)}>
-          <Icon as={Timer} size={16} className="text-secondary-foreground" /><Text>{tr("Train")}</Text>
-        </Button>}
+        : <HeadButton icon={Timer} label={tr("Train {0}", { 0: said(row.group) })} onPress={() => train(groupIds)} />}
     </View>;
   };
   const pickedBar = <View className={cn("min-h-14 flex-row items-center gap-1 bg-primary/12 pr-3 pl-2", embedded && "mx-7 mt-1.5 rounded-2xl")}>
@@ -524,11 +522,12 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     { id: "learned", label: tr("Learned"), count: learnedCount },
     { id: "not-learned", label: tr("To learn"), count: all.length - learnedCount },
   ]} />;
-  const tilePills = <Pills label={tr("Tile size")} value={view} onChange={setTiles} options={[
-    { id: "large", label: tr("Large tiles"), icon: LayoutGrid },
-    { id: "small", label: tr("Compact tiles"), icon: Grid3x3 },
+  const tileOptions = [
+    { id: "large" as const, label: tr("Large tiles"), icon: LayoutGrid },
+    { id: "small" as const, label: tr("Compact tiles"), icon: Grid3x3 },
     ...(tablet ? [{ id: "list" as const, label: tr("List"), icon: List }] : []),
-  ]} />;
+  ];
+  const tilePills = <Pills label={tr("Tile size")} value={view} onChange={setTiles} options={tileOptions} />;
   const listView = <View className={cn("-mx-4 min-h-0 flex-1", tablet && "-mx-7")} onLayout={tablet ? e => setListWidth(e.nativeEvent.layout.width - 56) : undefined}>
     <FlatList key={`${columns}`} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4 pb-24", tablet && "px-7 pb-4")}
       initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />
@@ -549,26 +548,37 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
     {tablet && !embedded && <SetsSheet open={switching} current={setId} onClose={() => setSwitching(false)}
       onPick={id => { setSwitching(false); if (id !== setId) replaceRoute({ page: "algorithms", set: id }); }} />}
   </>;
+  // A phone keeps the head quiet: where the set sits, a line of its description and its bar; what is shown and how
+  // (the filter, the tiles' size) and the bar's legend wait in a drawer behind one button, lit while a filter hides cases.
   if (!tablet) return <View className="flex-1">
     {picked ? pickedBar
       : <PushedBar title={said(set.label)}>
-        <Button variant="ghost" className="h-10 gap-1.5 rounded-full px-3" onPress={() => setPicked(new Set())}>
-          <Icon as={SquareCheckBig} size={17} className="text-foreground" /><Text>{tr("Select")}</Text>
-        </Button>
+        <HeadButton icon={SlidersHorizontal} label={tr("Filter")} badge={filter !== "all" ? 1 : undefined} onPress={() => setFiltering(true)} />
+        <HeadButton icon={SquareCheckBig} label={tr("Select")} onPress={() => setPicked(new Set())} />
         {menu}
       </PushedBar>}
     <View className="min-h-0 flex-1 gap-2.5 px-4">
-      <View className="gap-1">
-        <Crumbs stage={set.stage} />
-        {set.description ? <Text numberOfLines={2} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
-      </View>
       <View className="gap-1.5">
+        <View className="flex-row items-center gap-2">
+          <View className="min-w-0 flex-1"><Crumbs stage={set.stage} /></View>
+          <Numeric className="text-xs text-muted-foreground">{tr("{0} of {1} learned", { 0: learnedCount, 1: all.length })}</Numeric>
+        </View>
+        {set.description ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{said(set.description)}</Text> : null}
         <Progress learned={learnedCount} trained={trainedCount} total={all.length} />
-        <Legend learned={learnedCount} trained={trainedCount} total={all.length} />
       </View>
-      <View className="flex-row items-center justify-between gap-2">{filterPills}{tilePills}</View>
       {listView}
     </View>
+    <Sheet open={filtering} onClose={() => setFiltering(false)} title={tr("Filter")}>
+      <Legend learned={learnedCount} trained={trainedCount} total={all.length} />
+      <View className="gap-2">
+        <Caption className="px-1">{tr("Show")}</Caption>
+        {filterPills}
+      </View>
+      <View className="gap-2">
+        <Caption className="px-1">{tr("Tile size")}</Caption>
+        <Pills label={tr("Tile size")} value={view} onChange={setTiles} options={tileOptions.map(o => ({ id: o.id, label: o.label }))} />
+      </View>
+    </Sheet>
     {picked
       ? selectionBar
       : <Pressable onPress={() => train(all.map(c => c.id))} accessibilityRole="button" disabled={!all.length}
@@ -951,16 +961,14 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   const addYours = <Pressable onPress={() => setWriting(true)} accessibilityRole="button" className="h-10 flex-row items-center gap-1.5 rounded-full px-2 active:bg-muted/50">
     <Icon as={Plus} size={16} className="text-muted-foreground" /><Text className="text-sm font-bold text-muted-foreground">{tr("Add yours")}</Text>
   </Pressable>;
+  // A phone keeps under the player the algorithms used, if any, then the drawer's button: choosing one, adding one's
+  // own and what each tells apart wait there.
   const algorithms = <View className="gap-1 px-4 pt-3 pb-4">
     {current ? <AlgStage key={current.key} c={c} item={current} items={c.algorithms.length} used={isUsed(current)} choices={choices} autoplay={tapped} onUse={() => toggleUse(current)} /> : null}
-    <View className="flex-row items-center justify-between pt-3">
-      <Text accessibilityRole="header" className="px-1 text-xs font-bold tracking-wider text-muted-foreground uppercase">{tr("You use")}</Text>
-      {addYours}
-    </View>
-    {used.length ? used.map(item => <AlgRow key={item.key} item={item} cube={cube} used here={item.key === current?.key} onPress={() => show(item)} />)
-      : <Text className="px-1 pb-1 text-sm text-muted-foreground">{tr("None chosen yet: pick the one you learn among the case's algorithms.")}</Text>}
+    {used.length > 0 && <Caption className="px-1 pt-3 pb-1">{tr("You use")}</Caption>}
+    {used.map(item => <AlgRow key={item.key} item={item} cube={cube} used here={item.key === current?.key} onPress={() => show(item)} />)}
     {items.length > 0 && <Pressable onPress={() => setDrawer(true)} accessibilityRole="button"
-      className="mt-1 h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-muted active:bg-muted/70">
+      className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-muted active:bg-muted/70">
       <Icon as={ListChecks} size={18} className="text-foreground" />
       <Text className="text-base font-bold">{used.length ? tr("Other algorithms · {0}", { 0: others }) : tr("Choose an algorithm · {0}", { 0: items.length })}</Text>
     </Pressable>}
@@ -1067,11 +1075,12 @@ function AlgStage({ c, item, items, used, choices, autoplay, onUse, cube: given 
       {player && <ViewButtons player={player} compact className="absolute top-2 right-2" />}
     </View>
     <View className="flex-row items-center gap-3 border-t border-border px-4 py-3">
-      <View className="min-w-0 flex-1 gap-1">
-        <Text className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-          {item.own ? tr("Your algorithm") : tr("Algorithm {0} of {1}", { 0: (item.index ?? 0) + 1, 1: items })}
-        </Text>
-        <AlgFacts item={item} cube={!!play && !play.puzzle} choices={choices} full />
+      {/* Which algorithm it is (its number, as the drawer lists them) leads what tells it apart, on one line where it fits. */}
+      <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
+        {!item.own && <Text accessibilityLabel={tr("Algorithm {0} of {1}", { 0: (item.index ?? 0) + 1, 1: items })} className="text-xs text-muted-foreground">
+          <Text className="text-xs font-bold text-foreground">#{(item.index ?? 0) + 1}</Text> / {items}
+        </Text>}
+        <View className="min-w-0 flex-1"><AlgFacts item={item} cube={!!play && !play.puzzle} choices={choices} full /></View>
       </View>
       <Pressable onPress={onUse} accessibilityRole="switch" accessibilityState={{ checked: used }}
         className={cn("h-10 flex-row items-center gap-1.5 rounded-xl px-3", used ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>

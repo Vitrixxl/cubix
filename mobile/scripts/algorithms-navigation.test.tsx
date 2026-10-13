@@ -90,8 +90,16 @@ test("the catalogue lists the sets by step with what is learned, and opens a set
   expect(store.get(routeAtom)).toEqual({ page: "algorithms", set: "oll" });
   expect(renderer.root.findByType("PushedBar" as any).props.title).toBe("OLL");
   expect(tileIds()).toEqual(["OLL 1", "OLL 3", "OLL 2", "OLL 4"]);
-  await act(() => store.set(learningFilterAtom, "not-learned"));
+  // The filter waits in a drawer behind the head's button, which counts it once it hides cases.
+  const drawer = () => renderer.root.findAllByType("Sheet" as any).find(sheet => sheet.props.title === "Filter")!;
+  const filterButton = () => renderer.root.findAll((n: any) => n.type === "HeadButton" && n.props.label === "Filter")[0]!;
+  expect(drawer().props.open).toBe(false);
+  await press("Filter");
+  expect(drawer().props.open).toBe(true);
+  await press("To learn");
+  expect(store.get(learningFilterAtom)).toBe("not-learned");
   expect(tileIds()).toEqual(["OLL 1", "OLL 3", "OLL 2"]);
+  expect(filterButton().props.badge).toBe(1);
 });
 
 test("a case opens from its set with the set's order, steps through it and closes back to the set", async () => {

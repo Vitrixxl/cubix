@@ -120,14 +120,21 @@ test("a step's workbench shows one case at a time, learns it, and trains the sho
   // 2-Look OLL first, since some of its cases are still to learn: its first case to learn on the workbench, its group under it.
   expect(texts()).toContain("Sune");
   expect(strip()).toEqual(["Sune · To learn"]);
-  // The learned filter hides the learned ones inside the step.
-  const filter = () => renderer.root.findAllByType("ChipMenu" as any).find((n: any) => n.props.label === "Filter")!;
+  // No filter on the page: the sheet of every case has it, and the learned filter hides the learned ones inside the step.
+  expect(renderer.root.findAllByType("ChipMenu" as any)).toEqual([]);
+  const sheets = () => renderer.root.findAll((n: any) => n.type === "Sheet").length;
+  await tap("Every case of the step");
+  expect(sheets()).toBe(1);
+  const filter = () => renderer.root.findAllByType("Segmented" as any).find((n: any) => n.props.label === "Filter")!;
   await act(() => filter().props.onChange("learned"));
   expect(strip()).toEqual(["I-Shape · Learned"]);
   await act(() => filter().props.onChange("all"));
-  // The diagram opens its case over the course.
+  // The case's note, figures and algorithms are in a sheet opened from its name; the diagram opens its case.
+  expect(renderer.root.findAllByType("Figure" as any)).toEqual([]);
+  await tap("Show the details");
+  expect(renderer.root.findAllByType("Figure" as any).map((n: any) => n.props.label)).toEqual(["Average", "Best", "Attempts", "Got it · This session"]);
   await tap("Open 2L-OLL Sune");
-  expect(renderer.root.findAll((n: any) => n.type === "Sheet").length).toBe(1);
+  expect(sheets()).toBe(3);
   // Got it learns it with the algorithm shown.
   await tap("Got it");
   expect(learnedCalls.at(-1)).toEqual(["2L-OLL Sune", true, ["F R U R' U' F'"]]);

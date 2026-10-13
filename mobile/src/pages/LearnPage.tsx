@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, Box, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Play, Timer, type LucideIcon } from "lucide-react-native";
+import { BookA, Box, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, ListFilter, Play, Timer, type LucideIcon } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api, local } from "../api";
-import { Alg, Bar, Empty, Figure, HeadButton, IconTile, LearnToggle, Numeric } from "../components/layout";
+import { Alg, Bar, Empty, Figure, HeadButton, IconTile, Numeric, Segmented } from "../components/layout";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Chip, ChipMenu } from "../components/Chips";
 import { PuzzleIcon } from "../components/PuzzlePicker";
@@ -163,7 +163,7 @@ function StepBars({ puzzle, method, here, className }: { puzzle: PuzzleId; metho
 }
 
 /**
- * The course to carry on: its name large, its line and three figures, a bar per step, then Start or Continue. On a
+ * The course to carry on: its name large, its line (three figures on a tablet), a bar per step, then Start or Continue. On a
  * tablet it `peek`s above the bottom bar (no line: the cards show it), or docks at the `side`, its steps as a list.
  */
 function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId; row: MethodRow; onOpen: () => void; onStep?: (index: number) => void; variant?: "peek" | "side" }) {
@@ -171,7 +171,8 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
   const colors = useColors();
   const { method, state } = row;
   const step = method.steps[state.step] ?? method.steps[0]!;
-  const action = state.started ? tr("Continue · {0}", { 0: tr(step.title) }) : tr("Start · {0}", { 0: tr(step.title) });
+  // The step it opens on is named over the button.
+  const action = state.started ? tr("Continue") : tr("Start");
   const side = variant === "side";
   return <View className={cn("gap-2.5 rounded-3xl bg-muted p-4", variant === "peek" && "rounded-none bg-transparent p-0", side && "flex-1 rounded-none bg-transparent p-1")}>
     <View className="flex-row items-center gap-1.5">
@@ -182,11 +183,12 @@ function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId
     </View>
     <Text numberOfLines={1} className={cn("text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]", side && "text-[40px] leading-[44px]")}>{tr(method.name)}</Text>
     {!variant && <Text numberOfLines={2} className="text-[13px] leading-[18px] text-muted-foreground">{tr(method.summary)}</Text>}
-    <View className="flex-row gap-1.5">
-      <Well label={tr("Steps")} value={`${state.done} / ${state.total}`} dot="bg-success" muted={!!variant} />
-      <Well label={tr("Algorithms")} value={`${row.known} / ${row.facts.algorithms}`} dot="bg-primary" muted={!!variant} />
-      <Well label={tr("Known")} value={`${row.percent}%`} dot="bg-lilac" muted={!!variant} />
-    </View>
+    {/* A phone leaves them out: the bars count the steps, the method's row under it its algorithms and share known. */}
+    {variant && <View className="flex-row gap-1.5">
+      <Well label={tr("Steps")} value={`${state.done} / ${state.total}`} dot="bg-success" muted />
+      <Well label={tr("Algorithms")} value={`${row.known} / ${row.facts.algorithms}`} dot="bg-primary" muted />
+      <Well label={tr("Known")} value={`${row.percent}%`} dot="bg-lilac" muted />
+    </View>}
     {side ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-0.5" accessibilityLabel={tr("Steps")}>
       {method.steps.map((st, i) => {
         const count = counts[i]!, line = count.total ? `${count.learned} / ${count.total}` + (count.done ? ` · ${tr("Done")}` : "") : count.done ? tr("Done") : tr("An intuitive step");
@@ -394,7 +396,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
     {next
       ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Next step: {0}", { 0: tr(next.title) })} onPress={() => go(entry.step + 1)}
         className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-between gap-2 rounded-xl pr-2.5 pl-4", hasPieces ? "bg-muted active:bg-muted/70" : "bg-primary active:bg-primary/85")}>
-        <Text numberOfLines={1} className={cn("shrink text-[15px] font-bold", !hasPieces && "text-primary-foreground")}>{tr("Next step")} · {tr(next.title)}</Text>
+        <Text numberOfLines={1} className={cn("shrink text-[15px] font-bold", !hasPieces && "text-primary-foreground")}>{tr("Next")}</Text>
         <Icon as={ChevronRight} size={18} className={hasPieces ? "text-foreground" : "text-primary-foreground"} />
       </Pressable>
       : <Pressable accessibilityRole="button" accessibilityLabel={tr("Finish")} onPress={() => { void unlock(method.id); setFinished(true); }}
@@ -407,7 +409,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
     <PushedBar title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })} onBack={back}>
       {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage), named rather than an icon to guess. */}
       {puzzle === "333" && method.id === "beginner" && <Chip icon={Box} accessibilityLabel={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted" })}>{tr("With my cube")}</Chip>}
-      {hasPieces && !finished ? <HeadButton icon={Info} label={tr("About this step")} onPress={() => setAbout(true)} />
+      {(hasPieces || !tablet) && !finished ? <HeadButton icon={Info} label={tr("About this step")} onPress={() => setAbout(true)} />
         : <HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} />}
     </PushedBar>
     <StepChips puzzle={puzzle} method={method} entry={entry} finished={finished} onPick={go} />
@@ -430,11 +432,12 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
       </>
       : tablet ? <IntuitiveStep puzzle={puzzle} method={method} entry={entry} wide={wide} nav={<View className="flex-row items-center gap-1.5">{stepNav}</View>} />
       : <>
-        <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5 px-4 pb-3">
+        {/* A phone: the step's card (its tips in its sheet behind the (i)), its workbench kept above Previous / Next step. */}
+        <ScrollView className="min-h-0 flex-1" contentContainerClassName="px-4 pb-2.5">
           <View className="gap-3 rounded-3xl bg-card p-4"><StepSheet puzzle={puzzle} method={method} entry={entry} /></View>
-          <IntuitiveBench puzzle={puzzle} method={method} entry={entry} />
         </ScrollView>
-        <View className="flex-row items-center gap-1.5 px-4 pt-1 pb-2">{stepNav}</View>
+        <View className="px-4"><IntuitiveBench puzzle={puzzle} method={method} entry={entry} bare head={false} /></View>
+        <View className="flex-row items-center gap-1.5 px-4 pt-2.5 pb-2">{stepNav}</View>
       </>}
     <Sheet open={about} onClose={() => setAbout(false)} title={tr(step.title)} description={tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })} scroll>
       <StepSheet puzzle={puzzle} method={method} entry={entry} bare />
@@ -494,7 +497,8 @@ function StepSheet({ puzzle, method, entry, bare = false }: { puzzle: PuzzleId; 
       <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={64} />
     </View>}
     <Text className="text-[15px] leading-[22px] text-foreground/85">{tr(step.text)}</Text>
-    {step.tips?.map((tip, i) => <View key={tip} className="flex-row gap-3">
+    {/* Its tips in the sheet only: a phone's intuitive step keeps its workbench in view. */}
+    {bare && step.tips?.map((tip, i) => <View key={tip} className="flex-row gap-3">
       <View className="size-6 items-center justify-center rounded-lg bg-muted"><Numeric className="text-xs font-bold text-warning">{i + 1}</Numeric></View>
       <Text className="min-w-0 flex-1 text-[13px] leading-[19px] text-muted-foreground">{tr(tip)}</Text>
     </View>)}
@@ -585,12 +589,12 @@ function StepPoster({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solvi
 }
 
 /** An intuitive step's workbench: Train the cross where it has its training, and Mark as mastered; or its algorithms to come. */
-function IntuitiveBench({ puzzle, method, entry, row = false, bare = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; row?: boolean; bare?: boolean }) {
+function IntuitiveBench({ puzzle, method, entry, row = false, bare = false, head = true }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; row?: boolean; bare?: boolean; head?: boolean }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setTrainingMode = useSetAtom(trainingSetupModeAtom), setTrainingStep = useSetAtom(trainingStepAtom), setRun = useSetAtom(trainingRunAtom), setRoute = useSetAtom(routeAtom);
   const step = method.steps[entry.step]!, train = step.train && puzzle === "333", mastered = stepMastered(step, entry);
-  const card = (icon: LucideIcon, title: string, line: string, onPress: () => void, primary: boolean, on = false) =>
-    <Pressable accessibilityRole={primary ? "button" : "switch"} accessibilityState={{ checked: on }} accessibilityLabel={title} onPress={onPress}
+  const card = (icon: LucideIcon, title: string, line: string, onPress: () => void, primary: boolean, on = false, label = title) =>
+    <Pressable accessibilityRole={primary ? "button" : "switch"} accessibilityState={{ checked: on }} accessibilityLabel={label} onPress={onPress}
       className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5", row && "min-w-0 flex-1", primary ? "bg-primary active:bg-primary/85" : on ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
       <View className={cn("size-10 items-center justify-center rounded-xl", primary ? "bg-primary-foreground/15" : "bg-card")}>
         <Icon as={icon} size={20} className={primary ? "text-primary-foreground" : on ? "text-success" : "text-foreground"} />
@@ -602,23 +606,26 @@ function IntuitiveBench({ puzzle, method, entry, row = false, bare = false }: { 
       {primary && <Icon as={ChevronRight} size={18} className="text-primary-foreground" />}
     </Pressable>;
   return <View className={cn("gap-2.5 rounded-3xl bg-card p-4", bare && "rounded-none bg-transparent p-0")} accessibilityLabel={tr("Workbench")}>
-    <View className="flex-row items-center justify-between">
+    {head && <View className="flex-row items-center justify-between">
       <Text className="text-[11px] font-bold tracking-[1px] text-muted-foreground uppercase">{tr("Workbench")}</Text>
       <Badge variant="secondary"><Text className="text-xs">{step.missing ? tr("Algorithms to come") : tr("An intuitive step")}</Text></Badge>
-    </View>
+    </View>}
     {step.missing ? <Text className="text-sm text-muted-foreground">{tr(step.missing)}</Text> : <View className={cn("gap-2.5", row && "flex-row")}>
       {/* An intuitive step with its own training mode opens it (Training → Cross). */}
       {train && card(Dumbbell, tr("Train the cross"), tr("Plan it in inspection, then count its moves"), () => { setTrainingMode(""); setRun("cross"); setTrainingStep("practice"); setRoute({ page: "training" }); }, true)}
-      {card(Check, mastered ? tr("Mastered") : tr("Mark as mastered"), mastered ? tr("Undo if it still takes thought") : tr("When you do it without thinking"),
-        () => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step))), false, mastered)}
+      {/* Says its state in a word; its full sentence is for the screen reader. */}
+      {card(Check, tr("Mastered"), mastered ? tr("Undo if it still takes thought") : tr("When you do it without thinking"),
+        () => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step))), false, mastered, mastered ? tr("Mastered") : tr("Mark as mastered"))}
     </View>}
   </View>;
 }
 
 /**
  * A step with algorithms: the set and the filter of learned ones, then the case on the workbench (its name, diagram,
- * figures, algorithm hidden until asked for, and how the try went), then its group as a strip to pick from. Wide, the
- * whole step's cases replace the strip in a docked panel, the set and the filter over them.
+ * figures, algorithm hidden until asked for, and how the try went), then its group as a strip to pick from. A phone
+ * keeps the name, diagram, algorithm and verdicts on the card, its note, figures and choice of algorithm in a sheet
+ * from its name, and the filter in the sheet of every case. Wide, the whole step's cases replace the strip in a docked
+ * panel, the set and the filter over them.
  */
 function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }: {
   puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; chosen?: { id: string; label: string; count: number }; own: { id: string; label: string; count: number }[]; onSet: (id: string) => void;
@@ -672,6 +679,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const [listOpen, setListOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const piece = all.find(p => p.key === pick) ?? all.find(p => !p.learned) ?? all[0];
   const index = piece ? all.indexOf(piece) : -1;
   const alg = piece ? piece.algs[choice] ?? piece.algs[0] ?? "" : "";
@@ -714,24 +722,25 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
         </Pressable>;
       })}
     </ScrollView> : wide ? <View className="flex-1" /> : <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold text-muted-foreground">{chosen ? tr("Cases") : tr("Algorithms")} <Numeric className="text-sm text-muted-foreground">{count.learned} / {count.total}</Numeric></Text>}
-    <ChipMenu label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ id: o.id, label: `${o.label} · ${o.count}` }))}>
+    {/* A phone filters in the sheet of every case instead. */}
+    {tablet && <ChipMenu label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ id: o.id, label: `${o.label} · ${o.count}` }))}>
       <Text className="text-sm font-bold">{current.label} <Numeric className="text-sm font-bold text-primary">{current.count}</Numeric></Text>
-    </ChipMenu>
+    </ChipMenu>}
   </View>;
-  const empty = <Empty icon={Check}>{filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>;
-  const sheets = <>
-    <PiecesSheet open={listOpen} onClose={() => setListOpen(false)} groups={shownGroups}
-      current={piece} puzzle={puzzle} step={step} onPick={key => { setListOpen(false); select(key); }} />
-    <AlgPlayerSheet items={playable.map(p => p.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
-    <CaseSheet caseId={caseOpen} ids={caseIds} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
-  </>;
+  const empty = <Empty icon={Check}>
+    {filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}
+    {!tablet && <Chip icon={ListFilter} onPress={() => setListOpen(true)}>{tr("Filter")}</Chip>}
+  </Empty>;
   const trailView = trail.length > 0 && <View className="min-w-0 shrink flex-row items-center gap-1.5" accessibilityLabel={trail.map(t => tr(VERDICTS.find(v => v.id === t.verdict)!.label)).join(", ")}>
     <Text className="text-xs text-muted-foreground">{plural(trail.length, "try")}</Text>
     <View className="shrink flex-row gap-1 overflow-hidden">{trail.slice(-12).map((t, i) => <View key={i} className={cn("size-2.5 rounded-[3px]", VERDICT_FILL[t.verdict])} />)}</View>
   </View>;
+  // A phone's card keeps what is practised with; the case's note, figures and algorithms to pick open in a sheet from its name.
+  let details: ReactNode = null;
   const card = piece && (() => {
-    const learnToggle = (className?: string) => <LearnToggle learned={piece.learned} onPress={() => toggle(piece)} className={className}
-      accessibilityLabel={piece.learned ? tr("{0} learned", { 0: said(piece.name) }) : tr("Mark {0} learned", { 0: said(piece.name) })} />;
+    // Says its state in a word, in green once learned; its full sentence is for the screen reader.
+    const learnToggle = (className?: string) => <Chip icon={Check} on={piece.learned} success onPress={() => toggle(piece)} className={className}
+      accessibilityLabel={piece.learned ? tr("{0} learned", { 0: said(piece.name) }) : tr("Mark {0} learned", { 0: said(piece.name) })}>{tr("Learned")}</Chip>;
     const diagram = (size: number) => <Pressable accessibilityRole="button" accessibilityLabel={piece.c ? tr("Open {0}", { 0: piece.c.id }) : tr("Play {0} in 3D", { 0: tr(piece.name) })}
       disabled={!piece.c && !piece.play} onPress={() => piece.c ? setCaseOpen(piece.c.id) : setPlaying(playable.indexOf(piece))} className="rounded-2xl active:opacity-70">
       <PieceDiagram piece={piece} puzzle={puzzle} step={step} size={size} />
@@ -802,22 +811,36 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
         </View>
       </View>;
     }
+    details = <Sheet open={detailsOpen} onClose={() => setDetailsOpen(false)} title={piece.name} description={piece.sub ? `${piece.context} · ${piece.sub}` : piece.context} scroll>
+      {piece.note ? <Text className="text-[15px] leading-[22px] text-foreground/85">{tr(piece.note)}</Text> : null}
+      {figures}
+      {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">{choices}</View>}
+    </Sheet>;
     return <View className="gap-3 rounded-3xl bg-card p-4" accessibilityLabel={tr("Workbench")}>
       <View className="flex-row items-start gap-3">
-        <View className="min-w-0 flex-1 gap-0.5">
-          <Text numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
-          <Text numberOfLines={1} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
-          {piece.sub ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{piece.sub}</Text> : null}
-          {learnToggle("mt-1.5 self-start")}
+        <View className="min-w-0 flex-1 gap-1.5">
+          <Pressable accessibilityRole="button" accessibilityLabel={tr("Show the details")} onPress={() => setDetailsOpen(true)} className="gap-0.5 rounded-lg active:opacity-70">
+            <View className="flex-row items-center gap-1">
+              <Text numberOfLines={1} className="shrink text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
+              <Icon as={Info} size={14} className="text-muted-foreground" />
+            </View>
+            <Text numberOfLines={2} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
+            {piece.sub ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{piece.sub}</Text> : null}
+          </Pressable>
+          {learnToggle("self-start")}
         </View>
         {diagram(diagramSize)}
       </View>
-      {note}
-      {figures}
-      {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">{choices}</View>}
       {well}
     </View>;
   })();
+  const sheets = <>
+    <PiecesSheet open={listOpen} onClose={() => setListOpen(false)} groups={shownGroups} current={piece} puzzle={puzzle} step={step} onPick={key => { setListOpen(false); select(key); }}
+      head={<Segmented label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ ...o, accent: o.id === filter }))} className="mx-5" />} />
+    <AlgPlayerSheet items={playable.map(p => p.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
+    <CaseSheet caseId={caseOpen} ids={caseIds} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
+    {details}
+  </>;
   // Wide: the workbench and the step's sheet on the page, every case of the step docked beside, with the step's actions under them.
   if (wide) return <>
     <View className="min-h-0 flex-1 flex-row">
@@ -857,8 +880,9 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     </View>
     {sheets}
   </>;
+  // A phone shows the top row only to switch sets: the strip's head counts the cases.
   return <>
-    {topRow}
+    {(tablet || own.length > 1) && topRow}
     <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-2.5 px-4 pb-2", tablet && "gap-3 px-7")}>
       {card ?? empty}
       {piece && <View className="gap-2">
@@ -866,6 +890,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           <Pressable accessibilityRole="button" accessibilityLabel={tr("Every case of the step")} onPress={() => setListOpen(true)} className="min-h-9 flex-row items-center gap-1.5 rounded-lg active:opacity-70">
             <Text numberOfLines={1} className="shrink text-sm font-bold">{tr(piece.group)}</Text>
             <Numeric className="text-sm text-muted-foreground">{groupTotal.filter(p => p.learned).length} / {groupTotal.length}</Numeric>
+            {!tablet && filter !== "all" && <Text numberOfLines={1} className="shrink text-sm font-bold text-primary">{current.label}</Text>}
             <Icon as={ChevronsUpDown} size={14} className="text-muted-foreground" />
           </Pressable>
           {!tablet && trailView}
@@ -889,8 +914,10 @@ function PieceTile({ p, here, puzzle, step, size, onPress }: { p: Piece; here: b
 
 type ListRow = { key: string } & ({ kind: "group"; name: string; learned: number; total: number } | { kind: "tiles"; pieces: Piece[] });
 /** Every piece of the step, group by group, in a sheet: a tap puts one on the workbench. */
-function PiecesSheet({ open, onClose, groups, current, puzzle, step, onPick }: {
+function PiecesSheet({ open, onClose, groups, current, puzzle, step, onPick, head }: {
   open: boolean; onClose: () => void; groups: [string, Piece[]][]; current?: Piece; puzzle: PuzzleId; step: MethodStep; onPick: (key: string) => void;
+  /** Over the list: the filter of learned ones. */
+  head?: ReactNode;
 }) {
   // The sheet keeps to 720 wide on a tablet (Sheet).
   const width = Math.min(useLayout().width, 720);
@@ -900,7 +927,8 @@ function PiecesSheet({ open, onClose, groups, current, puzzle, step, onPick }: {
     { kind: "group", key: "group:" + name, name, learned: pieces.filter(p => p.learned).length, total: pieces.length },
     ...Array.from({ length: Math.ceil(pieces.length / columns) }, (_, i): ListRow => ({ kind: "tiles", key: `${name}:${i}`, pieces: pieces.slice(i * columns, i * columns + columns) })),
   ]), [groups, columns]);
-  return <Sheet open={open} onClose={onClose} title={tr("Cases")} contentClassName="px-0">
+  return <Sheet open={open} onClose={onClose} title={tr("Cases")} contentClassName="gap-2 px-0">
+    {head}
     {open && <SheetFlatList data={rows} keyExtractor={row => row.key} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12 }} initialNumToRender={8}
       renderItem={({ item: row }) => row.kind === "group"
         ? <View className="flex-row justify-between pt-3 pb-1"><Text className="text-[13px] font-extrabold text-muted-foreground">{tr(row.name)}</Text><Numeric className={cn("text-[13px]", row.learned === row.total ? "text-success" : "text-muted-foreground")}>{row.learned} / {row.total}</Numeric></View>

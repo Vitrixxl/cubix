@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Download, FileJson, Flame, Gauge, LogIn, LogOut, NotebookPen, Settings, Sheet as SheetIcon, Swords, Trophy, Upload, type LucideIcon } from "lucide-react-native";
-import { useMemo, useState, type ReactNode, type Ref } from "react";
-import { FlatList, Pressable, ScrollView, View, type PressableProps } from "react-native";
+import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
+import { useMemo, useState, type ReactNode } from "react";
+import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
 import { achievementLists, dayKey, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
 import { level } from "../../../src/client/lib/achievements";
@@ -10,28 +10,24 @@ import { METHODS } from "../../../src/shared/methods";
 import { eventInfo, eventLabel, eventOf, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { api } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { journeyAtom } from "../journey";
 import { profileAchievementsAtom, profileCatalogAtom, profileDataAtom, profileKeyAtom, profilePuzzleAtom, profileSolveModeAtom, type PreparedProfile } from "../profile";
 import { AchievementBadge, AchievementDialog, AchievementsScreen } from "../components/Achievements";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
-import { ImportSheet } from "../components/ImportTimes";
-import { Bar, Empty, Figure, MenuItem, Numeric, Segmented, Surface } from "../components/layout";
+import { Bar, Empty, Figure, HeadButton, Numeric, Segmented, Surface } from "../components/layout";
 import { ProfileCaseDialog, TrainingProgress } from "../components/ProfileProgress";
-import { EventPicker } from "../components/PuzzlePicker";
+import { Caption as SheetCaption, EventPicker, PuzzleGrid } from "../components/PuzzlePicker";
+import { Sheet } from "../components/Sheet";
 import { StatsScreen } from "../components/Stats";
-import { toastAtom } from "../components/Toast";
 import { UserAvatar } from "../components/UserAvatar";
 import { useTourTarget } from "../tour";
-import { exportData } from "../lib/files";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, type DuelRecord } from "../lib/duel";
-import { guestModeAtom, learnedCaseIdsAtom, profileFiltersAtom, routeAtom, userAtom, type ProfileMode } from "../state";
+import { learnedCaseIdsAtom, profileFiltersAtom, routeAtom, userAtom, type ProfileMode } from "../state";
 import { useColors } from "../theme";
 import { locale, said, tr } from "../../../src/client/i18n";
 
@@ -108,36 +104,19 @@ function Caption({ children, link }: { children: ReactNode; link?: ReactNode }) 
   </View>;
 }
 
-/** A filled button of the identity's row. */
-function Action({ icon, label, square, className, ...props }: { icon: LucideIcon; label: string; square?: boolean; className?: string } & PressableProps & { ref?: Ref<View> }) {
-  // The rest (a menu trigger's press and ref) goes to the button itself.
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} {...props}
-    className={cn("h-10 flex-row items-center justify-center gap-1.5 rounded-xl bg-muted active:bg-accent", square ? "w-10" : "min-w-0 flex-1 px-2", className)}>
-    <Icon as={icon} size={16} className="text-foreground" />
-    {!square && <Text numberOfLines={1} className="shrink text-[13px] font-bold">{label}</Text>}
-  </Pressable>;
-}
-
 /**
  * Who they are: the face, the name with the streak (which opens the activity), the method and the date they joined,
- * the level and its XP; then importing, exporting, the settings and signing out. On a tablet it is a card: `large`
- * (portrait) with a bigger face and the four buttons on one tall row, `compact` (beside other columns) with them two by two.
+ * the level and its XP. Importing, the settings (with the exports) and signing out are in the account menu. On a
+ * tablet it is a card: `large` (portrait) with a bigger face, `compact` beside other columns.
  */
-function Identity({ d, onImport, onActivity, size }: { d: PreparedProfile | null; onImport: () => void; onActivity: () => void; size?: "large" | "compact" }) {
+function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivity: () => void; size?: "large" | "compact" }) {
   const user = useAtomValue(userAtom)!;
-  const journey = useAtomValue(journeyAtom), navigate = useSetAtom(routeAtom), toast = useSetAtom(toastAtom);
+  const journey = useAtomValue(journeyAtom);
   const xp = useAtomValue(profileAchievementsAtom)?.xp ?? 0, l = level(xp);
-  const [loggingOut, setLoggingOut] = useState(false);
   // The 3×3 method they solve with, the latest one they know.
   const method = METHODS["333"].find(m => m.id === journeyProfile(journey)?.knownMethods?.["333"]?.at(-1));
   const line = [method && said(method.name), !user.isGuest && tr("Joined {0}", { 0: joinedDate(user.createdAt) })].filter(Boolean).join(" · ");
-  const download = (kind: "csv" | "json") => void exportData(kind).catch(e => toast({ title: (e as Error).message }));
-  const setGuest = useSetAtom(guestModeAtom);
-  // Without an account, the same place leads to the sign-in screen.
-  const logOut = async () => { if (user.isGuest) return setGuest(false); if (loggingOut) return; setLoggingOut(true); try { await api.logout(); } finally { setLoggingOut(false); } };
   const streak = d?.streak.current ?? 0;
-  // The buttons' shape: one row on a phone, a tall row on a portrait tablet, two by two in a column.
-  const button = size === "large" ? "h-12" : size === "compact" ? "h-11 basis-[45%] grow" : undefined;
   return <View className={cn("gap-2.5", size && "gap-3 rounded-3xl bg-card p-4")}>
     <View className={cn("flex-row items-center gap-3", size === "large" && "gap-4")}>
       <UserAvatar user={user} size={size === "large" ? 88 : 64} className={size === "large" ? "rounded-3xl" : "rounded-[20px]"} />
@@ -157,19 +136,6 @@ function Identity({ d, onImport, onActivity, size }: { d: PreparedProfile | null
         </View>
         <Bar ratio={l.into / l.span} className="h-1.5" />
       </View>
-    </View>
-    <View className={cn("flex-row gap-1.5", size === "compact" && "flex-wrap")}>
-      <Action icon={Upload} label={tr("Import")} onPress={onImport} className={button} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild><Action icon={Download} label={tr("Export")} className={button} /></DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="min-w-60 rounded-2xl">
-          <MenuItem icon={SheetIcon} onPress={() => download("csv")}>{tr("My solves, as a table (CSV)")}</MenuItem>
-          <MenuItem icon={FileJson} onPress={() => download("json")}>{tr("All my profile's data (JSON)")}</MenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Action icon={Settings} label={tr("Account")} onPress={() => navigate({ page: "settings" })} className={button} />
-      {/* A tablet has the room to name the way out too. */}
-      <Action icon={user.isGuest ? LogIn : LogOut} label={user.isGuest ? tr("Sign in") : loggingOut ? tr("Logging out…") : tr("Log out")} square={!size} onPress={() => void logOut()} className={button} />
     </View>
   </View>;
 }
@@ -247,14 +213,14 @@ function Moment({ icon, badge, tone, children }: { icon?: LucideIcon; badge?: Re
 
 /**
  * The journal of the active days, newest first, scrolling inside its card: each day's solves, the event's best single
- * and Ao5, then what happened (records, achievements, battles). The puzzle is the profile's own; the calendar opens
- * the activity.
+ * and Ao5, then what happened (records, achievements, battles). Its head names the puzzle (the profile's own) and the
+ * kind shown; both are chosen in a sheet, which also opens the activity.
  */
 function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () => void }) {
   useDuel();
   const event = useProfileEvent();
   const summary = useAtomValue(profileAchievementsAtom);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("all"), [filtering, setFiltering] = useState(false);
   const [picked, setPicked] = useState<AchievementDto | null>(null);
   const list = battles();
   const days = useMemo<Day[]>(() => {
@@ -266,18 +232,25 @@ function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () 
   }, [d, summary, list.length]);
   const shown = days.filter(day => filter === "all" || (filter === "records" ? day.records.length : filter === "achievements" ? day.unlocked.length : day.duels.length));
   const today = dayKey(new Date());
+  const kinds: { id: Filter; label: string }[] = [{ id: "all", label: tr("All") }, { id: "records", label: tr("Records") }, { id: "achievements", label: tr("Awards") }, { id: "battles", label: tr("Battles") }];
   return <View className="min-h-0 flex-1 gap-2 rounded-3xl bg-card px-3.5 pt-3">
-    <View className="flex-row items-center justify-between gap-2">
-      <Text accessibilityRole="header" className="text-lg font-extrabold tracking-tight">{tr("Journal")}</Text>
-      <View className="flex-row items-center gap-1">
-        <EventPicker value={event.value} onChange={event.onChange} />
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("Activity")} onPress={onActivity} className="size-11 items-center justify-center rounded-xl active:bg-muted">
-          <Icon as={CalendarDays} size={19} className="text-muted-foreground" />
-        </Pressable>
+    <View className="flex-row items-center gap-2">
+      <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+        <Text accessibilityRole="header" className="text-lg font-extrabold tracking-tight">{tr("Journal")}</Text>
+        <Text numberOfLines={1} className="min-w-0 shrink text-[13px] font-semibold text-muted-foreground">{[event.label, filter !== "all" && kinds.find(k => k.id === filter)!.label].filter(Boolean).join(" · ")}</Text>
       </View>
+      <HeadButton icon={SlidersHorizontal} label={tr("Filter")} onPress={() => setFiltering(true)} active={filter !== "all"} badge={filter !== "all" ? 1 : undefined} />
     </View>
-    <Segmented label={tr("Show")} value={filter} onChange={setFilter}
-      options={[{ id: "all", label: tr("All") }, { id: "records", label: tr("Records") }, { id: "achievements", label: tr("Awards") }, { id: "battles", label: tr("Battles") }]} />
+    {/* The puzzle and the kind of moments shown, and the way to the activity's calendar. */}
+    <Sheet open={filtering} onClose={() => setFiltering(false)} title={tr("Journal")} scroll contentClassName="gap-3">
+      <SheetCaption>{tr("Puzzle")}</SheetCaption>
+      <PuzzleGrid value={event.value} onChange={event.onChange} />
+      <SheetCaption>{tr("Show")}</SheetCaption>
+      <Segmented label={tr("Show")} value={filter} onChange={setFilter} options={kinds} />
+      <Button variant="outline" className="mt-1 h-11 rounded-lg" onPress={() => { setFiltering(false); onActivity(); }}>
+        <Icon as={CalendarDays} size={16} /><Text>{tr("Activity")}</Text>
+      </Button>
+    </Sheet>
     {!d ? <View className="flex-1 gap-3 pt-2"><Skeleton className="h-16 rounded-xl" /><Skeleton className="h-16 rounded-xl" /></View>
       : <FlatList data={shown} keyExtractor={day => day.key} className="flex-1" contentContainerClassName="pb-3" showsVerticalScrollIndicator={false}
         initialNumToRender={8} windowSize={7}
@@ -321,17 +294,15 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   const learned = useMemo(() => { const set = new Set(learnedIds); return catalog.cases.filter(c => set.has(c.id)).length; }, [catalog.cases, learnedIds]);
   const unlocked = useAtomValue(profileAchievementsAtom)?.unlocked ?? null;
   useDuel();
-  const [importing, setImporting] = useState(false);
   const tour = useTourTarget("profile-overview");
   const shortcuts = (layout?: "row" | "grid") => <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} layout={layout} />;
-  const importSheet = <ImportSheet open={importing} onClose={() => setImporting(false)} />;
   if (tablet && (wide || height < 900)) return <View className="flex-1 flex-row">
     <View className="min-w-0 flex-1">
       <AppBar />
       <SectionTabs />
       <View className="min-h-0 flex-1 flex-row gap-3 pt-4 pb-3 pl-7">
         <View {...tour} className="min-h-0 flex-1 gap-3">
-          <Identity d={d} size="compact" onImport={() => setImporting(true)} onActivity={() => show("activity")} />
+          <Identity d={d} size="compact" onActivity={() => show("activity")} />
           <Records list d={d} onStatistics={() => show("playground")} className="flex-1" />
           {!wide && shortcuts("grid")}
         </View>
@@ -343,14 +314,13 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
     </View>
     {/* The journal as a docked side sheet, the whole height beside the page. */}
     <View className={cn("py-3 pr-3 pl-3", wide ? "w-[404px]" : "flex-1")}><Journal d={d} onActivity={() => show("activity")} /></View>
-    {importSheet}
   </View>;
   if (tablet) return <View className="flex-1">
     <AppBar />
     <SectionTabs />
     <View className="min-h-0 flex-1 gap-3 px-7 pt-4">
       <View {...tour} className="gap-3">
-        <Identity d={d} size="large" onImport={() => setImporting(true)} onActivity={() => show("activity")} />
+        <Identity d={d} size="large" onActivity={() => show("activity")} />
         {d ? <View className="flex-row gap-3">
           <View className="flex-1"><MonthCard d={d} large /></View>
           {/* Laid over its column: the month alone sets the row's height, the records scroll inside what is left. */}
@@ -360,20 +330,18 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
       {shortcuts("row")}
       <Journal d={d} onActivity={() => show("activity")} />
     </View>
-    {importSheet}
   </View>;
   return <View className="flex-1">
     <AppBar />
     <SectionTabs />
     <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3">
       <View {...tour} className="gap-2.5">
-        <Identity d={d} onImport={() => setImporting(true)} onActivity={() => show("activity")} />
+        <Identity d={d} onActivity={() => show("activity")} />
         <Records d={d} onStatistics={() => show("playground")} />
       </View>
       <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} />
       <Journal d={d} onActivity={() => show("activity")} />
     </View>
-    <ImportSheet open={importing} onClose={() => setImporting(false)} />
   </View>;
 }
 
