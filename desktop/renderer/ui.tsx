@@ -361,7 +361,7 @@ export function ProgressRing({ done, share, current, neutral, className }: { don
   );
 }
 
-/** Whether an algorithm or a case is learned, as a labelled toggle: "Mark learned", then "Learned" in green; an intuitive step says mastered. */
+/** Whether an algorithm or a case is learned, as a short toggle: "Learned", green once on (the action in its tip); an intuitive step says mastered. */
 export function LearnToggle({ action, learned, mastery = false, className }: { action: string; learned: boolean; mastery?: boolean; className?: string }) {
   return (
     <ActionToggle
@@ -369,9 +369,10 @@ export function LearnToggle({ action, learned, mastery = false, className }: { a
       pressed={learned}
       icon={Check}
       variant="outline"
+      tip={learned ? undefined : mastery ? tr("Mark as mastered") : tr("Mark learned")}
       className={cn("text-muted-foreground aria-pressed:bg-success/15 aria-pressed:text-success", className)}
     >
-      {mastery ? (learned ? tr("Mastered") : tr("Mark as mastered")) : learned ? tr("Learned") : tr("Mark learned")}
+      {mastery ? tr("Mastered") : tr("Learned")}
     </ActionToggle>
   );
 }

@@ -388,45 +388,25 @@ function StepCube({ puzzle, setup, mask, size }: { puzzle: PuzzleId; setup: stri
   return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
 }
 
-/** How a try on the workbench went: missed, hesitated or got it. */
-type Verdict = "no" | "meh" | "yes";
-const VERDICTS: { id: Verdict; label: string; key: string; variant: "secondary" | "success"; className?: string }[] = [
-  { id: "no", label: "Missed", key: "1", variant: "secondary", className: "text-destructive" },
-  { id: "meh", label: "Hesitated", key: "2", variant: "secondary", className: "text-warning" },
-  { id: "yes", label: "Got it", key: "3", variant: "success" },
-];
-const VERDICT_FILL: Record<Verdict, string> = { no: "bg-destructive", meh: "bg-warning", yes: "bg-success" };
-/** A try of this visit: the piece and how it went. */
-type Try = { key: string; verdict: Verdict };
-
 /**
- * The workbench's state: the piece on it, the algorithm shown of its own (the one used first), whether that algorithm
- * shows, and the tries of this visit. Each piece comes with its algorithm hidden; Space shows or hides it, 1, 2 and 3
- * tell how a try went (Got it marks the piece learned, with the algorithm shown), the up and down arrows change the piece.
+ * The workbench's state: the piece on it, the algorithm shown of its own (the one used first) and whether that
+ * algorithm shows. Each piece comes with its algorithm hidden; Space shows or hides it, the up and down arrows change
+ * the piece.
  */
 function useBench(pieces: StepPieces) {
   const { all } = pieces,
     [pick, setPick] = useState<string>(),
     [shown, setShown] = useState(false),
     [choice, setChoice] = useState(0),
-    [trail, setTrail] = useState<Try[]>([]),
     piece = all.find((p) => p.key === pick) ?? all.find((p) => !p.learned) ?? all[0],
     index = piece ? all.indexOf(piece) : -1,
     alg = piece ? (piece.algs[choice] ?? piece.algs[0] ?? "") : "";
   const select = (key: string | undefined) => (setPick(key), setShown(false), setChoice(0));
   const go = (step: number) => select(all[(index + step + all.length) % all.length]?.key);
-  const tell = (verdict: Verdict) => {
-    if (!piece) return;
-    if (verdict === "yes" && !piece.learned) void s.action(piece.use?.(alg) ?? piece.action);
-    setTrail((t) => [...t.slice(-23), { key: piece.key, verdict }]);
-    go(1);
-  };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (!piece || e.altKey || e.ctrlKey || e.metaKey || s.overlay || s.caseDialog || s.assisted || (e.target as HTMLElement).closest?.("input,textarea,[role=dialog]")) return;
-      const verdict = VERDICTS.find((v) => v.key === e.key);
       if (e.code === "Space") setShown(!shown);
-      else if (verdict) tell(verdict.id);
       else if (e.key === "ArrowDown" || e.key === "ArrowUp") go(e.key === "ArrowDown" ? 1 : -1);
       else return;
       e.preventDefault();
@@ -439,31 +419,15 @@ function useBench(pieces: StepPieces) {
     open: shown,
     alg,
     choice,
-    trail,
     previous: all.length > 1 ? all[(index - 1 + all.length) % all.length] : undefined,
     next: all.length > 1 ? all[(index + 1) % all.length] : undefined,
     show: () => setShown(!shown),
     choose: (i: number) => setChoice(i),
     pick: (key: string) => select(key),
     go,
-    tell,
   };
 }
 type Bench = ReturnType<typeof useBench>;
-
-/** The tries of this visit, oldest first, each a square in its colour; named for screen readers. */
-function Trail({ trail }: { trail: Try[] }) {
-  return (
-    <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-muted-foreground">
-      <span className="shrink-0">{plural(trail.length, "try")}</span>
-      <span className="flex min-w-0 gap-1 overflow-hidden" role="img" aria-label={trail.map((t) => tr(VERDICTS.find((x) => x.id === t.verdict)!.label)).join(", ")}>
-        {trail.map((t, i) => (
-          <i key={i} className={cn("size-3 shrink-0 rounded-[4px]", VERDICT_FILL[t.verdict])} />
-        ))}
-      </span>
-    </span>
-  );
-}
 
 /** The step's way on: Previous quietly, then Next step with the next one's name, or Finish on the last; `wide` fills the row with Next step as the main action. */
 function StepNav({ method, entry, touch: wide = false }: { method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
@@ -487,21 +451,16 @@ function StepNav({ method, entry, touch: wide = false }: { method: SolvingMethod
   );
 }
 
-/** The piece's figures: a case's times on it (average, best, attempts), then how its tries of this visit went. */
-function PieceFigures({ piece, bench, touch = false }: { piece: Piece; bench: Bench; touch?: boolean }) {
-  const st = piece.caseId ? s.stats.find((v) => v.caseId === piece.caseId) : undefined,
-    tries = bench.trail.filter((t) => t.key === piece.key),
+/** A case's figures: its times on it (average, best, attempts); the step's own algorithms have none. */
+function PieceFigures({ piece, touch = false }: { piece: Piece; touch?: boolean }) {
+  if (!piece.caseId) return null;
+  const st = s.stats.find((v) => v.caseId === piece.caseId),
     size = touch ? "lg" : "2xl";
   return (
     <div className={cn("flex shrink-0 flex-wrap gap-y-2", touch ? "gap-x-5" : "gap-x-7")}>
-      {piece.caseId && (
-        <>
-          <Figure size={size} label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} />
-          <Figure size={size} label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" />
-          <Figure size={size} label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} />
-        </>
-      )}
-      <Figure size={size} label={`${tr("Got it")} · ${tr("This session")}`} value={tries.length ? `${tries.filter((t) => t.verdict === "yes").length} / ${tries.length}` : "–"} />
+      <Figure size={size} label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} />
+      <Figure size={size} label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" />
+      <Figure size={size} label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} />
     </div>
   );
 }
@@ -590,41 +549,40 @@ function AlgChoice({ piece, bench, touch = false }: { piece: Piece; bench: Bench
   );
 }
 
-/** The algorithm, hidden until asked for (Space), then how the try went: three buttons, 1, 2 and 3 on the keyboard. */
-function AlgBand({ piece, bench, touch = false }: { piece: Piece; bench: Bench; touch?: boolean }) {
+/** The algorithm, hidden until asked for (Space); on touch screens the cases either side after it. */
+function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
   return (
-    <div className={cn("flex shrink-0 flex-col rounded-[20px] bg-background", touch ? "gap-3 p-3" : "gap-4 p-4")}>
-      <div className={cn("flex items-center gap-4", !touch && "min-h-12")}>
-        <div className="min-w-0 flex-1">
-          {bench.open ? (
-            <Alg text={bench.alg} size={touch ? 19 : 24} />
-          ) : touch ? (
-            <span className="text-sm font-semibold text-muted-foreground">{tr("{0} moves", { 0: moveCount(bench.alg) })}</span>
-          ) : (
-            <HiddenAlg alg={bench.alg} />
-          )}
-        </div>
-        <UiButton variant="secondary" data-action="benchShow" aria-pressed={bench.open} aria-label={tr(bench.open ? "Hide the algorithm" : "Show the algorithm")} onClick={bench.show}>
-          {bench.open ? <EyeOff /> : <Eye />}
-          {tr(bench.open ? "Hide" : "Show")}
-          {!touch && <Kbd>{tr("Space")}</Kbd>}
-        </UiButton>
+    <div className={cn("flex shrink-0 items-center rounded-[20px] bg-background", touch ? "gap-2 p-3" : "min-h-20 gap-4 p-4")}>
+      <div className="min-w-0 flex-1">
+        {bench.open ? (
+          <Alg text={bench.alg} size={touch ? 19 : 24} />
+        ) : touch ? (
+          <span className="text-sm font-semibold text-muted-foreground">{tr("{0} moves", { 0: moveCount(bench.alg) })}</span>
+        ) : (
+          <HiddenAlg alg={bench.alg} />
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label={tr("Do it on your cube, from memory.")}>
-          {VERDICTS.map((v) => (
-            <UiButton key={v.id} variant={v.variant} data-action={"benchVerdict:" + v.id} onClick={() => bench.tell(v.id)} className={v.className}>
-              {v.id === "yes" && <Check strokeWidth={3} />}
-              {tr(v.label)}
-              {!touch && <Kbd>{v.key}</Kbd>}
-            </UiButton>
-          ))}
-      </div>
+      <UiButton variant="secondary" data-action="benchShow" aria-pressed={bench.open} aria-label={tr(bench.open ? "Hide the algorithm" : "Show the algorithm")} onClick={bench.show}>
+        {bench.open ? <EyeOff /> : <Eye />}
+        {tr(bench.open ? "Hide" : "Show")}
+        {!touch && <Kbd>{tr("Space")}</Kbd>}
+      </UiButton>
+      {touch && bench.previous && bench.next && (
+        <>
+          <UiButton variant="ghost" size="icon" data-action="benchStep:previous" onClick={() => bench.go(-1)} aria-label={`${tr("Previous case")} · ${said(bench.previous.name)}`}>
+            <ChevronLeft />
+          </UiButton>
+          <UiButton variant="secondary" size="icon" data-action="benchStep:next" onClick={() => bench.go(1)} aria-label={`${tr("Next case")} · ${said(bench.next.name)}`}>
+            <ChevronRight />
+          </UiButton>
+        </>
+      )}
     </div>
   );
 }
 
 /** The piece's name on top: where it sits, its name large, its other names; on desktops its figures beside it. */
-function PieceHead({ piece, bench, touch = false }: { piece: Piece; bench: Bench; touch?: boolean }) {
+function PieceHead({ piece, touch = false }: { piece: Piece; touch?: boolean }) {
   return (
     <div className="relative flex shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-4">
       {!touch && <LearnToggle action={piece.action} learned={piece.learned} className="absolute top-0 right-0" />}
@@ -633,15 +591,14 @@ function PieceHead({ piece, bench, touch = false }: { piece: Piece; bench: Bench
         <h2 className={cn("truncate leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[32px]" : "text-[52px]")}>{said(piece.name)}</h2>
         {piece.sub && <span className={cn("text-sm font-semibold text-muted-foreground md:text-base", !touch && "truncate")}>{piece.sub}</span>}
       </div>
-      {!touch && <PieceFigures piece={piece} bench={bench} />}
+      {!touch && <PieceFigures piece={piece} />}
     </div>
   );
 }
 
 /**
  * Desktop: the workbench in the middle of a step, one piece at a time: its name and figures on top, its diagram large in
- * the middle (a click opens it), then its algorithm, hidden until asked for, and how the try went; under it the tries of
- * this visit and the pieces either side.
+ * the middle (a click opens it), then its algorithm, hidden until asked for; under it the pieces either side.
  */
 function Workbench({ bench }: { bench: Bench }) {
   const piece = bench.piece;
@@ -649,21 +606,18 @@ function Workbench({ bench }: { bench: Bench }) {
     <Surface className="min-w-0 gap-4 px-6 pt-5 pb-4" aria-label={tr("Workbench")}>
       {piece ? (
         <>
-          <PieceHead piece={piece} bench={bench} />
+          <PieceHead piece={piece} />
           {piece.note && <p className="line-clamp-2 max-w-2xl shrink-0 text-[15px] leading-relaxed text-muted-foreground">{said(piece.note)}</p>}
           <FitDiagram piece={piece} />
           <AlgChoice piece={piece} bench={bench} />
-          <AlgBand piece={piece} bench={bench} />
+          <AlgBand bench={bench} />
         </>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col justify-center">
           <Empty icon={Check}>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
         </div>
       )}
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="mr-auto min-w-0">
-          <Trail trail={bench.trail} />
-        </span>
+      <div className="flex shrink-0 items-center justify-end gap-2">
         {bench.previous && (
           <UiButton variant="ghost" data-action="benchStep:previous" onClick={() => bench.go(-1)} aria-label={`${tr("Previous case")} · ${said(bench.previous.name)}`}>
             <ChevronLeft />
@@ -701,7 +655,7 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
       </div>
       <div className={cn("flex w-full justify-center gap-3", touch && "flex-col")}>
         {train && card("trainingSetup:" + step.train, Dumbbell, "Train the cross", "Plan it in inspection, then count its moves", true)}
-        {card("courseAlg:" + stepId(step), Check, mastered ? "Mastered" : "Mark as mastered", mastered ? "Undo if it still takes thought" : "When you do it without thinking", !train, mastered)}
+        {card("courseAlg:" + stepId(step), Check, "Mastered", mastered ? "Undo if it still takes thought" : "When you do it without thinking", !train, mastered)}
       </div>
     </div>
   );
@@ -1154,11 +1108,11 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
                     <>
                       <div className="flex items-center gap-3">
                         <div className="min-w-0 flex-1">
-                          <PieceHead piece={bench.piece} bench={bench} touch />
+                          <PieceHead piece={bench.piece} touch />
                         </div>
                         <PieceDiagram piece={bench.piece} size={136} />
                       </div>
-                      <PieceFigures piece={bench.piece} bench={bench} touch />
+                      <PieceFigures piece={bench.piece} touch />
                       {bench.piece.note && <p className="text-[15px] leading-relaxed text-muted-foreground">{said(bench.piece.note)}</p>}
                       <AlgChoice piece={bench.piece} bench={bench} touch />
                     </>
@@ -1172,13 +1126,8 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
               <StepSheet puzzle={puzzle} method={method} entry={entry} touch />
             </div>
             {hasPieces && bench.piece && (
-              <div className="flex shrink-0 flex-col gap-2 px-2 pt-2">
-                {bench.trail.length > 0 && (
-                  <span className="px-2">
-                    <Trail trail={bench.trail} />
-                  </span>
-                )}
-                <AlgBand piece={bench.piece} bench={bench} touch />
+              <div className="shrink-0 px-2 pt-2">
+                <AlgBand bench={bench} touch />
               </div>
             )}
             <FootBar>

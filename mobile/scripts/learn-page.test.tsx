@@ -132,12 +132,16 @@ test("a step's workbench shows one case at a time, learns it, and trains the sho
   // The case's note, figures and algorithms are in a sheet opened from its name; the diagram opens its case.
   expect(renderer.root.findAllByType("Figure" as any)).toEqual([]);
   await tap("Show the details");
-  expect(renderer.root.findAllByType("Figure" as any).map((n: any) => n.props.label)).toEqual(["Average", "Best", "Attempts", "Got it · This session"]);
+  expect(renderer.root.findAllByType("Figure" as any).map((n: any) => n.props.label)).toEqual(["Average", "Best", "Attempts"]);
   await tap("Open 2L-OLL Sune");
   expect(sheets()).toBe(3);
-  // Got it learns it with the algorithm shown.
-  await tap("Got it");
-  expect(learnedCalls.at(-1)).toEqual(["2L-OLL Sune", true, ["F R U R' U' F'"]]);
+  // Learned is the only judgment: no verdicts on the card, its chip learns the case.
+  expect(control("Got it")).toBeUndefined();
+  await press("Mark Sune learned");
+  expect(learnedCalls.at(-1)).toEqual(["2L-OLL Sune", true]);
+  // The arrows beside the strip move to the next case, round the step.
+  await act(() => button("Next case")!.props.onPress());
+  expect(strip()).toEqual(["I-Shape · Learned"]);
   // Train the shown set: its cases, from the training's setup skipped.
   await act(() => button("Train 2-Look OLL")!.props.onPress());
   expect(store.get(selectedCaseIdsAtom)).toEqual(["2L-OLL I-Shape", "2L-OLL Sune"]);

@@ -337,15 +337,6 @@ function groupOrder(setId: string): string[] | undefined {
   try { return JSON.parse(storage.getItem(GROUP_ORDER_KEY) ?? "null")?.[setId]; } catch { return undefined; }
 }
 
-/** How a try on the workbench went. */
-type Verdict = "no" | "meh" | "yes";
-const VERDICTS: { id: Verdict; label: string; className: string; tone: string }[] = [
-  { id: "no", label: "Missed", className: "bg-muted active:bg-muted/70", tone: "text-destructive" },
-  { id: "meh", label: "Hesitated", className: "bg-muted active:bg-muted/70", tone: "text-warning" },
-  { id: "yes", label: "Got it", className: "bg-success/15 active:bg-success/25", tone: "text-success" },
-];
-const VERDICT_FILL: Record<Verdict, string> = { no: "bg-destructive", meh: "bg-warning", yes: "bg-success" };
-
 /**
  * A course, pushed from Courses: its steps as ring chips on one sliding line, then the step: an intuitive one shows its
  * sheet and its workbench as cards; one with algorithms its workbench, one case at a time with its group's strip under
@@ -622,10 +613,10 @@ function IntuitiveBench({ puzzle, method, entry, row = false, bare = false, head
 
 /**
  * A step with algorithms: the set and the filter of learned ones, then the case on the workbench (its name, diagram,
- * figures, algorithm hidden until asked for, and how the try went), then its group as a strip to pick from. A phone
- * keeps the name, diagram, algorithm and verdicts on the card, its note, figures and choice of algorithm in a sheet
- * from its name, and the filter in the sheet of every case. Wide, the whole step's cases replace the strip in a docked
- * panel, the set and the filter over them.
+ * figures, whether it is learned, its algorithm hidden until asked for), then its group as a strip to pick from, with
+ * the cases either side. A phone keeps the name, Learned, diagram and algorithm on the card, its note, figures and
+ * choice of algorithm in a sheet from its name, and the filter in the sheet of every case. Wide, the whole step's cases
+ * replace the strip in a docked panel, the set and the filter over them.
  */
 function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }: {
   puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; chosen?: { id: string; label: string; count: number }; own: { id: string; label: string; count: number }[]; onSet: (id: string) => void;
@@ -671,11 +662,10 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   }, [puzzle, step, entry.learned, chosen, cases, learned, learnedAlgs]);
   const all = useMemo(() => groups.flatMap(([, pieces]) => pieces).filter(p => shownByFilter(p.learned)), [groups, filter]);
   const count = stepLearned(step, cases, learned, entry);
-  // The workbench: the piece on it, the algorithm shown, whether it shows, and the tries of this visit.
+  // The workbench: the piece on it, the algorithm shown and whether it shows.
   const [pick, setPick] = useState<string>();
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState(0);
-  const [trail, setTrail] = useState<{ key: string; verdict: Verdict }[]>([]);
   const [listOpen, setListOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
@@ -690,19 +680,11 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     void api.setLearned(p.c!.id, algs.length > 0, algs).catch(() => { /* Reported by the sync indicator. */ });
   };
   const toggle = (p: Piece) => p.c ? toggleLearned(p.c.id) : setProgress(toggleAlgLearned(progress, puzzle, method.id, p.key));
-  const tell = (verdict: Verdict) => {
-    if (!piece) return;
-    // Got it learns the piece, with the algorithm shown.
-    if (verdict === "yes" && !piece.learned) piece.c ? use(piece, alg) : toggle(piece);
-    setTrail(t => [...t.slice(-23), { key: piece.key, verdict }]);
-    go(1);
-  };
   const playable = useMemo(() => groups.flatMap(([, pieces]) => pieces).filter(p => p.play), [groups]);
   const caseIds = useMemo(() => all.flatMap(p => p.c ? [p.c.id] : []), [all]);
   const strip = piece ? all.filter(p => p.group === piece.group) : [];
   const groupTotal = piece ? groups.find(([name]) => name === piece.group)?.[1] ?? [] : [];
   const st = piece?.c ? stats.get(piece.c.id) : undefined;
-  const tries = piece ? trail.filter(t => t.key === piece.key) : [];
   const diagramSize = Math.min(112, Math.round(width * 0.27));
   const options = [
     { id: "all" as const, label: tr("All"), count: count.total },
@@ -731,10 +713,6 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     {filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}
     {!tablet && <Chip icon={ListFilter} onPress={() => setListOpen(true)}>{tr("Filter")}</Chip>}
   </Empty>;
-  const trailView = trail.length > 0 && <View className="min-w-0 shrink flex-row items-center gap-1.5" accessibilityLabel={trail.map(t => tr(VERDICTS.find(v => v.id === t.verdict)!.label)).join(", ")}>
-    <Text className="text-xs text-muted-foreground">{plural(trail.length, "try")}</Text>
-    <View className="shrink flex-row gap-1 overflow-hidden">{trail.slice(-12).map((t, i) => <View key={i} className={cn("size-2.5 rounded-[3px]", VERDICT_FILL[t.verdict])} />)}</View>
-  </View>;
   // A phone's card keeps what is practised with; the case's note, figures and algorithms to pick open in a sheet from its name.
   let details: ReactNode = null;
   const card = piece && (() => {
@@ -746,13 +724,11 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       <PieceDiagram piece={piece} puzzle={puzzle} step={step} size={size} />
     </Pressable>;
     const note = piece.note ? <Text numberOfLines={3} className="text-[13px] leading-[18px] text-muted-foreground">{tr(piece.note)}</Text> : null;
-    const figures = <View className="flex-row gap-2">
-      {piece.c && <>
-        <Figure label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} className="flex-1" />
-        <Figure label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" className="flex-1" />
-        <Figure label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} className="flex-1" />
-      </>}
-      <Figure label={`${tr("Got it")} · ${tr("This session")}`} value={tries.length ? `${tries.filter(t => t.verdict === "yes").length} / ${tries.length}` : "–"} className="flex-1" />
+    // A case's times on it; the step's own algorithms have none.
+    const figures = piece.c && <View className="flex-row gap-2">
+      <Figure label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} className="flex-1" />
+      <Figure label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" className="flex-1" />
+      <Figure label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} className="flex-1" />
     </View>;
     const choices = <>
       {piece.algs.length > 1 && <View accessibilityRole="tablist" accessibilityLabel={tr("Algorithms")} className="flex-row rounded-xl bg-muted p-1">
@@ -764,24 +740,15 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
       </View>}
       {piece.c && <Chip icon={Check} on={piece.mine.includes(alg)} onPress={() => use(piece, alg)}>{tr("I use it")}</Chip>}
     </>;
-    const well = <View className="gap-2.5 rounded-2xl bg-background p-3">
-      <View className="min-h-10 flex-row items-center gap-3">
-        <View className="min-w-0 flex-1">
-          {open ? <Alg text={alg} size={18} selectable /> : <View className="flex-row flex-wrap gap-1" accessibilityLabel={tr("{0} moves", { 0: moveCount(alg) })}>
-            {Array.from({ length: moveCount(alg) }, (_, i) => <View key={i} className="h-4 w-5 rounded-[4px] bg-foreground/10" />)}
-          </View>}
-        </View>
-        <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
+    const well = <View className="min-h-16 flex-row items-center gap-3 rounded-2xl bg-background p-3">
+      <View className="min-w-0 flex-1">
+        {open ? <Alg text={alg} size={18} selectable /> : <View className="flex-row flex-wrap gap-1" accessibilityLabel={tr("{0} moves", { 0: moveCount(alg) })}>
+          {Array.from({ length: moveCount(alg) }, (_, i) => <View key={i} className="h-4 w-5 rounded-[4px] bg-foreground/10" />)}
+        </View>}
       </View>
-      <View className="flex-row gap-1.5" accessibilityLabel={tr("Do it on your cube, from memory.")}>
-        {VERDICTS.map(v => <Pressable key={v.id} accessibilityRole="button" accessibilityLabel={tr(v.label)} onPress={() => tell(v.id)}
-          className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-xl", v.className)}>
-          {v.id === "yes" && <Icon as={Check} size={15} strokeWidth={3} className="text-success" />}
-          <Text numberOfLines={1} className={cn("text-[15px] font-bold", v.tone)}>{tr(v.label)}</Text>
-        </Pressable>)}
-      </View>
+      <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
     </View>;
-    // A tablet: the case and its diagram large on the left, its figures, algorithms and tries on the right.
+    // A tablet: the case and its diagram large on the left, its figures, algorithms and the cases either side on the right.
     if (tablet) {
       const previous = all[(index - 1 + all.length) % all.length]!, following = all[(index + 1) % all.length]!;
       return <View className="flex-row gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Workbench")}>
@@ -797,8 +764,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           <View className="flex-row flex-wrap items-center gap-1.5">{learnToggle()}<View className="flex-1" />{choices}</View>
           {well}
           <View className="flex-1" />
-          <View className="min-h-11 flex-row items-center gap-2">
-            <View className="min-w-0 flex-1">{trailView}</View>
+          <View className="min-h-11 flex-row items-center justify-end gap-2">
             {all.length > 1 && <>
               <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} onPress={() => go(-1)} className="h-11 flex-row items-center gap-1 rounded-xl pr-3.5 pl-2 active:bg-muted/70">
                 <Icon as={ChevronLeft} size={18} /><Text numberOfLines={1} className="text-[15px] font-bold">{said(previous.short ?? previous.name)}</Text>
@@ -893,7 +859,11 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
             {!tablet && filter !== "all" && <Text numberOfLines={1} className="shrink text-sm font-bold text-primary">{current.label}</Text>}
             <Icon as={ChevronsUpDown} size={14} className="text-muted-foreground" />
           </Pressable>
-          {!tablet && trailView}
+          {/* The cases either side, beside the strip. */}
+          {!tablet && all.length > 1 && <View className="flex-row">
+            <HeadButton icon={ChevronLeft} label={tr("Previous case")} onPress={() => go(-1)} />
+            <HeadButton icon={ChevronRight} label={tr("Next case")} onPress={() => go(1)} />
+          </View>}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
           {strip.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tablet ? 56 : 48} onPress={() => select(p.key)} />)}
