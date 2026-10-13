@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, Box, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, ListFilter, Play, Timer, type LucideIcon } from "lucide-react-native";
+import { BookA, Box, Check, ChevronLeft, ChevronRight, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, ListFilter, Play, Timer, type LucideIcon } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -26,7 +26,7 @@ import { Alg, Bar, Empty, Figure, HeadButton, IconTile, Numeric, Segmented } fro
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Chip, ChipMenu } from "../components/Chips";
 import { PuzzleIcon } from "../components/PuzzlePicker";
-import { Sheet, SheetFlatList } from "../components/Sheet";
+import { Sheet } from "../components/Sheet";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
@@ -339,8 +339,8 @@ function groupOrder(setId: string): string[] | undefined {
 
 /**
  * A course, pushed from Courses: its steps as ring chips on one sliding line, then the step: an intuitive one shows its
- * sheet and its workbench as cards; one with algorithms its workbench, one case at a time with its group's strip under
- * it, the step's sheet behind the (i). Train, the timer and Previous / Next step stay at the bottom. On a tablet the
+ * sheet and its workbench as cards; one with algorithms its workbench, one case at a time with every case of the step
+ * under it, the step's sheet behind the (i). Train, the timer and Previous / Next step stay at the bottom. On a tablet the
  * steps become the page's tabs and the workbench grows to two columns; when wide, the step's cases and its actions
  * dock at the right.
  */
@@ -613,10 +613,10 @@ function IntuitiveBench({ puzzle, method, entry, row = false, bare = false, head
 
 /**
  * A step with algorithms: the set and the filter of learned ones, then the case on the workbench (its name, diagram,
- * figures, whether it is learned, its algorithm hidden until asked for), then its group as a strip to pick from, with
- * the cases either side. A phone keeps the name, Learned, diagram and algorithm on the card, its note, figures and
- * choice of algorithm in a sheet from its name, and the filter in the sheet of every case. Wide, the whole step's cases
- * replace the strip in a docked panel, the set and the filter over them.
+ * figures, whether it is learned, its algorithm hidden until asked for), then every group of the step one after
+ * another, its cases wrapping in rows, to pick from, with the cases either side. A phone keeps the name, Learned,
+ * diagram and algorithm on the card, its note, figures and choice of algorithm in a sheet from its name, and the filter
+ * in a sheet of its own. Wide, the step's cases dock in a panel, the set and the filter over them.
  */
 function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }: {
   puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; chosen?: { id: string; label: string; count: number }; own: { id: string; label: string; count: number }[]; onSet: (id: string) => void;
@@ -666,7 +666,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const [pick, setPick] = useState<string>();
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState(0);
-  const [listOpen, setListOpen] = useState(false);
+  const [filtering, setFiltering] = useState(false);
   const [caseOpen, setCaseOpen] = useState<string | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -682,8 +682,8 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const toggle = (p: Piece) => p.c ? toggleLearned(p.c.id) : setProgress(toggleAlgLearned(progress, puzzle, method.id, p.key));
   const playable = useMemo(() => groups.flatMap(([, pieces]) => pieces).filter(p => p.play), [groups]);
   const caseIds = useMemo(() => all.flatMap(p => p.c ? [p.c.id] : []), [all]);
-  const strip = piece ? all.filter(p => p.group === piece.group) : [];
-  const groupTotal = piece ? groups.find(([name]) => name === piece.group)?.[1] ?? [] : [];
+  // Every group's cases wrap in rows across the page, as many to a row as fit.
+  const listWidth = width - (tablet ? 56 : 32), columns = Math.max(5, Math.floor((listWidth + 6) / 70)), tileSize = Math.floor((listWidth - 6 * (columns - 1)) / columns) - 12;
   const st = piece?.c ? stats.get(piece.c.id) : undefined;
   const diagramSize = Math.min(112, Math.round(width * 0.27));
   const options = [
@@ -711,7 +711,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   </View>;
   const empty = <Empty icon={Check}>
     {filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}
-    {!tablet && <Chip icon={ListFilter} onPress={() => setListOpen(true)}>{tr("Filter")}</Chip>}
+    {!tablet && <Chip icon={ListFilter} onPress={() => setFiltering(true)}>{tr("Filter")}</Chip>}
   </Empty>;
   // A phone's card keeps what is practised with; the case's note, figures and algorithms to pick open in a sheet from its name.
   let details: ReactNode = null;
@@ -801,8 +801,9 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     </View>;
   })();
   const sheets = <>
-    <PiecesSheet open={listOpen} onClose={() => setListOpen(false)} groups={shownGroups} current={piece} puzzle={puzzle} step={step} onPick={key => { setListOpen(false); select(key); }}
-      head={<Segmented label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ ...o, accent: o.id === filter }))} className="mx-5" />} />
+    <Sheet open={filtering} onClose={() => setFiltering(false)} title={tr("Filter")}>
+      <Segmented label={tr("Filter")} value={filter} onChange={id => { setFilter(id); setFiltering(false); }} options={options.map(o => ({ ...o, accent: o.id === filter }))} />
+    </Sheet>
     <AlgPlayerSheet items={playable.map(p => p.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
     <CaseSheet caseId={caseOpen} ids={caseIds} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
     {details}
@@ -846,28 +847,35 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     </View>
     {sheets}
   </>;
-  // A phone shows the top row only to switch sets: the strip's head counts the cases.
+  // A phone shows the top row only to switch sets; under the case, every group of the step, one after another.
   return <>
     {(tablet || own.length > 1) && topRow}
     <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-2.5 px-4 pb-2", tablet && "gap-3 px-7")}>
       {card ?? empty}
-      {piece && <View className="gap-2">
-        <View className="flex-row items-center justify-between gap-2">
-          <Pressable accessibilityRole="button" accessibilityLabel={tr("Every case of the step")} onPress={() => setListOpen(true)} className="min-h-9 flex-row items-center gap-1.5 rounded-lg active:opacity-70">
-            <Text numberOfLines={1} className="shrink text-sm font-bold">{tr(piece.group)}</Text>
-            <Numeric className="text-sm text-muted-foreground">{groupTotal.filter(p => p.learned).length} / {groupTotal.length}</Numeric>
-            {!tablet && filter !== "all" && <Text numberOfLines={1} className="shrink text-sm font-bold text-primary">{current.label}</Text>}
-            <Icon as={ChevronsUpDown} size={14} className="text-muted-foreground" />
-          </Pressable>
-          {/* The cases either side, beside the strip. */}
-          {!tablet && all.length > 1 && <View className="flex-row">
+      {piece && <View className="gap-1" accessibilityLabel={tr("Every case of the step")}>
+        <View className="flex-row items-center gap-1">
+          <Text numberOfLines={1} className="text-sm font-bold">{chosen ? tr("Cases") : tr("Algorithms")}</Text>
+          <Numeric className="text-sm text-muted-foreground">{count.learned} / {count.total}</Numeric>
+          {filter !== "all" && <Text numberOfLines={1} className="shrink text-sm font-bold text-primary">{current.label}</Text>}
+          <View className="flex-1" />
+          <HeadButton icon={ListFilter} label={tr("Filter")} active={filter !== "all"} onPress={() => setFiltering(true)} />
+          {all.length > 1 && <>
             <HeadButton icon={ChevronLeft} label={tr("Previous case")} onPress={() => go(-1)} />
             <HeadButton icon={ChevronRight} label={tr("Next case")} onPress={() => go(1)} />
-          </View>}
+          </>}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
-          {strip.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tablet ? 56 : 48} onPress={() => select(p.key)} />)}
-        </ScrollView>
+        {shownGroups.map(([name, pieces]) => {
+          const known = pieces.filter(p => p.learned).length;
+          return <View key={name} className="gap-1.5 pb-1">
+            {shownGroups.length > 1 && <View className="flex-row justify-between">
+              <Text numberOfLines={1} className="shrink text-[13px] font-extrabold text-muted-foreground">{tr(name)}</Text>
+              <Numeric className={cn("text-[13px]", known === pieces.length ? "text-success" : "text-muted-foreground")}>{known} / {pieces.length}</Numeric>
+            </View>}
+            <View className="flex-row flex-wrap gap-1.5">
+              {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tileSize} onPress={() => select(p.key)} />)}
+            </View>
+          </View>;
+        })}
       </View>}
     </ScrollView>
     {sheets}
@@ -880,30 +888,6 @@ function PieceTile({ p, here, puzzle, step, size, onPress }: { p: Piece; here: b
     className={cn("items-center rounded-2xl border-2 p-1", here ? "border-primary bg-card" : p.learned ? "border-transparent bg-card" : "border-transparent")}>
     <View style={{ opacity: p.learned || here ? 1 : 0.45 }}><PieceDiagram piece={p} puzzle={puzzle} step={step} size={size} /></View>
   </Pressable>;
-}
-
-type ListRow = { key: string } & ({ kind: "group"; name: string; learned: number; total: number } | { kind: "tiles"; pieces: Piece[] });
-/** Every piece of the step, group by group, in a sheet: a tap puts one on the workbench. */
-function PiecesSheet({ open, onClose, groups, current, puzzle, step, onPick, head }: {
-  open: boolean; onClose: () => void; groups: [string, Piece[]][]; current?: Piece; puzzle: PuzzleId; step: MethodStep; onPick: (key: string) => void;
-  /** Over the list: the filter of learned ones. */
-  head?: ReactNode;
-}) {
-  // The sheet keeps to 720 wide on a tablet (Sheet).
-  const width = Math.min(useLayout().width, 720);
-  const columns = Math.max(4, Math.floor((width - 40) / 72));
-  const size = Math.floor((width - 40 - 6 * (columns - 1)) / columns) - 12;
-  const rows = useMemo(() => groups.flatMap(([name, pieces]): ListRow[] => [
-    { kind: "group", key: "group:" + name, name, learned: pieces.filter(p => p.learned).length, total: pieces.length },
-    ...Array.from({ length: Math.ceil(pieces.length / columns) }, (_, i): ListRow => ({ kind: "tiles", key: `${name}:${i}`, pieces: pieces.slice(i * columns, i * columns + columns) })),
-  ]), [groups, columns]);
-  return <Sheet open={open} onClose={onClose} title={tr("Cases")} contentClassName="gap-2 px-0">
-    {head}
-    {open && <SheetFlatList data={rows} keyExtractor={row => row.key} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12 }} initialNumToRender={8}
-      renderItem={({ item: row }) => row.kind === "group"
-        ? <View className="flex-row justify-between pt-3 pb-1"><Text className="text-[13px] font-extrabold text-muted-foreground">{tr(row.name)}</Text><Numeric className={cn("text-[13px]", row.learned === row.total ? "text-success" : "text-muted-foreground")}>{row.learned} / {row.total}</Numeric></View>
-        : <View className="flex-row gap-1.5 pb-1.5">{row.pieces.map(p => <PieceTile key={p.key} p={p} here={p === current} puzzle={puzzle} step={step} size={size} onPress={() => onPick(p.key)} />)}</View>} />}
-  </Sheet>;
 }
 
 /** A course completed: what was done, then where to go from here. */

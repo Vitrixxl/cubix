@@ -117,31 +117,34 @@ test("a step's workbench shows one case at a time, learns it, and trains the sho
   expect(store.get(courseProgressAtom).courses["333:cfop"]).toEqual({ step: 1, learned: [] });
   await tap("Next step: OLL");
   expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(2);
-  // 2-Look OLL first, since some of its cases are still to learn: its first case to learn on the workbench, its group under it.
+  // 2-Look OLL first, since some of its cases are still to learn: its first case to learn on the workbench, every case of
+  // the step under it, group after group.
   expect(texts()).toContain("Sune");
-  expect(strip()).toEqual(["Sune · To learn"]);
-  // No filter on the page: the sheet of every case has it, and the learned filter hides the learned ones inside the step.
+  expect(strip()).toEqual(["I-Shape · Learned", "Sune · To learn"]);
+  // No filter on the page: a sheet has it, and the learned filter hides the learned ones inside the step.
   expect(renderer.root.findAllByType("ChipMenu" as any)).toEqual([]);
   const sheets = () => renderer.root.findAll((n: any) => n.type === "Sheet").length;
-  await tap("Every case of the step");
+  await act(() => button("Filter")!.props.onPress());
   expect(sheets()).toBe(1);
   const filter = () => renderer.root.findAllByType("Segmented" as any).find((n: any) => n.props.label === "Filter")!;
   await act(() => filter().props.onChange("learned"));
   expect(strip()).toEqual(["I-Shape · Learned"]);
+  // A choice closes the sheet; opened again, back to every case.
+  await act(() => button("Filter")!.props.onPress());
   await act(() => filter().props.onChange("all"));
   // The case's note, figures and algorithms are in a sheet opened from its name; the diagram opens its case.
   expect(renderer.root.findAllByType("Figure" as any)).toEqual([]);
   await tap("Show the details");
   expect(renderer.root.findAllByType("Figure" as any).map((n: any) => n.props.label)).toEqual(["Average", "Best", "Attempts"]);
   await tap("Open 2L-OLL Sune");
-  expect(sheets()).toBe(3);
+  expect(sheets()).toBe(2);
   // Learned is the only judgment: no verdicts on the card, its chip learns the case.
   expect(control("Got it")).toBeUndefined();
   await press("Mark Sune learned");
   expect(learnedCalls.at(-1)).toEqual(["2L-OLL Sune", true]);
-  // The arrows beside the strip move to the next case, round the step.
+  // The arrows over the cases move to the next case, round the step.
   await act(() => button("Next case")!.props.onPress());
-  expect(strip()).toEqual(["I-Shape · Learned"]);
+  expect(texts()).toContain("I-Shape");
   // Train the shown set: its cases, from the training's setup skipped.
   await act(() => button("Train 2-Look OLL")!.props.onPress());
   expect(store.get(selectedCaseIdsAtom)).toEqual(["2L-OLL I-Shape", "2L-OLL Sune"]);
