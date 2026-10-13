@@ -3754,5 +3754,9 @@
  "Take a pair out": "Sortir une paire",
  "Left and right edges": "Arêtes gauche et droite",
  "Middle slice": "Tranche du milieu",
- "Social": "Social"
+ "Social": "Social",
+ "No friend yet": "Pas encore d'ami",
+ "No group yet": "Pas encore de groupe",
+ "Nothing unlocked yet": "Rien de débloqué pour l'instant",
+ "This cannot be undone.": "Cette action est irréversible."
 }

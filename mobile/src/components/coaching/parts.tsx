@@ -129,11 +129,11 @@ export function CheckRow({ checked, onChange, children }: { checked: boolean; on
   </Pressable>;
 }
 
-/** A form field: its caption, the control, a line of help or the error under it. */
-export function Field({ label, help, error, children, className }: { label?: string; help?: ReactNode; error?: string; children: ReactNode; className?: string }) {
+/** A form field: its caption, the control, the error under it. */
+export function Field({ label, error, children, className }: { label?: string; error?: string; children: ReactNode; className?: string }) {
   return <View className={cn("gap-2", className)}>
     {label ? <Text className="text-sm font-medium">{label}</Text> : null}
     {children}
-    {error ? <Text className="text-sm text-destructive">{error}</Text> : help ? <Text className="text-sm text-muted-foreground">{help}</Text> : null}
+    {error ? <Text className="text-sm text-destructive">{error}</Text> : null}
   </View>;
 }

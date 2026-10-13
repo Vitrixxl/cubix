@@ -2,10 +2,9 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Hourglass, Languages, LogIn, LogOut, Monitor, Moon, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
-import { INSPECTIONS, joinedDate, type Inspection } from "../../../src/client/lib/format";
+import { INSPECTIONS, type Inspection } from "../../../src/client/lib/format";
 import { LEGAL_DOCUMENTS } from "../../../src/client/lib/legal";
 import { THEMES } from "../../../src/client/lib/theme";
-import { IMPORT_APPS } from "../../../src/client/lib/timerImport";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -120,10 +119,7 @@ function Account() {
   const signOut = async () => { setBusy(true); try { await api.logout(); } finally { setBusy(false); } };
   return <View className="flex-row items-center gap-3 rounded-2xl bg-primary/10 py-2.5 pr-2 pl-3" accessibilityLabel={tr("Account")}>
     <UserAvatar user={user} size={44} className="rounded-xl" />
-    <View className="min-w-0 flex-1">
-      <Text numberOfLines={1} className="text-lg font-extrabold tracking-[-0.02em]">{user.username}</Text>
-      <Text numberOfLines={1} className="text-xs text-muted-foreground">{user.isGuest ? tr("Your times stay on this device.") : tr("Joined {0}", { 0: joinedDate(user.createdAt) })}</Text>
-    </View>
+    <Text numberOfLines={1} className="min-w-0 flex-1 text-lg font-extrabold tracking-[-0.02em]">{user.username}</Text>
     {user.isGuest ? <Button className="h-11 gap-1.5 rounded-full" onPress={() => setGuest(false)}>
       <Icon as={LogIn} size={16} className="text-primary-foreground" />
       <Text>{tr("Sign in")}</Text>
@@ -199,7 +195,7 @@ function Data() {
     <Text className="text-xs font-bold text-muted-foreground">{kind.toUpperCase()}</Text>
   </Pressable>;
   return <Group title={tr("Your data")}>
-    <ListRow first iconNode={glyph(Upload)} title={tr("Import times")} detail={IMPORT_APPS.map(app => said(app)).join(", ")} onPress={() => setImporting(true)} />
+    <ListRow first iconNode={glyph(Upload)} title={tr("Import times")} onPress={() => setImporting(true)} />
     <ListRow iconNode={glyph(Download)} title={exporting ? tr("Preparing…") : tr("Download my data")} trailing={<View className="flex-row gap-1">{format("csv")}{format("json")}</View>} />
     {user && !user.isGuest && <ListRow iconNode={glyph(Trash2, "text-destructive")} title={<Text className="text-base font-medium text-destructive">{tr("Delete my account")}</Text>}
       accessibilityLabel={tr("Delete my account")} chevron={false} onPress={() => setDeleting(true)} />}
@@ -218,8 +214,7 @@ function DeleteAccount({ open, onClose, onDeleted }: { open: boolean; onClose: (
     try { await api.deleteAccount(); onDeleted(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
-  return <Sheet open={open} onClose={close} title={tr("Delete your account?")}
-    description={tr("Your times, sessions, friends, messages, groups you own and everything else of the account are erased from the server at once. This cannot be undone.")}>
+  return <Sheet open={open} onClose={close} title={tr("Delete your account?")} description={tr("This cannot be undone.")}>
     {error ? <Alert variant="destructive">{error}</Alert> : null}
     <View className="flex-row justify-end gap-2">
       <Button variant="ghost" onPress={close}><Text>{tr("Keep my account")}</Text></Button>
@@ -231,8 +226,8 @@ function DeleteAccount({ open, onClose, onDeleted }: { open: boolean; onClose: (
 function Help() {
   const openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
   return <Group title={tr("Help")}>
-    <ListRow first iconNode={glyph(BookOpen)} title={tr("Guides")} detail={tr("How each part of Qbix works")} onPress={() => openGuides("about")} />
-    <ListRow iconNode={glyph(BookA)} title={tr("Notation")} detail={tr("What every move letter means")} onPress={() => openNotation(true)} />
+    <ListRow first iconNode={glyph(BookOpen)} title={tr("Guides")} onPress={() => openGuides("about")} />
+    <ListRow iconNode={glyph(BookA)} title={tr("Notation")} onPress={() => openNotation(true)} />
     <ListRow iconNode={glyph(Coffee)} title={tr("Buy me a coffee")} onPress={() => void Linking.openURL(COFFEE)} />
   </Group>;
 }

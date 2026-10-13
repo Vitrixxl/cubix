@@ -216,7 +216,7 @@ function DayView({ day }: { day: string }) {
   const loaded = board && board !== "offline" ? board : null, place = loaded ? loaded.mine ?? loaded.placed : null, done = !!kept || !!loaded?.mine;
   const { tablet, wide } = useLayout(), info = eventInfo(event);
   const head = <View className="flex-row items-center justify-between gap-2">
-    <Cap className="flex-1">{past ? dayLabel(day) : tr("{0} · new at midnight UTC", { 0: dayLabel(day) })}</Cap>
+    <Cap className="flex-1">{dayLabel(day)}</Cap>
     <HeadButton icon={CircleHelp} label={tr("How the daily scramble works")} onPress={() => openGuide("timer")} />
   </View>;
   const alg = scramble ? <Alg text={scramble} size={tablet && !wide ? 21 : 18} /> : <View className="gap-2"><Skeleton className="h-5 w-11/12" /><Skeleton className="h-5 w-3/5" /></View>;
@@ -236,18 +236,14 @@ function DayView({ day }: { day: string }) {
         <Bar ratio={place.beats / 100} fill="bg-success" className="h-1.5" />
       </View>
       : past ? <Text className="py-2 text-sm text-muted-foreground">{tr("Not tried that day")}</Text>
-      : <Button size="lg" className="h-[58px] justify-start gap-3 rounded-2xl px-4" onPress={() => solve(event)}>
+      : <Button size="lg" className="h-14 gap-2 rounded-2xl" onPress={() => solve(event)}>
         <Icon as={Play} size={20} className="text-primary-foreground" />
-        <View className="min-w-0 flex-1">
-          <Text className="text-base font-bold">{tr("Solve it")}</Text>
-          <Text numberOfLines={1} className="text-xs font-semibold text-primary-foreground/75">{signedIn ? tr("Your one ranked attempt of the day, on the timer") : tr("On the timer")}</Text>
-        </View>
+        <Text className="text-base font-bold">{tr("Solve it")}</Text>
       </Button>}
     <View className="flex-row flex-wrap items-center gap-1.5">
       {loaded?.mine ? <Verified on={loaded.mine.verified} /> : null}
       <Badge variant="secondary"><Text className="text-muted-foreground">{tr("1 attempt / day")}</Text></Badge>
-      {!signedIn ? <Text className="text-xs text-muted-foreground">{tr("Guests are not ranked.")}</Text>
-        : done && !past ? <Text className="text-xs text-muted-foreground">{tr("Done for today: a new scramble at midnight UTC.")}</Text> : null}
+      {!signedIn ? <Text className="text-xs text-muted-foreground">{tr("Guests are not ranked.")}</Text> : null}
     </View>
   </View>;
   const field = <View className="min-h-0 flex-1 gap-2 rounded-3xl bg-card px-4 pt-3 pb-3">
@@ -314,8 +310,7 @@ function Attempt({ event }: { event: DailyEvent }) {
   return <View className="flex-1">
     <Fade hidden={running}><PushedBar title={tr("Daily scramble")} sub={`${eventLabel(event)} · ${dayLabel(day)}`} back="close" onBack={() => close(null)} /></Fade>
     <View className="min-h-0 flex-1 gap-3 px-4 pt-1 pb-3">
-      <Fade hidden={running} className="gap-2">
-        <Cap>{tr("Your one ranked attempt of the day")}</Cap>
+      <Fade hidden={running}>
         {scramble ? <Alg text={scramble} size={19} /> : <Skeleton className="h-6 w-11/12" />}
       </Fade>
       <TimerCard timer={timer} rest="0.000" disabled={!scramble || saving} hint={timerHint(timer, { disabled: !scramble ? tr("One moment…") : saving ? tr("Saving…") : false })} />
@@ -359,7 +354,7 @@ function ResultSheet() {
       <Figures board={board} place={place} />
       <View className="flex-row flex-wrap items-center justify-center gap-2">
         {ranked && board.mine ? <Verified on={board.mine.verified} /> : null}
-        <Text className="text-center text-sm text-muted-foreground">{!signedIn ? tr("Guests are not ranked.") : ranked ? tr("Your ranked attempt of the day.") : tr("Not ranked: only the first attempt of the day counts.")}</Text>
+        {!signedIn || !ranked ? <Text className="text-center text-sm text-muted-foreground">{!signedIn ? tr("Guests are not ranked.") : tr("Not ranked: only the first attempt of the day counts.")}</Text> : null}
       </View>
       <View className="h-48 gap-2">
         <View className="items-center"><FieldView board={board} /></View>

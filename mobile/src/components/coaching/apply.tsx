@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useColors } from "../../theme";
 import { Empty, Surface } from "../layout";
 import { coaching, useCoaching } from "./client";
-import { EventPicker, Field, day, useAction } from "./parts";
+import { EventPicker, Field, useAction } from "./parts";
 import { tr } from "../../../../src/client/i18n";
 
 /** Asking to become a coach (the web's coaching/apply.tsx): an e-mail address to be answered on, the events taught and a few words; then its status. */
@@ -26,8 +26,6 @@ export function Apply() {
   if (application?.status === "pending" || (application?.status === "rejected" && !again))
     return <Surface className="flex-1" testID={"application-" + application.status}>
       <Empty icon={application.status === "pending" ? Clock : XCircle} title={application.status === "pending" ? tr("Your application is being reviewed") : tr("Your application was not accepted")}>
-        {application.status === "pending" ? tr("Sent on {0}. We will write to {1}.", { 0: day(application.createdAt), 1: application.email })
-          : tr("Answered on {0}. You can apply again.", { 0: day(application.decidedAt ?? application.createdAt) })}
         {application.status === "rejected" ? <Button variant="outline" onPress={() => setAgain(true)}><Text>{tr("Apply again")}</Text></Button> : null}
       </Empty>
     </Surface>;
@@ -58,10 +56,7 @@ function Form() {
   const invalid = (field: string) => error?.field === field && "border-destructive";
   return <View className="min-h-0 flex-1 gap-3" testID="apply">
     <ScrollView className="-mx-4 flex-1" contentContainerClassName="gap-5 px-4 pb-4" keyboardShouldPersistTaps="handled">
-      <View className="gap-1">
-        <Text accessibilityRole="header" className="text-base font-semibold tracking-tight">{tr("Become a coach")}</Text>
-        <Text className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</Text>
-      </View>
+      <Text accessibilityRole="header" className="text-base font-semibold tracking-tight">{tr("Become a coach")}</Text>
       <Field label={tr("E-mail address")} error={error?.field === "email" ? error.text : undefined}>
         <Input className={cn("h-11", invalid("email"))} placeholderTextColor={colors.mutedForeground} keyboardType="email-address" autoCapitalize="none" autoComplete="email"
           value={email} onChangeText={setEmail} placeholder={tr("you@example.com")} accessibilityLabel={tr("E-mail address")} />

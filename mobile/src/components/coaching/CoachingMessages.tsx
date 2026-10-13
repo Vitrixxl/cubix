@@ -35,7 +35,7 @@ export function CoachingMessages({ conversationId }: { conversationId?: number }
   const route = useAtomValue(routeAtom) as { view?: string }, parts = route.view?.split("/") ?? [], section = parts[0] || "messages", open = parts[1] ?? "";
   if (conversationId == null) return <ConversationList>
     {!list ? <ListSkeleton className="px-2" />
-      : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10">{tr("Book a session with a coach to write to them.")}<Button variant="outline" className="h-11 rounded-lg" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button>
+      : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10"><Button variant="outline" className="h-11 rounded-lg" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button>
       </Empty>
         : list.map(c => <ConversationRow key={c.id} onPress={() => nav.go("messages/" + c.id, wide)} on={section === "messages" && String(c.id) === open} name={c.with.username} tag={c.role === "student" ? "coach" : "student"}
           face={<Face name={c.with.username} src={c.with.avatar} size={44} />} at={c.lastMessage?.at} unread={c.unread}
@@ -105,7 +105,7 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
         {m.media ? <MediaView media={m.media} /> : null}
         {m.body ? <Bubble>{m.body}</Bubble> : null}
       </>}
-      empty={<Empty icon={MessagesSquare} title={tr("Say hello to {0}.", { 0: c.with.username })}>{tr("Messages, pictures and videos you send show here.")}</Empty>}>
+      empty={<Empty icon={MessagesSquare} title={tr("Say hello to {0}.", { 0: c.with.username })} />}>
       {uploads.map(u => <View key={u.key} accessibilityLabel={tr("Sending {0}", { 0: u.name })} className="max-w-[70%] items-start gap-1 pl-[66px]">
         <Skeleton className="h-40 w-56 rounded-2xl" />
         <Text numberOfLines={1} className="px-1 text-xs text-muted-foreground">{tr("Sending {0}", { 0: u.name })}</Text>

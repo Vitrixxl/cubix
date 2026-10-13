@@ -61,12 +61,12 @@ function RegisterButton({ t, className }: { t: Tournament; className?: string })
 }
 
 /** The account's match ready, in the accent: the round, against whom, and the way to it. */
-function MatchReady({ title, text, match }: { title: string; text: string; match: number }) {
+function MatchReady({ title, text, match }: { title: string; text?: string; match: number }) {
   return <View className="flex-row items-center gap-3 rounded-2xl bg-primary py-3 pr-3 pl-3.5">
     <Icon as={Trophy} size={20} className="text-primary-foreground" />
     <View className="min-w-0 flex-1">
       <Text numberOfLines={2} className="text-[15px] font-bold text-primary-foreground">{title}</Text>
-      <Text numberOfLines={2} className="text-xs text-primary-foreground/80">{text}</Text>
+      {text ? <Text numberOfLines={2} className="text-xs text-primary-foreground/80">{text}</Text> : null}
     </View>
     <Button size="sm" className="h-10 gap-1.5 rounded-xl bg-primary-foreground active:bg-primary-foreground/90" onPress={() => openUrl(matchUrl(match))}>
       <Icon as={Play} size={15} className="text-primary" /><Text className="text-primary">{tr("Play")}</Text>
@@ -108,7 +108,7 @@ function TournamentList() {
         {!list ? <View accessibilityLabel={tr("Loading")} className="gap-2.5 px-4 pt-3">
           <Skeleton className="h-16 rounded-2xl" /><Skeleton className="h-16 rounded-2xl" /><Skeleton className="h-36 rounded-3xl" />
         </View>
-          : !list.length ? <Empty icon={Trophy} title={tr("No tournament yet")}>{tr("No tournament yet. The next ones will be listed here.")}</Empty>
+          : !list.length ? <Empty icon={Trophy} title={tr("No tournament yet")} />
           : <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-2.5 px-4 pt-3 pb-4", tablet && "gap-3 px-7 pt-4")}>
             {mine ? <MatchReady match={mine.myMatch!} title={tr("{0}: your match is ready", { 0: said(roundName(mine.round, mine.rounds)) })} text={`${mine.name} · ${formatText(mine)}`} /> : null}
             {sections.map(([title, items]) => items.length ? <View key={title} accessibilityLabel={title} className="gap-2">
@@ -205,7 +205,6 @@ function OpenDetail({ t }: { t: Tournament }) {
       <Tile label={tr("Players")} value={players(t)} className="bg-muted" />
     </View>
     <Bar ratio={t.maxPlayers ? t.players / t.maxPlayers : 1} fill="bg-success" className="h-1.5" />
-    <Numeric className="text-sm text-muted-foreground">{tr("Starts {0}", { 0: when(t.startsAt) })}</Numeric>
     <View className="flex-row gap-2">
       <RegisterButton t={t} className="h-12 flex-1" />
       {d?.canManage ? <Button variant="secondary" className="h-12 flex-1 gap-1.5 rounded-xl" onPress={() => void startNow(t)}>
@@ -353,13 +352,13 @@ function Standing({ t, me, held }: { t: TournamentDetail; me: string; held: bool
     round = t.matches.filter(m => m.round === t.round),
     over = round.filter(m => m.status === "done" || m.status === "cancelled").length;
   if (mine) return <MatchReady match={mine.id} title={tr("{0}: your match is ready", { 0: said(roundName(mine.round, t.rounds)) })}
-    text={opponent ? tr("Against {0}. Both of you on the match page and it starts.", { 0: opponent.username }) : tr("It starts once both players are on its page.")} />;
+    text={opponent ? tr("vs {0}", { 0: opponent.username }) : undefined} />;
   if (!held) return null;
   return <View className="flex-row items-center gap-2.5 rounded-2xl bg-muted px-3.5 py-2.5">
     <Icon as={Check} size={16} className="text-success" />
     <View className="min-w-0 flex-1">
       <Text className="text-sm font-bold">{tr("You are still in")}</Text>
-      <Numeric numberOfLines={2} className="text-xs text-muted-foreground">{tr("Waiting for the rest of the {0}: {1} of {2} matches over. Your next match opens here by itself.", { 0: said(roundName(t.round, t.rounds)), 1: over, 2: round.length })}</Numeric>
+      <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{said(roundName(t.round, t.rounds))} · {tr("{0} / {1} over", { 0: over, 1: round.length })}</Numeric>
     </View>
   </View>;
 }

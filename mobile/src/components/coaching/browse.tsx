@@ -100,7 +100,7 @@ function CoachCard({ c, onPress, on = false }: { c: Coach; onPress: () => void; 
       {!c.newStudents ? <Text className="text-xs text-muted-foreground">{tr("Full · own students only")}</Text>
         : c.nextSlot ? <>
           <View className="h-8 justify-center rounded-full bg-muted px-3"><Numeric className="text-[13px] font-semibold">{span(c.nextSlot)}</Numeric></View>
-          {c.openSlots && c.openSlots > 1 ? <Numeric className="text-xs text-muted-foreground">{tr("+ {0} more in 4 weeks", { 0: c.openSlots - 1 })}</Numeric> : null}
+          {c.openSlots && c.openSlots > 1 ? <Numeric className="text-xs text-muted-foreground">+{c.openSlots - 1}</Numeric> : null}
         </> : <Text className="text-xs text-muted-foreground">{tr("No open slot")}</Text>}
     </View>
   </Pressable>;
@@ -188,7 +188,7 @@ function Caption({ children, meta }: { children: string; meta?: ReactNode }) {
 function Times({ c }: { c: Coach }) {
   const puzzles = c.practice?.puzzles ?? [];
   return <View className="gap-3" accessibilityLabel={tr("Times per puzzle")}>
-    <Caption meta={tr("most solved first")}>{tr("Times per puzzle")}</Caption>
+    <Caption>{tr("Times per puzzle")}</Caption>
     {!puzzles.length ? <View className="flex-row items-center gap-2"><Icon as={Timer} size={16} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">{tr("No timed solve yet.")}</Text></View>
       : puzzles.map(x => <PuzzleCard key={x.puzzle} x={x} history={c.history?.puzzles[x.puzzle]} />)}
   </View>;
@@ -243,8 +243,7 @@ export function BookPage({ id }: { id: string }) {
   // Opened from a conversation, the way back returns to it.
   const fromConversation = nav.previous?.startsWith("messages/");
   return <View className="min-h-0 flex-1">
-    <PushedBar title={tr("Book a session")} sub={c ? `${tr("with {0}", { 0: c.username })} · ${tr("{0} min", { 0: c.sessionMinutes })} · ${price(c.priceCents)}` : undefined}
-      onBack={() => nav.back(fromConversation ? nav.previous! : "coach/" + id)} />
+    <PushedBar title={tr("Book a session")} onBack={() => nav.back(fromConversation ? nav.previous! : "coach/" + id)} />
     <Booking id={id} />
   </View>;
 }
@@ -298,14 +297,10 @@ function Booking({ id, head, after, scroller }: { id: string; head?: ReactNode; 
   return <View className="min-h-0 flex-1">
     <ScrollView ref={scroller} className="min-h-0 flex-1" contentContainerClassName="gap-3 px-4 pb-4" keyboardShouldPersistTaps="handled">
       {head}
-      {own ? <View className="items-start gap-2 rounded-2xl bg-muted p-4">
-        <Text className="text-sm text-muted-foreground">{tr("Players book you here.")}</Text>
-        <Button variant="outline" onPress={() => nav.go("schedule", true)}><Text>{tr("Edit your schedule")}</Text></Button>
-      </View>
+      {own ? <Button variant="outline" className="self-start" onPress={() => nav.go("schedule", true)}><Text>{tr("Edit your schedule")}</Text></Button>
         : !data ? <View accessibilityLabel={tr("Loading")} className="gap-2"><Skeleton className="h-5 w-40" /><View className="flex-row gap-1">{Array.from({ length: 7 }, (_, i) => <Skeleton key={i} className="h-16 flex-1" />)}</View></View>
           : !open ? <Empty icon={!data.welcome ? UserRoundX : CalendarX} className="flex-none rounded-2xl bg-muted">
-            {!data.welcome ? tr("{0} is not taking new students right now. Write to them to ask.", { 0: c?.username ?? tr("This coach") })
-              : data.accepting ? tr("{0} has no open slot in the next four weeks.", { 0: c?.username ?? tr("This coach") }) : tr("This coach is not taking bookings right now.")}
+            {!data.welcome ? tr("Full · own students only") : tr("No open slot")}
           </Empty>
             : <>
               <View className="flex-row items-center gap-1 pt-1">
@@ -335,7 +330,7 @@ function Booking({ id, head, after, scroller }: { id: string; head?: ReactNode; 
                 })}
               </View>
               <TextInput value={note} onChangeText={setNote} maxLength={1000} multiline textAlignVertical="top" accessibilityLabel={tr("What would you like to work on?")}
-                placeholder={tr("What you want to work on: your average, the step you struggle with… (optional)")} placeholderTextColor={colors.mutedForeground}
+                placeholder={tr("What would you like to work on?")} placeholderTextColor={colors.mutedForeground}
                 className="min-h-11 rounded-xl border border-input bg-input/30 px-3 py-2.5 font-sans text-base text-foreground" />
             </>}
       {after}
@@ -356,7 +351,6 @@ function Booking({ id, head, after, scroller }: { id: string; head?: ReactNode; 
           <Icon as={CalendarCheck} size={17} className="text-primary-foreground" />
           <Text>{tr("Book")}</Text>
         </Button>
-        <Text className="min-w-0 flex-1 text-[11px] text-muted-foreground">{tr("Confirmed at once · payment comes later · the call opens 15 min before")}</Text>
       </View>
     </View> : null}
   </View>;

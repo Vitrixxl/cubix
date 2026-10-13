@@ -28,7 +28,7 @@ import { useTourTarget } from "../tour";
 import { ANYONE_AFTER, RESULT_MARK, ao5, battles, clock, compare, matchRange, opponentStatus, raceAverage, roundsWon, ROUNDS, shownSolve, solveTime, useDuel, type DuelRecord, type DuelSolve } from "../lib/duel";
 import { community, useSocial } from "../lib/social";
 import { eventAtom, guidesAtom, routeAtom, signedInAtom } from "../state";
-import { said, tr } from "../../../src/client/i18n";
+import { tr } from "../../../src/client/i18n";
 
 /**
  * The web app's duel (desktop/renderer/duel.tsx) on a phone. The lobby is three cards: playing an opponent at the
@@ -96,9 +96,7 @@ function Play() {
       {tablet ? null : <IconTile icon={Swords} tone="primary" className="size-11 rounded-xl" />}
       <View className="min-w-0 flex-1">
         <Text accessibilityRole="header" className="text-xl font-extrabold tracking-[-0.03em]">{tr("Ao5 race")}</Text>
-        <Text numberOfLines={2} className={cn("text-[13px]", duel.notice ? "text-destructive" : "text-muted-foreground")}>
-          {duel.notice || tr("The same five {0} scrambles for both of you", { 0: label })}
-        </Text>
+        {duel.notice ? <Text numberOfLines={2} className="text-[13px] text-destructive">{duel.notice}</Text> : null}
       </View>
       <HeadButton icon={CircleHelp} label={tr("How duels work")} onPress={() => openGuide("duel")} />
     </View>;
@@ -178,10 +176,7 @@ function Friends({ className }: { className?: string }) {
   </View>;
   const link = community.shareLink();
   return <View className={cn("gap-2.5 rounded-3xl bg-card p-4", className)}>
-    <View className="flex-row items-baseline justify-between gap-2">
-      <Text accessibilityRole="header" className="text-base font-bold">{tr("Your friends")} {list.length ? <Text className="text-base font-bold text-muted-foreground">{list.length}</Text> : null}</Text>
-      {list.length ? <Text className="text-xs text-muted-foreground">{tr("Pick one to challenge")}</Text> : null}
-    </View>
+    <Text accessibilityRole="header" className="text-base font-bold">{tr("Your friends")} {list.length ? <Text className="text-base font-bold text-muted-foreground">{list.length}</Text> : null}</Text>
     {!me ? <View className="flex-row gap-3">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="size-12 rounded-full" />)}</View>
       : <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1" contentContainerClassName="gap-1 px-1">
         {list.map(f => {
@@ -205,7 +200,7 @@ function Friends({ className }: { className?: string }) {
       <Button size="sm" disabled={busy} className="h-10 gap-1.5 rounded-xl" onPress={() => void challenge()}>
         <Icon as={Send} size={15} className="text-primary-foreground" /><Text>{tr("Send")}</Text>
       </Button>
-    </View> : me && !list.length ? <Text className="text-sm text-muted-foreground">{tr("No friend yet: find players, or share your link.")}</Text> : null}
+    </View> : null}
     <View className="flex-row items-center gap-2">
       <Icon as={Link2} size={15} className="text-muted-foreground" />
       <Text className="text-[13px] text-muted-foreground">{tr("Your link")}</Text>
@@ -236,7 +231,7 @@ function Played({ className }: { className?: string }) {
     {/* A tablet has the room for the record as a strip, the latest race last. */}
     {tablet && list.length ? <RoundStrip label={tr("Races played")} className="flex-none"
       cells={list.slice(0, 12).reverse().map(b => b.result === "win" ? "me" : b.result === "loss" ? "them" : "tie")} /> : null}
-    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className="p-2">{tr("Your races show here, won or lost.")}</Empty>
+    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className="p-2" />
       : <FlatList data={list} keyExtractor={b => b.id} className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: 8 }} renderItem={({ item: b }) => {
         const [a, z] = roundsWon(b.mine, b.theirs), [mine, theirs] = b.ao5;
         return <View className={cn("min-h-12 flex-row items-center gap-2.5 py-1", tablet && "min-h-14 gap-3")}>
@@ -290,7 +285,7 @@ function Race() {
   const timer = useDuelTimer();
   const running = timer.phase === "running";
   const opponent = duel.opponent, me = duel.players[duel.seat], round = duel.round, mine = duel.me, theirs = duel.them;
-  const event = eventInfo(duel.event), name = event ? eventLabel(event.puzzle, event.solveMode) : duel.event;
+  const event = eventInfo(duel.event);
   const scramble = duel.scrambles[Math.min(round, ROUNDS - 1)] ?? "";
   const myLast = mine[duel.latest(mine)];
   const [cube, setCube] = useState(false);
@@ -312,7 +307,7 @@ function Race() {
   return <View className="flex-1 flex-row">
     <View className="flex-1">
       <Fade hidden={running}>
-        <PushedBar title={tr("vs {0}", { 0: opponent.name })} sub={tr("Ao5 race · {0}", { 0: name })} onBack={() => void leave()}>
+        <PushedBar title={tr("vs {0}", { 0: opponent.name })} onBack={() => void leave()}>
           {duel.over && duel.dismissed === duel.game ? <HeadButton icon={Trophy} label={tr("Result")} onPress={() => duel.showResult(true)} /> : null}
           {event && !duel.over ? <HeadButton icon={Box} label={tr("Show or hide the cube")} active={cube} onPress={() => setCube(c => !c)} /> : null}
           {wide ? null : <HeadButton icon={MessageSquare} label={duel.unread ? tr("Chat, {0} new", { 0: duel.unread }) : tr("Chat")} active={duel.chatOpen} badge={duel.unread || undefined} onPress={() => duel.toggleChat()} />}
@@ -333,7 +328,6 @@ function Race() {
             { name: opponent.name, status: opponentStatus(duel), live: theirPhase === "running", gone: !duel.opponentHere },
           ]} />
           <OpponentLive title={theirPhase === "running" ? tr("{0} is solving", { 0: opponent.name }) : opponent.name} gone={!duel.opponentHere}
-            sub={[tr("Round {0}", { 0: Math.min(round, ROUNDS - 1) + 1 }), theirPhase === "running" ? tr("their timer, live") : said(opponentStatus(duel))].join(" · ")}
             phase={theirPhase} startedAt={duel.opponentStart} rest={shownSolve(theirs[duel.latest(theirs)])} />
         </Fade>
         <TimerCard timer={timer} rest={shownSolve(myLast)} hint={myHint} disabled={!duel.canSolve}
@@ -361,13 +355,9 @@ function Rounds({ all = false, className }: { all?: boolean; className?: string 
   // On the race, the latest three: the timer keeps the room.
   const rows = ROUND_LIST.filter(r => all || mine[r] || theirs[r]).slice(all ? 0 : -3);
   return <View accessibilityLabel={tr("Rounds")} className={cn("gap-1.5 rounded-2xl bg-card px-3.5 py-3", className)}>
-    <View className="flex-row items-baseline justify-between gap-2">
-      <Text className="text-sm font-bold">{tr("Rounds")} <Numeric className="text-sm font-bold text-muted-foreground">{Math.min(duel.round, ROUNDS)} / {ROUNDS}</Numeric></Text>
-      <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{tr("Ao5 after five rounds")}</Text>
-    </View>
-    {rows.length ? rows.map(r => <Fly key={r} n={r + 1} times={[mine[r], theirs[r]]} current={r === duel.round && !duel.over}
-      best={mine[r] && theirs[r] ? better(solveTime(mine[r]!), solveTime(theirs[r]!)) : null} />)
-      : <Text className="text-xs text-muted-foreground">{tr("The first round decides the first point.")}</Text>}
+    <Text className="text-sm font-bold">{tr("Rounds")} <Numeric className="text-sm font-bold text-muted-foreground">{Math.min(duel.round, ROUNDS)} / {ROUNDS}</Numeric></Text>
+    {rows.map(r => <Fly key={r} n={r + 1} times={[mine[r], theirs[r]]} current={r === duel.round && !duel.over}
+      best={mine[r] && theirs[r] ? better(solveTime(mine[r]!), solveTime(theirs[r]!)) : null} />)}
     {own !== undefined || rival !== undefined ? <View className="border-t border-border pt-1.5">
       <Fly n={tr("Ao5")} times={[asTime(own), asTime(rival)]} best={better(own, rival)} />
     </View> : null}
@@ -440,15 +430,12 @@ function Result() {
   const { duel } = useDuel();
   const open = duel.over && duel.dismissed !== duel.game;
   const own = ao5(duel.me), rival = ao5(duel.them), result = compare(own, rival), opponent = duel.opponent.name;
-  const asked = duel.rematch[duel.seat], offered = duel.rematch[1 - duel.seat], [a, b] = roundsWon(duel.me, duel.them);
+  const asked = duel.rematch[duel.seat], offered = duel.rematch[1 - duel.seat];
   const note = !duel.opponentHere ? tr("{0} left", { 0: opponent }) : offered && !asked ? tr("{0} wants a rematch.", { 0: opponent }) : asked ? tr("Waiting for {0}…", { 0: opponent }) : "";
   const faces = [[duel.players[duel.seat]?.name ?? "", tr("You"), own, result === "win"], [opponent, opponent, rival, result === "loss"]] as const;
   return <Sheet open={open} onClose={() => { if (open) duel.showResult(false); }} title={tr("Result")} hideTitle>
-    <View className="items-center gap-1">
-      <Text accessibilityRole="header" className={cn("text-center text-4xl font-extrabold tracking-[-0.03em]", result === "win" ? "text-success" : result === "loss" ? "text-destructive" : "text-foreground")}>
-        {result === "win" ? tr("Victory") : result === "loss" ? tr("Defeat") : tr("Draw")}</Text>
-      <Numeric className="text-center text-sm text-muted-foreground">{tr("Ao5 {0} against {1} · rounds {2}–{3}", { 0: raceAverage(own) || "–", 1: raceAverage(rival) || "–", 2: a, 3: b })}</Numeric>
-    </View>
+    <Text accessibilityRole="header" className={cn("text-center text-4xl font-extrabold tracking-[-0.03em]", result === "win" ? "text-success" : result === "loss" ? "text-destructive" : "text-foreground")}>
+      {result === "win" ? tr("Victory") : result === "loss" ? tr("Defeat") : tr("Draw")}</Text>
     <View className="flex-row items-center gap-3">
       {faces.map(([name, shown, value, won], i) => [
         i === 1 ? <Text key="vs" className="text-sm text-muted-foreground">{tr("vs")}</Text> : null,

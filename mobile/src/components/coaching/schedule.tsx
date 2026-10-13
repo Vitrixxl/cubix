@@ -232,11 +232,11 @@ const daysText = (days: string[]) => (days.length === 1 ? longDay.format(toDate(
 function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; pending: boolean; commit: (change: Partial<Availability>) => Promise<boolean>; choose: (kind: Picking | "rule") => void; edit: (index: number) => void }) {
   const here = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return <View className="gap-4" testID="schedule-menu">
-    <Head title={tr("Edit availability")}>{tr("What do you want to change?")}</Head>
+    <Head title={tr("Edit availability")} />
     <View className="gap-2">
-      <ActionCard icon={CalendarPlus} title={tr("Add a date")} text={tr("Open hours on days you pick")} onPress={() => choose("open")} />
-      <ActionCard icon={CalendarX} title={tr("Cancel a date")} text={tr("A day off, or a few hours away")} onPress={() => choose("close")} />
-      <ActionCard icon={Repeat} title={tr("Add weekly hours")} text={tr("The same hours every week")} onPress={() => choose("rule")} />
+      <ActionCard icon={CalendarPlus} title={tr("Add a date")} onPress={() => choose("open")} />
+      <ActionCard icon={CalendarX} title={tr("Cancel a date")} onPress={() => choose("close")} />
+      <ActionCard icon={Repeat} title={tr("Add weekly hours")} onPress={() => choose("rule")} />
     </View>
     {saved.rules.length ? <View className="gap-1.5">
       <Label>{tr("Weekly hours")}</Label>
@@ -256,13 +256,10 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
 }
 
 /** One way to change the availability, as a card leading to its next step. */
-function ActionCard({ icon, title, text, onPress }: { icon: LucideIcon; title: string; text: string; onPress: () => void }) {
+function ActionCard({ icon, title, onPress }: { icon: LucideIcon; title: string; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-3 active:border-primary/40 active:bg-muted/30">
     <View className="size-9 items-center justify-center rounded-lg bg-primary/10"><Icon as={icon} size={18} className="text-primary" /></View>
-    <View className="min-w-0 flex-1 gap-0.5">
-      <Text className="font-medium">{title}</Text>
-      <Text className="text-xs text-muted-foreground">{text}</Text>
-    </View>
+    <Text className="min-w-0 flex-1 font-medium">{title}</Text>
     <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
   </Pressable>;
 }
@@ -272,7 +269,7 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
   const [days, setDays] = useState(rule?.days ?? [0, 1, 2, 3, 4]), [start, setStart] = useState(rule?.start ?? 18 * 60), [end, setEnd] = useState(rule?.end ?? 21 * 60),
     [dated, setDated] = useState(!!(rule?.from || rule?.until)), [from, setFrom] = useState(rule?.from ?? ""), [until, setUntil] = useState(rule?.until ?? "");
   return <View className="gap-4" testID="rule-form">
-    <Head title={rule ? tr("Weekly hours") : tr("Add weekly hours")}>{days.length ? `${weekdaysText(days)} · ${rangeText([start, end])}` : tr("Pick at least one day.")}</Head>
+    <Head title={rule ? tr("Weekly hours") : tr("Add weekly hours")} />
     <Field label={tr("Days")}>
       <View accessibilityLabel={tr("Days")} className="flex-row overflow-hidden rounded-lg border border-border">
         {WEEKDAYS.map((w, d) => {
@@ -324,7 +321,7 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
   const hours = hoursOn(day, saved.rules, saved.changes, off), dayOff = off.has(day), weekly = saved.rules.filter(r => inForce(r, day)),
     own = saved.changes.map((c, i) => [c, i] as const).filter(([c]) => c.date === day), slots = hours.reduce((n, [s, e]) => n + Math.floor((e - s) / saved.minutes), 0);
   return <View className="gap-4" testID="day-panel">
-    <Head title={longDay.format(toDate(day))}>{dayOff ? tr("Day off: no one can book you.") : hours.length ? `${hours.map(rangeText).join(", ")} · ${plural(slots, "slot")}` : tr("Closed: no hours this day.")}</Head>
+    <Head title={longDay.format(toDate(day))}>{dayOff ? tr("Day off") : hours.length ? `${hours.map(rangeText).join(", ")} · ${plural(slots, "slot")}` : tr("None this day.")}</Head>
     <View className="gap-1.5">
       <Label>{tr("Weekly hours")}</Label>
       {!weekly.length ? <Empty icon={Repeat} className="flex-none p-2">{tr("None this day.")}</Empty>

@@ -11,7 +11,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useLayout } from "../../hooks/useLayout";
 import { community } from "../../lib/social";
-import { Empty, Figure, Label, ListSkeleton, MenuItem, MoreMenu, Numeric, SectionHead } from "../layout";
+import { Empty, Figure, ListSkeleton, MenuItem, MoreMenu, Numeric, SectionHead } from "../layout";
 import { PushedBar } from "../AppBar";
 import { Sheet, SheetInput } from "../Sheet";
 import { Column, Columns, Face, day, relative, time } from "../chat/kit";
@@ -77,20 +77,19 @@ function GroupDetails({ id, leave }: { id: number; leave: () => void }) {
       <GroupMark size={56} />
       <Text accessibilityRole="header" className="text-center text-lg font-semibold tracking-tight">{g.name}</Text>
       {g.description ? <Text className="text-center text-sm text-muted-foreground">{g.description}</Text> : null}
-      <Numeric className="text-xs text-muted-foreground">{tr("Created {0} · {1}", { 0: day(g.createdAt), 1: plural(members.length, "member") })}</Numeric>
       {run ? <Quiet icon={Pencil} label={tr("Edit")} onPress={() => setEditing(true)} /> : null}
     </View>
     <Part title={tr("Members")} count={members.length} action={run ? <Quiet icon={UserPlus} label={tr("Invite")} onPress={() => setInviting(true)} /> : null}>
       <View className="-mx-2 gap-0.5">{[...members, ...invited].map(m => <Member key={m.id} g={g} m={m} leave={leave} />)}</View>
     </Part>
     <Part title={tr("Tournaments")} count={g.tournaments.length} action={run ? <Quiet icon={Plus} label={tr("Organise")} onPress={() => setOrganising(true)} /> : null}>
-      {!g.tournaments.length ? <Empty className="flex-none p-3">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</Empty>
+      {!g.tournaments.length ? <Empty className="flex-none p-3">{tr("No tournament yet")}</Empty>
         : <View className="-mx-2 gap-0.5">{g.tournaments.map(t => <DetailRow key={t.id} event={t.event} title={t.name} label={tr("Open {0}", { 0: t.name })}
           detail={t.status === "finished" && t.winner ? tr("Won by {0}", { 0: t.winner.username }) : `${day(t.startsAt)} · ${plural(t.players, "player")}`}
           trailing={<StatusBadge t={t} />} onPress={() => { leave(); community.host.navigate(tournamentUrl(t.id)); }} />)}</View>}
     </Part>
     <Part title={tr("Battles")} count={g.battles.length}>
-      <Battles battles={g.battles} empty={tr("No battle yet: launch one from the top of the conversation.")} />
+      <Battles battles={g.battles} />
     </Part>
     <View className="-mx-5 border-t border-border px-3 pt-3">
       {g.role !== "owner"
@@ -108,8 +107,7 @@ function Member({ g, m, leave }: { g: Group; m: Group["members"][number]; leave:
     removable = !self && m.role !== "owner" && (g.role === "owner" || (g.role === "admin" && m.role !== "admin")),
     manageable = removable || (g.role === "owner" && (m.role === "admin" || m.role === "member")),
     friend = community.me?.friends.some(f => f.id === m.id);
-  return <PersonRow p={m} name={<Text numberOfLines={1} className={cn("text-sm font-medium", m.role === "invited" && "text-muted-foreground")}>{self ? tr("You") : m.username}</Text>}
-    detail={m.role === "invited" ? tr("Invited {0}", { 0: relative(m.joinedAt) }) : tr("Joined {0}", { 0: relative(m.joinedAt) })}>
+  return <PersonRow p={m} name={<Text numberOfLines={1} className={cn("text-sm font-medium", m.role === "invited" && "text-muted-foreground")}>{self ? tr("You") : m.username}</Text>}>
     {ROLE_LABEL[m.role] ? <Badge variant="secondary" className="gap-1">
       {m.role === "owner" ? <Icon as={Crown} size={12} className="text-secondary-foreground" /> : m.role === "admin" ? <Icon as={Shield} size={12} className="text-secondary-foreground" /> : null}
       <Text>{tr(ROLE_LABEL[m.role])}</Text>
@@ -129,7 +127,7 @@ function Member({ g, m, leave }: { g: Group; m: Group["members"][number]; leave:
 function EditGroupSheet({ group: g, open, onClose }: { group: Group; open: boolean; onClose: () => void }) {
   const [name, setName] = useState(g.name), [description, setDescription] = useState(g.description);
   useEffect(() => { if (open) { setName(g.name); setDescription(g.description); } }, [open]);
-  return <Sheet open={open} onClose={onClose} title={tr("Edit the group")} description={tr("Its members see the change at once.")}>
+  return <Sheet open={open} onClose={onClose} title={tr("Edit the group")}>
     <Field label={tr("Name")}><SheetInput value={name} onChangeText={setName} maxLength={40} accessibilityLabel={tr("Name")} /></Field>
     <Field label={tr("Description")}><SheetInput value={description} onChangeText={setDescription} maxLength={300} multiline accessibilityLabel={tr("Description")} className="min-h-20 py-2.5" textAlignVertical="top" /></Field>
     <Button disabled={name.trim().length < 2} className="h-11 rounded-lg" onPress={async () => { if (await community.updateGroup(g.id, name.trim(), description.trim())) onClose(); }}><Text>{tr("Save")}</Text></Button>
@@ -141,15 +139,12 @@ function InviteSheet({ g, open, onClose }: { g: Group; open: boolean; onClose: (
   const [picked, setPicked] = useState<string[]>([]), [name, setName] = useState(""), [busy, setBusy] = useState(false);
   useEffect(() => { if (open) { setPicked([]); setName(""); } }, [open]);
   const byName = async () => { if (name.trim() && (await community.invite(g.id, name.trim()))) setName(""); };
-  return <Sheet open={open} onClose={onClose} title={tr("Invite to {0}", { 0: g.name })} description={tr("They join once they accept the invitation.")}>
+  return <Sheet open={open} onClose={onClose} title={tr("Invite to {0}", { 0: g.name })}>
     <FriendPicker friends={friendsOutside(g)} value={picked} onChange={setPicked} />
-    <View className="gap-1.5">
-      <Label>{tr("Or a player who is not your friend, by username:")}</Label>
-      <View className="flex-row items-center gap-2">
-        <View className="flex-1"><SheetInput value={name} onChangeText={setName} placeholder={tr("Username")} accessibilityLabel={tr("Invite a player")} autoCapitalize="none" autoCorrect={false}
-          returnKeyType="send" onSubmitEditing={() => void byName()} /></View>
-        <Button variant="outline" disabled={!name.trim()} className="h-11 rounded-lg" onPress={() => void byName()}><Text>{tr("Invite")}</Text></Button>
-      </View>
+    <View className="flex-row items-center gap-2">
+      <View className="flex-1"><SheetInput value={name} onChangeText={setName} placeholder={tr("Username")} accessibilityLabel={tr("Invite a player")} autoCapitalize="none" autoCorrect={false}
+        returnKeyType="send" onSubmitEditing={() => void byName()} /></View>
+      <Button variant="outline" disabled={!name.trim()} className="h-11 rounded-lg" onPress={() => void byName()}><Text>{tr("Invite")}</Text></Button>
     </View>
     <Button disabled={!picked.length || busy} className="h-11 rounded-lg" onPress={async () => {
       setBusy(true);
@@ -164,9 +159,9 @@ function InviteSheet({ g, open, onClose }: { g: Group; open: boolean; onClose: (
 }
 
 /** Battles as rows: who against whom, the score or where it stands; each opens its detail. */
-function Battles({ battles, empty }: { battles: Match[]; empty: string }) {
+function Battles({ battles }: { battles: Match[] }) {
   const [shown, setShown] = useState<Match | null>(null);
-  if (!battles.length) return <Empty className="flex-none p-3">{empty}</Empty>;
+  if (!battles.length) return <Empty className="flex-none p-3">{tr("No battles yet")}</Empty>;
   return <>
     <View className="-mx-2 gap-0.5">
       {battles.map(match => {
@@ -191,7 +186,7 @@ function FriendDetails({ c }: { c: Conversation }) {
     <View className="items-center gap-2 pb-4">
       <Face name={other.username} src={other.avatar} size={56} />
       <Text accessibilityRole="header" className="text-lg font-semibold tracking-tight">{other.username}</Text>
-      <Text className="text-xs text-muted-foreground">{friend ? tr("Friends since {0}", { 0: day(friend.since) }) : tr("No longer friends")}</Text>
+      {!friend ? <Text className="text-xs text-muted-foreground">{tr("No longer friends")}</Text> : null}
     </View>
     <Part title={tr("Your battles")} count={battles.length}>
       {done.length ? <Strip className="mb-1">
@@ -199,7 +194,7 @@ function FriendDetails({ c }: { c: Conversation }) {
         <Figure label={tr("Lost")} value={done.length - won} tone="bad" className="w-1/3" />
         <Figure label={tr("Played")} value={done.length} className="w-1/3" />
       </Strip> : null}
-      <Battles battles={battles} empty={tr("No battle yet: challenge {0} from the top of the conversation.", { 0: other.username })} />
+      <Battles battles={battles} />
     </Part>
     {friend ? <View className="-mx-5 border-t border-border px-3 pt-3">
       <Quiet icon={UserMinus} label={tr("Remove from friends")} danger onPress={() => void community.removeFriend(other.id)} />
@@ -249,14 +244,11 @@ function Offer({ lead, title, sub, action, accent, run }: { lead: string; title:
   </View>;
 }
 
-/** The head of a friend's or a group's page: the face, the name in large, a line. */
-function Head({ face, name, sub }: { face: ReactNode; name: string; sub: string }) {
+/** The head of a friend's or a group's page: the face and the name in large. */
+function Head({ face, name }: { face: ReactNode; name: string }) {
   return <View className="flex-row items-center gap-3">
     {face}
-    <View className="min-w-0 flex-1 gap-0.5">
-      <Text numberOfLines={1} accessibilityRole="header" className="text-[26px] font-extrabold tracking-[-0.035em]">{name}</Text>
-      <Numeric numberOfLines={1} className="text-[13px] text-muted-foreground">{sub}</Numeric>
-    </View>
+    <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 flex-1 text-[26px] font-extrabold tracking-[-0.035em]">{name}</Text>
   </View>;
 }
 
@@ -283,10 +275,9 @@ export function FriendPage({ id, back, docked = false }: { id: string; back: () 
         <MenuItem icon={UserMinus} destructive onPress={() => void community.removeFriend(f.id)}>{tr("Remove from friends")}</MenuItem>
       </MoreMenu> : null}
     </PushedBar>
-    {!community.me ? <ListSkeleton className="px-4" /> : !f ? <Empty icon={UserRoundX} title={tr("No longer among your friends and groups.")} />
+    {!community.me ? <ListSkeleton className="px-4" /> : !f ? <Empty icon={UserRoundX} title={tr("No longer friends")} />
       : <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-3 px-4 pb-4", split && "px-7")}><Columns split={split}><Column split={split}>
-        <Head face={<Face name={f.username} src={f.avatar} size={64} />} name={f.username}
-          sub={[tr("Friends since {0}", { 0: day(f.since) }), t.played ? plural(t.played, "battle") : ""].filter(Boolean).join(" · ")} />
+        <Head face={<Face name={f.username} src={f.avatar} size={64} />} name={f.username} />
         <View className="flex-row gap-2">
           <Pill icon={Swords} text={tr("Challenge")} tone="primary" disabled={!c} onPress={() => setBattle(true)} className="h-11 flex-1" />
           <Pill icon={MessageCircle} text={tr("Write")} onPress={() => void community.message(f.id)} className="h-11 flex-1" />
@@ -297,13 +288,12 @@ export function FriendPage({ id, back, docked = false }: { id: string; back: () 
           <Numeric className="text-[46px] leading-none font-extrabold tracking-[-0.05em]">{t.won}<Text className="text-[46px] font-extrabold text-muted-foreground"> – </Text>{t.lost}</Numeric>
           <View className="w-24 items-center gap-1"><Face name={f.username} src={f.avatar} size={30} /><Text numberOfLines={1} className="text-sm font-bold">{f.username}</Text><Text className="text-[11px] text-muted-foreground">{plural(t.lost, "win")}</Text></View>
         </View>
-        {!messages ? <ListSkeleton rows={2} /> : !battles.length ? <Text className="text-[13px] text-muted-foreground">{tr("No battle yet between you.")}</Text> : <BattleLines battles={battles} />}
+        {!messages ? <ListSkeleton rows={2} /> : !battles.length ? <Text className="text-[13px] text-muted-foreground">{tr("No battles yet")}</Text> : <BattleLines battles={battles} />}
         </Column><Column split={split}>
-        <Caption className="pt-1">{tr("Waiting for you")}</Caption>
+        {items.length || last ? <Caption className="pt-1">{tr("Waiting for you")}</Caption> : null}
         {items.map(w => <Offer key={w.key} lead={w.lead} title={w.text} action={w.label} accent={w.accent} run={w.run} />)}
-        {c && last ? <Offer lead={eventName(last.event)} title={tr("A rematch?")} sub={tr("Same format: {0}", { 0: formatText(last) })} action={tr("Launch")} accent={false}
+        {c && last ? <Offer lead={eventName(last.event)} title={tr("A rematch?")} sub={formatText(last)} action={tr("Launch")} accent={false}
           run={() => void community.battle(c.id, { event: last.event, points: last.points, sets: last.sets, opponentId: null })} /> : null}
-        {!items.length && !last ? <Text className="text-[13px] text-muted-foreground">{tr("Nothing waits between you. Challenge {0} to a first battle.", { 0: f.username })}</Text> : null}
       </Column></Columns></ScrollView>}
     {c ? <BattleSheet conversation={c} open={battle} onClose={() => setBattle(false)} /> : null}
   </View>;
@@ -330,7 +320,7 @@ export function GroupPage({ id, back, docked = false }: { id: number; back: () =
       </MoreMenu> : null}
     </PushedBar>
     {!g ? <ListSkeleton className="px-4" /> : <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-3 px-4 pb-4", split && "px-7")}><Columns split={split}><Column split={split}>
-      <Head name={g.name} sub={[plural(members.length, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")}
+      <Head name={g.name}
         face={<View className="flex-row" importantForAccessibility="no-hide-descendants">
           {members.slice(0, 3).map((m, i) => <View key={m.id} className={cn("rounded-full border-[3px] border-background", i > 0 && "-ml-4")}><Face name={m.username} src={m.avatar} size={44} /></View>)}
         </View>} />
@@ -347,9 +337,9 @@ export function GroupPage({ id, back, docked = false }: { id: number; back: () =
       <View className="-mx-2 gap-0.5">{[...members, ...invited].map(m => <Member key={m.id} g={g} m={m} leave={() => {}} />)}</View>
       </Column><Column split={split}>
       <Caption className="pt-1">{tr("Battles of the group")}</Caption>
-      {g.battles.length ? <BattleLines battles={g.battles.map(b => community.card(b))} group /> : <Text className="text-[13px] text-muted-foreground">{tr("No battle yet: launch the first one.")}</Text>}
+      {g.battles.length ? <BattleLines battles={g.battles.map(b => community.card(b))} group /> : <Text className="text-[13px] text-muted-foreground">{tr("No battles yet")}</Text>}
       <Caption className="pt-1">{tr("Tournaments")}</Caption>
-      {!g.tournaments.length ? <Text className="text-[13px] text-muted-foreground">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</Text>
+      {!g.tournaments.length ? <Text className="text-[13px] text-muted-foreground">{tr("No tournament yet")}</Text>
         : g.tournaments.map(t => <TournamentChatCard key={t.id} tournament={t} />)}
     </Column></Columns></ScrollView>}
     {g ? <>

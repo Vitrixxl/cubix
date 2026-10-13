@@ -42,7 +42,7 @@ function CardButton({ icon, label, onPress, variant = "default" }: { icon?: type
 }
 
 /** Where a battle stands, in a sentence. */
-export function statusLine(m: Match) {
+function statusLine(m: Match) {
   const [a, b] = names(m), winner = m.winner ? (m.players[0]?.id === m.winner ? a : b) : a;
   return m.status === "done" ? m.forfeit ? tr("{0} won: the other player gave up or the organisers decided.", { 0: winner }) : tr("{0} won {1}.", { 0: winner, 1: relative(m.finishedAt ?? m.createdAt) })
     : m.status === "cancelled" ? tr("Called off before it was played.")
@@ -52,7 +52,7 @@ export function statusLine(m: Match) {
 
 /**
  * A battle in a conversation: the event and how it is won, where it stands, the two players face to face (with the
- * score once it is played), a sentence, and the next step for whoever reads it. `onOpen` shows its detail.
+ * score once it is played), and the next step for whoever reads it. `onOpen` shows its detail.
  */
 export function BattleCard({ match, onOpen }: { match: Match; onOpen: (m: Match) => void }) {
   const colors = useColors(), m = community.card(match), seat = seatIn(m, me()),
@@ -86,7 +86,6 @@ export function BattleCard({ match, onOpen }: { match: Match; onOpen: (m: Match)
         </Fragment>;
       })}
     </View>
-    <Text className="text-xs text-muted-foreground">{statusLine(m)}</Text>
     <View className="flex-row gap-2">
       {actions.map(a => <Pill key={a.label} text={a.label} tone={a.tone} onPress={a.run} className="flex-1" />)}
       {actions.length < 2 ? <Pill text={tr("See the detail")} tone="soft" onPress={() => onOpen(m)} className="flex-1" /> : null}

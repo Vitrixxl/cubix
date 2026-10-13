@@ -3754,5 +3754,9 @@
  "Take a pair out": "Sacar un par",
  "Left and right edges": "Aristas izquierda y derecha",
  "Middle slice": "Capa central",
- "Social": "Social"
+ "Social": "Social",
+ "No friend yet": "Aún no tienes amigos",
+ "No group yet": "Aún no hay grupos",
+ "Nothing unlocked yet": "Aún no has desbloqueado nada",
+ "This cannot be undone.": "Esto no se puede deshacer."
 }

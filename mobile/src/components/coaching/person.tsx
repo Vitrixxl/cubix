@@ -6,7 +6,7 @@ import { fmtTime, plural } from "../../../../src/client/lib/format";
 import { heatmap, type HeatCell } from "../../../../src/client/lib/profile";
 import { sets as catalogSets, cases as catalogCases } from "../../../../src/client/local/catalog";
 import { eventInfo, type EventId } from "../../../../src/shared/puzzles";
-import { localFormat, tr } from "../../../../src/client/i18n";
+import { tr } from "../../../../src/client/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -26,8 +26,6 @@ import { Face, Stars, Strip, day, relative, span, useAction, useCoachingNav } fr
  * matters at a glance, and their whole file in a sheet: figures, activity, progress per puzzle, cases learned, the
  * coach's notes and every session together.
  */
-const sinceFormat = localFormat({ month: "long", year: "numeric" });
-const since = (iso: string) => sinceFormat.format(new Date(iso));
 
 function usePerson(id: string) {
   useCoaching();
@@ -44,7 +42,7 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
       <Face name={b.with.username} src={b.with.avatar} size={40} />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="font-semibold">{b.with.username}</Text>
-        {p ? <Text className="text-xs text-muted-foreground">{tr("{0} · on Qbix since {1}", { 0: b.role === "coach" ? tr("Student") : tr("Coach"), 1: since(p.since) })}</Text> : <Skeleton className="mt-1 h-3 w-36" />}
+        <Text className="text-xs text-muted-foreground">{b.role === "coach" ? tr("Student") : tr("Coach")}</Text>
       </View>
     </View>
     <View className="gap-1 rounded-lg bg-muted/50 px-3 py-2">
@@ -92,10 +90,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
       <Face name={name} src={p?.avatar} size={64} />
       <View className="min-w-0 flex-1 items-start gap-1.5">
         <Text accessibilityRole="header" numberOfLines={1} className="text-xl font-semibold tracking-tight">{name}</Text>
-        <Text className="text-sm text-muted-foreground">
-          {p ? [p.role === "student" ? tr("Your student") : tr("Your coach"), tr("on Qbix since {0}", { 0: since(p.since) }),
-            p.practice.lastAt ? tr("last solve {0}", { 0: relative(new Date(p.practice.lastAt).getTime(), now) }) : tr("no solve yet")].join(" · ") : tr("Loading…")}
-        </Text>
+        {p ? <Text className="text-sm text-muted-foreground">{p.role === "student" ? tr("Your student") : tr("Your coach")}</Text> : null}
         {p && !inChat ? <Button variant="outline" size="sm" className="mt-1 h-10" onPress={() => { close(); nav.go(p.role === "student" ? "students/" + p.id : "messages/" + p.conversationId); }}>
           <Icon as={MessageSquare} size={16} /><Text>{tr("Message")}</Text>
         </Button> : null}

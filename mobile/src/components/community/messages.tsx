@@ -12,7 +12,7 @@ import { useLayout } from "../../hooks/useLayout";
 import { community } from "../../lib/social";
 import { replaceRouteAtom } from "../../state";
 import { Empty, ListSkeleton, SearchField, Segmented } from "../layout";
-import { Bubble, ChatClosed, ChatHeader, Composer, ConversationRow, Count, Face, MessageList, relative } from "../chat/kit";
+import { Bubble, ChatClosed, ChatHeader, Composer, ConversationRow, Count, Face, MessageList } from "../chat/kit";
 import { BattleCard, MatchSheet, TournamentChatCard, WaitingLine, waiting } from "./cards";
 import { BattleSheet, TournamentSheet } from "./launch";
 import { Caption, Dashed, GroupMark, Pill, TextLink, organiser, title } from "./marks";
@@ -73,7 +73,7 @@ export function Inbox({ onAddFriend, onNewGroup, onRequests, selected }: { onAdd
     {row && waits && asks ? <View className="flex-row flex-wrap gap-2.5">{asks}</View> : asks}
     {!shown ? <ListSkeleton />
       : !shown.length ? query || filter !== "all" ? <Empty icon={SearchX} title={query ? tr("No conversation by that name.") : tr("Nothing new")} />
-        : <Empty icon={MessagesSquare} title={tr("No conversation yet.")}>{tr("Write to a friend, or make a group.")}<Button variant="outline" className="h-11 rounded-lg" onPress={onNewGroup}><Text>{tr("New group")}</Text></Button></Empty>
+        : <Empty icon={MessagesSquare} title={tr("No conversation yet.")}><Button variant="outline" className="h-11 rounded-lg" onPress={onNewGroup}><Text>{tr("New group")}</Text></Button></Empty>
         : <FlatList data={shown} extraData={selected} keyExtractor={c => String(c.id)} className="-mx-1 min-h-0 flex-1" contentContainerClassName="gap-0.5 pb-2" keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => <Row c={item} onPress={() => pick(item.id)} on={item.id === selected} />} />}
   </View>;
@@ -124,14 +124,11 @@ export function Chat({ conversation: c, onDetails, back }: { conversation: Conve
     };
   }, [c.id]);
   useEffect(() => { if (messages && c.unread) community.read(c.id); }, [messages, c.unread]);
-  const group = c.kind === "group" ? community.groups.get(c.group!.id) : undefined,
-    friend = c.kind === "direct" ? community.me?.friends.find(f => f.id === c.with!.id) : undefined,
-    members = group?.members.filter(m => m.role !== "invited").length;
+  const group = c.kind === "group" ? community.groups.get(c.group!.id) : undefined;
   return <View className="min-h-0 flex-1">
     <ChatHeader back={back && { label: tr("Conversations"), onPress: back }} onOpen={onDetails} openLabel={tr("Details")}
       face={c.kind === "group" ? <GroupMark size={32} /> : <Face name={c.with!.username} src={c.with!.avatar} size={32} />}
-      title={title(c)}
-      sub={c.kind === "group" ? (members !== undefined ? plural(members, "member") : tr("Group")) : friend ? tr("Friends since {0}", { 0: relative(friend.since) }) : tr("No longer friends")}>
+      title={title(c)}>
       {c.open ? <Pill icon={Swords} text={tr("Battle")} tone="soft" onPress={() => setBattle(true)} /> : null}
       {group && organiser(group.role) ? <Pill icon={Trophy} label={tr("Tournament")} onPress={() => setTournament(true)} /> : null}
       <Pill icon={PanelRight} label={tr("Details")} onPress={onDetails} />
@@ -140,7 +137,7 @@ export function Chat({ conversation: c, onDetails, back }: { conversation: Conve
     <MessageList<Message> key={c.id} messages={messages} me={me()}
       event={m => m.match ? <BattleCard match={m.match} onOpen={setShown} /> : m.tournament ? <TournamentChatCard tournament={m.tournament} /> : null}
       bubble={m => <Bubble>{m.body}</Bubble>}
-      empty={<Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })}>{tr("Messages you write show here.")}</Empty>} />
+      empty={<Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })} />} />
     {c.open ? <Write c={c} /> : <ChatClosed>{tr("You are no longer friends with {0}", { 0: c.with?.username })}</ChatClosed>}
     <BattleSheet conversation={c} group={group} open={battle} onClose={() => setBattle(false)} />
     {group ? <TournamentSheet group={group} open={tournament} onClose={() => setTournament(false)} /> : null}

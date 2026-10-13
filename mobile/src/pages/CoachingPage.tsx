@@ -123,7 +123,6 @@ function SectionMenu({ view }: { view: string }) {
           </DropdownMenuItem>;
         })}
       </Fragment>)}
-      {!c.isCoach ? <Text className="px-2.5 pt-0.5 pb-1.5 text-xs text-muted-foreground">{tr("A coach also finds here Dashboard, Students, Schedule and Coach profile.")}</Text> : null}
     </DropdownMenuContent>
   </DropdownMenu>;
 }

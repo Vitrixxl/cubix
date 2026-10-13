@@ -161,15 +161,12 @@ export function SolveActions({ last, onPenalty, canCancel, onCancel }: {
   </>;
 }
 
-/** A small card of the other player while they solve: the live dot, what they are doing, their time ticking. */
-export function OpponentLive({ title, sub, phase, startedAt, rest, gone }: { title: string; sub: string; phase: string; startedAt: number; rest: string; gone?: boolean }) {
+/** A small card of the other player while they solve: the live dot, who or what they are doing, their time ticking. */
+export function OpponentLive({ title, phase, startedAt, rest, gone }: { title: string; phase: string; startedAt: number; rest: string; gone?: boolean }) {
   const running = phase === "running";
   return <View className={cn("min-h-14 flex-row items-center gap-2.5 rounded-2xl bg-card px-3.5 py-2", gone && "opacity-50")}>
     {running ? <LiveDot tone="bg-success" /> : <View className="size-2 rounded-full bg-muted-foreground/40" />}
-    <View className="min-w-0 flex-1">
-      <Text numberOfLines={1} className="text-sm font-bold">{said(title)}</Text>
-      <Text numberOfLines={1} className="text-xs text-muted-foreground">{said(sub)}</Text>
-    </View>
+    <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold">{said(title)}</Text>
     {running ? <LiveDigits startedAt={startedAt} size={26} /> : <Digits text={phase === "idle" ? rest : "0.000"} phase={phase} size={26} />}
   </View>;
 }

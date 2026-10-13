@@ -96,7 +96,6 @@ test("the profile shows the account, its level, records, shortcuts and journal u
   expect(all("AppBar")).toHaveLength(1);
   expect(all("SectionTabs")).toHaveLength(1);
   expect(texts()).toContain("vitrix");
-  expect(texts().some(text => text.includes("Joined "))).toBe(true);
   expect(texts()).toContain("Level 2");
   // The records, each event's best single.
   expect(all("Numeric").some(node => node.props.children === "10.000")).toBe(true);
@@ -228,8 +227,8 @@ test("cached profile updates after sync, deletion and account changes, including
   expect(texts()).toContain("other");
 });
 
-test("without timed solves, the records say where they will appear", async () => {
+test("without timed solves, the records say there are none yet", async () => {
   timerCount = 0;
   await mount();
-  expect(texts()).toContain("Your records appear after your first timed solves.");
+  expect(texts()).toContain("No times yet");
 });

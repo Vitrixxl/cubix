@@ -196,15 +196,10 @@ function Journal({ summary, initialGroup, head }: { summary: AchievementSummaryD
     </> : <View className="flex-row items-center justify-between gap-2">{puzzle}{show}</View>}
     <Categories items={inGroup} category={category} onChange={setCategory} />
     <View className="min-h-0 flex-1 rounded-3xl bg-card pt-3 pl-3.5">
-      <View className="flex-row items-baseline gap-2 pr-3.5">
-        <Text className="text-lg font-extrabold tracking-tight">{mode === "unlocked" ? tr("Your journal") : tr("To unlock")}</Text>
-        <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] text-muted-foreground">
-          {mode === "unlocked" ? tr("{0} achievements, latest first", { 0: pool.length }) : tr("{0} achievements, closest first", { 0: pool.length })}
-        </Text>
-      </View>
+      <Text className="pr-3.5 text-lg font-extrabold tracking-tight">{mode === "unlocked" ? tr("Your journal") : tr("To unlock")}</Text>
       <FlatList data={rows} keyExtractor={row => row.key} className="flex-1" contentContainerClassName="gap-1.5 pr-3.5 pt-1 pb-3" showsVerticalScrollIndicator={false}
         initialNumToRender={8} windowSize={7}
-        ListEmptyComponent={<Empty icon={Trophy} title={mode === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")} />}
+        ListEmptyComponent={<Empty icon={Trophy} title={mode === "unlocked" ? tr("Nothing unlocked yet") : tr("Everything here is unlocked.")} />}
         renderItem={({ item: row }) => row.kind === "head"
           ? <View className="flex-row items-baseline gap-2 pt-2.5"><Text className="text-[15px] font-extrabold capitalize">{row.title}</Text><Numeric className="text-xs text-muted-foreground">{plural(row.count, "achievement")}</Numeric></View>
           : <View className={cn("flex-row gap-1.5", tablet && "gap-2")}>
@@ -267,10 +262,8 @@ function Categories({ items, category, onChange }: { items: A[]; category: strin
         <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold">{said(label)}</Text>
         <Numeric className="text-xs font-bold text-muted-foreground">{done}/{list.length}</Numeric>
       </View>
-      {id === "all" ? <>
-        <Bar ratio={list.length ? done / list.length : 0} fill="bg-foreground" className="mt-1 h-1.5" />
-        <Text className="text-xs text-muted-foreground">{tr("{0} % unlocked", { 0: list.length ? Math.round((done / list.length) * 100) : 0 })}</Text>
-      </> : <View className="flex-row flex-wrap gap-[3px]" importantForAccessibility="no-hide-descendants">
+      {id === "all" ? <Bar ratio={list.length ? done / list.length : 0} fill="bg-foreground" className="mt-1 h-1.5" />
+        : <View className="flex-row flex-wrap gap-[3px]" importantForAccessibility="no-hide-descendants">
         {list.map(a => <View key={a.id} className="size-[7px] rounded-full" style={{ backgroundColor: a.unlocked ? colour : colors.mutedForeground, opacity: a.unlocked ? 1 : 0.3 }} />)}
       </View>}
     </Pressable>;

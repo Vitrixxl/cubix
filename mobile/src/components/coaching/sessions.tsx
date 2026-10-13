@@ -1,7 +1,6 @@
 import { CalendarClock, CalendarDays, CalendarX, Check, MessageSquare, Star, Video, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
-import { plural } from "../../../../src/client/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -16,7 +15,7 @@ import { ChoiceButton } from "../PuzzlePicker";
 import { Sheet, SheetInput, SheetScrollView } from "../Sheet";
 import { Empty, Numeric, Segmented } from "../layout";
 import { Alert } from "@/components/ui/alert";
-import { CANCELLATION_NOTICE, callOpen, cancellationOpen, coaching, price, useCoaching, type Booking } from "./client";
+import { callOpen, cancellationOpen, coaching, price, useCoaching, type Booking } from "./client";
 import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, longDay, toDate } from "./calendar";
 import { Face, Stars, day, dayKey, relative, span, time, useAction, useCoachingNav } from "./parts";
 import { tr } from "../../../../src/client/i18n";
@@ -69,8 +68,7 @@ export function Sessions() {
           </DayBoxes> : null,
         })} />
     </>}
-    <Sheet open={!!picked} onClose={() => setPicked("")} title={picked ? longDay.format(toDate(picked)) : tr("Sessions")}
-      description={`${tr(SESSION_TABS[tab])} · ${plural(sessions.length, "session")}`}>
+    <Sheet open={!!picked} onClose={() => setPicked("")} title={picked ? longDay.format(toDate(picked)) : tr("Sessions")}>
       {sessions.length ? <SheetScrollView contentContainerClassName="gap-1">
         {sessions.map(b => <SessionRow key={b.id} b={b} now={now} />)}
       </SheetScrollView> : <Empty icon={CalendarDays} title={tr("No session for this filter on this day.")} />}
@@ -115,9 +113,6 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
       {b.status === "booked" && !over && b.role === "coach" ? <MoveButton b={b} /> : null}
       {b.status === "booked" && !over ? <CancelButton b={b} /> : null}
     </View>
-    {b.status === "booked" && !over ? <Text className="text-xs text-muted-foreground">
-      {cancellationOpen(b.startsAt, now) ? tr("Cancellation allowed before {0}.", { 0: span(b.startsAt - CANCELLATION_NOTICE) }) : tr("Cancellation closed: this session starts within 24 hours.")}
-    </Text> : null}
     {b.proposal && b.status === "booked" && !over ? <Offer b={b} /> : null}
   </View>;
 }
@@ -155,8 +150,7 @@ export function MoveButton({ b, label = false }: { b: Booking; label?: boolean }
     </Button> : <Button variant="ghost" size="icon" className="size-10" accessibilityLabel={tr("Offer another time")} onPress={() => setOpen(true)}>
       <Icon as={CalendarClock} size={18} />
     </Button>}
-    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Offer another time")}
-      description={tr("Now {0} with {1}. The session stays where it is until they accept.", { 0: span(b.startsAt, b.endsAt), 1: b.with.username })}>
+    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Offer another time")} description={span(b.startsAt, b.endsAt)}>
       {open ? <MoveForm b={b} close={() => setOpen(false)} /> : null}
     </Sheet>
   </>;
@@ -179,7 +173,7 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
     {!data ? <View accessibilityLabel={tr("Loading")} className="gap-3">
       <Skeleton className="h-11" />
       <View className="flex-row flex-wrap gap-2">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-10 w-[22%]" />)}</View>
-    </View> : !days.size ? <Empty icon={CalendarX} className="p-2">{tr("No free slot in the next four weeks: open more hours in your schedule.")}</Empty> : <View className="gap-3">
+    </View> : !days.size ? <Empty icon={CalendarX} className="p-2">{tr("No open slot")}</Empty> : <View className="gap-3">
       <ChoiceButton label={tr("Day")} value={shown} className="w-full justify-between" options={[...days.keys()].map(d => ({ id: d, label: day(days.get(d)![0]!) }))}
         onChange={d => { setPicked(d); setStart(null); }} />
       <View className="flex-row flex-wrap gap-2">
@@ -201,7 +195,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
   const when = tr("{0} at {1} with {2}.", { 0: day(b.startsAt), 1: time(b.startsAt), 2: b.with.username });
   async function cancel() {
     if (!cancellationOpen(b.startsAt)) return setClosed(true);
-    if (!(await ask({ title: tr("Cancel this session?"), text: tr("{0} They are told at once and the slot opens again.", { 0: when }), action: tr("Cancel the session"), cancel: tr("Keep it") }))) return;
+    if (!(await ask({ title: tr("Cancel this session?"), text: when, action: tr("Cancel the session"), cancel: tr("Keep it") }))) return;
     if (!cancellationOpen(b.startsAt)) return setClosed(true);
     await run(() => coaching.cancel(b.id), tr("Session cancelled"));
   }
@@ -212,8 +206,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
       <Icon as={X} size={18} />
     </Button>}
     {/* Nothing to confirm: the same sheet as a confirmation, closed by its one button. */}
-    <Sheet open={closed} onClose={() => setClosed(false)} title={tr("Cancellation is closed")}
-      description={tr("{0} Sessions cannot be cancelled in the final 24 hours before they start. Cancellation deadline: {1}. Cancellations must be made before this time.", { 0: when, 1: span(b.startsAt - CANCELLATION_NOTICE) })}>
+    <Sheet open={closed} onClose={() => setClosed(false)} title={tr("Cancellation is closed")} description={tr("Cancellation closed: this session starts within 24 hours.")}>
       <View className="flex-row justify-end"><Button variant="outline" onPress={() => setClosed(false)}><Text>{tr("Close")}</Text></Button></View>
     </Sheet>
   </>;
@@ -229,7 +222,7 @@ function ReviewButton({ b }: { b: Booking }) {
     </Button> : <Button size="sm" variant="outline" className="h-10" onPress={() => setOpen(true)}>
       <Icon as={Star} size={16} /><Text>{tr("Review")}</Text>
     </Button>}
-    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Your session with {0}", { 0: b.with.username })} description={tr("{0} · other players read your review on the coach's page.", { 0: day(b.startsAt) })}>
+    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Your session with {0}", { 0: b.with.username })} description={day(b.startsAt)}>
       <Rating value={rating} onChange={setRating} />
       <SheetInput value={comment} onChangeText={setComment} maxLength={1000} multiline numberOfLines={4} textAlignVertical="top" className="min-h-24 py-2"
         placeholder={tr("What helped you most?")} accessibilityLabel={tr("Comment")} />

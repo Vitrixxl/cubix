@@ -72,8 +72,7 @@ const nameOf = (m: Match, seat: number) => (m.players[seat]?.id === me() ? tr("Y
 /** The match's head: where it belongs and its event, the cube, and giving it up while playing. */
 function Head({ m, forfeit, cube, onCube }: { m: Match; forfeit: boolean; cube?: boolean; onCube?: () => void }) {
   const back = useBack(home(m));
-  return <PushedBar title={m.tournament ?? tr("Battle")} onBack={back}
-    sub={[m.tournament ? tr("Round {0}", { 0: m.round }) : m.group, eventName(m.event)].filter(Boolean).join(" · ")}>
+  return <PushedBar title={m.tournament ?? tr("Battle")} onBack={back}>
     {onCube ? <HeadButton icon={Box} label={tr("Show or hide the cube")} active={cube} onPress={onCube} /> : null}
     {forfeit ? <Forfeit /> : null}
   </PushedBar>;
@@ -185,9 +184,8 @@ function Race({ m }: { m: Match }) {
               <Numeric numberOfLines={1} className="shrink text-xs text-muted-foreground">{sets.slice(0, -1).map((s, i) => setLine(m, s, i, own)).join(" · ")}</Numeric>
             </View>
             {m.sets > 1 ? <Text className="text-xs font-bold text-muted-foreground">{tr("Set {0}", { 0: setNumber })}</Text> : null}
-            {set.length ? set.slice(-3).map(s => <Fly key={s.number} n={s.number} times={[s.results[own] ?? undefined, s.results[other] ?? undefined]}
-              best={s.winner === null ? null : s.winner === own ? 0 : 1} current={s === current && !live.over} />)
-              : <Text className="text-xs text-muted-foreground">{tr("The first solve decides the first point.")}</Text>}
+            {set.slice(-3).map(s => <Fly key={s.number} n={s.number} times={[s.results[own] ?? undefined, s.results[other] ?? undefined]}
+              best={s.winner === null ? null : s.winner === own ? 0 : 1} current={s === current && !live.over} />)}
           </Pressable>
         </Fade>}
       </View>
@@ -303,9 +301,6 @@ function Waiting({ m, seat }: { m: Match; seat: number | null }) {
       <Badge variant="accent" className="mt-3"><LiveDot className="size-1.5" /><Text>{tr("Waiting")}</Text></Badge>
       <Text accessibilityRole="header" className="text-center text-2xl font-extrabold tracking-[-0.03em]">
         {other ? (started ? tr("Waiting for {0} to come back", { 0: other.username }) : tr("Waiting for {0}", { 0: other.username })) : tr("Waiting for the players")}
-      </Text>
-      <Text className="max-w-xs text-center text-sm text-muted-foreground">
-        {seat !== null ? tr("The race starts by itself once you are both on this page. Keep it open: {0} has been told.", { 0: other?.username ?? "" }) : tr("The race shows here once both players are on its page.")}
       </Text>
       {started ? <Numeric className="text-sm text-muted-foreground">{tr("Score so far · {0}", { 0: scoreOf(m).join(" – ") })}</Numeric> : null}
       <View className="flex-1" />

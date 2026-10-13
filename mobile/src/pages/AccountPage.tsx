@@ -2,7 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
-import { fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
+import { fmtTime, plural, shortDate } from "../../../src/client/lib/format";
 import { achievementLists, dayKey, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
 import { level } from "../../../src/client/lib/achievements";
 import { journeyProfile } from "../../../src/client/lib/journey";
@@ -45,7 +45,7 @@ function BattlesPage() {
   useDuel();
   const list = battles();
   const setRoute = useSetAtom(routeAtom);
-  if (!list.length) return <Surface className="flex-1"><Empty icon={Swords} title={tr("No battles yet")}>{tr("Race a cuber of your level, solve for solve.")}<Button variant="outline" onPress={() => setRoute({ page: "duel" })}><Icon as={Swords} size={16} /><Text>{tr("Find an opponent")}</Text></Button>
+  if (!list.length) return <Surface className="flex-1"><Empty icon={Swords} title={tr("No battles yet")}><Button variant="outline" onPress={() => setRoute({ page: "duel" })}><Icon as={Swords} size={16} /><Text>{tr("Find an opponent")}</Text></Button>
   </Empty></Surface>;
   const count = (r: DuelRecord["result"]) => list.filter(b => b.result === r).length;
   const averages = list.map(b => b.ao5[0]).filter((v): v is number => v != null);
@@ -105,7 +105,7 @@ function Caption({ children, link }: { children: ReactNode; link?: ReactNode }) 
 }
 
 /**
- * Who they are: the face, the name with the streak (which opens the activity), the method and the date they joined,
+ * Who they are: the face, the name with the streak (which opens the activity), the method they solve with,
  * the level and its XP. Importing, the exports and signing out are in the settings, behind the head's gear. On a
  * tablet it is a card: `large` (portrait) with a bigger face, `compact` beside other columns.
  */
@@ -115,7 +115,6 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
   const xp = useAtomValue(profileAchievementsAtom)?.xp ?? 0, l = level(xp);
   // The 3×3 method they solve with, the latest one they know.
   const method = METHODS["333"].find(m => m.id === journeyProfile(journey)?.knownMethods?.["333"]?.at(-1));
-  const line = [method && said(method.name), !user.isGuest && tr("Joined {0}", { 0: joinedDate(user.createdAt) })].filter(Boolean).join(" · ");
   const streak = d?.streak.current ?? 0;
   return <View className={cn("gap-2.5", size && "gap-3 rounded-3xl bg-card p-4")}>
     <View className={cn("flex-row items-center gap-3", size === "large" && "gap-4")}>
@@ -129,7 +128,7 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
             <Numeric className={cn("text-xs font-bold", streak ? "text-warning" : "text-muted-foreground")}>{tr("{0} d", { 0: streak })}</Numeric>
           </Pressable>
         </View>
-        <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{line}</Text>
+        {method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
         <View className="flex-row items-baseline justify-between gap-2" accessibilityLabel={tr("{0} XP in all", { 0: xp.toLocaleString() })}>
           <Text className="text-[13px] font-bold">{tr("Level {0}", { 0: l.level })}</Text>
           <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} / {1} XP", { 0: l.into.toLocaleString(), 1: l.span.toLocaleString() })}</Numeric>
@@ -151,7 +150,7 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
   return <View className={cn("gap-1", list && "min-h-0 gap-2 rounded-3xl bg-card p-3.5", className)}>
     <Caption link={<Pressable accessibilityRole="button" onPress={onStatistics} className="h-8 flex-row items-center gap-0.5 pl-2">
       <Text className="text-[13px] font-bold text-primary">{tr("Statistics")}</Text><Icon as={ChevronRight} size={15} className="text-primary" />
-    </Pressable>}>{tr("Records · single / Ao5")}</Caption>
+    </Pressable>}>{tr("Records")}</Caption>
     {!d ? <Skeleton className="h-[70px] rounded-2xl" /> : records.length && list ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-1.5" showsVerticalScrollIndicator={false}>
       {records.map(r => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
         <View className="min-w-0 flex-1">
@@ -168,7 +167,7 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
           <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
         </View>)}
       </ScrollView>
-    </View> : <Text className="text-[13px] text-muted-foreground">{tr("Your records appear after your first timed solves.")}</Text>}
+    </View> : <Text className="text-[13px] text-muted-foreground">{tr("No times yet")}</Text>}
   </View>;
 }
 
@@ -472,7 +471,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
     case "achievements": return <AchievementsScreen group={group} />;
     case "activity": return <Activity />;
     case "duels": return <View className="flex-1">
-      <PushedBar title={tr("Battles")} sub={battles().length ? plural(battles().length, "battle") : undefined} />
+      <PushedBar title={tr("Battles")} />
       <View className="min-h-0 flex-1 gap-3 px-4 pb-3"><BattlesPage /></View>
     </View>;
     default: return <Overview show={show} />;

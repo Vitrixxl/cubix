@@ -16,7 +16,7 @@ import { Column, Columns } from "../chat/kit";
 import { ask } from "../Confirm";
 import { Bar, Empty, Figure, ListSkeleton, Numeric, Segmented, SectionHead, Surface } from "../layout";
 import { CoachingMessages } from "./CoachingMessages";
-import { coaching, euros, price, useCoaching } from "./client";
+import { coaching, euros, useCoaching } from "./client";
 import { SessionRow, useMinute } from "./sessions";
 import { Count, EventPicker, Face, Field, Strip, day, span, useAction, useCoachingNav } from "./parts";
 import { tr } from "../../../../src/client/i18n";
@@ -101,7 +101,7 @@ export function StudentsView({ id, selected }: { id: string; selected?: string }
   if (id) return student ? <CoachingMessages conversationId={student.conversationId} />
     : <Empty icon={d ? UserRoundX : Users} title={d ? tr("This student is not among yours.") : undefined} />;
   if (!d) return <ListSkeleton />;
-  if (!d.students.length) return <Empty icon={Users}>{tr("Players who book you or write to you appear here.")}</Empty>;
+  if (!d.students.length) return <Empty icon={Users} title={tr("No one yet.")} />;
   return <FlatList data={d.students} extraData={selected} keyExtractor={st => st.id} className="-mx-4" testID="students"
     renderItem={({ item: st }) => <Pressable accessibilityRole="button" accessibilityLabel={st.username} accessibilityState={{ selected: st.id === selected }} onPress={() => nav.go("students/" + st.id, wide)}
       className={cn("min-h-16 flex-row items-center gap-3 px-4 py-2.5 active:bg-muted/50", st.id === selected && "bg-accent")}>
@@ -144,7 +144,7 @@ function ProfileForm() {
       <Field label={tr("Bookings")}>
         <Segmented label={tr("Bookings")} value={accepting ? "open" : "paused"} onChange={v => setAccepting(v === "open")} options={[{ id: "open", label: tr("Open") }, { id: "paused", label: tr("Paused") }]} />
       </Field>
-      <Field label={tr("New students")} help={newStudents ? tr("Anyone can book your free slots.") : tr("Only players you already coached see your slots.")}>
+      <Field label={tr("New students")}>
         <Segmented label={tr("New students")} value={newStudents ? "open" : "closed"} onChange={v => setNewStudents(v === "open")} options={[{ id: "open", label: tr("Welcome") }, { id: "closed", label: tr("My students only") }]} />
       </Field>
       </Column><Column split={split} className="gap-5">
@@ -159,7 +159,7 @@ function ProfileForm() {
       <Field label={tr("Languages")}>
         <Input {...input} value={languages} onChangeText={setLanguages} placeholder={tr("English, French")} accessibilityLabel={tr("Languages")} />
       </Field>
-      <Field label={tr("Price per session")} help={tr("{0} · payment comes later", { 0: cents ? price(cents) : tr("Free") })}>
+      <Field label={tr("Price per session")}>
         <View className="flex-row items-center gap-2">
           <Input {...input} className={cn("h-11 flex-1 tabular-nums", !valid && "border-destructive")} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} placeholder="0" accessibilityLabel={tr("Price per session")} />
           <Text className="text-sm text-muted-foreground">{tr("€ · {0} min", { 0: coach.sessionMinutes })}</Text>
@@ -187,7 +187,7 @@ function Picture() {
     // ponytail: no resizing on the phone (no image manipulator): a big crop may pass the server's 2 MB, which says so.
     if (asset) await run(async () => coaching.setAvatar(await (await fetch(asset.uri)).blob()), tr("Picture saved"));
   }
-  return <Field label={tr("Picture")} help={tr("Players see it beside your name. A face works best.")}>
+  return <Field label={tr("Picture")}>
     <View className="flex-row items-center gap-4">
       <Face name={coach.username} src={coach.avatar} size={72} />
       <View className="flex-row gap-2">
