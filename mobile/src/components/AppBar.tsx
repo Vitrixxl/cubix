@@ -1,6 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronDown, ChevronLeft, X } from "lucide-react-native";
-import { type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -48,9 +48,9 @@ export function PuzzleChip({ scramble = false }: { scramble?: boolean }) {
  */
 export function AppBar({ title, puzzle = true, scramble = false, children }: { title?: ReactNode; puzzle?: boolean; scramble?: boolean; children?: ReactNode }) {
   const route = useAtomValue(routeAtom);
-  const { tablet } = useLayout();
-  return <View className={cn("min-h-14 flex-row items-center gap-2 pr-3 pl-5 pt-1", tablet && "min-h-16 pr-6 pl-7 pt-3")}>
-    <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]", tablet && "text-[40px]")}>{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
+  const { tablet, narrow } = useLayout();
+  return <View className={cn("min-h-14 flex-row items-center gap-2 pr-3 pl-5 pt-1", narrow && "gap-1 pl-4", tablet && "min-h-16 pr-6 pl-7 pt-3")}>
+    <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]", narrow && "text-2xl", tablet && "text-[40px]")}>{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
     {children}
     {puzzle && <PuzzleChip scramble={scramble} />}
     <AccountMenu />
@@ -61,14 +61,20 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
 export function SectionTabs() {
   const route = useAtomValue(routeAtom), replace = useSetAtom(replaceRouteAtom);
   const waiting = useWaiting();
-  const { tablet } = useLayout();
+  const { tablet, width } = useLayout();
   const pages = SECTION_PAGES[tabOf(route.page)];
+  // The tab shown is scrolled into view: one past the screen's edge (Coaching, on a phone) would be cut off.
+  const scroll = useRef<ScrollView>(null), ends = useRef<Record<string, number>>({});
+  const current = pages.find(page => page.has(route))?.id;
+  const reveal = () => { const end = current && ends.current[current]; if (end) scroll.current?.scrollTo({ x: Math.max(0, end + 20 - width), animated: false }); };
+  useEffect(reveal, [current, width]);
   if (pages.length < 2) return null;
   return <View className="border-b border-border">
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName={cn("gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
+    <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName={cn("gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
       {pages.map(page => {
         const here = page.has(route), n = waiting[page.id] ?? 0;
         return <Pressable key={page.id} accessibilityRole="tab" accessibilityState={{ selected: here }} onPress={() => { if (!here) replace(page.route); }}
+          onLayout={e => { ends.current[page.id] = e.nativeEvent.layout.x + e.nativeEvent.layout.width; if (here) reveal(); }}
           className="h-11 flex-row items-center gap-1.5">
           <Text className={cn("text-sm font-bold", here ? "text-foreground" : "text-muted-foreground")}>{tr(page.label)}</Text>
           {n > 0 && <View className="min-w-5 items-center rounded-full bg-primary px-1.5"><Text className="text-xs font-bold text-primary-foreground">{n}</Text></View>}
@@ -85,14 +91,14 @@ export function SectionTabs() {
  */
 export function PushedBar({ title, sub, onBack, back = "back", children }: { title: ReactNode; sub?: ReactNode; onBack?: () => void; back?: "back" | "close"; children?: ReactNode }) {
   const goBack = useSetAtom(goBackAtom);
-  const { tablet } = useLayout();
+  const { tablet, narrow } = useLayout();
   return <View className={cn("min-h-14 flex-row items-center gap-1 pr-3 pl-2", tablet && "min-h-16 gap-2 pr-6 pl-5 pt-2")}>
     <Pressable accessibilityRole="button" accessibilityLabel={tr(back === "close" ? "Close" : "Back")} onPress={onBack ?? (() => { goBack(); })}
       className="size-11 items-center justify-center rounded-full active:bg-muted">
       <Icon as={back === "close" ? X : ChevronLeft} size={22} />
     </Pressable>
     <View className="min-w-0 flex-1">
-      <Text numberOfLines={1} accessibilityRole="header" className={cn("text-xl font-extrabold tracking-[-0.03em]", tablet && "text-[32px] tracking-[-0.04em]")}>{said(title)}</Text>
+      <Text numberOfLines={1} accessibilityRole="header" className={cn("text-xl font-extrabold tracking-[-0.03em]", narrow && "text-lg", tablet && "text-[32px] tracking-[-0.04em]")}>{said(title)}</Text>
       {sub ? <Text numberOfLines={1} className={cn("text-xs text-muted-foreground", tablet && "text-sm")}>{said(sub)}</Text> : null}
     </View>
     {children ? <View className="shrink-0 flex-row items-center gap-1.5">{children}</View> : null}

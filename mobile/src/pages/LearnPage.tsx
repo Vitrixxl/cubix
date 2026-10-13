@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Route, Timer, type LucideIcon } from "lucide-react-native";
+import { BookA, Box, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Play, Timer, type LucideIcon } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -405,8 +405,8 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   </>;
   return <View className="flex-1">
     <PushedBar title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })} onBack={back}>
-      {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage). */}
-      {puzzle === "333" && method.id === "beginner" && <HeadButton icon={Route} label={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted" })} />}
+      {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage), named rather than an icon to guess. */}
+      {puzzle === "333" && method.id === "beginner" && <Chip icon={Box} accessibilityLabel={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted" })}>{tr("With my cube")}</Chip>}
       {hasPieces && !finished ? <HeadButton icon={Info} label={tr("About this step")} onPress={() => setAbout(true)} />
         : <HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} />}
     </PushedBar>
@@ -503,6 +503,36 @@ function StepSheet({ puzzle, method, entry, bare = false }: { puzzle: PuzzleId; 
       <Icon as={BookA} size={16} className="text-muted-foreground" /><Text>{tr("Notation")}</Text>
     </Button>}
   </View>;
+}
+
+/**
+ * A step's lesson in a sheet over another page (the assisted solve, which must not be left): its sheet, then its
+ * algorithms, each with what it is for, a tap playing it in 3D.
+ */
+export function StepLesson({ puzzle, methodId, step: index, onClose }: { puzzle: PuzzleId; methodId: string; step: number | null; onClose: () => void }) {
+  const method = methodOf(puzzle, methodId)!, progress = useAtomValue(courseProgressAtom);
+  // The last step stays shown while the sheet goes away.
+  const [shown, setShown] = useState(index ?? 0);
+  if (index !== null && index !== shown) setShown(index);
+  const [playing, setPlaying] = useState<number | null>(null);
+  const step = method.steps[shown]!, algs = step.algs ?? [], mask = step.mask ?? "full";
+  const items = algs.map((a): PlayItem => ({ key: algId(step, a), name: a.name, detail: a.detail, context: step.title, algs: [a.alg, ...(a.alternatives ?? [])], note: a.note, size: puzzleInfo(puzzle).cubeSize ?? 3, mask, setup: a.setup }));
+  return <>
+    <Sheet open={index !== null} onClose={onClose} title={tr(step.title)} description={tr("Step {0} of {1}", { 0: shown + 1, 1: method.steps.length })} scroll>
+      <StepSheet puzzle={puzzle} method={method} entry={{ ...courseEntry(progress, puzzle, method.id), step: shown }} bare />
+      {algs.map((a, i) => <Pressable key={a.name} accessibilityRole="button" accessibilityLabel={tr("Play {0} in 3D", { 0: tr(a.name) })} onPress={() => setPlaying(i)}
+        className="flex-row items-center gap-3 rounded-2xl bg-card p-3 active:bg-muted">
+        <InlineDiagram puzzle={puzzle} step={step} alg={a} size={56} />
+        <View className="min-w-0 flex-1 gap-1">
+          <Text className="text-base font-extrabold">{tr(a.name)}</Text>
+          {a.note ? <Text className="text-[13px] leading-[18px] text-muted-foreground">{tr(a.note)}</Text> : null}
+          <Alg text={a.alg} size={15} />
+        </View>
+        <Icon as={Play} size={18} className="text-primary" />
+      </Pressable>)}
+    </Sheet>
+    <AlgPlayerSheet items={items} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
+  </>;
 }
 
 /** A wide button of a docked panel: its icon and its label. */

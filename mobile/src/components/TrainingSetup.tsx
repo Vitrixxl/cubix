@@ -150,7 +150,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const tour = useTourTarget("training");
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
         {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} summary={tr("Plan the cross in inspection, by its exact number of moves")} count={moves} unit={tr("moves")}>
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row flex-wrap items-center gap-1.5">
             <ChipMenu label={tr("What to build")} value={target} onChange={t => setTarget(t as CrossTarget)} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))}>{tr(CROSS_TARGET_LABELS[target])}</ChipMenu>
             <ChipMenu label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))}>{tr("{0} moves", { 0: moves })}</ChipMenu>
             <View className="flex-1" />

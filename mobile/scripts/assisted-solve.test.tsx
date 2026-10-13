@@ -1,6 +1,7 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createStore, Provider } from "jotai";
+import { createElement } from "react";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { solveBeginner } from "../../src/client/lib/beginnerSolver";
 import { scannedState } from "../../src/client/lib/cubeScan";
@@ -43,6 +44,8 @@ mock.module("../src/lib/practiceScramble", () => ({ generatePracticeScramble: as
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
+// The lesson of a step, as a line naming it while open.
+mock.module("../src/pages/LearnPage", () => ({ StepLesson: ({ step }: { step: number | null }) => step === null ? null : createElement("Text", null, `lesson:${step}`) }));
 const { AssistedPage } = await import("../src/pages/AssistedPage");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
@@ -85,6 +88,15 @@ test("a cube painted by hand is planned, then solved turn by turn to the end", a
   expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
   await press("Previous turn");
   expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
+  // A step's lesson opens over the solve, from the part under way or any step across the top, and the solve stays where it was.
+  await act(() => button("Done, next turn")!.props.onPress());
+  await press("Review the lesson");
+  expect(shows("lesson:0")).toBe(true);
+  await press("Yellow cross · Lesson");
+  expect(shows("lesson:3")).toBe(true);
+  expect(shows("Step 1 · White cross")).toBe(true);
+  expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
+  await press("Previous turn");
   let turns = 0;
   while (button("Done, next turn") && turns < 500) { await act(() => button("Done, next turn")!.props.onPress()); turns++; }
   expect(turns).toBe(total);

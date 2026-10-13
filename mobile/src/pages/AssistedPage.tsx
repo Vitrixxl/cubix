@@ -1,4 +1,4 @@
-import { useAtom, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Camera, Check, ChevronLeft, ChevronRight, GraduationCap, Info, Paintbrush, Repeat2, RotateCcw, RotateCw,
   ScanLine, Timer, TriangleAlert, Undo2, X, type LucideIcon,
@@ -13,7 +13,6 @@ import { cubeSceneDuration, cubeShapes, cubeViewRadius, type CubeScene } from ".
 import { CubeView } from "../../../src/client/lib/cubeView";
 import { METHODS } from "../../../src/shared/methods";
 import { solveBeginner } from "../../../src/client/lib/beginnerSolver";
-import { goToStep } from "../../../src/client/lib/course";
 import { scannedState } from "../../../src/client/lib/cubeScan";
 import { clock } from "../../../src/client/lib/duel";
 import { colours } from "../../../src/client/lib/solveAnalysis";
@@ -30,7 +29,8 @@ import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { useLayout } from "../hooks/useLayout";
-import { courseProgressAtom, goBackAtom, replaceRouteAtom } from "../state";
+import { goBackAtom, replaceRouteAtom } from "../state";
+import { StepLesson } from "./LearnPage";
 import { said, tr } from "../../../src/client/i18n";
 
 /**
@@ -196,7 +196,6 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
     [lost, setLost] = useState(false),
     [box, setBox] = useState(0),
     [view] = useState(() => new CubeView()),
-    [course, setCourse] = useAtom(courseProgressAtom),
     replace = useSetAtom(replaceRouteAtom),
     { tablet, wide } = useLayout();
   const part = plan?.parts[at.part],
@@ -221,7 +220,9 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   const restart = () => { setAt({ part: at.part, made: 0, state: plan!.starts[at.part]!, turn: null }); setLost(false); };
   const again = (how?: "camera" | "check") => rescan(at.state, how);
   const step = part?.step ?? STEPS.length;
-  const lesson = () => { setCourse(goToStep(course, "333", "beginner", Math.min(step, STEPS.length - 1))); leave(); };
+  // A step's lesson opens over the solve, which goes on where it was once the sheet is closed.
+  const [lesson, setLesson] = useState<number | null>(null);
+  const lessonSheet = <StepLesson puzzle="333" methodId="beginner" step={lesson} onClose={() => setLesson(null)} />;
 
   if (!plan || !plan.parts.length)
     return <Frame phase={2} back={back} close={leave}>
@@ -239,7 +240,7 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   if (finished) {
     const per = STEPS.map((_, k) => plan.parts.filter(p => p.step === k).reduce((n, p) => n + turnsOf(p.alg).length, 0)), max = Math.max(1, ...per);
     return <Frame phase={3} back={back} close={leave}>
-      <Route plan={plan} at={at.part} finished />
+      <Route plan={plan} at={at.part} finished onStep={setLesson} />
       <View className="min-h-0 flex-1 items-center justify-center gap-2 rounded-3xl bg-card p-4">
         <StaticCubeSvg state={solved(3)} size={110} />
         <Text accessibilityRole="header" className="text-4xl font-extrabold tracking-[-0.05em]">{tr("Solved!")}</Text>
@@ -264,17 +265,19 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
         <Action className="flex-1" icon={Timer} title={tr("On your own, with the timer")} onPress={() => replace({ page: "playground" })} />
         <Action className="flex-1" icon={GraduationCap} title={tr("Back to the course")} onPress={leave} />
       </View>
+      {lessonSheet}
     </Frame>;
   }
 
   if (lost)
     return <Frame phase={2} back={back} close={leave}>
-      <Route plan={plan} at={at.part} finished={false} />
+      <Route plan={plan} at={at.part} finished={false} onStep={setLesson} />
       <Notice cube={<StaticCubeSvg state={at.state} size={120} />} title={tr("Your cube left the plan")} text={tr("Read it again, or go back to the start of this part.")}>
         <Action primary icon={ScanLine} title={tr("Read the cube again")} text={tr("The six faces again")} onPress={() => again()} />
         <Action icon={Undo2} title={tr("Back to the start of this part")} text={at.made ? tr("Undo {0}", { 0: turns.slice(0, at.made).reverse().map(invertToken).join(" ") }) : said(STEPS[step]!.title)} onPress={restart} />
         <Action icon={Check} title={tr("Check the colours")} text={tr("The net, sticker by sticker")} onPress={() => again("check")} />
       </Notice>
+      {lessonSheet}
     </Frame>;
 
   const inStep = plan.parts.filter(p => p.step === step),
@@ -312,7 +315,7 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
           {part!.gesture.times > 1 && <Text className="text-[13px] text-muted-foreground">· {tr("{0} times", { 0: part!.gesture.times })}</Text>}
         </>}
       </View>
-      <Pressable onPress={lesson} accessibilityRole="button" accessibilityLabel={tr("Review the lesson")} className="min-h-10 flex-row items-center gap-0.5">
+      <Pressable onPress={() => setLesson(step)} accessibilityRole="button" accessibilityLabel={tr("Review the lesson")} className="min-h-10 flex-row items-center gap-0.5">
         <Text className="text-[13px] font-bold text-primary">{tr("Lesson")}</Text><Icon as={ChevronRight} size={14} className="text-primary" />
       </Pressable>
     </View>
@@ -336,31 +339,36 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   </View>;
   return <Frame phase={2} back={back} close={leave}>
     {wide ? <View className="min-h-0 flex-1 flex-row gap-4">
-      <View className="min-h-0 min-w-0 flex-1 gap-3"><Route plan={plan} at={at.part} finished={false} />{stage}{next}</View>
+      <View className="min-h-0 min-w-0 flex-1 gap-3"><Route plan={plan} at={at.part} finished={false} onStep={setLesson} />{stage}{next}</View>
       <View className="w-[380px] gap-3 rounded-[26px] bg-popover p-4">{partCard}{progress}<View className="flex-1" />{help}</View>
     </View> : <>
-      <Route plan={plan} at={at.part} finished={false} />
+      <Route plan={plan} at={at.part} finished={false} onStep={setLesson} />
       {stage}
       {partCard}
       {progress}
       {next}
       {help}
     </>}
+    {lessonSheet}
   </Frame>;
 }
 
-/** The course's six steps across the top: each its number and a dash per part, done in green, the current one in the accent. */
-function Route({ plan, at, finished }: { plan: NonNullable<ReturnType<typeof planFrom>>; at: number; finished: boolean }) {
+/**
+ * The course's six steps across the top: each its number and a dash per part, done in green, the current one in the
+ * accent; a tap opens the step's lesson.
+ */
+function Route({ plan, at, finished, onStep }: { plan: NonNullable<ReturnType<typeof planFrom>>; at: number; finished: boolean; onStep: (step: number) => void }) {
   const step = finished ? STEPS.length : (plan.parts[at]?.step ?? STEPS.length);
   return <View accessibilityLabel={tr("Steps")} className="flex-row gap-1.5">
     {STEPS.map((st, i) => {
       const parts = plan.parts.flatMap((p, k) => (p.step === i ? [k] : []));
-      return <View key={st.title} accessibilityLabel={said(st.title)} accessibilityState={{ selected: i === step }} className={cn("min-w-0 flex-1 gap-1.5 rounded-xl px-2 py-1.5", i === step ? "bg-muted" : "bg-card")}>
+      return <Pressable key={st.title} accessibilityRole="button" accessibilityLabel={`${said(st.title)} · ${tr("Lesson")}`} accessibilityState={{ selected: i === step }} onPress={() => onStep(i)}
+        className={cn("min-w-0 flex-1 gap-1.5 rounded-xl px-2 py-1.5", i === step ? "bg-muted active:bg-muted/70" : "bg-card active:bg-muted")}>
         <Numeric className={cn("text-xs font-bold", i > step && "text-muted-foreground")}>{i + 1}</Numeric>
         <View className="flex-row flex-wrap gap-[3px]">
           {(parts.length ? parts : [-1]).map(k => <View key={k} className={cn("h-[5px] w-2.5 rounded-full", k >= 0 && (k < at || finished) ? "bg-success" : k === at ? "bg-primary" : "bg-muted-foreground/25")} />)}
         </View>
-      </View>;
+      </Pressable>;
     })}
   </View>;
 }

@@ -9,5 +9,6 @@ import { isPhone } from "../../../src/client/lib/viewport";
 export function useLayout() {
   const { width, height } = useWindowDimensions();
   const phone = isPhone(width);
-  return { width, height, phone, tablet: !phone, wide: !phone && width >= 1100 };
+  // `narrow`: a small phone (360 wide), where the heads take smaller titles so they are not cut off.
+  return { width, height, phone, tablet: !phone, wide: !phone && width >= 1100, narrow: width < 380 };
 }
