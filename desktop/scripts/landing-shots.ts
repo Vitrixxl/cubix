@@ -30,10 +30,8 @@ const go = async (path: string, ready: (page: Page) => Promise<unknown>) => {
 await page.goto(origin + "/timer");
 await page.waitForSelector(".login, .rail", { timeout: 60000 });
 if (await page.locator(".login").count()) {
-  await page.locator('[data-action="login:mode:login"]').click().catch(() => {});
   await page.fill("#login-username", "dev");
-  await page.fill("#login-password", "cubix-dev-password");
-  await page.locator('[data-action="login:submit"]').click();
+  await page.locator('[data-action="login:dev"]').click();
 }
 await page.locator(".rail").waitFor({ timeout: 60000 });
 // A session with times: typed in, as from another timer, then the timer itself again.

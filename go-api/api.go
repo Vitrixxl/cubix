@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
@@ -287,136 +287,47 @@ func argonVerify(phc string, password []byte) (bool, error) {
 	return subtle.ConstantTimeCompare(key, hash) == 1, nil
 }
 
-// apiHashPassword is `argon().hash_password(..)`: the password hasher of every account.
-func apiHashPassword(password string) string {
-	return argonHash([]byte(password), 65536, 2, 1)
-}
-
-// apiDummyHash: what a sign-in with an unknown username is checked against, so it takes as long as a wrong password.
-var apiDummyHash = sync.OnceValue(func() string { return apiHashPassword("cubix-unknown-account") })
-
-// apiPassword hashes `password`, or checks it against `hash` (then answers the hash).
-func apiPassword(ctx context.Context, state *AppState, password string, hash *string) (string, error) {
-	// Each hash takes 64 MiB, so a few run at a time; the others wait their turn a little rather than fail at once.
-	wait := time.NewTimer(5 * time.Second)
-	defer wait.Stop()
-	select {
-	case state.passwords <- struct{}{}:
-	case <-wait.C:
-		return "", apiErr(429, "Too many sign-in requests. Try again shortly.")
-	case <-ctx.Done():
-		return "", apiErr(429, "Too many sign-in requests. Try again shortly.")
-	}
-	defer func() { <-state.passwords }()
-	if hash != nil {
-		ok, err := argonVerify(*hash, []byte(password))
-		if err != nil {
-			return "", internal(err)
-		}
-		if !ok {
-			return "", apiErr(401, "Incorrect username or password.")
-		}
-		return *hash, nil
-	}
-	return apiHashPassword(password), nil
-}
-
 func isUsernameByte(b byte) bool {
 	return 'a' <= b && b <= 'z' || '0' <= b && b <= '9' || b == '_'
 }
 
-func apiAuthRequest(state *AppState, r *http.Request, path string, body any, token string) (any, error) {
-	registering := path == "auth/register"
-	min := 0
-	if registering {
-		min = 3
-	}
-	username, err := apiString(body, "username", min, 24)
-	if err != nil {
-		return nil, err
-	}
-	username = strings.ToLower(strings.TrimSpace(username))
-	if registering {
-		min = 10
-	}
-	secret, err := apiString(body, "password", min, 128)
-	if err != nil {
-		return nil, err
-	}
-	if registering {
-		valid := len(username) >= 3 && len(username) <= 24
-		for i := 0; i < len(username); i++ {
-			valid = valid && isUsernameByte(username[i])
-		}
-		if !valid {
-			return nil, apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
-		}
-	}
-	// Attempts count per username and client: failures from elsewhere never lock an account's owner out. A looser
-	// limit per client bounds guessing across usernames.
+// apiAuthRequest signs in with Google (`auth/google`, its ID token) or, where CUBIX_DEV_LOGIN=1, with a bare username
+// (`auth/dev`: development and tests); either creates the account the first time.
+func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (any, error) {
 	ip := trafficKey(state.traffic.ip(peerIP(r), r.Header)).String()
-	key := path + ":" + username + "@" + ip
-	if err := apiLimited(state, key, 10); err != nil {
-		return nil, err
-	}
-	if registering {
-		err := state.db.Call(func(db *Conn) error {
-			existing, err := accountsByUsername(db, username)
-			if err != nil {
-				return err
+	if path == "auth/dev" {
+		if os.Getenv("CUBIX_DEV_LOGIN") != "1" {
+			return nil, apiErr(404, "Not found")
+		}
+		username, err := apiString(body, "username", 3, 24)
+		if err != nil {
+			return nil, err
+		}
+		username = strings.ToLower(strings.TrimSpace(username))
+		for i := 0; i < len(username); i++ {
+			if !isUsernameByte(username[i]) {
+				return nil, apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
 			}
-			if existing != nil {
-				return apiErr(409, "This username is already taken.")
-			}
-			user, err := accountsAuth(db, token)
-			if err != nil {
-				return err
-			}
-			if user != nil {
-				return apiErr(400, "Sign out before creating another account.")
-			}
-			return nil
+		}
+		return dbCall(state.db, func(db *Conn) (M, error) {
+			return accountsOpen(db, "username=? COLLATE NOCASE", username, username, nil)
 		})
-		if err != nil {
-			return nil, err
-		}
-		// Each account costs a password hash: ten per client every 15 minutes (a family or a class behind one address).
-		if err := apiLimited(state, "register@"+ip, 10); err != nil {
-			return nil, err
-		}
-		hash, err := apiPassword(r.Context(), state, secret, nil)
-		if err != nil {
-			return nil, err
-		}
-		return dbCall(state.db, func(db *Conn) (M, error) { return accountsRegister(db, username, hash) })
 	}
-	if err := apiLimited(state, "login@"+ip, 100); err != nil {
-		return nil, err
-	}
-	user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsByUsername(db, username) })
+	credential, err := apiString(body, "credential", 1, 4096)
 	if err != nil {
 		return nil, err
 	}
-	if user == nil {
-		// Checked all the same: an unknown username answers no sooner than a wrong password.
-		dummy := apiDummyHash()
-		if _, err := apiPassword(r.Context(), state, secret, &dummy); err != nil {
-			return nil, err
-		}
-		return nil, apiErr(401, "Incorrect username or password.")
-	}
-	hash := str(user["password_hash"])
-	if _, err := apiPassword(r.Context(), state, secret, &hash); err != nil {
+	// Each sign-in may create an account: thirty per client every 15 minutes (a family or a class behind one address).
+	if err := apiLimited(state, "google@"+ip, 30); err != nil {
 		return nil, err
 	}
-	state.attemptsMu.Lock()
-	delete(state.attempts, key)
-	// Only failures count against the client.
-	if a, ok := state.attempts["login@"+ip]; ok && a.count > 0 {
-		a.count--
+	claims, err := googleVerify(credential, os.Getenv("CUBIX_GOOGLE_CLIENT_ID"))
+	if err != nil {
+		return nil, err
 	}
-	state.attemptsMu.Unlock()
-	return dbCall(state.db, func(db *Conn) (M, error) { return accountsIssue(db, user) })
+	return dbCall(state.db, func(db *Conn) (M, error) {
+		return accountsOpen(db, "google_sub=?", claims.Sub, accountsName(claims.Name), claims.Sub)
+	})
 }
 
 // headerText is HeaderValue::to_str: visible ASCII only, else "".
@@ -504,15 +415,11 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 	}
 	token := headerText(r, "Authorization")
 	method := r.Method
-	if method == "POST" && (path == "auth/register" || path == "auth/login") {
-		return apiAuthRequest(state, r, path, body, token)
+	if method == "POST" && (path == "auth/google" || path == "auth/dev") {
+		return apiAuthRequest(state, r, path, body)
 	}
-	// The account deleted by its owner, with its password: everything it holds goes at once (admin_data::purge).
+	// The account deleted by its owner: everything it holds goes at once (admin_data::purge).
 	if method == "POST" && path == "account/delete" {
-		secret, err := apiString(body, "password", 1, 128)
-		if err != nil {
-			return nil, err
-		}
 		user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, token) })
 		if err != nil {
 			return nil, err
@@ -520,13 +427,6 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		id := str(user["id"])
 		if err := apiLimited(state, "delete:"+id, 10); err != nil {
 			return nil, err
-		}
-		hash, ok := asStr(user["password_hash"])
-		if !ok {
-			return nil, apiErr(401, "Incorrect password.")
-		}
-		if _, err := apiPassword(r.Context(), state, secret, &hash); err != nil {
-			return nil, apiErr(401, "Incorrect password.")
 		}
 		if _, err := adminDataDelete(state, id); err != nil {
 			return nil, err
@@ -537,6 +437,13 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		switch path {
 		case "health":
 			return M{"ok": true}, nil
+		// What the sign-in dialog offers: Google with this client ID, and the dev sign-in.
+		case "auth/config":
+			var google any
+			if id := os.Getenv("CUBIX_GOOGLE_CLIENT_ID"); id != "" {
+				google = id
+			}
+			return M{"google": google, "dev": os.Getenv("CUBIX_DEV_LOGIN") == "1"}, nil
 		case "mobile/release":
 			return releaseInfo(), nil
 		case "moves":
@@ -699,9 +606,6 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			return syncPull(db, uid, after, query["learningGroups"] == "1", query["journey"] == "1")
 		}
 		if method == "POST" {
-			if user["password_hash"] == nil {
-				return nil, apiErr(403, "Sign in to synchronize.")
-			}
 			return syncPush(db, state, uid, caller, body)
 		}
 	}

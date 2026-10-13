@@ -24,7 +24,7 @@ func init() {
 		if social {
 			fmt.Println("Seeded the community: friends, groups, battles and tournaments.")
 		}
-		fmt.Printf("Sign in as dev (or coach, lena_speed, alex_cubes…) with the password %s; admin token: %s\n", seedPassword, seedAdminToken)
+		fmt.Printf("Sign in as dev (or coach, lena_speed, alex_cubes…) with the dev sign-in (CUBIX_DEV_LOGIN=1); admin token: %s\n", seedAdminToken)
 		return nil
 	}
 }

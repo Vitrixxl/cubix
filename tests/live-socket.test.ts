@@ -27,8 +27,8 @@ test("a signed-in app opens one socket, and sync, coaching, the community, duels
     remote: token => createApiClient(origin, { getToken: () => token }),
   });
   cleanups.push(local.stop);
-  const me = await local.api.register("one_socket", "a-long-test-password");
-  const friend = await createApiClient(origin, { getToken: () => null }).register("other_app", "a-long-test-password");
+  const me = await local.api.devLogin("one_socket");
+  const friend = await createApiClient(origin, { getToken: () => null }).devLogin("other_app");
   const live = createLive(local, () => values.get("token") ?? null);
   cleanups.push(live.stop);
   const heard: LiveMessage[] = [];
@@ -38,7 +38,7 @@ test("a signed-in app opens one socket, and sync, coaching, the community, duels
   await hear("live", m => m.type === "ready" && m.user.id === me.user.id && m.again === false);
 
   // Sync: another device's upload reaches this one as changes on the socket; this one uploads on it too.
-  const laptop = await createApiClient(origin, { getToken: () => null }).login("one_socket", "a-long-test-password");
+  const laptop = await createApiClient(origin, { getToken: () => null }).devLogin("one_socket");
   await json(origin, "solves", laptop.token, { timeMs: 12345 });
   await until(async () => (await local.api.solves("playground")).length === 1);
   await local.api.setLearned("PLL Aa", true);

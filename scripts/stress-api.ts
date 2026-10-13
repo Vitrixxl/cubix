@@ -239,10 +239,8 @@ async function main() {
   const userCount = Number(process.env.CUBIX_STRESS_USERS ?? 4500),
     initialSolves = Number(process.env.CUBIX_STRESS_SOLVES ?? 50),
     users: User[] = [];
-  // Public load-test password fixture; not a real account credential.
-  const hash = '$argon2id$v=19$m=65536,t=2,p=1$/MjNkmyvEIeADX6MuRGafQnkEAzdsUAoenVSvo4UjhI$xzZpF5oW12JlLeNbq1aTLGi8GR4IpIFGTWsMTd6ArZ8';
   const insertUser = db.query(
-    "INSERT INTO users(id,username,password_hash) VALUES(?,?,?)",
+    "INSERT INTO users(id,username) VALUES(?,?)",
   );
   const insertToken = db.query(
     "INSERT INTO auth_tokens(token_hash,user_id,expires_at) VALUES(?,?,?)",
@@ -266,7 +264,7 @@ async function main() {
       const id = crypto.randomUUID(),
         username = "stress_" + String(i).padStart(5, "0"),
         token = randomBytes(32).toString("hex");
-      insertUser.run(id, username, hash);
+      insertUser.run(id, username);
       insertToken.run(
         createHash("sha256").update(token).digest("hex"),
         id,
@@ -563,7 +561,6 @@ async function main() {
         initialSolves: userCount * initialSolves,
         workerProcesses: workerCount,
         production: true,
-        passwordVerificationIncluded: false,
         phaseSeconds,
         ports,
         requestTimeout,

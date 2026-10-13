@@ -151,10 +151,8 @@ try {
     await page.waitForSelector("#login-username");
     await settle(page);
     await check(page, "login");
-    await page.locator('[data-action="login:mode:register"]').click();
-    await page.fill("#login-username", "grid_" + width);
-    await page.fill("#login-password", "short");
-    await page.locator('[data-action="login:submit"]').click();
+    await page.fill("#login-username", "bad name");
+    await page.locator('[data-action="login:dev"]').click();
     await page.waitForSelector("[data-slot=field-error]");
     await check(page, "login-error");
     await signIn(page, "grid_" + width);

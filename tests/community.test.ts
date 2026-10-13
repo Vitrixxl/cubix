@@ -11,7 +11,7 @@ function setup() {
   return { origin: `http://127.0.0.1:${app.server.port}`, admin: adminToken(db.path) };
 }
 async function account(origin: string, name: string) {
-  const { token, user } = await createApiClient(origin, { getToken: () => null }).register(name, "a-long-test-password");
+  const { token, user } = await createApiClient(origin, { getToken: () => null }).devLogin(name);
   const call = async (method: string, path: string, body?: unknown) => {
     const response = await fetch(origin + "/api/" + path, {
       method,
@@ -297,12 +297,9 @@ test("an account deleted by its owner takes its practice and its community with 
   const group = (await alice.call("POST", "social/groups", { name: "Club" })).value;
   await alice.call("POST", `social/groups/${group.id}/invite`, { username: "bob_cubes" });
   await bob.call("POST", `social/groups/${group.id}/join`);
-  expect((await alice.call("POST", "account/delete", { password: "not-the-password" })).status).toBe(401);
-  expect((await alice.call("POST", "account/delete", { password: "a-long-test-password" })).value).toEqual({ ok: true });
+  expect((await alice.call("POST", "account/delete", {})).value).toEqual({ ok: true });
   // Signed out everywhere, and gone for the others: no friend, and the group it owned with it.
   expect((await alice.call("GET", "social/me")).status).toBe(401);
   expect((await bob.get("social/me")).friends).toEqual([]);
   expect((await bob.call("GET", `social/groups/${group.id}`)).status).toBe(404);
-  const login = await fetch(origin + "/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: "alice", password: "a-long-test-password" }) });
-  expect(login.status).toBe(401);
 });

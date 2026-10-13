@@ -11,6 +11,9 @@ services:
       - "127.0.0.1:${CUBIX_DEV_API_PORT:-47130}:3000"
     environment:
       CUBIX_RATE_LIMIT: "100000"
+      # Sign in to any seeded account by its username; Google too once .env has a client ID.
+      CUBIX_DEV_LOGIN: "1"
+      CUBIX_GOOGLE_CLIENT_ID: "${CUBIX_GOOGLE_CLIENT_ID:-}"
     volumes:
       - data:/var/lib/cubix
     init: true

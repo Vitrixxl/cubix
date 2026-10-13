@@ -20,7 +20,7 @@ function setup() {
 
 test("Native client preserves authentication, dates and parameterized solve/history routes", async () => {
   const { api, setToken } = setup();
-  const account = await api.register("native_user", "a-long-test-password");
+  const account = await api.devLogin("native_user");
   setToken(account.token);
   expect((await api.me()).id).toBe(account.user.id);
   expect(typeof account.user.createdAt).toBe("string");
@@ -54,9 +54,9 @@ test("Native client preserves authentication, dates and parameterized solve/hist
 
 test("Native client preserves API errors, session expiry and request cancellation", async () => {
   const { api, setToken, expired } = setup();
-  await expect(api.login("missing", "incorrect")).rejects.toMatchObject({ status: 401, message: "Incorrect username or password." });
+  await expect(api.devLogin("not a name")).rejects.toBeInstanceOf(ApiError);
   expect(expired()).toBe(0);
-  const account = await api.register("expiry_user", "a-long-test-password");
+  const account = await api.devLogin("expiry_user");
   setToken(account.token);
   await expect(api.deleteSolve(-1)).rejects.toBeInstanceOf(ApiError);
   const controller = new AbortController();

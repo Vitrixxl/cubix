@@ -160,7 +160,7 @@ func socialUserIds(db *Conn, sql string, args ...any) ([]string, error) {
 
 // socialAccount: a signed-in account by its username.
 func socialAccount(db *Conn, name string) (M, error) {
-	row, err := dbOne(db, "SELECT id,username,avatar FROM users WHERE username=? COLLATE NOCASE AND password_hash IS NOT NULL", strings.TrimSpace(name))
+	row, err := dbOne(db, "SELECT id,username,avatar FROM users WHERE username=? COLLATE NOCASE", strings.TrimSpace(name))
 	if err == nil && row == nil {
 		err = apiErr(404, socialUnknownUser)
 	}
@@ -168,7 +168,7 @@ func socialAccount(db *Conn, name string) (M, error) {
 }
 
 func socialAccountByID(db *Conn, id string) (M, error) {
-	return dbRequired(db, "SELECT id,username,avatar FROM users WHERE id=? AND password_hash IS NOT NULL", socialUnknownUser, id)
+	return dbRequired(db, "SELECT id,username,avatar FROM users WHERE id=?", socialUnknownUser, id)
 }
 
 // Friends.
@@ -714,9 +714,6 @@ func socialChanged(db *Conn, state *AppState, id int64, invited bool) error {
 }
 
 func socialRoute(db *Conn, state *AppState, method string, parts []string, query map[string]string, body any, user M) (any, error) {
-	if user["password_hash"] == nil {
-		return nil, apiErr(403, "Sign in to meet other players.")
-	}
 	uid := str(user["id"])
 	number := func(s string) (int64, error) {
 		n, err := strconv.ParseInt(s, 10, 64)
@@ -737,7 +734,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		}
 		// The name's own characters, LIKE's wildcards among them, then anything after.
 		pattern := strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
-		rows, err := dbAll(db, "SELECT id,username,avatar FROM users WHERE password_hash IS NOT NULL AND id!=? AND username LIKE ? ESCAPE '\\' ORDER BY length(username),username LIMIT 12", uid, pattern)
+		rows, err := dbAll(db, "SELECT id,username,avatar FROM users WHERE id!=? AND username LIKE ? ESCAPE '\\' ORDER BY length(username),username LIMIT 12", uid, pattern)
 		if err != nil {
 			return nil, err
 		}

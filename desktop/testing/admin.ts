@@ -24,11 +24,10 @@ const check = (ok: unknown, what: string) => {
 
 /** Accounts using the app: solves over a few events, learned cases, a failed sign-in and a missing page. */
 async function seed() {
-  const PASSWORD = "a-long-test-password";
   const cases = ["F2L 1", "F2L 2", "F2L 3", "F2L 4", "F2L 5"];
   const names = ["alice", "bob_cubes", "carol", "dave_delete", "erin_speed"];
   for (const [i, name] of names.entries()) {
-    const auth = await createApiClient(origin, { getToken: () => null }).register(name, PASSWORD);
+    const auth = await createApiClient(origin, { getToken: () => null }).devLogin(name);
     const api = createApiClient(origin, { getToken: () => auth.token });
     const events: [string, string][] = [["333", "standard"], ["222", "standard"], ["333", "one-handed"]];
     for (let n = 0; n < 6 + i * 7; n++) {
@@ -38,7 +37,7 @@ async function seed() {
     for (const caseId of cases.slice(0, i + 1)) await api.setLearned(caseId, true);
     await api.me();
   }
-  await fetch(origin + "/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: "alice", password: "wrong-password-here" }) });
+  await fetch(origin + "/api/auth/google", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ credential: "not-a-google-token" }) });
   await fetch(origin + "/api/does-not-exist");
   await fetch(origin + "/missing-page");
 }
@@ -91,7 +90,7 @@ const nav = async (page: Page, phone: boolean, view: string) => {
 };
 
 /** The app's side: the sign-in dialog on a desktop and a phone; a session the administration ends brings it back at
- * once with a message and the username; signing in again closes it; signing out opens it again. */
+ * once with a message; signing in again closes it; signing out opens it again. */
 async function appSession(token: string) {
   for (const [width, height, tag] of [[390, 844, "phone"], [1440, 900, "desktop"]] as const) {
     const context = await desktopContext(browser, { viewport: { width, height }, deviceScaleFactor: tag === "phone" ? 2 : 1 });
@@ -100,9 +99,6 @@ async function appSession(token: string) {
     await page.waitForSelector(".login");
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/login-${tag}.png` });
-    await page.locator('[data-action="login:mode:register"]').click();
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: `${SHOTS}/login-register-${tag}.png` });
     if (tag === "phone") {
       await context.close();
       continue;
@@ -117,11 +113,10 @@ async function appSession(token: string) {
     // The server tells the app's live socket at once: its next sync is refused.
     await page.waitForSelector("[data-slot=login-expired]", { timeout: 20000 });
     check(true, "app: a revoked session opens the sign-in dialog with a message");
-    check((await page.inputValue("#login-username")) === "expiry_user", "app: the ended session keeps the username");
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/login-expired-desktop.png` });
-    await page.fill("#login-password", "a-long-test-password");
-    await page.locator('[data-action="login:submit"]').click();
+    await page.fill("#login-username", "expiry_user");
+    await page.locator('[data-action="login:dev"]').click();
     await page.locator(".login").waitFor({ state: "detached" });
     check((await page.locator(".rail").count()) === 1, "app: signing in again reopens the app");
     await page.locator('[data-action="menu:account"]').click();

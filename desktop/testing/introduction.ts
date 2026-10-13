@@ -84,7 +84,7 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
 }
 
 try {
-  await page.goto(origin + "/timer"); await signIn(page, "introduction_ui", "a-long-test-password", true);
+  await page.goto(origin + "/timer"); await signIn(page, "introduction_ui", true);
   await heading("Welcome to Qbix");
   assert.equal(new URL(page.url()).pathname, "/onboarding");
   for (const name of ["Later", "Close", "Cancel"]) assert.equal(await page.getByRole("button", { name, exact: true }).count(), 0, `no ${name} on a first onboarding`);

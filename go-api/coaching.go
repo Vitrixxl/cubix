@@ -1792,7 +1792,7 @@ func coachingSignedIn(db *Conn, authorization string) (M, error) {
 	if err != nil {
 		return nil, err
 	}
-	if user == nil || user["password_hash"] == nil {
+	if user == nil {
 		return nil, apiErr(401, "Please sign in again.")
 	}
 	return user, nil

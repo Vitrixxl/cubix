@@ -311,7 +311,7 @@ type liveClient struct {
 	// "Bearer …" and its account, or "" and nil for an app without an account.
 	token string
 	user  M
-	// An account with a password: practice sync and coaching are theirs only.
+	// A signed-in account: practice sync and coaching are theirs only.
 	member bool
 	// Signed in without an account: counted against the anonymous caps.
 	anonymous bool
@@ -467,7 +467,7 @@ func (c *liveClient) auth(body any) bool {
 			liveClose(c.conn)
 			return false
 		}
-		c.token, c.user, c.member = "Bearer "+token, user, user["password_hash"] != nil
+		c.token, c.user, c.member = "Bearer "+token, user, true
 	}
 	if c.user == nil {
 		if !liveSockets.open(liveIPKey(c.ip), true) {

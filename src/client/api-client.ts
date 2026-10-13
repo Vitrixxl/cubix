@@ -42,8 +42,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     syncPush: (operations: SyncOperation[]) => request<SyncResult>("/sync", "POST", { operations }),
     setLearningGroupOrder: (track: LearningGroupOrderDto["track"], groups: string[]) => request<LearningGroupOrderDto>("/learning-group-order", "PUT", { track, groups }),
     learnedCases: () => request<string[]>("/learned"),
-    /** The account and everything it holds, for good; the password confirms it (a wrong one is a 401, not an expiry). */
-    deleteAccount: (password: string) => request<{ ok: true }>("/account/delete", "POST", { password }, undefined, true),
+    /** The account and everything it holds, for good. */
+    deleteAccount: () => request<{ ok: true }>("/account/delete", "POST", {}, undefined, true),
     setLearned: (caseId: string, learned: boolean, algs?: string[]) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}) }),
     algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
     /** The app's socket (owned by src/client/live.ts): incremental account sync over it, durable uploads falling back
@@ -89,8 +89,12 @@ export function createApiClient(origin: string, options: { getToken: () => strin
       };
     },
     me: () => request<UserDto>("/auth/me", "GET", undefined, undefined, true),
-    register: (username: string, password: string) => request<AuthDto>("/auth/register", "POST", { username, password }, undefined, true),
-    login: (username: string, password: string) => request<AuthDto>("/auth/login", "POST", { username, password }, undefined, true),
+    /** Google's client ID (null: no Google sign-in), and whether the dev sign-in is open (dev and test servers). */
+    authConfig: () => request<{ google: string | null; dev: boolean }>("/auth/config", "GET", undefined, undefined, true),
+    /** Signs in with Google's ID token (the `credential` of Google Identity Services), creating the account the first time. */
+    google: (credential: string) => request<AuthDto>("/auth/google", "POST", { credential }, undefined, true),
+    /** Signs into any username, created if missing: dev and test servers only (a 404 elsewhere). */
+    devLogin: (username: string) => request<AuthDto>("/auth/dev", "POST", { username }, undefined, true),
     logout: () => request<{ ok: boolean }>("/auth/logout", "POST", undefined, undefined, true),
     sets: (cubeSize: PuzzleInput = 3, signal?: AbortSignal) => request<SetDto[]>(`/sets?${practiceQuery(cubeSize)}`, "GET", undefined, signal),
     cases: (cubeSize: PuzzleInput = 3, signal?: AbortSignal) => request<CaseDto[]>(`/cases?${practiceQuery(cubeSize)}`, "GET", undefined, signal),

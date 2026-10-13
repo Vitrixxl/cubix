@@ -47,7 +47,7 @@ export function startApi(path: string, settings: Record<string,string> = {}) {
   if (reservation.status !== 0) throw Error(reservation.stderr);
   const port = Number(reservation.stdout.trim());
   const child = spawn(resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api"), [], {
-    env: { ...process.env, CUBIX_DB:path, CUBIX_HOST:"127.0.0.1", PORT:String(port), CUBIX_EXTRA_PORTS:"", CUBIX_ADMIN_PASSWORD:"synthetic-admin-test-password" /* mobile uploads only */, CUBIX_EXIT_WITH_PARENT:"1", ...settings }, stdio:['ignore','ignore','inherit'],
+    env: { ...process.env, CUBIX_DB:path, CUBIX_HOST:"127.0.0.1", PORT:String(port), CUBIX_EXTRA_PORTS:"", CUBIX_ADMIN_PASSWORD:"synthetic-admin-test-password" /* mobile uploads only */, CUBIX_EXIT_WITH_PARENT:"1", CUBIX_DEV_LOGIN:"1", ...settings }, stdio:['ignore','ignore','inherit'],
   });
   children.push(child);
   const origin=`http://127.0.0.1:${port}`;

@@ -34,9 +34,6 @@ type SeedSummary struct {
 	solves int64
 }
 
-// seedPassword: every seeded account signs in with this password.
-const seedPassword = "cubix-dev-password"
-
 // seedAdminToken: the administration token, pasted on /admin.
 const seedAdminToken = "cbx_admin_dev"
 
@@ -260,7 +257,6 @@ func seedRun(db *Conn, catalog *Catalog) (*SeedSummary, error) {
 	if n, _ := asInt(count["n"]); n > 0 {
 		return nil, nil
 	}
-	hash := apiHashPassword(seedPassword)
 	rng := newSeedRng(2026)
 	at := accountsNow()
 	players := seedPlayers(rng, at)
@@ -270,8 +266,8 @@ func seedRun(db *Conn, catalog *Catalog) (*SeedSummary, error) {
 	}
 	defer tx.Rollback()
 	for _, p := range players {
-		if _, err := db.Exec("INSERT INTO users(id,username,password_hash,created_at,last_seen_at) VALUES(?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ',?/1000.0,'unixepoch'),?)",
-			p.id, p.name, hash, p.joined, at-rng.rangeU64(0, 3*accountsDayMs)); err != nil {
+		if _, err := db.Exec("INSERT INTO users(id,username,created_at,last_seen_at) VALUES(?,?,strftime('%Y-%m-%dT%H:%M:%fZ',?/1000.0,'unixepoch'),?)",
+			p.id, p.name, p.joined, at-rng.rangeU64(0, 3*accountsDayMs)); err != nil {
 			return nil, err
 		}
 	}
@@ -1210,7 +1206,7 @@ func seedSocial(db *Conn) (bool, error) {
 		return false, err
 	}
 	groups, _ := asInt(row["n"])
-	rows, err := dbAll(db, "SELECT id,username FROM users WHERE password_hash IS NOT NULL")
+	rows, err := dbAll(db, "SELECT id,username FROM users")
 	if err != nil {
 		return false, err
 	}

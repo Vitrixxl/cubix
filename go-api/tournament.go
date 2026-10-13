@@ -1250,9 +1250,6 @@ func tournamentBattle(db *Conn, state *AppState, user M, body any) (any, error) 
 }
 
 func tournamentRoute(db *Conn, state *AppState, method string, parts []string, body any, user M) (any, error) {
-	if user["password_hash"] == nil {
-		return nil, apiErr(403, "Sign in to play tournaments.")
-	}
 	uid := str(user["id"])
 	id := func(s string) (int64, error) {
 		n, err := strconv.ParseInt(s, 10, 64)

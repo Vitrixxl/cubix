@@ -17,7 +17,7 @@ export async function startServer(dir: string, env: Record<string, string> = {})
   reserve.stop();
   const origin = `http://127.0.0.1:${port}`;
   const server = Bun.spawn([resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api")], {
-    env: { ...process.env, PORT: String(port), CUBIX_HOST: "127.0.0.1", CUBIX_DB: join(dir, "server.db"), CUBIX_WEB_DIR: resolve(process.env.CUBIX_TEST_WEB_DIR ?? "dist/web"), CUBIX_EXIT_WITH_PARENT: "1", ...env },
+    env: { ...process.env, PORT: String(port), CUBIX_HOST: "127.0.0.1", CUBIX_DB: join(dir, "server.db"), CUBIX_WEB_DIR: resolve(process.env.CUBIX_TEST_WEB_DIR ?? "dist/web"), CUBIX_EXIT_WITH_PARENT: "1", CUBIX_DEV_LOGIN: "1", ...env },
     stdout: "ignore",
     stderr: "inherit",
   });
@@ -136,8 +136,8 @@ export async function timeSolve(page: Page) {
   await page.waitForSelector('.timer[data-phase="Idle"]');
 }
 
-/** Signs in: in the sign-in dialog, creates the account `username` (or signs in when it exists). A guest opens it first. */
-export async function signIn(page: Page, username: string, password = "a-long-test-password", onboarding = false) {
+/** Signs in with the dialog's dev sign-in, the account `username` created if missing. A guest opens it first. */
+export async function signIn(page: Page, username: string, onboarding = false) {
   await live(page);
   await page.waitForSelector(".login, .rail, .tabbar", { timeout: 60000 });
   if (!(await page.locator(".login").count())) {
@@ -145,19 +145,9 @@ export async function signIn(page: Page, username: string, password = "a-long-te
     await page.goto(new URL("/login", page.url()).href);
     await page.waitForSelector(".login", { timeout: 60000 });
   }
-  await page.locator('[data-action="login:mode:register"]').click();
   await page.fill("#login-username", username);
-  await page.fill("#login-password", password);
-  await page.locator('[data-action="login:submit"]').click();
-  const error = page.locator("[data-slot=field-error]"), dialog = page.locator(".login");
-  await Promise.race([dialog.waitFor({ state: "detached", timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
-  if (await dialog.count()) {
-    // Taken: the account exists already, sign in to it.
-    await page.locator('[data-action="login:mode:login"]').click();
-    await page.fill("#login-password", password);
-    await page.locator('[data-action="login:submit"]').click();
-    await dialog.waitFor({ state: "detached", timeout: 30000 });
-  }
+  await page.locator('[data-action="login:dev"]').click();
+  await page.locator(".login").waitFor({ state: "detached", timeout: 30000 });
   await page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 });
   // Ordinary UI fixtures use an established profile that solves every puzzle, so none opens locked on its course;
   // onboarding and locking have their own full interaction test.

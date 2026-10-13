@@ -34,7 +34,6 @@ type AppState struct {
 	matches    *TournamentLive
 	attemptsMu sync.Mutex
 	attempts   map[string]*attempt
-	passwords  chan struct{}
 	admin      *Admin
 	traffic    *Traffic
 }
@@ -263,16 +262,15 @@ func run() int {
 	duel := newDuelArena(log)
 	go duelRun(duel)
 	state := &AppState{
-		admin:     admin,
-		traffic:   traffic,
-		db:        db,
-		catalog:   catalogLoad(),
-		hub:       newLiveHub(),
-		duel:      duel,
-		coaching:  newCoachingRooms(),
-		matches:   newTournamentLive(),
-		attempts:  map[string]*attempt{},
-		passwords: make(chan struct{}, 4),
+		admin:    admin,
+		traffic:  traffic,
+		db:       db,
+		catalog:  catalogLoad(),
+		hub:      newLiveHub(),
+		duel:     duel,
+		coaching: newCoachingRooms(),
+		matches:  newTournamentLive(),
+		attempts: map[string]*attempt{},
 	}
 	// Tournaments start at their date.
 	go tournamentRun(state)

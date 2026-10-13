@@ -46,7 +46,7 @@ function device(remote: ReturnType<typeof setup>["remote"], storage = new Storag
 
 test("personal setup survives offline restart, lost acknowledgements and account changes; leftover goals are dropped", async () => {
   const { remote, db, origin } = setup(), a = device(remote);
-  const auth = await a.api.register("journey_alice", "a-long-test-password");
+  const auth = await a.api.devLogin("journey_alice");
   const profile: JourneyProfile = { kind: "profile", level: "beginner", knownPuzzles: ["333"], knownMethods: { "333": ["cfop", "roux"] }, priority: "222", priorityMethod: "ortega", learningPuzzles: ["222", "444"], learningMethods: { "222": ["ortega"], "444": ["reduction", "yau"] }, completedAt: new Date().toISOString() };
   a.control.offline = true;
   await a.api.updateJourney({ profile });
@@ -64,21 +64,21 @@ test("personal setup survives offline restart, lost acknowledgements and account
   expect(reopened.local.status()).toMatchObject({ state: "synced", pending: 0 });
   expect(db.db.query<{ n: number }>("SELECT count(*) n FROM personal_entries").get()?.n).toBe(1);
   const b = device(remote);
-  await b.api.login("journey_alice", "a-long-test-password"); await b.local.sync();
+  await b.api.devLogin("journey_alice"); await b.local.sync();
   expect(b.local.read.journey().profile).toEqual(profile);
   // Legacy clients never receive unknown journey entities, but still advance their cursor.
   const oldPull = await fetch(origin + "/api/sync?after=0", { headers: { Authorization: `Bearer ${auth.token}` } }).then(r => r.json()) as any;
   expect(oldPull.changes.some((c: any) => c.kind === "personal_entries")).toBe(false);
-  await b.api.logout(); await b.api.register("journey_bob", "a-long-test-password"); await b.local.sync();
+  await b.api.logout(); await b.api.devLogin("journey_bob"); await b.local.sync();
   expect(b.local.read.journey()).toEqual({});
-  await b.api.logout(); await b.api.login("journey_alice", "a-long-test-password"); await b.local.sync();
+  await b.api.logout(); await b.api.devLogin("journey_alice"); await b.local.sync();
   expect(b.local.read.journey().profile).toEqual(profile);
 });
 
 test("personal entry HTTP validation is account-scoped, goals are refused and invalid batches roll back", async () => {
   const { remote } = setup();
-  const auth = await remote(null).register("journey_validation", "a-long-test-password"), api = remote(auth.token);
-  const other = await remote(null).register("journey_isolated", "a-long-test-password");
+  const auth = await remote(null).devLogin("journey_validation"), api = remote(auth.token);
+  const other = await remote(null).devLogin("journey_isolated");
   const at = "2026-10-01T10:00:00.000Z";
   const op = (key: string, value: unknown) => ({ id: crypto.randomUUID(), method: "PUT", path: "journey", body: { key, value }, createdAt: at });
   await expect(api.syncPush([op("goal:00000000-0000-4000-8000-000000000000", { kind: "time", puzzle: "333", solveMode: "standard", metric: "ao5", targetMs: 20000, createdAt: at })])).rejects.toMatchObject({ status: 422 });
@@ -119,7 +119,7 @@ test("offline account writes import guest data, retry lost acknowledgements exac
   const {remote,db} = setup(); const a = device(remote);
   const session = await a.api.createSession("playground");
   const first = await a.api.addSolve({sessionId:session.id,timeMs:1000,scramble:"R U"});
-  const auth = await a.api.register("local_alice","a-long-test-password");
+  const auth = await a.api.devLogin("local_alice");
   a.control.offline=true;
   const second = await a.api.addSolve({sessionId:session.id,timeMs:2000});
   await a.api.setPenalty(second.id,"+2");
@@ -142,11 +142,11 @@ test("offline account writes import guest data, retry lost acknowledgements exac
 
 test("two devices exchange changes and deletions; cached account work never moves to a different account",async () => {
   const {remote} = setup(); const a = device(remote);
-  const auth = await a.api.register("device_alice","a-long-test-password");
+  const auth = await a.api.devLogin("device_alice");
   const session = await a.api.createSession("training",["PLL Aa"]);
   const solve = await a.api.addSolve({sessionId:session.id,caseId:"PLL Aa",timeMs:1500});
   await a.local.sync();
-  const b = device(remote); await b.api.login("device_alice","a-long-test-password"); await b.local.sync();
+  const b = device(remote); await b.api.devLogin("device_alice"); await b.local.sync();
   const copied = (await b.api.solves("training"))[0];
   await b.api.setPenalty(copied.id,"dnf"); await b.local.sync(); await a.local.sync();
   expect((await a.api.solves("training"))[0].penalty).toBe("dnf");
@@ -172,16 +172,16 @@ test("two devices exchange changes and deletions; cached account work never move
   a.control.offline=true;
   await a.api.addSolve({sessionId:session.id,caseId:"PLL Aa",timeMs:2700});
   await a.api.logout(); a.control.offline=false;
-  const other = await a.api.register("device_bob","a-long-test-password"); await a.local.sync();
+  const other = await a.api.devLogin("device_bob"); await a.local.sync();
   expect(await remote(other.token).solves("training")).toEqual([]);
-  await a.api.logout(); await a.api.login("device_alice","a-long-test-password"); await a.local.sync();
+  await a.api.logout(); await a.api.devLogin("device_alice"); await a.local.sync();
   expect((await remote(auth.token).solves("training"))[0].time_ms).toBe(2700);
 });
 
 test("server sync enforces ownership, keeps receipts after delete, rejects reused IDs, and paginates old history",async () => {
   const {remote,db} = setup();
-  const a = await remote(null).register("sync_alice","a-long-test-password");
-  const b = await remote(null).register("sync_bob","a-long-test-password");
+  const a = await remote(null).devLogin("sync_alice");
+  const b = await remote(null).devLogin("sync_bob");
   const api = remote(a.token);
   const op = {id:crypto.randomUUID(),method:"POST",path:"solves",body:{timeMs:3456},createdAt:"2026-08-01T12:34:56.000Z"};
   const result = await api.syncPush([op]); const solve = result.results[0].value as SolveDto;
@@ -205,13 +205,13 @@ test("a stale token (a retired guest's) is dropped; expired sessions retain the 
   const a = device(remote); a.storage.setItem("token","a-retired-guest-token"); await a.local.restore();
   expect(a.storage.getItem("token")).toBeNull();
   await a.api.addSolve({timeMs:7654});
-  const auth = await a.api.register("expired_alice","a-long-test-password"); await a.local.sync();
+  const auth = await a.api.devLogin("expired_alice"); await a.local.sync();
   await remote(auth.token).logout();
   await a.api.addSolve({timeMs:8765}); await a.local.sync();
   expect(a.local.status().state).toBe("signin");
   expect(a.local.current().id).toBe(auth.user.id);
   expect(await a.api.solves("playground")).toHaveLength(2);
-  await a.api.login("expired_alice","a-long-test-password"); await a.local.sync();
+  await a.api.devLogin("expired_alice"); await a.local.sync();
   expect(a.local.status().pending).toBe(0);
 });
 
@@ -227,7 +227,7 @@ test("storage quota failures leave saved history intact and are reported instead
 
 test("local WCA statistics match the server, and the embedded catalogue matches the server",async () => {
   const {remote} = setup(); const a = device(remote);
-  const auth = await a.api.register("stats_local","a-long-test-password");
+  const auth = await a.api.devLogin("stats_local");
   for (let i=0;i<15;i++) await a.api.addSolve({caseId:"PLL Aa",timeMs:1000+i*100,penalty:i===4||i===5?"dnf":i===8?"+2":"none"});
   const local = await a.api.caseHistory("PLL Aa"); await a.local.sync();
   const server = await remote(auth.token).caseHistory("PLL Aa");
@@ -236,7 +236,7 @@ test("local WCA statistics match the server, and the embedded catalogue matches 
 });
 
 test("a failed sync batch rolls back its successful prefix and retries safely",async () => {
-  const {remote,db} = setup(); const auth = await remote(null).register("atomic_alice","a-long-test-password"); const api=remote(auth.token);
+  const {remote,db} = setup(); const auth = await remote(null).devLogin("atomic_alice"); const api=remote(auth.token);
   const session = {id:crypto.randomUUID(),method:"POST",path:"sessions",body:{mode:"playground"},createdAt:"2026-09-01T10:00:00.000Z"};
   const invalid = {id:crypto.randomUUID(),method:"POST",path:"solves",body:{timeMs:-1},createdAt:session.createdAt};
   await expect(api.syncPush([session,invalid])).rejects.toMatchObject({status:422});
@@ -254,7 +254,7 @@ test("an edit made while an upload is in flight survives the acknowledgement",as
     if(key!=="syncPush")return target[key as keyof typeof target];
     return async (...args: Parameters<typeof target.syncPush>)=>{const result=await target.syncPush(...args);if(pause){pause=false;uploadStarted();await gate;}return result;};
   }}),storage);
-  const auth=await a.api.register("inflight_alice","a-long-test-password");
+  const auth=await a.api.devLogin("inflight_alice");
   const solve=await a.api.addSolve({timeMs:1200});
   const syncing=a.local.sync(); await started;
   await a.api.setPenalty(solve.id,"+2"); release(); await syncing;
@@ -288,11 +288,11 @@ test("cube context survives offline storage, guest import, sync and another devi
     await expect(a.api.createSession("training",[c.id],3)).rejects.toThrow("cube");
   }
   expect((await a.api.profile("Guest")).playground.summary.best).toBe(3333);
-  const auth = await a.api.register("multi_cube_alice","a-long-test-password");
+  const auth = await a.api.devLogin("multi_cube_alice");
   await a.local.sync();
   expect(a.local.status().pending).toBe(0);
   const b = device(remote);
-  await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  await b.api.devLogin(auth.user.username); await b.local.sync();
   for (const cube of [2,3,4,5,6,7] as const) {
     expect(await b.api.cases(cube)).toEqual(await remote(auth.token).cases(cube));
     expect(await b.api.sets(cube)).toEqual(await remote(auth.token).sets(cube));
@@ -336,9 +336,9 @@ test("practice labels survive offline reopening, guest import and sync while his
     expect((await reopened.api.latestSession("playground",context.puzzle,context))?.scramble_type).toBe(context.scrambleType);
   }
   reopened.control.offline = false;
-  const auth = await reopened.api.register("practice_labels","a-long-test-password");
+  const auth = await reopened.api.devLogin("practice_labels");
   await reopened.local.sync(); expect(reopened.local.status().pending).toBe(0);
-  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  const b = device(remote); await b.api.devLogin(auth.user.username); await b.local.sync();
   for (const [i,context] of contexts.entries()) {
     const localRows = await b.api.solves("playground",100,context.puzzle,context);
     const serverRows = await remote(auth.token).solves("playground",100,context.puzzle,context);
@@ -353,7 +353,7 @@ test("practice labels survive offline reopening, guest import and sync while his
 
 test("both APIs inherit context, reject incompatible labels and isolate training modes", async () => {
   const {remote} = setup(); const a = device(remote);
-  const auth = await a.api.register("practice_validation","a-long-test-password");
+  const auth = await a.api.devLogin("practice_validation");
   for (const api of [a.api,remote(auth.token)]) {
     const direct = await api.addSolve({puzzle:"sq1",timeMs:3000});
     expect(direct).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"standard",scramble_type:"normal"});
@@ -384,9 +384,9 @@ test('niche training sessions, case statistics and modes survive guest import an
     const direct=await a.api.addSolve({caseId:c.id,timeMs:1000});
     expect(direct).toMatchObject({puzzle_id:puzzle,cube_size:null,solve_mode:'standard',scramble_type:'case'});
   }
-  const auth=await a.api.register('all_puzzle_training','a-long-test-password');await a.local.sync();
+  const auth=await a.api.devLogin('all_puzzle_training');await a.local.sync();
   expect(a.local.status().pending).toBe(0);
-  const b=device(remote);await b.api.login(auth.user.username,'a-long-test-password');await b.local.sync();
+  const b=device(remote);await b.api.devLogin(auth.user.username);await b.local.sync();
   for(const puzzle of puzzles){
     const c=(await b.api.cases(puzzle))[0],context={solveMode:'one-handed' as const};
     expect(await b.api.cases(puzzle)).toEqual(await remote(auth.token).cases(puzzle));
@@ -414,10 +414,10 @@ test("learning marks are local for guests, imported on sign-in, synchronized bet
   const reopened = device(remote,a.storage); reopened.control.offline=true;
   expect(await reopened.api.learnedCases()).toEqual(["PLL Ab"]);
   reopened.control.offline=false;
-  const auth = await reopened.api.register("learned_alice","a-long-test-password");
+  const auth = await reopened.api.devLogin("learned_alice");
   await reopened.local.sync(); expect(reopened.local.status().pending).toBe(0);
   expect(await remote(auth.token).learnedCases()).toEqual(["PLL Ab"]);
-  const b = device(remote); await b.api.login("learned_alice","a-long-test-password"); await b.local.sync();
+  const b = device(remote); await b.api.devLogin("learned_alice"); await b.local.sync();
   expect(b.local.learned()).toEqual(["PLL Ab"]);
   // Repeated toggles of one case collapse into its latest mark before upload.
   await b.api.setLearned("OLL 1",true); await b.api.setLearned("OLL 1",false); await b.api.setLearned("OLL 2",true);
@@ -451,8 +451,8 @@ test("a workspace from before keeps its single learned algorithm as a list of on
 test("learning group priorities travel both ways, preserve other tracks, and survive offline edits and lost acknowledgements", async () => {
   const { remote, db } = setup();
   const a = device(remote);
-  const auth = await a.api.register("order_alice","a-long-test-password");
-  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password");
+  const auth = await a.api.devLogin("order_alice");
+  const b = device(remote); await b.api.devLogin(auth.user.username);
   const oll = trackGroups("OLL").reverse(), pll = trackGroups("PLL").reverse(), f2l = trackGroups("F2L").reverse();
   await a.api.setLearningGroupOrder("OLL",oll);
   await a.api.setLearningGroupOrder("PLL",pll);
@@ -472,9 +472,9 @@ test("learning group priorities travel both ways, preserve other tracks, and sur
   expect(db.db.query<{ n:number }, []>("SELECT count(*) n FROM learning_group_orders").get()?.n).toBe(3);
   await a.api.logout();
   expect(a.local.learningGroupOrder()).toEqual({});
-  await a.api.register("order_bob","a-long-test-password"); await a.local.sync();
+  await a.api.devLogin("order_bob"); await a.local.sync();
   expect(a.local.learningGroupOrder()).toEqual({});
-  await a.api.logout(); await a.api.login(auth.user.username,"a-long-test-password"); await a.local.sync();
+  await a.api.logout(); await a.api.devLogin(auth.user.username); await a.local.sync();
   expect(a.local.learningGroupOrder().F2L).toEqual(f2l);
 });
 
@@ -484,7 +484,7 @@ test("legacy and guest group priorities migrate once without replacing prioritie
   storage.setItem(learningKey("local-guest"),JSON.stringify({ mode:"PLL", tracks:{}, groupOrder:{ PLL:[...trackGroups("PLL")].reverse() } }));
   const a = device(remote,storage);
   expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL").reverse());
-  const auth = await a.api.register("legacy_order","a-long-test-password"); await a.local.sync();
+  const auth = await a.api.devLogin("legacy_order"); await a.local.sync();
   expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL").reverse());
   // This device still has a pre-sync preference and a cursor beyond the cloud order.
   const stale = new Storage();
@@ -511,19 +511,19 @@ test("a newer group edit made during an upload survives the earlier acknowledgem
       return result;
     } };
   });
-  const auth = await a.api.register("inflight_order","a-long-test-password");
+  const auth = await a.api.devLogin("inflight_order");
   await a.api.setLearningGroupOrder("PLL",trackGroups("PLL").reverse());
   const syncing = a.local.sync(); await started.promise;
   await a.api.setLearningGroupOrder("PLL",trackGroups("PLL"));
   gate.resolve(); await syncing;
   expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL"));
-  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  const b = device(remote); await b.api.devLogin(auth.user.username); await b.local.sync();
   expect(b.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL"));
 });
 
 test("a live socket announces the account's own changes so other devices pull immediately",async () => {
   const {remote,origin} = setup(); const a = device(remote);
-  const auth = await a.api.register("live_alice","a-long-test-password"); await a.local.sync();
+  const auth = await a.api.devLogin("live_alice"); await a.local.sync();
   const ws = new WebSocket(origin.replace("http:","ws:")+"/api/live");
   cleanup.push(() => ws.close());
   const messages: any[] = [];
@@ -539,7 +539,7 @@ test("a live socket announces the account's own changes so other devices pull im
   const cursorAtConnect = (await ready).cursor;
   expect(cursorAtConnect).toBe(held);
   // Device B (plain HTTP) records a time and a learning mark; the socket of device A hears about both.
-  const b = device(remote); await b.api.login("live_alice","a-long-test-password");
+  const b = device(remote); await b.api.devLogin("live_alice");
   const announced = next("changes");
   const solve = await b.api.addSolve({timeMs:4321}); await b.api.setLearned("PLL Aa",true); await b.api.setLearningGroupOrder("PLL",trackGroups("PLL").reverse()); await b.local.sync();
   const notice = await announced;
@@ -589,7 +589,7 @@ test("legacy local scramble histories merge offline without losing solves, dates
 
 test("pending legacy uploads retain their operation IDs and retry a lost acknowledgement once", async () => {
   const {remote,db} = setup(); const a = device(remote);
-  const auth = await a.api.register("normal_retry","a-long-test-password");
+  const auth = await a.api.devLogin("normal_retry");
   const session = await a.api.createSession("playground");
   await a.api.addSolve({sessionId:session.id,timeMs:12345});
   a.control.loseAck=true; await a.local.sync();

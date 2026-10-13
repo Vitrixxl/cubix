@@ -32,7 +32,8 @@ Si la stack tourne déjà (conteneur `cubix-dev-api-1`, site sur le port 5181),
 la réutiliser au lieu d’en lancer une autre. Une modification de `go-api`
 demande de reconstruire le conteneur (relancer `bun run dev:docker`). Donner
 à l’utilisateur l’URL et les étapes pour voir le changement (comptes seedés :
-`dev`, `coach`, `lena_speed`, `alex_cubes`…, mot de passe `cubix-dev-password`),
+`dev`, `coach`, `lena_speed`, `alex_cubes`…, via la connexion dev par nom
+d’utilisateur ; Google aussi si `.env` a `CUBIX_GOOGLE_CLIENT_ID`),
 puis attendre son accord explicite avant de commiter ou de pousser. Les tests
 headless restent obligatoires mais ne remplacent pas cette validation.
 

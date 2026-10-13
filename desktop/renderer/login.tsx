@@ -1,221 +1,163 @@
 /**
  * The sign-in dialog, over the page in view (`s.askSignIn`, or the address /login): the pages of an account
  * (`ACCOUNT_PAGES`) ask for it, the rest of the app is used without one, on this device.
- * Sign in or create an account with a username and a password (the
- * API's rules: username 3–24, password 10 or more); Google is a placeholder for now. Times this device already holds
- * outside any account join the account either way (see `importGuest` in src/client/local/client.ts).
+ * Sign in with Google (Google Identity Services, its button drawn by Google in a frame); the account is created the
+ * first time. Dev and test servers also take a bare username (`dev` of /api/auth/config). Times this device already
+ * holds outside any account join the account either way (see `importGuest` in src/client/local/client.ts).
  */
-import { useState } from "react";
-import { Eye, EyeOff, HardDrive } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { HardDrive } from "lucide-react";
 import { store as s } from "./store";
-import { Modal, Tip, usePhone } from "./ui";
-import { credentialErrors } from "../../src/client/lib/credentials";
+import { call } from "./bridge";
+import { Modal } from "./ui";
 import { Brand } from "./logo";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { legalPath } from "./legal/paths";
 import { go } from "./navigation";
 
-type Mode = "login" | "register";
+type AuthConfig = { google: string | null; dev: boolean };
+/** What Google's script puts on `window.google` that the dialog uses. */
+type Gsi = {
+  initialize(options: { client_id: string; callback: (response: { credential: string }) => void }): void;
+  renderButton(parent: HTMLElement, options: Record<string, unknown>): void;
+};
 
-/** Google's "G", in the text colour: the button is a placeholder, not a brand banner. */
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-current">
-      <path d="M21.35 11.1H12v2.98h5.35c-.23 1.4-1.66 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.96S8.78 6.26 12 6.26c1.83 0 3.06.78 3.76 1.45l2.56-2.47C16.68 3.7 14.54 2.75 12 2.75 6.92 2.75 2.8 6.9 2.8 12s4.12 9.25 9.2 9.25c5.31 0 8.83-3.73 8.83-8.99 0-.6-.07-1.06-.15-1.51z" />
-    </svg>
-  );
+/** Asked once a page; asked again after a failure (offline). */
+let config: Promise<AuthConfig> | undefined;
+const authConfig = () => (config ??= (call("authConfig") as Promise<AuthConfig>).catch((e) => ((config = undefined), Promise.reject(e))));
+/** Google's script, one tag for the page, loaded the first time the dialog opens. */
+let gsi: Promise<Gsi> | undefined;
+function loadGsi() {
+  return (gsi ??= new Promise<Gsi>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => resolve((window as any).google.accounts.id);
+    script.onerror = () => ((gsi = undefined), script.remove(), reject(new Error("Google sign-in did not load. Check your connection.")));
+    document.head.append(script);
+  }));
 }
+/** Google's callback, set at its single `initialize`: the dialog open now. */
+let onCredential = (_credential: string) => {};
+let initialized = "";
 
 /** Open while the overlay is "signin"; an ended session keeps it open until signed in again. */
 export function SignInDialog() {
   return (
     <Modal open={s.overlay === "signin" || s.expired} onOpenChange={(open) => !open && s.closeOverlay()} dismissible={!s.expired}
-      // The username, or the password once it is known (an ended session).
-      initialFocus={() => document.getElementById(s.expired ? "login-password" : "login-username")}
+      initialFocus={() => document.getElementById("login-username")}
       title={tr("Sign in")} hideHeader tall="full">
-      <SignInForm />
+      <SignIn />
     </Modal>
   );
 }
 
-function SignInForm() {
-  const phone = usePhone();
-  const [mode, setMode] = useState<Mode>("login"),
-    // After an ended session the account is known: only its password is asked again.
-    [username, setUsername] = useState<string>(s.expired ? (s.user.username ?? "") : ""),
-    [password, setPassword] = useState(""),
-    [shown, setShown] = useState(false),
+function SignIn() {
+  const [settings, setSettings] = useState<AuthConfig | null>(null),
     [pending, setPending] = useState(false),
-    [error, setError] = useState<{ field: "username" | "password" | ""; message: string } | null>(null);
+    [error, setError] = useState(""),
+    [username, setUsername] = useState("");
+  const button = useRef<HTMLDivElement>(null);
   const expired = s.expired;
-  const register = mode === "register";
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function signIn(method: "google" | "devLogin", value: string) {
     if (pending) return;
-    const name = username.trim();
-    // The API's rules, said before asking it.
-    const [invalid] = credentialErrors(register, name, password);
-    if (invalid) return setError(invalid);
-    setError(null);
+    setError("");
     setPending(true);
     try {
       // Signed in, the dialog closes on the page in view, or the one that asked for an account.
       const next = s.signInNext;
-      await s.authenticate(mode, name, password);
+      await s.authenticate(method, value);
       if (next) go(next);
     } catch (reason) {
-      const message = (reason as Error)?.message || "Something went wrong. Please try again.";
-      // The API names the field it refuses; the rest (wrong credentials, rate limit, offline) stays under the form.
-      setError({ field: /username/i.test(message) && register ? "username" : /password/i.test(message) && register ? "password" : "", message });
-      setPassword("");
+      setError((reason as Error)?.message || "Something went wrong. Please try again.");
     } finally {
       setPending(false);
     }
   }
+  onCredential = (credential) => void signIn("google", credential);
 
-  const fields = (
-    <FieldGroup className="gap-4 max-md:gap-5">
-      <Field data-invalid={error?.field === "username" || undefined}>
-        <FieldLabel htmlFor="login-username">{tr("Username")}</FieldLabel>
-        <Input
-          id="login-username"
-          name="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoComplete="username"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          maxLength={24}
-          aria-invalid={error?.field === "username" || undefined}
-          className="max-md:h-12 max-md:text-base"
-        />
-        {error?.field === "username" ? (
-          <FieldError>{said(error.message)}</FieldError>
-        ) : (
-          register && <FieldDescription>{tr("3–24 letters, digits or underscores.")}</FieldDescription>
-        )}
-      </Field>
-      <Field data-invalid={error?.field === "password" || undefined}>
-        <FieldLabel htmlFor="login-password">{tr("Password")}</FieldLabel>
-        <InputGroup className="max-md:h-12">
-          <InputGroupInput
-            id="login-password"
-            name="password"
-            type={shown ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={register ? "new-password" : "current-password"}
-            maxLength={128}
-            aria-invalid={error?.field === "password" || undefined}
-            className="max-md:text-base"
-          />
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              size={phone ? "icon-sm" : "icon-xs"}
-              aria-label={shown ? tr("Hide password") : tr("Show password")}
-              aria-pressed={shown}
-              data-action="login:reveal"
-              onClick={() => setShown(!shown)}
-            >
-              {shown ? <EyeOff /> : <Eye />}
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
-        {error?.field === "password" ? (
-          <FieldError>{said(error.message)}</FieldError>
-        ) : (
-          register && <FieldDescription>{tr("10 characters or more.")}</FieldDescription>
-        )}
-      </Field>
-      {error && !error.field && <FieldError>{said(error.message)}</FieldError>}
-    </FieldGroup>
-  );
-  const actions = (
-    <div className="flex flex-col gap-4">
-      <Button type="submit" disabled={pending} data-action="login:submit" className="w-full">
-        {pending ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}
-      </Button>
-      {register && <Consent />}
-      <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">{tr("or")}</FieldSeparator>
-      <Tip content={tr("Coming soon")}>
-        <span className="flex w-full" tabIndex={0}>
-          <Button type="button" variant="outline" disabled aria-describedby="google-soon" className="w-full">
-            <GoogleMark />
-            {tr("Continue with Google")}
-            <Badge id="google-soon" variant="secondary" className="ml-1">
-              {tr("Soon")}
-            </Badge>
-          </Button>
-        </span>
-      </Tip>
-      {!expired && (
-        <Button type="button" variant="ghost" data-action="login:guest" onClick={s.closeOverlay} className="w-full text-muted-foreground">
-          {tr("Continue without an account")}
-        </Button>
-      )}
-      {s.localData && (
-        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
-          <HardDrive className="size-3.5" />
-          {tr("Your times on this device will be kept.")}</p>
-      )}
-    </div>
-  );
-  const head = (
-    <div className="flex flex-col items-start gap-2">
-      <Brand size={30} className="mb-3 text-[24px]" />
-      <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{register ? tr("Create your account") : tr("Welcome back")}</h2>
-      <p className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</p>
-    </div>
-  );
-  const tabs = (
-    <Tabs
-      value={mode}
-      onValueChange={(v: Mode) => {
-        setMode(v);
-        setError(null);
-      }}
-    >
-      <TabsList className="w-full max-md:h-12!">
-        <TabsTrigger value="login" data-action="login:mode:login">
-          {tr("Sign in")}</TabsTrigger>
-        <TabsTrigger value="register" data-action="login:mode:register">
-          {tr("Create account")}</TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
-  const notice = expired && (
-    <Alert role="status" data-slot="login-expired">
-      <AlertDescription>{tr("Your session has ended. Sign in again.")}</AlertDescription>
-    </Alert>
-  );
+  useEffect(() => {
+    authConfig().then(setSettings, (reason: Error) => setError(reason.message));
+  }, []);
+  // Google draws its button in a frame, in the app's look and language, again when the look changes.
+  useEffect(() => {
+    const id = settings?.google;
+    if (!id) return;
+    let live = true;
+    loadGsi().then((google) => {
+      if (!live || !button.current) return;
+      if (initialized !== id) google.initialize({ client_id: id, callback: ({ credential }) => onCredential(credential) });
+      initialized = id;
+      google.renderButton(button.current, {
+        theme: s.light ? "outline" : "filled_black", size: "large", shape: "rectangular", "text": "continue_with",
+        width: Math.min(400, button.current.clientWidth), locale: language(),
+      });
+    }, (reason: Error) => live && setError(reason.message));
+    return () => { live = false; };
+  }, [settings, s.light]);
 
   return (
-    <form onSubmit={submit} noValidate className="login flex flex-1 flex-col gap-6">
-      {head}
-      {tabs}
-      {notice}
-      {fields}
-      <div className="mt-auto">{actions}</div>
-    </form>
+    <div className="login flex flex-1 flex-col gap-6">
+      <div className="flex flex-col items-start gap-2">
+        <Brand size={30} className="mb-3 text-[24px]" />
+        <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{tr("Welcome to Qbix")}</h2>
+        <p className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</p>
+      </div>
+      {expired && (
+        <Alert role="status" data-slot="login-expired">
+          <AlertDescription>{tr("Your session has ended. Sign in again.")}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex flex-col gap-3">
+        {settings?.google && <div ref={button} className="flex h-10 w-full justify-center" data-slot="login-google" aria-busy={pending || undefined} />}
+        {error && <FieldError>{said(error)}</FieldError>}
+      </div>
+      {settings?.dev && (
+        <form
+          className="flex items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (username.trim()) void signIn("devLogin", username.trim());
+          }}
+        >
+          <Field className="flex-1">
+            <FieldLabel htmlFor="login-username">{tr("Dev sign-in")}</FieldLabel>
+            <Input id="login-username" name="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="dev" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={24} />
+          </Field>
+          <Button type="submit" variant="secondary" disabled={pending || !username.trim()} data-action="login:dev">
+            {tr("Sign in")}
+          </Button>
+        </form>
+      )}
+      <div className="mt-auto flex flex-col gap-4">
+        {!expired && (
+          <Button type="button" variant="ghost" data-action="login:guest" onClick={s.closeOverlay} className="w-full text-muted-foreground">
+            {tr("Continue without an account")}
+          </Button>
+        )}
+        {s.localData && (
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
+            <HardDrive className="size-3.5" />
+            {tr("Your times on this device will be kept.")}</p>
+        )}
+        <Consent />
+      </div>
+    </div>
   );
 }
 
-/** Creating an account accepts the terms of use; the privacy policy says what is kept. One sentence, its links in place. */
+/** Signing in accepts the terms of use; the privacy policy says what is kept. One sentence, its links in place. */
 function Consent() {
   const links: Record<string, [string, string]> = { terms: [legalPath("terms"), tr("terms of use")], privacy: [legalPath("privacy"), tr("privacy policy")] };
   return (
     <p className="text-center text-xs text-muted-foreground" data-slot="consent">
-      {tr("By creating an account, you accept the {terms} and the {privacy}.")
+      {tr("By continuing, you accept the {terms} and the {privacy}.")
         .split(/(\{terms\}|\{privacy\})/)
         .map((part, i) => {
           const link = links[part.slice(1, -1)];

@@ -537,7 +537,7 @@ func duelRun(arena *DuelArena) {
 // The account id, guest accounts included, goes to the statistics only.
 func duelName(id string, user M) (string, string) {
 	name := "guest-" + strings.ReplaceAll(id, "-", "")[:4]
-	if user != nil && user["password_hash"] != nil {
+	if user != nil {
 		if username, ok := asStr(user["username"]); ok {
 			name = username
 		}

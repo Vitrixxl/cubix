@@ -209,7 +209,7 @@ func dailyRoute(db *Conn, method string, parts []string, query map[string]string
 	today, yesterday := dailyDay(now), dailyDay(now.Add(-24*time.Hour))
 	verified := query["verified"] == "1"
 	if method != "GET" || len(parts) == 3 {
-		if caller.user == nil || caller.user["password_hash"] == nil {
+		if caller.user == nil {
 			return nil, apiErr(403, "Sign in to be ranked.")
 		}
 	}

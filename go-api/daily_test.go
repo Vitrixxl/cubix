@@ -42,12 +42,12 @@ func TestDailyOneRankedAttempt(t *testing.T) {
 	today := dailyDay(time.Now())
 	err = db.Call(func(c *Conn) error {
 		for _, id := range []string{"a", "b"} {
-			if _, err := c.Exec("INSERT INTO users(id,username,password_hash,created_at) VALUES(?,?,'x','2026-01-01')", id, id); err != nil {
+			if _, err := c.Exec("INSERT INTO users(id,username,created_at) VALUES(?,?,'2026-01-01')", id, id); err != nil {
 				return err
 			}
 		}
-		a := &ApiCaller{user: M{"id": "a", "password_hash": "x"}}
-		b := &ApiCaller{user: M{"id": "b", "password_hash": "x"}}
+		a := &ApiCaller{user: M{"id": "a"}}
+		b := &ApiCaller{user: M{"id": "b"}}
 		post := func(caller *ApiCaller, ms float64, penalty string) (M, error) {
 			v, err := dailyRoute(c, "POST", []string{"daily", "333"}, nil, M{"day": today, "timeMs": ms, "penalty": penalty}, caller)
 			if err != nil {
@@ -57,9 +57,6 @@ func TestDailyOneRankedAttempt(t *testing.T) {
 		}
 		if _, err := post(a, 1000, "none"); err == nil {
 			t.Fatal("implausible time ranked")
-		}
-		if _, err := post(&ApiCaller{user: M{"id": "a"}}, 10000, "none"); err == nil {
-			t.Fatal("an account without a password ranked")
 		}
 		if v, _ := post(a, 10000, "none"); v["ranked"] != true || v["mine"].(M)["rank"] != 1 {
 			t.Fatal(v)
@@ -101,11 +98,11 @@ func TestDailyVerifiedCancelAndHistory(t *testing.T) {
 	today, yesterday := dailyDay(now), dailyDay(now.Add(-24*time.Hour))
 	err = db.Call(func(c *Conn) error {
 		for _, id := range []string{"a", "b", "c"} {
-			if _, err := c.Exec("INSERT INTO users(id,username,password_hash,created_at) VALUES(?,?,'x','2026-01-01')", id, id); err != nil {
+			if _, err := c.Exec("INSERT INTO users(id,username,created_at) VALUES(?,?,'2026-01-01')", id, id); err != nil {
 				return err
 			}
 		}
-		who := func(id string) *ApiCaller { return &ApiCaller{user: M{"id": id, "password_hash": "x"}} }
+		who := func(id string) *ApiCaller { return &ApiCaller{user: M{"id": id}} }
 		route := func(caller *ApiCaller, method string, parts []string, query map[string]string, body any) (any, error) {
 			return dailyRoute(c, method, append([]string{"daily", "333"}, parts...), query, body, caller)
 		}

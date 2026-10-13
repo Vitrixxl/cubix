@@ -154,27 +154,31 @@ func adminDataPurge(tx *Conn, user string) (solves int64, sessions int64, err er
 	return
 }
 
-// adminDataPurgeGuests: guest accounts were retired; those left (no password) go with everything they own, at startup.
-func adminDataPurgeGuests(db *Conn) (int, error) {
+// adminDataPurgeLegacy: sign-in moved to Google; the accounts of username and password sign-in go with everything they
+// own, once, while the users table still has their password column, which goes with them.
+func adminDataPurgeLegacy(db *Conn) error {
+	legacy, err := hasColumn(db, "users", "password_hash")
+	if err != nil || !legacy {
+		return err
+	}
 	tx, err := db.Begin()
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer tx.Rollback()
-	rows, err := dbAll(db, "SELECT id FROM users WHERE password_hash IS NULL")
+	rows, err := dbAll(db, "SELECT id FROM users")
 	if err != nil {
-		return 0, err
+		return err
 	}
-	guests := 0
 	for _, row := range rows {
-		if id, ok := asStr(row["id"]); ok {
-			if _, _, err := adminDataPurge(db, id); err != nil {
-				return 0, err
-			}
-			guests++
+		if _, _, err := adminDataPurge(db, str(row["id"])); err != nil {
+			return err
 		}
 	}
-	return guests, tx.Commit()
+	if err := db.ExecBatch("ALTER TABLE users DROP COLUMN password_hash"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func adminDataOverview(state *AppState) (any, error) {
@@ -208,7 +212,7 @@ func adminDataOverview(state *AppState) (any, error) {
 			}
 			return row
 		}
-		users := one("SELECT count(*) total,coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users")
+		users := one("SELECT count(*) total,count(*) registered,0 guests FROM users")
 		newUsers := func(since string) int64 { return count("SELECT count(*) n FROM users WHERE created_at>=?", since) }
 		active := func(since string) int64 {
 			return count("SELECT count(DISTINCT user_id) n FROM user_activity WHERE day>=?", since)
@@ -250,7 +254,7 @@ func adminDataOverview(state *AppState) (any, error) {
 			}
 		}
 		merge("SELECT day,sum(requests) requests,count(*) ips,sum(errors) errors,sum(server_errors) serverErrors,sum(limited) limited FROM traffic_daily WHERE day>=? GROUP BY day", month)
-		merge("SELECT substr(created_at,1,10) day,count(*) signups,sum(password_hash IS NOT NULL) registrations FROM users WHERE created_at>=? GROUP BY 1", month)
+		merge("SELECT substr(created_at,1,10) day,count(*) signups,count(*) registrations FROM users WHERE created_at>=? GROUP BY 1", month)
 		merge("SELECT day,count(*) active FROM user_activity WHERE day>=? GROUP BY day", month)
 		merge("SELECT substr(created_at,1,10) day,count(*) solves FROM solves WHERE created_at>=? GROUP BY 1", month)
 		merge("SELECT date(ended_at/1000,'unixepoch') day,count(*) duels FROM duel_games WHERE ended_at>=? GROUP BY 1", dayStart-29*accountsDayMs)
@@ -459,8 +463,8 @@ func adminDataIps(state *AppState, query *adminDataQuery) (any, error) {
 				args = append(args, str(row["ip"]))
 			}
 			marks := strings.Repeat("?,", len(rows))
-			seen, err := dbAll(db, fmt.Sprintf(`SELECT ip,id,username,isGuest FROM (SELECT t.ip,u.id,u.username,(u.password_hash IS NULL) isGuest,
-                    row_number() OVER (PARTITION BY t.ip ORDER BY u.password_hash IS NULL,u.username) n
+			seen, err := dbAll(db, fmt.Sprintf(`SELECT ip,id,username,isGuest FROM (SELECT t.ip,u.id,u.username,(0) isGuest,
+                    row_number() OVER (PARTITION BY t.ip ORDER BY u.username) n
                     FROM (SELECT DISTINCT ip,user_id FROM traffic_daily_users WHERE day>=?1 AND ip IN (%s)) t JOIN users u ON u.id=t.user_id)
                     WHERE n<=20 ORDER BY ip,n`, marks[:len(marks)-1]), args...)
 			if err != nil {
@@ -491,7 +495,7 @@ const adminDataWeekAgo = "strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')"
 
 // adminDataUserRows: one account row, as listed and in its detail. `filter` follows `FROM users u`.
 func adminDataUserRows(db *Conn, filter, order string, args ...any) ([]M, error) {
-	sql := fmt.Sprintf(`SELECT u.id,u.username,(u.password_hash IS NULL) isGuest,%[1]s createdAt,u.last_seen_at lastSeenAt,
+	sql := fmt.Sprintf(`SELECT u.id,u.username,(0) isGuest,%[1]s createdAt,u.last_seen_at lastSeenAt,
           (SELECT count(*) FROM solves s WHERE s.user_id=u.id) solves,
           (SELECT count(*) FROM solves s WHERE s.user_id=u.id AND s.created_at>=%[2]s) solves7d,
           (SELECT count(*) FROM learned_cases l WHERE l.user_id=u.id AND l.learned=1) learnedCases,
@@ -547,13 +551,13 @@ func adminDataUsers(state *AppState, query *adminDataQuery) (any, error) {
 	kind := "1"
 	switch filter {
 	case "registered":
-		kind = "u.password_hash IS NOT NULL"
+		kind = "1"
 	case "guests":
-		kind = "u.password_hash IS NULL"
+		kind = "0"
 	}
 	state.traffic.log.settle()
 	return dbCall(state.db, func(db *Conn) (any, error) {
-		counts, err := dbOne(db, `SELECT count(*) "all",coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users`)
+		counts, err := dbOne(db, `SELECT count(*) "all",count(*) registered,0 guests FROM users`)
 		if err != nil {
 			return nil, err
 		}

@@ -8,7 +8,7 @@ function setup() {
  return {db,origin:`http://127.0.0.1:${app.server.port}`,admin:adminToken(db.path)};
 }
 async function account(origin:string,name:string) {
- const {token,user}=await createApiClient(origin,{getToken:()=>null}).register(name,"a-long-test-password");
+ const {token,user}=await createApiClient(origin,{getToken:()=>null}).devLogin(name);
  const call=async(method:string,path:string,body?:unknown)=>{
   if(method==="POST"&&path==="bookings") body={cancellationPolicy:"24h-v1",...(body as object)};
   const response=await fetch(origin+"/api/coaching/"+path,{method,headers:{authorization:"Bearer "+token,...(body===undefined?{}:{"content-type":"application/json"})},body:body===undefined?undefined:JSON.stringify(body)});

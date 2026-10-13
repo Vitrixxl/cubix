@@ -85,7 +85,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           title: "Les données traitées et pourquoi",
           body: (
             <ul>
-              <li><strong>Ton compte</strong> : ton pseudo, ton mot de passe (conservé uniquement sous forme chiffrée irréversible, avec Argon2id), sa date de création, la date de ta dernière activité et, si tu en ajoutes une, ta photo de profil. Ils servent à te connecter et à synchroniser tes données. Base légale : l'exécution des conditions d'utilisation (le contrat).</li>
+              <li><strong>Ton compte</strong> : ton pseudo, l'identifiant que Google donne à ton compte Google (tu te connectes avec Google ; Qbix ne reçoit ni ne garde aucun mot de passe), sa date de création, la date de ta dernière activité et, si tu en ajoutes une, ta photo de profil. Ils servent à te connecter et à synchroniser tes données. Base légale : l'exécution des conditions d'utilisation (le contrat).</li>
               <li><strong>Ta pratique</strong> : tes temps, leurs mélanges, pénalités et commentaires, les mouvements enregistrés par un cube connecté, tes sessions, les cas que tu as marqués comme appris, ton ordre d'apprentissage et ce que tu as indiqué à l'inscription (puzzles et méthodes que tu connais, meilleurs temps). Ils sont enregistrés d'abord sur ton appareil puis synchronisés avec ton compte, pour les retrouver partout. Base légale : le contrat.</li>
               <li><strong>La communauté</strong> : tes amis et demandes d'amis, tes messages, tes groupes et ton rôle dans chacun, tes inscriptions aux tournois, tes matchs, battles et leurs résultats. Base légale : le contrat.</li>
               <li><strong>Les duels</strong> : pendant une course, ton pseudo, ton niveau (calculé sur ton appareil à partir de tes derniers temps) et tes temps sont transmis à ton adversaire. Le serveur conserve le résultat de chaque course terminée. Base légale : le contrat.</li>
@@ -108,7 +108,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           body: (
             <>
               <p>Les données sont conservées sur le serveur de Qbix, en {I.host.country} (voir les <a href="/legal">mentions légales</a>).</p>
-              <p>Pour établir un appel vidéo de coaching, ton appareil interroge des serveurs STUN de Google, qui voient ton adresse IP le temps de la mise en relation ; Google peut traiter cette adresse hors de l'Union européenne. Aucun autre service tiers ne reçoit tes données.</p>
+              <p>La connexion passe par Google, qui t'identifie selon sa propre politique de confidentialité et transmet à Qbix l'identifiant et le nom de ton compte Google. Pour établir un appel vidéo de coaching, ton appareil interroge des serveurs STUN de Google, qui voient ton adresse IP le temps de la mise en relation ; Google peut traiter ces données hors de l'Union européenne. Aucun autre service tiers ne reçoit tes données.</p>
               <p>Les liens vers d'autres sites (vidéos YouTube d'algorithmes, Buy Me a Coffee, GitHub) ouvrent ces sites, qui appliquent leur propre politique de confidentialité.</p>
             </>
           ),
@@ -144,7 +144,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           ),
         },
         { title: "Mineurs", body: <p>Qbix est ouvert à tous les âges. Si tu as moins de 15 ans, demande l'accord d'un de tes parents avant de créer un compte. Un parent peut demander la suppression du compte de son enfant à {mail}.</p> },
-        { title: "Sécurité", body: <p>Les échanges avec le serveur sont chiffrés (HTTPS). Les mots de passe ne sont jamais conservés en clair et les tentatives de connexion sont limitées. L'accès à l'administration est réservé à l'éditeur.</p> },
+        { title: "Sécurité", body: <p>Les échanges avec le serveur sont chiffrés (HTTPS). La connexion passe par Google : Qbix ne garde aucun mot de passe, et les tentatives de connexion sont limitées. L'accès à l'administration est réservé à l'éditeur.</p> },
         { title: "Modifications", body: <p>Cette politique peut évoluer avec l'application. La date de dernière mise à jour figure en haut de la page ; en cas de changement important, tu en seras informé dans l'application.</p> },
       ],
     },
@@ -163,7 +163,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           title: "The data processed and why",
           body: (
             <ul>
-              <li><strong>Your account</strong>: your username, your password (kept only as an irreversible hash, with Argon2id), when it was created, when you were last active and, if you add one, your profile picture. They are used to sign you in and to synchronise your data. Legal basis: performing the terms of use (the contract).</li>
+              <li><strong>Your account</strong>: your username, the identifier Google gives your Google account (you sign in with Google; Qbix never receives or keeps a password), when it was created, when you were last active and, if you add one, your profile picture. They are used to sign you in and to synchronise your data. Legal basis: performing the terms of use (the contract).</li>
               <li><strong>Your practice</strong>: your times with their scrambles, penalties and comments, the moves recorded by a connected cube, your sessions, the cases you marked as learned, your learning order and what you said when you signed up (the puzzles and methods you know, your best times). They are saved on your device first, then synchronised with your account so you find them everywhere. Legal basis: the contract.</li>
               <li><strong>The community</strong>: your friends and friend requests, your messages, your groups and your role in each, your tournament registrations, your matches, battles and their results. Legal basis: the contract.</li>
               <li><strong>Duels</strong>: during a race, your username, your level (worked out on your device from your latest times) and your times are sent to your opponent. The server keeps the result of each finished race. Legal basis: the contract.</li>
@@ -186,7 +186,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           body: (
             <>
               <p>Data is kept on Qbix's server, in {I.host.country === "France" ? "France" : I.host.country} (see the <a href="/legal">legal notice</a>).</p>
-              <p>To set up a coaching video call, your device asks Google's STUN servers for its public address; they see your IP address while the call is being connected, and Google may process it outside the European Union. No other third-party service receives your data.</p>
+              <p>Signing in goes through Google, which identifies you under its own privacy policy and gives Qbix your Google account's identifier and name. To set up a coaching video call, your device asks Google's STUN servers for its public address; they see your IP address while the call is being connected, and Google may process this data outside the European Union. No other third-party service receives your data.</p>
               <p>Links to other sites (YouTube videos of algorithms, Buy Me a Coffee, GitHub) open those sites, which apply their own privacy policies.</p>
             </>
           ),
@@ -218,7 +218,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
           ),
         },
         { title: "Minors", body: <p>Qbix is open to all ages. If you are under 15, ask one of your parents before creating an account. A parent can ask for their child's account to be deleted at {mail}.</p> },
-        { title: "Security", body: <p>Exchanges with the server are encrypted (HTTPS). Passwords are never stored in clear and sign-in attempts are limited. Access to the administration is reserved to the publisher.</p> },
+        { title: "Security", body: <p>Exchanges with the server are encrypted (HTTPS). Signing in goes through Google: Qbix keeps no password, and sign-in attempts are limited. Access to the administration is reserved to the publisher.</p> },
         { title: "Changes", body: <p>This policy may change with the app. The date of its last update is at the top of the page; you will be told in the app of any significant change.</p> },
       ],
     },
@@ -230,7 +230,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
       intro: <p>Ces conditions encadrent l'utilisation de Qbix : le site {site}, son application Android et leur API. En créant un compte, tu les acceptes.</p>,
       sections: [
         { title: "Le service", body: <p>Qbix est une application gratuite pour chronométrer ses résolutions, apprendre et s'entraîner sur les puzzles des épreuves de la WCA, affronter d'autres joueurs, échanger avec eux et se faire coacher. L'éditeur peut faire évoluer, suspendre ou arrêter tout ou partie du service, en prévenant ses utilisateurs lorsque c'est possible.</p> },
-        { title: "Ton compte", body: <p>Un compte se crée avec un pseudo et un mot de passe. Ton pseudo est visible des autres joueurs : il ne doit ni usurper l'identité de quelqu'un, ni être injurieux ou trompeur. Tu es responsable de ton mot de passe et de ce qui est fait depuis ton compte. Si tu as moins de 15 ans, demande l'accord d'un parent.</p> },
+        { title: "Ton compte", body: <p>Un compte se crée en se connectant avec Google. Ton pseudo est visible des autres joueurs : il ne doit ni usurper l'identité de quelqu'un, ni être injurieux ou trompeur. Tu es responsable de ton compte Google et de ce qui est fait depuis ton compte. Si tu as moins de 15 ans, demande l'accord d'un parent.</p> },
         {
           title: "Règles de la communauté",
           body: (
@@ -268,7 +268,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
       intro: <p>These terms govern the use of Qbix: the site {site}, its Android app and their API. By creating an account, you accept them.</p>,
       sections: [
         { title: "The service", body: <p>Qbix is a free app to time your solves, learn and train on the puzzles of the WCA events, race other players, talk with them and get coached. The publisher may change, suspend or stop all or part of the service, warning its users when possible.</p> },
-        { title: "Your account", body: <p>An account is created with a username and a password. Your username is visible to other players: it must not impersonate anyone, nor be offensive or misleading. You are responsible for your password and for what is done from your account. If you are under 15, ask a parent first.</p> },
+        { title: "Your account", body: <p>An account is created by signing in with Google. Your username is visible to other players: it must not impersonate anyone, nor be offensive or misleading. You are responsible for your Google account and for what is done from your account. If you are under 15, ask a parent first.</p> },
         {
           title: "Community rules",
           body: (

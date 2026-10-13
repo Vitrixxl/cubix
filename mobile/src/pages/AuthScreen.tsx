@@ -1,41 +1,24 @@
 import { useSetAtom } from "jotai";
-import { Eye, EyeOff, GraduationCap, Shapes, Timer } from "lucide-react-native";
-import { useRef, useState } from "react";
-import { Linking, Pressable, Text as RNText, TextInput, View } from "react-native";
+import { GraduationCap, Shapes, Timer } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
 import { ApiError } from "../../../src/client/api-client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { credentialErrors, PASSWORD_MIN } from "../../../src/client/lib/credentials";
-import { legalPath } from "../../../src/client/lib/legal";
-import { API_ORIGIN, api, authToken, local } from "../api";
+import { api, authToken, local } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
 import { guestModeAtom } from "../state";
 import { useColors } from "../theme";
 import { said, tr } from "../../../src/client/i18n";
-
-export type AuthMode = "login" | "register";
-
-/** Google's four-colour G, for the sign-in button to come. */
-function GoogleMark({ size = 18 }: { size?: number }) {
-  return <Svg width={size} height={size} viewBox="0 0 48 48">
-    <Path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z" />
-    <Path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-    <Path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-    <Path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z" />
-  </Svg>;
-}
 
 /** A labelled field with its hint or its error under it. */
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
@@ -59,17 +42,6 @@ function localData() {
   } catch { return false; }
 }
 
-/** Creating an account accepts the terms of use; the privacy policy says what is kept. One sentence, its links in place. */
-function Consent() {
-  const links: Record<string, [string, string]> = { terms: [legalPath("terms"), tr("terms of use")], privacy: [legalPath("privacy"), tr("privacy policy")] };
-  return <Text className="text-center text-xs text-muted-foreground">
-    {tr("By creating an account, you accept the {terms} and the {privacy}.").split(/(\{terms\}|\{privacy\})/).map((part, i) => {
-      const link = links[part.slice(1, -1)];
-      return link ? <RNText key={i} accessibilityRole="link" onPress={() => void Linking.openURL(API_ORIGIN + link[0])} className="text-foreground underline">{link[1]}</RNText> : part;
-    })}
-  </Text>;
-}
-
 const PROMISES = [
   { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
   { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
@@ -77,94 +49,52 @@ const PROMISES = [
 ];
 
 /**
- * The welcome (direction A): the welcome words and their three promises on top, then signing in or creating an
- * account as tabs, then going on without an account (this device only). Times already kept on this device are added
- * to the account either way. Google sign-in is announced, not yet available. On a tablet the welcome takes the top
- * (the promises side by side) and the form a card at the bottom; on a wide screen they share the screen side by side.
+ * The welcome (direction A): the welcome words and their three promises on top, then signing in, then going on without
+ * an account (this device only). Google sign-in is on the web only for now (desktop/renderer/login.tsx); a dev or
+ * test server also takes a bare username here. Times already kept on this device are added to the account. On a
+ * tablet the welcome takes the top (the promises side by side) and the form a card at the bottom; on a wide screen
+ * they share the screen side by side.
  */
-export function AuthScreen({ initialMode = "login", initialUsername = "" }: { initialMode?: AuthMode; initialUsername?: string }) {
+export function AuthScreen({ initialUsername = "" }: { initialUsername?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tablet, wide } = useLayout();
   const setGuest = useSetAtom(guestModeAtom);
-  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [username, setUsername] = useState(initialUsername);
-  const [password, setPassword] = useState("");
-  const [visible, setVisible] = useState(false);
-  const [tried, setTried] = useState(false);
+  const [dev, setDev] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const passwordRef = useRef<TextInput>(null);
-  const register = mode === "register";
-  // Shown while no session is open: a known account means its session ended (an expired token); only its password is asked again.
+  // Shown while no session is open: a known account means its session ended (an expired token).
   const [expired] = useState(() => !local.current().isGuest), [kept] = useState(localData);
-  // The server's rules, said before asking it; each field shows its most pressing error once the form was tried.
-  const errors = tried ? credentialErrors(register, username.trim(), password) : [];
-  const usernameError = errors.find(e => e.field === "username")?.message ?? "";
-  const passwordError = errors.find(e => e.field === "password")?.message ?? "";
+  useEffect(() => { api.authConfig().then(c => setDev(c.dev), () => {}); }, []);
   const submit = async () => {
-    if (busy) return;
-    setTried(true); setError("");
-    const name = username.trim();
-    if (credentialErrors(register, name, password).length) return;
-    setBusy(true);
+    const name = username.trim().toLowerCase();
+    if (busy || !name) return;
+    setBusy(true); setError("");
     try {
-      // A guest account from an older version still on the server: bring its times home first, so the new account
+      // A guest account from an older version still on the server: bring its times home first, so the account
       // receives them with the rest of this device's times.
       if (authToken.get() && local.current().isGuest) await local.restore().catch(() => {});
-      if (register) await api.register(name, password); else await api.login(name, password);
-      setPassword("");
+      await api.devLogin(name);
       setGuest(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : tr("Can't reach Qbix. Check your connection and try again."));
     } finally { setBusy(false); }
   };
-  const switchMode = (next: AuthMode) => { if (busy) return; setMode(next); setError(""); setTried(false); };
   const brand = <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel={tr("Qbix")} className="text-2xl font-extrabold tracking-[-0.03em]">Qbix</Text></View>;
   const form = <>
-    <View accessibilityRole="tablist" className="flex-row border-b border-border">
-      {(["login", "register"] as const).map(id => {
-        const here = mode === id;
-        return <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: here, disabled: busy }} onPress={() => switchMode(id)} className="h-11 flex-1 items-center justify-center">
-          <Text className={cn("text-[15px] font-bold", here ? "text-foreground" : "text-muted-foreground")}>{id === "login" ? tr("Sign in") : tr("Create account")}</Text>
-          {here && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
-        </Pressable>;
-      })}
-    </View>
     {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
-    <Field label={tr("Username")} error={usernameError} hint={register ? tr("3–24 letters, digits or underscores.") : undefined}>
-      <Input accessibilityLabel={tr("Username")} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username"
-        maxLength={24} editable={!busy} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => passwordRef.current?.focus()}
-        placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
-        className={cn("h-12 rounded-xl border-0 bg-muted", usernameError && "border border-destructive")} />
-    </Field>
-    <Field label={tr("Password")} error={passwordError} hint={register ? tr("{0} characters or more.", { 0: PASSWORD_MIN }) : undefined}>
-      <View>
-        <Input ref={passwordRef} accessibilityLabel={tr("Password")} value={password} onChangeText={setPassword} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false}
-          autoComplete={register ? "new-password" : "current-password"} textContentType={register ? "newPassword" : "password"} maxLength={128} editable={!busy}
-          returnKeyType="go" onSubmitEditing={() => void submit()} placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary}
-          className={cn("h-12 rounded-xl border-0 bg-muted pr-12", passwordError && "border border-destructive")} />
-        <Pressable accessibilityRole="button" accessibilityLabel={visible ? tr("Hide password") : tr("Show password")} onPress={() => setVisible(v => !v)} hitSlop={6}
-          className="absolute top-0 right-0 bottom-0 w-12 items-center justify-center rounded-xl active:bg-accent">
-          <Icon as={visible ? EyeOff : Eye} size={18} className="text-muted-foreground" />
-        </Pressable>
-      </View>
-    </Field>
-    {error ? <Alert variant="destructive">{error}</Alert> : null}
-    <Button size="lg" className="h-13 rounded-2xl" disabled={busy} onPress={() => void submit()}>
-      <Text className="text-base font-extrabold">{busy ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}</Text>
-    </Button>
-    {register && <Consent />}
-    <View className="flex-row items-center gap-3">
-      <Separator className="flex-1" />
-      <Text className="text-xs text-muted-foreground">{tr("or")}</Text>
-      <Separator className="flex-1" />
-    </View>
-    <Button variant="secondary" size="lg" className="h-12 rounded-2xl opacity-60" disabled accessibilityHint={tr("Coming soon")}>
-      <GoogleMark />
-      <Text className="text-base">{tr("Continue with Google")}</Text>
-      <Badge variant="secondary" className="ml-1"><Text>{tr("Soon")}</Text></Badge>
-    </Button>
+    {dev ? <>
+      <Field label={tr("Dev sign-in")}>
+        <Input accessibilityLabel={tr("Username")} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false}
+          maxLength={24} editable={!busy} returnKeyType="go" onSubmitEditing={() => void submit()}
+          placeholder="dev" placeholderTextColor={colors.mutedForeground + "88"} cursorColor={colors.primary} className="h-12 rounded-xl border-0 bg-muted" />
+      </Field>
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      <Button size="lg" className="h-13 rounded-2xl" disabled={busy || !username.trim()} onPress={() => void submit()}>
+        <Text className="text-base font-extrabold">{busy ? tr("Signing in…") : tr("Sign in")}</Text>
+      </Button>
+    </> : <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
     {!expired && <View className="items-center gap-0.5">
       <Button variant="ghost" className="h-11 w-full" disabled={busy} onPress={() => setGuest(true)}>
         <Text className="text-[15px] font-bold">{tr("Continue without an account")}</Text>

@@ -20,7 +20,7 @@ func testCoachingDb(t *testing.T) *Db {
 		windows = append(windows, fmt.Sprintf(`{"weekday":%d,"start":0,"end":1440}`, day))
 	}
 	err = db.Call(func(c *Conn) error {
-		return c.ExecBatch(`INSERT INTO users(id,username,password_hash) VALUES('c','coach','x'),('s','student','x');
+		return c.ExecBatch(`INSERT INTO users(id,username) VALUES('c','coach'),('s','student');
 			INSERT INTO coaches(user_id,windows,created_at) VALUES('c','[` + strings.Join(windows, ",") + `]',0);`)
 	})
 	if err != nil {

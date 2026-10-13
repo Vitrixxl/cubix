@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; frame-src https://accounts.google.com/gsi/; worker-src 'self'; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'"
     />
+    <!-- Google's sign-in (desktop/renderer/login.tsx) loads its script, style and button frame from accounts.google.com/gsi. -->
     <meta name="theme-color" content="#0b0b0e" />
     <title>Qbix</title>
     <!-- The app's pages for search engines are written ahead of time, from this file (desktop/prerender.tsx): an

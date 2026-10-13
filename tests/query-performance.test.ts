@@ -10,8 +10,8 @@ test("batched sync preserves page order, opt-ins, tombstones and account isolati
   const app = startApi(path);
   const origin = `http://127.0.0.1:${app.server.port}`;
   const anon = createApiClient(origin, { getToken: () => null });
-  const alice = await anon.register("batch_alice", "a-long-test-password");
-  const bob = await anon.register("batch_bob", "a-long-test-password");
+  const alice = await anon.devLogin("batch_alice");
+  const bob = await anon.devLogin("batch_bob");
   db.transaction(() => {
     for (const owner of [alice.user.id, bob.user.id]) {
       const session = db.query("INSERT INTO sessions(user_id,mode,case_ids) VALUES(?,'training','[\"PLL Aa\"]') RETURNING id").get(owner)!.id;
@@ -59,7 +59,7 @@ test("history filters use ordered indexes and preserve legacy session mode", asy
   const app = startApi(path), origin = `http://127.0.0.1:${app.server.port}`;
   let token: string | null = null;
   const api = createApiClient(origin, { getToken: () => token });
-  const auth = await api.register("ordered_history", "a-long-test-password"); token = auth.token;
+  const auth = await api.devLogin("ordered_history"); token = auth.token;
   const plans = [
     ["SELECT * FROM solves WHERE user_id=? AND puzzle_id='333' AND solve_mode='standard' ORDER BY created_at DESC,id DESC LIMIT 50", [auth.user.id]],
     ["SELECT * FROM solves WHERE user_id=? AND puzzle_id='333' AND solve_mode='standard' AND scramble_type='normal' ORDER BY created_at DESC,id DESC LIMIT 50", [auth.user.id]],

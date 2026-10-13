@@ -485,9 +485,10 @@ export class Store {
     this.overlay = "signin";
     this.emit();
   }
-  /** Signs in or creates the account; this device's times join it. Throws the API's message. */
-  async authenticate(mode: "login" | "register", username: string, password: string) {
-    const v = await call(mode, username, password);
+  /** Signs in with Google's credential (`google`) or a username on a dev server (`devLogin`), the account created the
+   * first time; this device's times join it. Throws the API's message. */
+  async authenticate(method: "google" | "devLogin", value: string) {
+    const v = await call(method, value);
     this.user = v.user;
     this.journey = {};
     this.introducedAccount = "";

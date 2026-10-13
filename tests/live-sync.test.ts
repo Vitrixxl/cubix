@@ -50,9 +50,9 @@ function setup() {
 
 test("connected devices upload and apply changed entities with zero HTTP sync requests", async () => {
   const { device } = setup(), a = device(), b = device(), other = device();
-  await a.local.api.register("socket_alice", "a-long-test-password");
-  await b.local.api.login("socket_alice", "a-long-test-password");
-  await other.local.api.register("socket_bob", "a-long-test-password");
+  await a.local.api.devLogin("socket_alice");
+  await b.local.api.devLogin("socket_alice");
+  await other.local.api.devLogin("socket_bob");
   const first = await a.connect(), second = await b.connect(), isolated = await other.connect();
   const requests = [a.requests(), b.requests(), other.requests()];
   const session = await a.local.api.createSession("playground");
@@ -83,8 +83,8 @@ test("connected devices upload and apply changed entities with zero HTTP sync re
 
 test("reconnecting catches up paginated changes and preserves pending offline edits over the socket", async () => {
   const { db, device } = setup(), a = device(), b = device();
-  const auth = await a.local.api.register("socket_reconnect", "a-long-test-password");
-  await b.local.api.login("socket_reconnect", "a-long-test-password");
+  const auth = await a.local.api.devLogin("socket_reconnect");
+  await b.local.api.devLogin("socket_reconnect");
   const first = await a.connect(), second = await b.connect();
   second.socket.close(); b.local.disconnected(second.socket);
   await b.local.api.setLearned("PLL Ab", true);
@@ -106,7 +106,7 @@ test("reconnecting catches up paginated changes and preserves pending offline ed
 
 test("socket uploads are idempotent and an expired token cannot read or mutate data", async () => {
   const { device, origin, db } = setup(), a = device();
-  const auth = await a.local.api.register("socket_receipt", "a-long-test-password");
+  const auth = await a.local.api.devLogin("socket_receipt");
   const { socket } = await a.connect();
   const op = { id: crypto.randomUUID(), method: "POST", path: "solves", body: { timeMs: 9999 }, createdAt: "2026-01-01T00:00:00.000Z" };
   const result = await socket.syncPush([op]);

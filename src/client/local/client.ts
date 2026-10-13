@@ -472,8 +472,9 @@ export function createLocalClient(options: {
     }),
     cases: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).cases,
     sets: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).sets,
-    register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),
-    login: async (username: string,password: string) => authenticate(await options.remote(null).login(username,password)),
+    authConfig: () => options.remote(null).authConfig(),
+    google: async (credential: string) => authenticate(await options.remote(null).google(credential)),
+    devLogin: async (username: string) => authenticate(await options.remote(null).devLogin(username)),
     /** The account's data, as a file for its owner (GDPR portability): what this device holds, which the server mirrors. */
     exportData: async () => {
       const user = current(), workspace = data();
@@ -486,11 +487,11 @@ export function createLocalClient(options: {
         learningGroupOrder: workspace.groupOrder ?? {}, profile: workspace.journey ?? {},
       };
     },
-    /** The account deleted on the server with its password, then forgotten on this device, which goes back to a guest. */
-    deleteAccount: async (password: string) => {
+    /** The account deleted on the server, then forgotten on this device, which goes back to a guest. */
+    deleteAccount: async () => {
       const id = owner(), token = options.getToken();
       if (id === "guest" || !token) throw new Error("Sign in first.");
-      await options.remote(token).deleteAccount(password);
+      await options.remote(token).deleteAccount();
       for (const key of ["workspace:" + id, "revision:" + id]) storage.removeItem(PREFIX + key);
       cached = undefined; generation++;
       write("user",GUEST); options.clearToken(); report("local"); notify();

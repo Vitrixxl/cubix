@@ -16,7 +16,7 @@ import { PushedBar } from "../components/AppBar";
 import { ImportSheet } from "../components/ImportTimes";
 import { ListRow } from "../components/layout";
 import { Caption, PillSeg, SheetChoice, inspectionAtom } from "../components/PuzzlePicker";
-import { Sheet, SheetInput } from "../components/Sheet";
+import { Sheet } from "../components/Sheet";
 import { toastAtom } from "../components/Toast";
 import { UserAvatar } from "../components/UserAvatar";
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n";
@@ -203,27 +203,22 @@ function Data() {
   </Group>;
 }
 
-/** The account deleted with its password, as the web's dialog; this device goes back to the sign-in screen. */
+/** The account deleted once confirmed, as the web's dialog; this device goes back to the sign-in screen. */
 function DeleteAccount({ open, onClose, onDeleted }: { open: boolean; onClose: () => void; onDeleted: () => void }) {
-  const [password, setPassword] = useState(""), [busy, setBusy] = useState(false), [error, setError] = useState("");
-  const close = () => { setPassword(""); setError(""); onClose(); };
+  const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const close = () => { setError(""); onClose(); };
   const remove = async () => {
-    if (!password || busy) return;
+    if (busy) return;
     setBusy(true); setError("");
-    try { await api.deleteAccount(password); setPassword(""); onDeleted(); }
+    try { await api.deleteAccount(); onDeleted(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   return <Sheet open={open} onClose={close} title={tr("Delete your account?")}
     description={tr("Your times, sessions, friends, messages, groups you own and everything else of the account are erased from the server at once. This cannot be undone.")}>
-    <View className="gap-2">
-      <Text className="text-sm font-medium">{tr("Your password")}</Text>
-      <SheetInput value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password"
-        accessibilityLabel={tr("Your password")} returnKeyType="go" onSubmitEditing={() => void remove()} className={error ? "border-destructive" : undefined} />
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
-    </View>
+    {error ? <Alert variant="destructive">{error}</Alert> : null}
     <View className="flex-row justify-end gap-2">
       <Button variant="ghost" onPress={close}><Text>{tr("Keep my account")}</Text></Button>
-      <Button variant="destructive" disabled={!password || busy} onPress={() => void remove()}><Text>{busy ? tr("Deleting…") : tr("Delete for good")}</Text></Button>
+      <Button variant="destructive" disabled={busy} onPress={() => void remove()}><Text>{busy ? tr("Deleting…") : tr("Delete for good")}</Text></Button>
     </View>
   </Sheet>;
 }

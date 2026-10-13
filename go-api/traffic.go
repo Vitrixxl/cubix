@@ -165,7 +165,7 @@ func (t *Traffic) allow(ip netip.Addr, path string, websocket bool) bool {
 	special := true
 	if path == "/api/admin/login" {
 		special = c.admin.allow(5, 900)
-	} else if path == "/api/auth/login" || path == "/api/auth/register" {
+	} else if path == "/api/auth/google" || path == "/api/auth/dev" {
 		special = c.auth.allow(20, 60)
 	}
 	return general && special

@@ -252,12 +252,17 @@ func dbMigrate(db *Conn) error {
 		// Installed after context migrations so existing databases get the same indexes.
 		func() error { return db.ExecBatch(queryIndexesSQL) },
 		func() error { return db.ExecBatch("PRAGMA optimize=0x10002;") },
-		// Personal goals and guest accounts were retired: what is left of them goes.
+		// Personal goals were retired: what is left of them goes.
 		func() error {
 			_, err := db.Exec("DELETE FROM personal_entries WHERE key!='profile'")
 			return err
 		},
-		func() error { _, err := adminDataPurgeGuests(db); return err },
+		// Sign-in moved to Google: an account is its Google subject (none for those of the seed and the dev sign-in).
+		func() error { return addColumnIfMissing(db, "users", "google_sub", "TEXT") },
+		func() error {
+			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users(google_sub) WHERE google_sub IS NOT NULL")
+		},
+		func() error { return adminDataPurgeLegacy(db) },
 	}
 	for _, step := range steps {
 		if err := step(); err != nil {

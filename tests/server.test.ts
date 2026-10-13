@@ -38,7 +38,7 @@ function client(app: ReturnType<typeof startApi>) {
 test("the server exposes the complete catalogue and verified training histories", async () => {
   const call = client(startApi(fixture()));
   expect((await call("/cases")).body).toEqual(CASES);
-  const member = (await call("/auth/register", "POST", {username:"records",password:"a-long-test-password"})).body;
+  const member = (await call("/auth/dev", "POST", {username:"records"})).body;
   const session = (await call("/sessions", "POST", {mode:"training",caseIds:[CASES[0].id]},member.token)).body;
   for(const [index,timeMs] of [1000,2000,3000,4000,5000].entries())
     await call("/solves","POST",{sessionId:session.id,caseId:CASES[0].id,timeMs,penalty:index===4?"dnf":"none"},member.token);
@@ -46,12 +46,12 @@ test("the server exposes the complete catalogue and verified training histories"
   expect(history.summary).toMatchObject({count:5,best:1000,worst:4000,mean:2500,ao5:3000,last:null});
   expect(history.history).toHaveLength(5);
   expect(history.history[4].time).toBeNull();
-  expect((await call("/auth/login","POST",{username:"records",password:"a-long-test-password"})).status).toBe(200);
+  expect((await call("/auth/dev", "POST", {username:"records"})).status).toBe(200);
 });
 
 test("a blindfolded solve keeps its memorisation, which must lie within the solve", async () => {
   const call = client(startApi(fixture()));
-  const member = (await call("/auth/register", "POST", {username:"blind",password:"a-long-test-password"})).body;
+  const member = (await call("/auth/dev", "POST", {username:"blind"})).body;
   const context = {puzzle:"333",solveMode:"blindfolded",scrambleType:"normal"};
   const session = (await call("/sessions", "POST", {mode:"playground",...context},member.token)).body;
   expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:24999.6},member.token)).body.memo_ms).toBe(25000);
@@ -61,7 +61,7 @@ test("a blindfolded solve keeps its memorisation, which must lie within the solv
 
 test("a solve's turns are written by hand, and the solve shared by a link anyone can open", async () => {
   const call = client(startApi(fixture()));
-  const member = (await call("/auth/register", "POST", {username:"sharer",password:"a-long-test-password"})).body;
+  const member = (await call("/auth/dev", "POST", {username:"sharer"})).body;
   const session = (await call("/sessions", "POST", {mode:"playground"},member.token)).body;
   const solve = (await call("/solves","POST",{sessionId:session.id,timeMs:9000,penalty:"none",scramble:"R U"},member.token)).body;
   const written = await call(`/solves/${solve.id}`,"PATCH",{solution:"hold:yellow/green x2 R U r' M2"},member.token);
@@ -75,7 +75,7 @@ test("a solve's turns are written by hand, and the solve shared by a link anyone
   expect(shared.body.comment).toBeUndefined();
   expect((await call("/shared/nothing")).status).toBe(404);
   // Only its owner shares it, and clearing the turns leaves none.
-  const other = (await call("/auth/register", "POST", {username:"stranger",password:"a-long-test-password"})).body;
+  const other = (await call("/auth/dev", "POST", {username:"stranger"})).body;
   expect((await call(`/solves/${solve.id}/share`,"POST",undefined,other.token)).status).toBe(404);
   expect((await call(`/solves/${solve.id}`,"PATCH",{solution:null},member.token)).body.solution).toBeNull();
 });
@@ -107,7 +107,7 @@ test(
     expect(
       db.query<any, []>("SELECT * FROM solves WHERE id=1").get(),
     ).toMatchObject({ time_ms: 9000, user_id: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "normal" });
-    const member = (await call("/auth/register", "POST", { username: "newcomer", password: "a-long-test-password" })).body;
+    const member = (await call("/auth/dev", "POST", {username: "newcomer"})).body;
     expect((await call("/solves", "GET", undefined, member.token)).body).toEqual(
       [],
     );
@@ -115,13 +115,10 @@ test(
   },
 );
 
-test("signed-in clients cannot open a second account, and guests cannot be created", async () => {
+test("guests cannot be created", async () => {
   const call = client(startApi(fixture()));
   // The guest route is gone: like any unknown route, it needs an account.
   expect((await call("/auth/guest", "POST")).status).toBe(401);
-  const member = (await call("/auth/register", "POST", { username: "first_member", password: "concurrent-password" })).body;
-  expect((await call("/auth/register", "POST", { username: "second_member", password: "concurrent-password" }, member.token)).status).toBe(400);
-  expect((await call("/auth/me", "GET", undefined, member.token)).body.username).toBe("first_member");
 });
 
 
@@ -144,7 +141,7 @@ test("practice migration preserves existing cube histories and remains safe on r
   server.server.stop();
   const call = client(startApi(path));
   expect(db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all()).toEqual(before);
-  const auth = (await call("/auth/register","POST",{username:"migration_labels",password:"a-long-test-password"})).body;
+  const auth = (await call("/auth/dev", "POST", {username:"migration_labels"})).body;
   const niche = await call("/solves","POST",{puzzle:"sq1",solveMode:"blindfolded",timeMs:5000},auth.token);
   expect(niche.status).toBe(200);
   expect(niche.body).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"blindfolded",scramble_type:"normal"});
@@ -156,8 +153,8 @@ test("learning marks are validated, upserted per account and journaled for sync"
   const app = startApi(path);
   cleanups.push(() => app.server.stop());
   const call = client(app);
-  const alice = (await call("/auth/register", "POST", { username: "learn_alice", password: "a-long-test-password" })).body;
-  const bob = (await call("/auth/register", "POST", { username: "learn_bob", password: "a-long-test-password" })).body;
+  const alice = (await call("/auth/dev", "POST", {username: "learn_alice"})).body;
+  const bob = (await call("/auth/dev", "POST", {username: "learn_bob"})).body;
   expect((await call("/learned", "GET", undefined, alice.token)).body).toEqual([]);
   expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true }, alice.token)).status).toBe(200);
   expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true }, alice.token)).body.learned).toBe(1);
@@ -184,7 +181,7 @@ test("a case is learned with one of its algorithms, and players see which ones a
   const app = startApi(fixture());
   cleanups.push(() => app.server.stop());
   const call = client(app);
-  const [alice, bob, carol] = await Promise.all(["alg_alice", "alg_bob", "alg_carol"].map(async (username) => (await call("/auth/register", "POST", { username, password: "a-long-test-password" })).body));
+  const [alice, bob, carol] = await Promise.all(["alg_alice", "alg_bob", "alg_carol"].map(async (username) => (await call("/auth/dev", "POST", {username})).body));
   const algs = CASES.find((c: any) => c.id === "PLL Aa")!.algorithms.map((a: any) => a.alg);
   expect(algs.length).toBeGreaterThan(1);
   const learned = await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[1] }, alice.token);
@@ -212,8 +209,8 @@ test("learning order validates tracks and groups, isolates accounts, and replays
   const path = fixture();
   const app = startApi(path); cleanups.push(() => app.server.stop());
   const call = client(app);
-  const alice = (await call("/auth/register", "POST", { username:"priority_alice", password:"a-long-test-password" })).body;
-  const bob = (await call("/auth/register", "POST", { username:"priority_bob", password:"a-long-test-password" })).body;
+  const alice = (await call("/auth/dev", "POST", {username:"priority_alice"})).body;
+  const bob = (await call("/auth/dev", "POST", {username:"priority_bob"})).body;
   const body = { track:"PLL", groups:["Edges Only","Adjacent Corner Swap","Diagonal Corner Swap"] };
   expect((await call("/learning-group-order","PUT",body)).status).toBe(401);
   for (const invalid of [{ ...body, track:"ZBLL" }, { ...body, groups:[] }, { ...body, groups:["Unknown"] }, { ...body, groups:["Edges Only","Edges Only"] }, { ...body, groups:["Dot"] }, { ...body, onlyIfMissing:"yes" }]) {
@@ -328,7 +325,7 @@ test("the server publishes over-the-air updates following the expo-updates proto
 test("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {
   const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
   const app = startApi(path), call = client(app);
-  const auth = (await call("/auth/register","POST",{username:"normal_migration",password:"a-long-test-password"})).body;
+  const auth = (await call("/auth/dev", "POST", {username:"normal_migration"})).body;
   const operations = ["competition","random-moves"].map((scrambleType,index) => ({
     id:`normal-session-${index}`,method:"POST",path:"sessions",createdAt:`2026-01-0${index+1}T00:00:00.000Z`,
     body:{mode:"playground",puzzle:"333",solveMode:"standard",scrambleType},

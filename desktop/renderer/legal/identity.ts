@@ -23,7 +23,7 @@ export const IDENTITY = {
   },
   site: "https://cubix.vitrixxl.fr",
   /** The date the documents were last changed. */
-  updated: "2026-10-06",
+  updated: "2026-10-13",
 } as const;
 
 /** Whether a value is still to be given. */

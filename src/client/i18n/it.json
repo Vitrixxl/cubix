@@ -751,7 +751,7 @@
  "A faster method: a small V block, then the last four edges in one algorithm.": "Un metodo più veloce: un piccolo blocco a V, poi gli ultimi quattro spigoli con un solo algoritmo.",
  "A few seconds to set the app up for you": "Pochi secondi per configurare l'app per te",
  "A first layer, then the top corners and the centres with two repeated sequences.": "Un primo strato, poi gli angoli superiori e i centri con due sequenze ripetute.",
- "A free account saves your times and syncs them between your devices. It takes a username and a password, nothing else.": "Un account gratuito salva i tuoi tempi e li sincronizza tra i tuoi dispositivi. Bastano un nome utente e una password, nient'altro.",
+ "A free account saves your times and syncs them between your devices. You sign in with your Google account, nothing else to fill in.": "Un account gratuito salva i tuoi tempi e li sincronizza tra i tuoi dispositivi. Accedi con il tuo account Google, nient'altro da compilare.",
  "A letter turns that face a quarter turn clockwise, as you see it when you look straight at the face. A prime (') turns it counter-clockwise, a 2 half a turn.": "Una lettera gira quella faccia di un quarto di giro in senso orario, come la vedi guardandola di fronte. Un apostrofo (') la gira in senso antiorario, un 2 di mezzo giro.",
  "A lowercase letter or a w turns the face with the layer behind it; a number in front sets how many layers turn, or, without the w, turns that inner layer alone.": "Una lettera minuscola o una w gira la faccia insieme allo strato dietro; un numero davanti indica quanti strati girano oppure, senza la w, gira solo quello strato interno.",
  "A lowercase letter or a w turns the face with the middle layer behind it.": "Una lettera minuscola o una w gira la faccia insieme allo strato centrale dietro.",
@@ -1005,7 +1005,7 @@
  "Buy me a coffee": "Offrimi un caffè",
  "by {0}": "di {0}",
  "By case": "Per caso",
- "By creating an account, you accept the {terms} and the {privacy}.": "Creando un account, accetti i {terms} e l'{privacy}.",
+ "By continuing, you accept the {terms} and the {privacy}.": "Continuando, accetti i {terms} e l'{privacy}.",
  "By hand": "A mano",
  "Bye": "Bye",
  "calculates them.": "li calcola.",
@@ -3744,5 +3744,10 @@
  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. In the browser, on computer and phone. No ads, no premium tier.": "Qbix è un'app di speedcubing gratuita e completa: un timer WCA con scramble random-state e medie, 6.500 algoritmi (F2L, OLL, PLL, ZBLL) con un player 3D, allenamento sui casi, corsi passo passo, duelli in tempo reale e statistiche. Nel browser, su computer e telefono. Niente pubblicità, nessun piano premium.",
  "Use Qbix in the browser on your computer or phone: your account follows you.": "Usa Qbix nel browser sul tuo computer o telefono: il tuo account ti segue.",
  "In the browser, on computer and phone, even offline": "Nel browser, su computer e telefono, anche offline",
- "No account needed · works offline": "Senza account · offline"
+ "No account needed · works offline": "Senza account · offline",
+ "Dev sign-in": "Accesso di sviluppo",
+ "Google sign-in did not load. Check your connection.": "L'accesso con Google non si è caricato. Controlla la connessione.",
+ "To sign in, open Qbix on the web.": "Per accedere, apri Qbix sul web.",
+ "Google cannot be reached. Please try again.": "Impossibile raggiungere Google. Riprova.",
+ "Google sign-in failed. Please try again.": "Accesso con Google non riuscito. Riprova."
 }

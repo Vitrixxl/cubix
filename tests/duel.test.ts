@@ -133,7 +133,7 @@ test("an account signed in on two devices searches on both but never meets itsel
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
   const origin = `http://127.0.0.1:${startApi(join(dir, "test.db")).server.port}`;
   const register = async (username: string) =>
-    (await (await fetch(`${origin}/api/auth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username, password: "a-long-test-password" }) })).json()).token as string;
+    (await (await fetch(`${origin}/api/auth/dev`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username }) })).json()).token as string;
   const [alice, bob] = await Promise.all([register("alice"), register("bob")]);
   const phone = await player(origin, alice), laptop = await player(origin, alice), other = await player(origin, bob);
   phone.send({ type: "queue", event: "333" });

@@ -120,7 +120,7 @@ export interface Question {
 export const FAQ: Question[] = [
   { question: "Is Qbix free?", answer: "Yes, entirely: every feature, on every platform. There are no ads, no premium tier and no subscription. Only a coaching session has a price, set by its coach." },
   { question: "I cannot solve a cube yet. Is Qbix for me?", answer: "Yes. A puzzle you cannot solve yet opens on its course: step-by-step lessons from the first solve, with a cube that shows each algorithm. The timer and the training are there once it is solved." },
-  { question: "Do I need an account?", answer: "A free account saves your times and syncs them between your devices. It takes a username and a password, nothing else." },
+  { question: "Do I need an account?", answer: "A free account saves your times and syncs them between your devices. You sign in with your Google account, nothing else to fill in." },
   { question: "Which puzzles does Qbix support?", answer: `Every WCA event: ${PUZZLES.join(", ")}.` },
   { question: "Can I import my times from csTimer or Twisty Timer?", answer: `Yes. Qbix reads the exports of ${IMPORTS.join(", ")}, with your dates, penalties and sessions, right on your device.` },
   { question: "Does it work offline?", answer: "Yes. The timer, the algorithms and the training work without a connection; your solves are synced as soon as you are back online." },

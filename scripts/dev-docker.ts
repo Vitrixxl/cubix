@@ -21,7 +21,7 @@ await run([...compose, "logs", "--no-log-prefix", "--tail", "20", "api"]);
 const port = process.env.CUBIX_DEV_API_PORT ?? "47130";
 console.log(`
 Cubix dev API: http://127.0.0.1:${port} (it serves the web app of the image too)
-Accounts: dev, coach, lena_speed, alex_cubes… password cubix-dev-password
+Accounts: dev, coach, lena_speed, alex_cubes… (dev sign-in, by username)
 Administration: /admin, token cbx_admin_dev
 `);
 // Its own port, so its own browser storage: nothing mixes with the production account.

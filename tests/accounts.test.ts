@@ -19,12 +19,12 @@ function setup(path = ":memory:") {
     }));
     return { status: response.status, body: await response.json() as any, headers: response.headers };
   };
-  const register = async (username: string, token?: string) => (await call("/auth/register", "POST", { username, password: "a-long-test-password" }, token)).body;
+  const register = async (username: string, token?: string) => (await call("/auth/dev", "POST", {username}, token)).body;
   return { db, call, register };
 }
 
 describe("Accounts", () => {
-  test("accounts survive reopening the database; guests are gone, leftover ones and personal goals purged on reopening", async () => {
+  test("accounts survive reopening the database; guests are gone, personal goals purged on reopening", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cubix-account-"));
     cleanups.unshift(() => rmSync(dir, { recursive: true, force: true }));
     const { db, call, register } = setup(join(dir, "test.db"));
@@ -36,18 +36,13 @@ describe("Accounts", () => {
     expect(alice.user).not.toHaveProperty("displayName");
     expect(alice.user).not.toHaveProperty("isPrivate");
     expect(alice.user).not.toHaveProperty("bio");
-    // A guest account and personal goals from before they were retired.
-    db.db.exec(`INSERT INTO users(id,username) VALUES('old-guest','guest-old');
-      INSERT INTO auth_tokens(token_hash,user_id,expires_at) VALUES('old-guest-token','old-guest',${Date.now() + 86_400_000});
-      INSERT INTO personal_entries(user_id,key,value) VALUES('old-guest','profile','{}'),('${alice.user.id}','profile','{"kind":"profile"}'),('${alice.user.id}','goal:00000000-0000-4000-8000-000000000000','{}');`);
+    // Personal goals from before they were retired.
+    db.db.exec(`INSERT INTO personal_entries(user_id,key,value) VALUES('${alice.user.id}','profile','{"kind":"profile"}'),('${alice.user.id}','goal:00000000-0000-4000-8000-000000000000','{}');`);
     const second = setup(db.path);
     expect((await second.call("/auth/me", "GET", undefined, alice.token)).body.username).toBe("alice");
     expect((await second.call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
-    expect(db.db.query<any, []>("SELECT id FROM users WHERE id='old-guest'").get()).toBeNull();
     expect(db.db.query<any, []>("SELECT user_id,key FROM personal_entries").all()).toEqual([{ user_id: alice.user.id, key: "profile" }]);
     expect(db.db.query("PRAGMA foreign_key_check").all()).toEqual([]);
-    const persisted = db.db.query<any, []>("SELECT * FROM users WHERE username = 'alice'").get();
-    expect(persisted.password_hash.startsWith("$argon2id$")).toBe(true);
     expect(JSON.stringify(alice)).not.toContain("password_hash");
     expect(db.db.query<any, [string]>("SELECT * FROM auth_tokens WHERE token_hash = ?").get(alice.token)).toBeNull();
   });
@@ -101,8 +96,7 @@ describe("Accounts", () => {
     expect((await migrated.call("/solves", "GET", undefined, alice.token)).body[0].id).toBe(solve.id);
     expect(migrated.db.db.query("PRAGMA foreign_key_check").all()).toEqual([]);
     const reopened = setup(db.path);
-    expect((await reopened.call("/auth/login", "POST", { username: "alice", password: "a-long-test-password" })).status).toBe(200);
-    expect((await reopened.call("/auth/register", "POST", { username: "ALICE", password: "a-long-password" })).status).toBe(409);
+    expect((await reopened.call("/auth/dev", "POST", {username: "alice"})).status).toBe(200);
     expect((await reopened.call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
   });
 
@@ -123,14 +117,13 @@ describe("Accounts", () => {
     expect((await call("/solves?limit=-1", "GET", undefined, bob.token)).status).toBe(422);
   });
 
-  test("login, unique usernames, validation, logout and expired sessions", async () => {
+  test("dev sign-in, validation, logout and expired sessions", async () => {
     const { db, call, register } = setup();
     const alice = await register("alice");
-    expect((await call("/auth/register", "POST", { username: "ALICE", password: "a-long-password" })).status).toBe(409);
-    expect((await call("/auth/register", "POST", { username: "bad name", password: "a-long-password" })).status).toBe(400);
-    expect((await call("/auth/login", "POST", { username: "alice", password: "wrong" })).status).toBe(401);
-    const login = await call("/auth/login", "POST", { username: "ALICE", password: "a-long-test-password" });
+    expect((await call("/auth/dev", "POST", { username: "bad name" })).status).toBe(400);
+    const login = await call("/auth/dev", "POST", { username: "alice" });
     expect(login.status).toBe(200);
+    expect(login.body.user.id).toBe(alice.user.id);
     await call("/auth/logout", "POST", undefined, login.body.token);
     expect((await call("/auth/me", "GET", undefined, login.body.token)).status).toBe(401);
     db.db.query("UPDATE auth_tokens SET expires_at = 0").run();

@@ -14,10 +14,10 @@ func TestSessionNamesSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = db.Call(func(c *Conn) error {
-		if _, err := c.Exec("INSERT INTO users(id,username,password_hash) VALUES('u','sam','x')"); err != nil {
+		if _, err := c.Exec("INSERT INTO users(id,username) VALUES('u','sam')"); err != nil {
 			return err
 		}
-		caller := &ApiCaller{user: M{"id": "u", "password_hash": "x"}}
+		caller := &ApiCaller{user: M{"id": "u"}}
 		state := &AppState{catalog: &Catalog{}}
 		push := func(op M) (M, error) {
 			result, err := syncPush(c, state, "u", caller, M{"operations": []any{op}})
@@ -75,10 +75,10 @@ func TestSyncedSolveLimitsAndCompactReceipts(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = db.Call(func(c *Conn) error {
-		if _, err := c.Exec("INSERT INTO users(id,username,password_hash) VALUES('u','sam','x')"); err != nil {
+		if _, err := c.Exec("INSERT INTO users(id,username) VALUES('u','sam')"); err != nil {
 			return err
 		}
-		caller := &ApiCaller{user: M{"id": "u", "password_hash": "x"}}
+		caller := &ApiCaller{user: M{"id": "u"}}
 		state := &AppState{catalog: &Catalog{}}
 		push := func(op M) (any, error) { return syncPush(c, state, "u", caller, M{"operations": []any{op}}) }
 		status := func(_ any, err error) int {

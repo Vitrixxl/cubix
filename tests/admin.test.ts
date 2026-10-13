@@ -15,7 +15,7 @@ async function login(origin:string,token=currentToken,headers:Record<string,stri
 test("admin access requires the container-generated token; HttpOnly session lasts one day, survives restart, and can be revoked",async()=>{
  const {origin,db,app}=setup();
  expect((await fetch(origin+"/api/admin/overview")).status).toBe(401);
- const user=await createApiClient(origin,{getToken:()=>null}).register("ordinary_user","a-long-test-password");
+ const user=await createApiClient(origin,{getToken:()=>null}).devLogin("ordinary_user");
  expect((await fetch(origin+"/api/admin/overview",{headers:{authorization:"Bearer "+user.token}})).status).toBe(401);
  expect((await login(origin,"cbx_admin_"+"0".repeat(64))).response.status).toBe(401);expect((await login(origin,"")).response.status).toBe(422);
  const admin=await login(origin);expect(admin.response.status).toBe(200);
@@ -30,14 +30,11 @@ test("admin access requires the container-generated token; HttpOnly session last
 });
 
 test("admin lists accounts and HTTP traffic without secrets or spoofed IPs",async()=>{
- const {origin,db}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.register("visible_user","a-long-test-password");
- // Guests can no longer be created; one left from before still shows as such.
- db.db.exec("INSERT INTO users(id,username) VALUES('old-guest','guest-old')");
+ const {origin,db}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.devLogin("visible_user");
  await fetch(origin+"/missing-path?token=do-not-log-this",{headers:{"x-forwarded-for":"203.0.113.200",authorization:"Bearer do-not-log-this"}});
  const admin=await login(origin);
  const users=await adminGet(origin,admin.cookie,"/api/admin/users?filter=registered");
- expect(users.counts).toEqual({all:2,registered:1,guests:1});expect(users.rows.map((r:any)=>r.username)).toEqual(["visible_user"]);
- expect((await adminGet(origin,admin.cookie,"/api/admin/users")).rows).toHaveLength(2);
+ expect(users.counts).toEqual({all:1,registered:1,guests:0});expect(users.rows.map((r:any)=>r.username)).toEqual(["visible_user"]);
  const requests=await adminGet(origin,admin.cookie,"/api/admin/requests?limit=200");
  const row=requests.rows.find((r:any)=>r.path==="/missing-path");expect(row.status).toBe(404);expect(row.ip).toBe("127.0.0.1");
  const ips=await adminGet(origin,admin.cookie,"/api/admin/ips");expect(ips.rows.map((r:any)=>r.ip)).toEqual(["127.0.0.1"]);expect(ips.rows[0].requests).toBeGreaterThan(2);
@@ -179,7 +176,6 @@ test('admin WebSocket closes expired sessions and rejects invalid filter message
 });
 
 // Administration data: overview, persistent request log, IPs, accounts and account actions.
-const PASSWORD="a-long-test-password";
 const dayAgo=(n:number)=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
 const isoAgo=(n:number)=>new Date(Date.now()-n*864e5).toISOString();
 async function adminGet(origin:string,cookie:string,path:string) {const response=await fetch(origin+path,{headers:{cookie}});expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("no-store");return response.json() as Promise<any>;}
@@ -187,7 +183,7 @@ async function call(origin:string,method:string,path:string,{token,body,headers=
  const response=await fetch(origin+path,{method,headers:{...(body===undefined?{}:{"content-type":"application/json"}),...(token?{authorization:"Bearer "+token}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)});
  const text=await response.text();return {status:response.status,body:text?JSON.parse(text):null};
 }
-const register=async(origin:string,username:string,headers:Record<string,string>={})=>(await call(origin,"POST","/api/auth/register",{body:{username,password:PASSWORD},headers})).body as {token:string;user:{id:string}};
+const register=async(origin:string,username:string,headers:Record<string,string>={})=>(await call(origin,"POST","/api/auth/dev",{body:{username},headers})).body as {token:string;user:{id:string}};
 async function eventually<T>(read:()=>Promise<T>,ok:(value:T)=>boolean) {let value=await read();for(let i=0;i<100&&!ok(value);i++){await Bun.sleep(30);value=await read();}return value;}
 
 test("admin data endpoints require the admin session, never cache and validate their parameters",async()=>{
@@ -212,14 +208,14 @@ test("admin overview counts accounts, activity, solves, traffic, IPs and duels w
  const reg=await register(origin,"overview_user");await register(origin,"overview_two");
  for(const timeMs of [9000,10000])expect((await call(origin,"POST","/api/solves",{token:reg.token,body:{timeMs}})).status).toBe(200);
  expect((await fetch(origin+"/missing-page")).status).toBe(404);
- db.db.exec(`INSERT INTO users(id,username,password_hash,created_at) VALUES('old-reg','old_reg','x','${isoAgo(40)}'),('mid-guest','guest-mid',NULL,'${isoAgo(10)}');
+ db.db.exec(`INSERT INTO users(id,username,created_at) VALUES('old-reg','old_reg','${isoAgo(40)}'),('mid-guest','guest-mid','${isoAgo(10)}');
   INSERT INTO solves(time_ms,user_id,created_at) VALUES(8000,'old-reg','${isoAgo(3)}'),(8500,'old-reg','${isoAgo(20)}');
   INSERT INTO user_activity(user_id,day,requests) VALUES('old-reg','${dayAgo(3)}',4),('mid-guest','${dayAgo(20)}',2);
   INSERT INTO traffic_daily(day,ip,requests,errors,server_errors,limited,first_at,last_at) VALUES('${dayAgo(3)}','198.51.100.1',10,2,1,1,0,0),('${dayAgo(20)}','198.51.100.2',5,0,0,0,0,0);
   INSERT INTO duel_games(race,game,event,ended_at,player1_name,player2_name,results) VALUES('r1',1,'333',${Date.now()},'a','b','[]'),('r2',1,'333',${Date.now()-10*864e5},'a','b','[]');`);
  const admin=await login(origin);
  const body=await adminGet(origin,admin.cookie,"/api/admin/overview");
- expect(body.users).toEqual({total:4,registered:3,guests:1,new:{today:2,d7:2,d30:3},active:{today:2,d7:3,d30:4}});
+ expect(body.users).toEqual({total:4,registered:4,guests:0,new:{today:2,d7:2,d30:3},active:{today:2,d7:3,d30:4}});
  expect(body.solves).toEqual({total:4,today:2,d7:3});
  // two registrations, two solves, the missing page and the admin login.
  expect(body.requests).toEqual({today:6,errorsToday:1,serverErrorsToday:0,rateLimitedToday:0});
@@ -229,7 +225,7 @@ test("admin overview counts accounts, activity, solves, traffic, IPs and duels w
  expect(body.series.at(-1)).toEqual({day:dayAgo(0),requests:6,ips:1,errors:1,serverErrors:0,limited:0,signups:2,registrations:2,active:2,solves:2,duels:1});
  expect(body.series.at(-4)).toEqual({day:dayAgo(3),requests:10,ips:1,errors:2,serverErrors:1,limited:1,signups:0,registrations:0,active:1,solves:1,duels:0});
  expect(body.series.at(-21)).toMatchObject({requests:5,active:1,solves:1});
- expect(body.series.at(-11)).toMatchObject({signups:1,registrations:0,duels:1});
+ expect(body.series.at(-11)).toMatchObject({signups:1,registrations:1,duels:1});
  expect(body.server.version).toMatch(/^\d+\.\d+\.\d+$/);expect(body.server.uptimeMs).toBeGreaterThanOrEqual(0);
  expect(body.server.db.bytes).toBeGreaterThan(0);expect(body.server.db.logRows).toBe(6);
  expect(body.server.log).toMatchObject({retentionDays:30,maxRows:200000,maxImportantRows:50000,dropped:0});
@@ -238,7 +234,7 @@ test("admin overview counts accounts, activity, solves, traffic, IPs and duels w
 test("persistent request log classifies, filters and paginates requests without secrets",async()=>{
  const {origin,db}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1"});
  const user=await register(origin,"log_user",{"x-forwarded-for":"203.0.113.10","user-agent":"cubix-test-agent/1.0"});
- expect((await call(origin,"POST","/api/auth/login",{body:{username:"log_user",password:"wrong-secret-password"},headers:{"x-forwarded-for":"203.0.113.11"}})).status).toBe(401);
+ expect((await call(origin,"POST","/api/auth/google",{body:{credential:"wrong-secret-password"},headers:{"x-forwarded-for":"203.0.113.11"}})).status).toBe(401);
  expect((await call(origin,"GET","/api/auth/me",{token:user.token})).status).toBe(200);
  expect((await fetch(origin+"/missing.js?token=do-not-log-this")).status).toBe(404);
  expect((await call(origin,"GET","/api/nope?secret=do-not-log-this",{token:user.token})).status).toBe(404);
@@ -246,19 +242,19 @@ test("persistent request log classifies, filters and paginates requests without 
  const everything=await get("?limit=200");
  expect(everything.total).toBe(6);expect(everything.totalCapped).toBe(false);expect(everything.rows.map((r:any)=>r.id)).toEqual([...everything.rows.map((r:any)=>r.id)].sort((a:number,b:number)=>b-a));
  expect(everything.kinds).toContain("auth");
- const register_=everything.rows.find((r:any)=>r.path==="/api/auth/register");
+ const register_=everything.rows.find((r:any)=>r.path==="/api/auth/dev");
  expect(register_).toMatchObject({method:"POST",status:200,ip:"203.0.113.10",kind:"auth",important:true,userId:user.user.id,username:"log_user",userAgent:"cubix-test-agent/1.0"});
  expect(typeof register_.at).toBe("number");expect(typeof register_.durationMs).toBe("number");
  expect(everything.rows.find((r:any)=>r.path==="/missing.js")).toMatchObject({status:404,kind:"not-found",important:false});
  expect(everything.rows.find((r:any)=>r.path==="/api/auth/me")).toMatchObject({kind:"api",important:false,userId:user.user.id});
  const important=await get("?important=1");
- expect(important.rows.map((r:any)=>r.path).sort()).toEqual(["/api/admin/login","/api/auth/login","/api/auth/register","/api/nope"]);
+ expect(important.rows.map((r:any)=>r.path).sort()).toEqual(["/api/admin/login","/api/auth/dev","/api/auth/google","/api/nope"]);
  expect(important.rows.find((r:any)=>r.path==="/api/nope")).toMatchObject({kind:"client-error",userId:user.user.id});
- const auth=await get("?kind=auth");expect(auth.total).toBe(2);expect(auth.rows.find((r:any)=>r.status===401)).toMatchObject({path:"/api/auth/login",ip:"203.0.113.11",userId:null});
+ const auth=await get("?kind=auth");expect(auth.total).toBe(2);expect(auth.rows.find((r:any)=>r.status===401)).toMatchObject({path:"/api/auth/google",ip:"203.0.113.11",userId:null});
  expect((await get("?status=4xx")).total).toBe(3);expect((await get("?status=404")).total).toBe(2);expect((await get("?status=5xx")).total).toBe(0);expect((await get("?status=error")).total).toBe(3);
- expect((await get("?ip=203.0.113.11")).rows.map((r:any)=>r.path)).toEqual(["/api/auth/login"]);
+ expect((await get("?ip=203.0.113.11")).rows.map((r:any)=>r.path)).toEqual(["/api/auth/google"]);
  expect((await get("?path=missing")).total).toBe(1);expect((await get("?method=post")).total).toBe(3);
- for(const who of ["log_user","LOG_USER",user.user.id])expect((await get("?user="+who)).rows.map((r:any)=>r.path)).toEqual(["/api/nope","/api/auth/me","/api/auth/register"]);
+ for(const who of ["log_user","LOG_USER",user.user.id])expect((await get("?user="+who)).rows.map((r:any)=>r.path)).toEqual(["/api/nope","/api/auth/me","/api/auth/dev"]);
  // Admin reads are logged too: paginate a filter they do not change, or with the `before` cursor.
  const [first,second]=[await get("?important=1&limit=2&page=0"),await get("?important=1&limit=2&page=1")];
  expect(first.rows).toHaveLength(2);expect(second.rows).toHaveLength(2);expect(first.total).toBe(4);expect(second.total).toBe(4);expect(second.rows[0].id).toBeLessThan(first.rows[1].id);
@@ -266,7 +262,7 @@ test("persistent request log classifies, filters and paginates requests without 
  expect((await get("?important=1&before="+first.rows[1].id+"&limit=2")).rows).toEqual(second.rows);
  expect((await get(`?from=${Date.now()+60000}`)).total).toBe(0);expect((await get(`?to=${Date.now()+60000}&from=0`)).total).toBeGreaterThanOrEqual(6);
  const stored=JSON.stringify(db.db.query("SELECT * FROM request_log").all());
- for(const text of [JSON.stringify(everything),stored])for(const secret of [user.token,"do-not-log-this","wrong-secret-password",PASSWORD,"token_hash","password_hash","?"])expect(text).not.toContain(secret);
+ for(const text of [JSON.stringify(everything),stored])for(const secret of [user.token,"do-not-log-this","wrong-secret-password","token_hash","password_hash","?"])expect(text).not.toContain(secret);
 });
 
 test("persistent request log survives a restart",async()=>{
@@ -306,6 +302,7 @@ test("admin IP listing aggregates requests, errors, rate limits and accounts per
 test("admin account listing and detail report solves, activity, sessions, learned cases and duels",async()=>{
  const {origin,db}=setup();const {CASES}=await import("./backend");
  const alice=await register(origin,"alice");const bob=await register(origin,"bob");
+ // An account from before, inserted directly: guests are gone, so it counts as any other.
  db.db.exec("INSERT INTO users(id,username) VALUES('old-guest','guest-old')");const guest={user:{id:"old-guest",username:"guest-old"}};
  // Registration and the direct INSERT can share a millisecond; give this ordering fixture distinct dates.
  const created=Date.now();
@@ -315,13 +312,13 @@ test("admin account listing and detail report solves, activity, sessions, learne
  db.db.exec(`INSERT INTO duel_games(race,game,event,ended_at,player1_id,player1_name,player1_ao5,player2_id,player2_name,player2_ao5,winner,results) VALUES('race',1,'333',${Date.now()},'${bob.user.id}','bob',12000,'${alice.user.id}','alice',10000,1,'[]')`);
  const admin=await login(origin);const get=(query:string)=>adminGet(origin,admin.cookie,"/api/admin/users"+query);
  const list=await get("");
- expect(list.counts).toEqual({all:3,registered:2,guests:1});expect(list.total).toBe(3);
+ expect(list.counts).toEqual({all:3,registered:3,guests:0});expect(list.total).toBe(3);
  expect(list.rows.map((r:any)=>r.username)).toEqual([guest.user.username,"bob","alice"]);
  const row=list.rows.find((r:any)=>r.username==="alice");
  expect(row).toMatchObject({id:alice.user.id,isGuest:false,solves:4,solves7d:4,learnedCases:1,duels:1,activeSessions:1});
  for(const key of ["createdAt","lastSeenAt","lastSolveAt"])expect(Math.abs(row[key]-Date.now())).toBeLessThan(60000);
- expect((await get("?filter=registered")).rows.map((r:any)=>r.username)).toEqual(["bob","alice"]);
- expect((await get("?filter=guests")).rows).toMatchObject([{id:guest.user.id,isGuest:true}]);
+ expect((await get("?filter=registered")).rows.map((r:any)=>r.username)).toEqual([guest.user.username,"bob","alice"]);
+ expect((await get("?filter=guests")).rows).toEqual([]);
  expect((await get("?q=LIC")).rows.map((r:any)=>r.username)).toEqual(["alice"]);
  expect((await get("?q="+bob.user.id)).rows.map((r:any)=>r.username)).toEqual(["bob"]);
  expect((await get("?sort=solves")).rows[0].username).toBe("alice");
@@ -354,7 +351,7 @@ test("admin can sign an account out everywhere and delete it with all its data; 
  expect(revoked.status).toBe(200);expect(await revoked.json()).toEqual({ok:true,revoked:1});
  expect((await call(origin,"GET","/api/auth/me",{token:victim.token})).status).toBe(401);
  expect((await call(origin,"GET","/api/auth/me",{token:other.token})).status).toBe(200);
- const again=(await call(origin,"POST","/api/auth/login",{body:{username:"victim",password:PASSWORD}})).body;
+ const again=await register(origin,"victim");
  expect((await fetch(origin+`/api/admin/users/${victim.user.id}`,{method:"DELETE",headers:{cookie:admin.cookie,origin:"https://foreign.example"}})).status).toBe(403);
  const deleted=await fetch(origin+`/api/admin/users/${victim.user.id}`,{method:"DELETE",headers});
  expect(deleted.status).toBe(200);expect(await deleted.json()).toEqual({ok:true,username:"victim",solves:1,sessions:0});
@@ -377,8 +374,8 @@ test("admin can sign an account out everywhere and delete it with all its data; 
 test("admin WebSocket pushes newly logged important requests while live",async()=>{
  const {origin}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
  await fetch(origin+"/quiet-page");
- expect((await call(origin,"POST","/api/auth/login",{body:{username:"nobody",password:"wrong-secret-password"}})).status).toBe(401);
- const event:any=await eventually(async()=>live.important.find((r:any)=>r.path==="/api/auth/login"),Boolean);
+ expect((await call(origin,"POST","/api/auth/google",{body:{credential:"wrong-secret-password"}})).status).toBe(401);
+ const event:any=await eventually(async()=>live.important.find((r:any)=>r.path==="/api/auth/google"),Boolean);
  expect(event).toMatchObject({status:401,kind:"auth",important:true,method:"POST"});expect(typeof event.id).toBe("number");
  expect(live.important.some((r:any)=>r.path==="/quiet-page")).toBe(false);
  expect(JSON.stringify(live.important)).not.toContain("wrong-secret-password");
@@ -426,22 +423,11 @@ test("rate-limited requests are logged as important once a minute per IP and all
  expect((await adminGet(origin,admin.cookie,"/api/admin/ips?sort=limited")).rows[0]).toMatchObject({ip:"203.0.113.30",requests:10,limited,errors:limited});
 });
 
-test("sign-in limits count per username and client, decode the path as routing does, and cap registrations per client",async()=>{
+test("sign-in limits count per client and decode the path as routing does",async()=>{
  const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1"});
- const from=(ip:string)=>({"x-forwarded-for":ip});
- const signIn=(password:string,ip:string)=>call(origin,"POST","/api/auth/login",{body:{username:"victim",password},headers:from(ip)});
- expect((await call(origin,"POST","/api/auth/register",{body:{username:"victim",password:PASSWORD},headers:from("203.0.113.40")})).status).toBe(200);
- const statuses=[];for(let i=0;i<11;i++)statuses.push((await signIn("wrong-secret-password","203.0.113.41")).status);
- expect(statuses.slice(0,10).every(s=>s===401)).toBe(true);expect(statuses[10]).toBe(429);
- // Another client's failures never lock the owner out.
- expect((await signIn(PASSWORD,"203.0.113.40")).status).toBe(200);
- // An unknown username answers as a wrong password.
- expect((await call(origin,"POST","/api/auth/login",{body:{username:"nobody_here",password:PASSWORD},headers:from("203.0.113.40")})).status).toBe(401);
- // `%6c` is `l`: the 20 sign-ins a minute still apply.
- const encoded=[];for(let i=0;i<21;i++)encoded.push((await call(origin,"POST","/api/auth/%6cogin",{body:{},headers:from("203.0.113.42")})).status);
+ // `%64` is `d`: the 20 sign-ins a minute still apply.
+ const encoded=[];for(let i=0;i<21;i++)encoded.push((await call(origin,"POST","/api/auth/%64ev",{body:{},headers:{"x-forwarded-for":"203.0.113.42"}})).status);
  expect(encoded.slice(0,20).every(s=>s===422)).toBe(true);expect(encoded[20]).toBe(429);
- const accounts=[];for(let i=0;i<11;i++)accounts.push((await call(origin,"POST","/api/auth/register",{body:{username:"many_"+i,password:PASSWORD},headers:from("203.0.113.43")})).status);
- expect(accounts).toEqual([...Array(10).fill(200),429]);
 });
 
 test("API bodies are small but for a signed-in sync push, and every response carries the security headers",async()=>{

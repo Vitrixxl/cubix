@@ -751,7 +751,7 @@
  "A faster method: a small V block, then the last four edges in one algorithm.": "Une méthode plus rapide : un petit bloc en V, puis les quatre dernières arêtes en un seul algorithme.",
  "A few seconds to set the app up for you": "Quelques secondes pour configurer l'appli pour toi",
  "A first layer, then the top corners and the centres with two repeated sequences.": "Une première couche, puis les coins du haut et les centres avec deux séquences répétées.",
- "A free account saves your times and syncs them between your devices. It takes a username and a password, nothing else.": "Un compte gratuit enregistre tes temps et les synchronise entre tes appareils. Il suffit d'un nom d'utilisateur et d'un mot de passe, rien d'autre.",
+ "A free account saves your times and syncs them between your devices. You sign in with your Google account, nothing else to fill in.": "Un compte gratuit enregistre tes temps et les synchronise entre tes appareils. Tu te connectes avec ton compte Google, rien d'autre à remplir.",
  "A letter turns that face a quarter turn clockwise, as you see it when you look straight at the face. A prime (') turns it counter-clockwise, a 2 half a turn.": "Une lettre tourne cette face d'un quart de tour dans le sens horaire, vue en regardant la face bien en face. Un prime (') la tourne dans le sens antihoraire, un 2 d'un demi-tour.",
  "A lowercase letter or a w turns the face with the layer behind it; a number in front sets how many layers turn, or, without the w, turns that inner layer alone.": "Une lettre minuscule ou un w tourne la face avec la couche derrière elle ; un nombre devant indique combien de couches tournent, ou, sans le w, tourne seulement cette couche intérieure.",
  "A lowercase letter or a w turns the face with the middle layer behind it.": "Une lettre minuscule ou un w tourne la face avec la couche du milieu derrière elle.",
@@ -1005,7 +1005,7 @@
  "Buy me a coffee": "Offre-moi un café",
  "by {0}": "de {0}",
  "By case": "Par cas",
- "By creating an account, you accept the {terms} and the {privacy}.": "En créant un compte, tu acceptes les {terms} et la {privacy}.",
+ "By continuing, you accept the {terms} and the {privacy}.": "En continuant, tu acceptes les {terms} et la {privacy}.",
  "By hand": "À la main",
  "Bye": "Exempt",
  "calculates them.": "les calcule.",
@@ -3744,5 +3744,10 @@
  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. In the browser, on computer and phone. No ads, no premium tier.": "Qbix est une appli de speedcubing tout-en-un et gratuite : un chrono WCA avec mélanges random-state et moyennes, 6 500 algorithmes (F2L, OLL, PLL, ZBLL) avec un lecteur 3D, l'entraînement par cas, des cours étape par étape, des duels en direct et des stats. Dans le navigateur, sur ordinateur et téléphone. Sans pub, sans offre premium.",
  "Use Qbix in the browser on your computer or phone: your account follows you.": "Utilise Qbix dans le navigateur sur ton ordinateur ou ton téléphone : ton compte te suit.",
  "In the browser, on computer and phone, even offline": "Dans le navigateur, sur ordinateur et téléphone, même hors ligne",
- "No account needed · works offline": "Sans compte · hors ligne"
+ "No account needed · works offline": "Sans compte · hors ligne",
+ "Dev sign-in": "Connexion de développement",
+ "Google sign-in did not load. Check your connection.": "La connexion Google ne s'est pas chargée. Vérifie ta connexion.",
+ "To sign in, open Qbix on the web.": "Pour te connecter, ouvre Qbix sur le web.",
+ "Google cannot be reached. Please try again.": "Impossible de joindre Google. Réessaie.",
+ "Google sign-in failed. Please try again.": "La connexion Google a échoué. Réessaie."
 }

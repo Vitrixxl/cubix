@@ -47,7 +47,7 @@ func TestClassification(t *testing.T) {
 		store        bool
 	}{
 		{"GET", "/api/health", 429, "rate-limit", true, true},
-		{"POST", "/api/auth/login", 401, "auth", true, true},
+		{"POST", "/api/auth/google", 401, "auth", true, true},
 		{"GET", "/api/auth/me", 200, "api", false, true},
 		{"GET", "/api/admin/overview", 200, "admin", false, true},
 		{"POST", "/api/admin/users/x/revoke", 200, "admin", true, true},

@@ -24,8 +24,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { CaseTile } from "./algorithms";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Input } from "@/components/ui/input";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { FieldError } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { language, tr } from "../../src/client/i18n";
 import { LanguagePicker, said } from "./base";
@@ -126,18 +125,17 @@ function Settings() {
 }
 
 
-/** The account's data: a copy to download, and the account deleted with its password. */
+/** The account's data: a copy to download, and the account deleted once confirmed. */
 function AccountData() {
-  const [password, setPassword] = useState(""),
-    [busy, setBusy] = useState(false),
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function remove(e: React.FormEvent) {
     e.preventDefault();
-    if (!password || busy) return;
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
-      await call("deleteAccount", password);
+      await call("deleteAccount");
       await s.action("accountDeleted");
       toast.success(tr("Your account and its data were deleted."));
     } catch (reason) {
@@ -153,7 +151,7 @@ function AccountData() {
           <Download />
           {tr("Download my data")}
         </UiButton>
-        <AlertDialog onOpenChange={() => (setPassword(""), setError(""))}>
+        <AlertDialog onOpenChange={() => setError("")}>
           <AlertDialogTrigger render={<UiButton variant="ghost" className="text-muted-foreground hover:text-destructive" data-action="deleteAccount" />}>
             <Trash2 />
             {tr("Delete my account")}
@@ -164,14 +162,10 @@ function AccountData() {
                 <AlertDialogTitle>{tr("Delete your account?")}</AlertDialogTitle>
                 <AlertDialogDescription>{tr("Your times, sessions, friends, messages, groups you own and everything else of the account are erased from the server at once. This cannot be undone.")}</AlertDialogDescription>
               </AlertDialogHeader>
-              <Field data-invalid={!!error || undefined}>
-                <FieldLabel htmlFor="delete-password">{tr("Your password")}</FieldLabel>
-                <Input id="delete-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus aria-invalid={!!error || undefined} />
-                {error && <FieldError>{error}</FieldError>}
-              </Field>
+              {error && <FieldError>{error}</FieldError>}
               <AlertDialogFooter>
                 <AlertDialogCancel type="button">{tr("Keep my account")}</AlertDialogCancel>
-                <UiButton type="submit" variant="destructive" disabled={!password || busy}>
+                <UiButton type="submit" variant="destructive" disabled={busy}>
                   {busy ? tr("Deleting…") : tr("Delete for good")}
                 </UiButton>
               </AlertDialogFooter>

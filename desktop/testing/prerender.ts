@@ -67,10 +67,8 @@ try {
   await guest.goto(origin + "/login?redirect=%2Fcommunity");
   await guest.waitForSelector(".login");
   await guest.waitForURL((url) => url.pathname === "/timer");
-  await guest.locator('[data-action="login:mode:register"]').click();
   await guest.fill("#login-username", `prerender_${Date.now() % 1e8}`);
-  await guest.fill("#login-password", "a-long-test-password");
-  await guest.locator('[data-action="login:submit"]').click();
+  await guest.locator('[data-action="login:dev"]').click();
   await guest.waitForURL(/community/, { timeout: 30000 });
   console.log("An account's page asks a guest to sign in over their page; /login opens the dialog and goes on to its redirect");
 

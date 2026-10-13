@@ -55,7 +55,7 @@ test("session names are saved offline first, then reach the other devices; impor
   const db = openDb(), server = startApi(db.path);
   cleanup.push(() => db.db.close());
   const origin = `http://127.0.0.1:${server.server.port}`, a = device(origin), b = device(origin);
-  await a.api.register("sessions_alice", "a-long-test-password");
+  await a.api.devLogin("sessions_alice");
   const session = await a.api.createSession("playground", [], "333", {});
   await a.api.addSolve({ sessionId: session.id, timeMs: 12000, puzzle: "333" });
   // Renamed twice before syncing: only the latest name goes up.
@@ -66,7 +66,7 @@ test("session names are saved offline first, then reach the other devices; impor
   await a.sync();
   expect(a.status()).toMatchObject({ state: "synced", pending: 0 });
   expect(db.db.query<{ name: string }, []>("SELECT name FROM sessions ORDER BY name").all().map((r) => r.name)).toEqual(["Comp prep", "OH warmup"]);
-  await b.api.login("sessions_alice", "a-long-test-password");
+  await b.api.devLogin("sessions_alice");
   await b.sync();
   expect(b.read.sessions("333").map((x) => [x.name, x.count]).sort()).toEqual([["Comp prep", 1], ["OH warmup", 1]]);
   // Cleared on one device: the other shows its day and event again.
