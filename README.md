@@ -37,37 +37,14 @@ c'est la même PWA, dans sa propre fenêtre. Voir [le guide web](desktop/README.
 
 ```sh
 bun run mobile          # lancer dans l'émulateur Android
-bun run build:android   # construire mobile/build/cubix-release.apk
 ```
 
-L'APK release fonctionne sans Metro. Installation, prérequis Android et
-validation : [guide mobile](mobile/README.md).
+Prérequis Android et validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` pousse `main`, met à jour le serveur avec
-`pihost update cubix` (l'image construit aussi l'application web),
-puis livre le mobile de deux façons (`CUBIX_ADMIN_PASSWORD` du serveur, lu par SSH, ou
-`CUBIX_DEPLOY_PASSWORD` ; ce mot de passe ne sert qu'aux envois mobiles) :
-
-- **Mise à jour à la volée (expo-updates)**, à chaque déploiement : `expo export` produit
-  le bundle JavaScript et ses assets, envoyés à l'API (`PUT /api/mobile/updates/assets/<sha256>`
-  puis `PUT /api/mobile/updates`). Les applications installées interrogent
-  `GET /api/mobile/updates/manifest` au lancement ; quand un bundle est à télécharger,
-  l'écran de démarrage au cube mélangé qui se résout couvre
-  le téléchargement et le redémarrage avant d'ouvrir la pratique, sans réinstallation.
-  Sans mise à jour, l'application s'ouvre directement. Sans connexion, la version installée
-  s'ouvre et une notification « Mode hors ligne » l'annonce. Ouvrir les paramètres
-  relance la vérification et propose « Restart to update » dès qu'un bundle est prêt.
-- **APK**, seulement quand le natif change : `mobile/app.config.ts` dérive une
-  `runtimeVersion` des fichiers natifs (app.json, plugins, bun.lock, icônes, police).
-  Si elle diffère de celle de l'APK stocké, le script compile l'APK ARM64 à basse priorité
-  et l'envoie (`PUT /api/mobile/apk`) ; l'application affiche alors « Download update ».
-  `--apk` force l'APK, `--skip-apk` ou `--update-only` s'en dispensent, `--apk-only` ne fait que lui.
-
-L'API stocke ces fichiers à côté de sa base ; `/api/mobile/release` annonce son build,
-celui de l'APK, sa runtime version et les updates publiées. Le numéro de build est la date
-du commit en minutes : il est calculé par `mobile/app.config.ts` pour l'APK et par le
-`Dockerfile` pour l'API. Aucune release GitHub n'intervient. L'APK n'est pas compilé sur le
-Raspberry Pi : Gradle dépasse sa mémoire et Google ne publie pas de NDK Android pour Linux ARM64.
+`pihost update cubix` (l'image construit aussi l'application web), puis attend
+qu'il réponde avec ce commit et serve le site. Seul le web est livré : ni APK ni
+mise à jour à la volée.
 
 ## API
 

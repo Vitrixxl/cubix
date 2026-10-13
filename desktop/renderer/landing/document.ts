@@ -26,13 +26,12 @@ export function structuredData(language: Language = "en") {
       description: t(DESCRIPTION),
       applicationCategory: "GameApplication",
       applicationSubCategory: "Speedcubing timer and algorithm trainer",
-      operatingSystem: "Web, Android",
+      operatingSystem: "Web",
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       featureList: FEATURES.flatMap((feature) => feature.points.map((point) => t(point))),
       image: SITE + "/og.png",
       screenshot: SITE + "/assets/landing/timer.webp",
       inLanguage: LANGUAGES.map((l) => l.id),
-      downloadUrl: SITE + "/#download",
       isAccessibleForFree: true,
       sameAs: [SOURCE],
     },
@@ -141,10 +140,9 @@ ${NAME} is free on every platform, without ads, premium tier or subscription. It
 
 ## Use it
 
-- [Open ${NAME} in the browser](${SITE}/timer): the web app, installable and usable offline
+- [Open ${NAME} in the browser](${SITE}/timer): the web app, usable offline
 - [Algorithms](${SITE}/algorithms?puzzle=333): every case of every puzzle (F2L, OLL, PLL, ZBLL and more), with its algorithms
 - [Learn](${SITE}/learn?puzzle=333): step-by-step courses for each puzzle's methods
-- [Android APK](${SITE}/api/mobile/apk): direct download
 
 ## Features
 
@@ -182,12 +180,6 @@ ${feature.points.map((point) => `- ${point}`).join("\n")}`).join("\n\n")}
 ## Importing from another timer
 
 ${NAME} reads the exports of ${IMPORTS.join(", ")}, on the device, with each solve's date, penalty, scramble and session. Importing a file twice adds nothing twice.
-
-## Install
-
-- Web: open ${SITE}/timer in any recent browser; Chrome, Edge and Safari can install it as an app, on Windows, Linux and macOS too. It works offline.
-- Android (64-bit ARM): download ${SITE}/api/mobile/apk and open it. The app updates itself.
-- iPhone and iPad: no app yet; use ${NAME} in Safari and add it to the Home Screen.
 
 ## Questions
 

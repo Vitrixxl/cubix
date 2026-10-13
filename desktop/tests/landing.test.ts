@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { detectPlatform, Landing } from "../renderer/landing/Landing";
+import { Landing } from "../renderer/landing/Landing";
 import { FAQ, FEATURES, SITE } from "../renderer/landing/content";
 import { landingDocument, llms, llmsFull, robots, sitemap, structuredData } from "../renderer/landing/document";
 import { applyAlg, colorOf, solved, type CubeState } from "../../src/shared/cube";
@@ -9,18 +9,7 @@ import { INSPECTION, SCRAMBLE, SOLUTION, TURN_BACK, TURNS, loopScene, solveScene
 import { setLanguage } from "../../src/client/i18n";
 
 describe("the landing page", () => {
-  test("knows the visitor's platform from the user agent", () => {
-    // A computer installs the web app from its browser.
-    for (const agent of ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0", "Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0", "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1.15"])
-      expect(detectPlatform(agent)).toBe("web");
-    expect(detectPlatform("Mozilla/5.0 (Linux; Android 14; Pixel 7) Chrome/130.0 Mobile")).toBe("android");
-    expect(detectPlatform("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)")).toBe("ios");
-    // An iPad asks for the desktop site: a Mac with touch.
-    expect(detectPlatform("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15", 5)).toBe("ios");
-    expect(detectPlatform("SomeBot/1.0")).toBe("web");
-  });
-
-  test("renders whole without JavaScript: every feature, the downloads, the questions", () => {
+  test("renders whole without JavaScript: every feature, the questions", () => {
     const html = renderToString(createElement(Landing));
     expect(html).toContain("<h1");
     const text = html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'");
@@ -33,7 +22,7 @@ describe("the landing page", () => {
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
     expect(html).toContain("buymeacoffee.com");
     expect(html).toContain('href="/timer?puzzle=333"');
-    expect(html).toContain("/api/mobile/apk");
+    expect(html).not.toContain("/api/mobile/apk");
     expect(html).not.toContain("smartCube");
   });
 

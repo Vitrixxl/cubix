@@ -9,7 +9,7 @@ export const NAME = "Qbix";
 export const SOURCE = "https://github.com/Vitrixxl/cubix";
 export const TITLE = "Qbix: the free speedcubing timer and algorithm trainer";
 export const DESCRIPTION =
-  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. Web (installable on Windows, Linux and macOS) and Android. No ads, no premium tier.";
+  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. In the browser, on computer and phone. No ads, no premium tier.";
 export const TAGLINE = "One app to time, learn and get faster on every WCA puzzle, from your first solve to competition. Free, without ads or premium tier.";
 
 export const PUZZLES = ["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "3×3 One-Handed", "3×3 Blindfolded", "4×4 and 5×5 Blindfolded", "Square-1", "Pyraminx", "Skewb", "Megaminx"];
@@ -104,9 +104,9 @@ export const FEATURES: Feature[] = [
     id: "everywhere",
     hook: "Your times, on every device.",
     title: "Your times everywhere, even offline",
-    summary: "Install Qbix on your computer or phone, or use it in the browser: your account follows you.",
+    summary: "Use Qbix in the browser on your computer or phone: your account follows you.",
     points: [
-      "Web (installable on Windows, Linux and macOS, works offline) and Android",
+      "In the browser, on computer and phone, even offline",
       "Every solve saved on the device first, then synced to your other devices",
       `Bring your history from ${IMPORTS.slice(0, 5).join(", ")} and more, in one step`,
     ],
@@ -124,7 +124,6 @@ export const FAQ: Question[] = [
   { question: "Which puzzles does Qbix support?", answer: `Every WCA event: ${PUZZLES.join(", ")}.` },
   { question: "Can I import my times from csTimer or Twisty Timer?", answer: `Yes. Qbix reads the exports of ${IMPORTS.join(", ")}, with your dates, penalties and sessions, right on your device.` },
   { question: "Does it work offline?", answer: "Yes. The timer, the algorithms and the training work without a connection; your solves are synced as soon as you are back online." },
-  { question: "Is there an iPhone or iPad app?", answer: "Not yet. On iOS, use Qbix in Safari and add it to your Home Screen: it opens like an app and works offline." },
   { question: "Are the scrambles official?", answer: "They are random-state scrambles, like the WCA's: every position of the puzzle is equally likely. They are generated on your device." },
   { question: "Is Qbix affiliated with Rubik's or the WCA?", answer: "No. Qbix is an independent project, open source on GitHub." },
 ];

@@ -1,13 +1,11 @@
 /**
  * The landing page at the site's root. The build renders it to HTML (desktop/web.ts), so search engines and language
- * models read it whole without JavaScript; the browser then hydrates it for what needs the visitor's device: the
- * platform it runs on, the APK's size, the cube that solves itself at the top
- * (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
+ * models read it whole without JavaScript; the browser then hydrates it for what needs the visitor's device: the cube
+ * that solves itself at the top (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
  */
-import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, Coffee, Download, Globe, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
+import { useEffect } from "react";
+import { ArrowRight, ArrowUpRight, Coffee, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Brand, Logo } from "../logo";
 import { FAQ, FEATURES, IMPORTS, NAME, SOURCE, type Feature } from "./content";
@@ -19,80 +17,15 @@ import { LanguagePicker, said, useLanguage } from "../base";
 import { language, preferred, setLanguage } from "../../../src/client/i18n";
 import { localePath } from "../../../src/client/lib/route";
 
-/** A computer installs the web app from its browser, so only phones are told apart. */
-export type Platform = "android" | "ios" | "web";
-/** The visitor's platform, from the browser's user agent; iPads present themselves as Macs with touch. */
-export function detectPlatform(agent: string, touch = 0): Platform {
-  if (/iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && touch > 1)) return "ios";
-  if (/Android/.test(agent)) return "android";
-  return "web";
-}
-
-/** What the download button says once the visitor's platform is known, where there is something to install. */
-const GET: Partial<Record<Platform, string>> = { android: "Download for Android" };
 const COFFEE = "https://buymeacoffee.com/vitrixxl";
 
 /** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
-function LinkButton({ href, size = "default", variant = "default", download, className, children }: { href: string; size?: "default" | "sm"; variant?: "default" | "outline" | "secondary" | "ghost"; download?: boolean; className?: string; children: React.ReactNode }) {
+function LinkButton({ href, size = "default", variant = "default", className, children }: { href: string; size?: "default" | "sm"; variant?: "default" | "outline" | "secondary" | "ghost"; className?: string; children: React.ReactNode }) {
   // The app's pages in the page's language (/fr/timer).
   return (
-    <a href={href.startsWith("/") && !href.startsWith("/api/") ? localePath(language(), href) : href} download={download} className={cn(buttonVariants({ size, variant }), className)}>
+    <a href={href.startsWith("/") ? localePath(language(), href) : href} className={cn(buttonVariants({ size, variant }), className)}>
       {children}
     </a>
-  );
-}
-
-const PLATFORMS: { id: Platform; label: string }[] = [
-  { id: "android", label: "Android" },
-  { id: "ios", label: "iPhone & iPad" },
-  { id: "web", label: "Web" },
-];
-const megabytes = (bytes?: number) => (bytes ? ` · ${Math.round(bytes / 1048576)} MB` : "");
-
-/** How to get Qbix on each platform, the visitor's own selected once known. */
-function Install({ detected }: { detected?: Platform }) {
-  const [chosen, setPlatform] = useState<Platform>(),
-    platform = chosen ?? detected ?? "web",
-    [apk, setApk] = useState<number>();
-  useEffect(() => {
-    void fetch("/api/mobile/release")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((release) => release?.apkSize && setApk(release.apkSize))
-      .catch(() => {});
-  }, []);
-  const note = "text-sm leading-relaxed text-muted-foreground";
-  return (
-    <Tabs value={platform} onValueChange={(value) => setPlatform(value as Platform)} className="gap-4 [&>[data-slot=tabs-content]]:px-2 [&>[data-slot=tabs-content]]:pb-2">
-      {/* The chosen platform on the accent fill, its 8px corners concentric with the list's 12px around 4px of padding. */}
-      <TabsList className="h-auto! w-full flex-wrap justify-start gap-0.5 bg-muted inset-ring-0">
-        {PLATFORMS.map((p) => (
-          <TabsTrigger key={p.id} value={p.id} className="h-8 flex-none px-3">
-            {said(p.label)}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      <TabsContent keepMounted value="android" className="flex flex-col items-start gap-3">
-        <p className={note}>{tr("Download the app and open the file to install it; your phone may ask you to allow installs from your browser once. It updates itself afterwards.")}</p>
-        <LinkButton href="/api/mobile/apk" download>
-          <Download data-icon="inline-start" />
-          {tr("Download the APK")}{megabytes(apk)}
-        </LinkButton>
-        <p className="text-xs text-muted-foreground">{tr("Android 7 and later, 64-bit ARM phones.")}</p>
-      </TabsContent>
-      <TabsContent keepMounted value="ios" className="flex flex-col items-start gap-3">
-        <p className={note}>
-          {tr("There is no iPhone or iPad app yet. Qbix runs in Safari: open it, then")}{" "}<strong className="font-semibold text-foreground">{tr("Share → Add to Home Screen")}</strong>{tr(". It opens full screen like an app and works offline.")}</p>
-        <LinkButton href="/timer?puzzle=333">
-          <Globe data-icon="inline-start" />
-          {tr("Open Qbix in Safari")}</LinkButton>
-      </TabsContent>
-      <TabsContent keepMounted value="web" className="flex flex-col items-start gap-3">
-        <p className={note}>{tr("Nothing to install: Qbix runs in any recent browser and works offline. Chrome and Edge also offer to install it as an app.")}</p>
-        <LinkButton href="/timer?puzzle=333">
-          <Globe data-icon="inline-start" />
-          {tr("Open Qbix in your browser")}</LinkButton>
-      </TabsContent>
-    </Tabs>
   );
 }
 
@@ -174,10 +107,7 @@ export function Landing() {
     const chosen = preferred();
     if (chosen !== "en") void setLanguage(chosen, false);
   }, []);
-  const [platform, setPlatform] = useState<Platform>();
-  useEffect(() => setPlatform(detectPlatform(navigator.userAgent, navigator.maxTouchPoints)), []);
-  const get = said((platform && GET[platform]) ?? tr("Download {0}", { 0: NAME })),
-    link = "rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground",
+  const link = "rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground",
     nav = "rounded-lg px-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground";
   return (
     <div className="flex min-h-svh flex-col overflow-x-clip bg-background text-foreground">
@@ -188,7 +118,6 @@ export function Landing() {
           </a>
           <nav aria-label={tr("Sections")} className="flex items-center gap-5 max-md:hidden">
             <a href="#tour" className={nav}>{tr("What it does")}</a>
-            <a href="#download" className={nav}>{tr("Download")}</a>
             <a href="#faq" className={nav}>{tr("Questions")}</a>
           </nav>
           <span className="flex-1" />
@@ -212,11 +141,7 @@ export function Landing() {
                 {tr("Open Qbix in your browser")}
                 <ArrowRight data-icon="inline-end" />
               </LinkButton>
-              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline · Web and Android")}</p>
-            </div>
-            {/* Or install it right here, the visitor's platform chosen for them. */}
-            <div id="download" className="landing-in w-full scroll-mt-20 rounded-3xl bg-card p-3 [--i:3]">
-              <Install detected={platform} />
+              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline")}</p>
             </div>
           </div>
           <HeroCube />
@@ -282,16 +207,10 @@ export function Landing() {
           <CubeStill solved className="size-72 max-lg:hidden lg:order-2 xl:size-80" />
           <div className="flex flex-col items-start gap-8">
             <h2 className={cn(TITLE, "max-w-[12ch]")}>{tr("Ready for your next PB?")}</h2>
-            <div className="flex flex-wrap gap-3">
-              <LinkButton href="/timer?puzzle=333">
-                {tr("Open Qbix in your browser")}
-                <ArrowRight data-icon="inline-end" />
-              </LinkButton>
-              <LinkButton href="#download" variant="secondary">
-                <Download data-icon="inline-start" />
-                {get}
-              </LinkButton>
-            </div>
+            <LinkButton href="/timer?puzzle=333">
+              {tr("Open Qbix in your browser")}
+              <ArrowRight data-icon="inline-end" />
+            </LinkButton>
           </div>
         </Section>
       </main>
