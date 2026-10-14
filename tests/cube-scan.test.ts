@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, FACES, slotsFor, solved, type Face } from "../src/shared/cube";
 import { REAL_HELD_HEX as HELD_HEX } from "../src/shared/cubeAppearance";
-import { cubeSamples, lab8, readCube, readFace, REFS, resolve, SCAN_FACES, scanColour, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
+import { cubeSamples, readCube, readFace, REFS, resolve, SCAN_FACES, scanColour, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
 import { colours } from "../src/client/lib/solveAnalysis";
 
 /** A seeded generator, 0 to 1. */
@@ -62,18 +62,10 @@ describe("cube read", () => {
 const bgr = ([b, g, r]: Rgb): Rgb => [r, g, b];
 
 describe("face by face, as the lab reads", () => {
-  test("Lab as OpenCV gives it on 8 bits", () => {
-    expect(lab8([255, 255, 255])).toEqual([255, 128, 128]);
-    expect(lab8([0, 0, 0])).toEqual([0, 128, 128]);
-    // cv2.cvtColor(np.uint8([[[40, 210, 220]]]), cv2.COLOR_BGR2LAB), the lab's yellow, then its warm white, a blue.
-    expect(lab8(bgr([40, 210, 220]))).toEqual([211, 114, 205]);
-    expect(lab8(bgr([94, 175, 221]))).toEqual([189, 135, 175]);
-    expect(lab8(bgr([170, 80, 20]))).toEqual([91, 145, 75]);
-  });
-
   test("the lab's colours: shadowed yellows, a warm camera's beige whites, a dark blue", () => {
     for (const face of FACES) expect(scanColour(REFS[face])).toBe(face);
-    for (const yellow of [[0, 151, 202], [0, 155, 206], [0, 162, 213]] as Rgb[]) expect(scanColour(bgr(yellow))).toBe("U");
+    // The yellow face is read first, its centre held: a warm camera's yellows in shadow stay yellow.
+    for (const yellow of [[0, 151, 202], [0, 155, 206], [0, 162, 213]] as Rgb[]) expect(scanColour(bgr(yellow), { ...REFS, U: bgr([0, 159, 195]) })).toBe("U");
     for (const beige of [[103, 155, 188], [99, 158, 192], [90, 141, 169], [94, 175, 221]] as Rgb[]) expect(scanColour(bgr(beige), { ...REFS, U: bgr([0, 159, 195]) })).toBe("D");
     expect(scanColour(bgr([120, 90, 40]))).toBe("B");
     // Once white is read, pale and bright is no longer white by itself.
@@ -108,6 +100,20 @@ describe("face by face, as the lab reads", () => {
       }
     return rgba;
   }
+
+  test("a phone that saturates: red, orange and yellow told apart by their hue, live and read whole", () => {
+    // DroidCam on a phone (~/dev/lab/scan): channels at 255 or 0, the yellow centre held.
+    const refs = { ...REFS, U: [255, 255, 0] as Rgb };
+    for (const orange of [[255, 212, 0], [255, 157, 9], [255, 176, 0], [255, 196, 0]] as Rgb[]) expect(scanColour(orange, refs)).toBe("R");
+    for (const red of [[255, 50, 33], [255, 71, 25], [255, 43, 24]] as Rgb[]) expect(scanColour(red, refs)).toBe("L");
+    expect(scanColour([255, 254, 32], refs)).toBe("U");
+    const look: Record<Face, Rgb[]> = { U: [[255, 255, 0], [255, 254, 32]], R: [[255, 212, 0], [255, 157, 9], [255, 176, 0]], L: [[255, 50, 33], [255, 71, 25]], D: [[255, 255, 255], [255, 255, 254]], B: [[0, 125, 255], [29, 111, 216]], F: [[0, 225, 57], [0, 214, 46]] };
+    for (let seed = 1; seed <= 10; seed++) {
+      const truth = scrambled(seed),
+        r = random(seed);
+      expect(readCube(truth.map((c) => look[c][Math.floor(r() * look[c].length)]!)).colours, `seed ${seed}`).toEqual(truth);
+    }
+  });
 
   test("each face held any way round, read on its lattice, gives back the cube, a logo on every centre", () => {
     const slots = slotsFor(3),

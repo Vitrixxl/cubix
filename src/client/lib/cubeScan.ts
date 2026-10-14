@@ -4,8 +4,9 @@
  * colours come in Cubix's own sticker order, U, D, F, B, R, L.
  *
  * The camera reads each face where it is found (faceFinder.ts), held any way round, and the 54 colours are compared with each other (`readFace`, `resolve`,
- * ported from ~/dev/lab/rubik); each face is then turned as it must be (`orientFaces`). Should they make no real cube, `readCube` finds at once what each of the six colours
- * looks like and how each face's light tints it (a gain per channel and face), sorting the stickers nine to a colour; then it picks the cube that fits the colours
+ * ported from ~/dev/lab/rubik); each face is then turned as it must be (`orientFaces`). Colours are told apart by their hue
+ * (`feature`), which a dim room or a camera that saturates keeps (~/dev/lab/scan). Should they make no real cube, `readCube`
+ * finds what each of the six colours looks like, sorting the stickers nine to a colour; then it picks the cube that fits the colours
  * best among real cubes only: each corner and edge one of the cube's pieces, the corners twisted, the edges flipped
  * and the pieces swapped only as turns can. A sticker read wrong is put right by its piece; what stays doubtful is
  * said, sticker by sticker.
@@ -22,53 +23,49 @@ type V3 = [number, number, number];
 const distance2 = (p: readonly number[], q: readonly number[]) => (p[0]! - q[0]!) ** 2 + (p[1]! - q[1]!) ** 2 + (p[2]! - q[2]!) ** 2;
 const linear = (v: number) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 
-/** OKLab of a linear RGB colour: a space where distances match what the eye sees, lightness apart from hue. */
-function oklab([r, g, b]: readonly number[]): V3 {
-  const l = Math.cbrt(0.4122214708 * r! + 0.5363325363 * g! + 0.0514459929 * b!),
-    m = Math.cbrt(0.2119034982 * r! + 0.6806995451 * g! + 0.1073969566 * b!),
-    s = Math.cbrt(0.0883024619 * r! + 0.2817188376 * g! + 0.6299787005 * b!);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-
 /**
- * The face-by-face reading of ~/dev/lab/rubik (rubik.py), as tested on a real cube: a 3×3 lattice of cells on the face
- * found in the picture, each face held any way round and read on a key press. Colours are compared in OpenCV's
- * 8-bit Lab, lightness weighed 0.3 (a yellow in shadow stays yellow).
+ * A colour as the scan compares it: its hue on a circle, as far from the middle as it is saturated (white in the
+ * middle), and a little of its brightness, all on linear RGB. A dim room scales a colour's channels alike and a camera
+ * that saturates (a phone: channels at 255 or 0, yellow 255,255,0 beside orange 255,200,0) keeps little but its hue:
+ * the hue is what tells red, orange and yellow apart there (~/dev/lab/scan).
  */
-
-// OpenCV's 8-bit tables: sRGB to linear (×8), the cube root (×2¹⁵); sRGB to XYZ over D65's white point (×2¹²).
-const GAMMA = Array.from({ length: 256 }, (_, i) => Math.round(2040 * linear(i))),
-  CBRT = Array.from({ length: 3060 }, (_, i) => Math.round(32768 * (i / 2040 < 0.008856 ? (i / 2040) * 7.787 + 16 / 116 : Math.cbrt(i / 2040)))),
-  XYZ = [0.412453, 0.35758, 0.180423, 0.212671, 0.71516, 0.072169, 0.019334, 0.119193, 0.950227].map((c, i) => Math.round((4096 * c) / [0.950456, 1, 1.088754][Math.floor(i / 3)]!));
-const descale = (x: number, n: number) => (x + (1 << (n - 1))) >> n,
-  byte = (v: number) => Math.min(255, Math.max(0, v));
-/** OpenCV's `COLOR_RGB2Lab` on 8 bits, to the bit: L scaled to 0–255, a and b offset by 128. */
-export function lab8(rgb: Rgb): V3 {
-  const [r, g, b] = rgb.map((v) => GAMMA[v]!) as V3,
-    [x, y, z] = [0, 3, 6].map((k) => CBRT[descale(r * XYZ[k]! + g * XYZ[k + 1]! + b * XYZ[k + 2]!, 12)]!) as V3;
-  return [byte(descale(296 * y - 1336934, 15)), byte(descale(500 * (x - y) + (128 << 15), 15)), byte(descale(200 * (y - z) + (128 << 15), 15))];
+function feature(rgb: readonly number[]): V3 {
+  const [r, g, b] = rgb as V3,
+    max = Math.max(r, g, b),
+    min = Math.min(r, g, b),
+    s = max > 0 ? (max - min) / max : 0,
+    h = max === min ? 0 : max === r ? ((g - b) / (max - min) + 6) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
+  return [0.15 * Math.cbrt(max), s * Math.cos((h * Math.PI) / 3), s * Math.sin((h * Math.PI) / 3)];
 }
+const point = (rgb: Rgb): V3 => feature(rgb.map(linear));
+/** Where a colour stands on the hue circle, in degrees. */
+const hueOf = (f: V3) => ((Math.atan2(f[2], f[1]) * 180) / Math.PI + 360) % 360;
 
-/** How each colour looks to a webcam before its face is read (the lab's `REFS`). */
-export const REFS: Readonly<Record<Face, Rgb>> = { D: [220, 220, 220], U: [220, 210, 40], L: [180, 30, 40], R: [240, 120, 30], B: [20, 80, 170], F: [30, 160, 60] };
-const L_WEIGHT = 0.3;
-const point = (rgb: Rgb): V3 => {
-  const [l, a, b] = lab8(rgb);
-  return [L_WEIGHT * l, a, b];
-};
+/** How each colour looks to a camera before its face is read. */
+export const REFS: Readonly<Record<Face, Rgb>> = { D: [235, 235, 235], U: [255, 240, 0], R: [255, 188, 0], L: [255, 40, 30], B: [0, 110, 255], F: [0, 220, 60] };
 /** Until white is read, pale and bright is white (a warm camera turns it beige): OpenCV's 8-bit HSV bounds. */
 const WHITE_MAX_S = 150,
   WHITE_MIN_V = 110;
 
-/** The colour closest to `rgb` among `refs` (the lab's `classify`). */
+/**
+ * The colour closest to `rgb` among `refs`. Until white is read, pale and bright is white. A colour not read yet is
+ * placed by the yellow, held first: cameras squeeze or stretch the hues between red and yellow (a warm webcam's yellow
+ * at 35°, a phone's at 60°), orange about halfway, red near the start.
+ */
 export function scanColour(rgb: Rgb, refs: Readonly<Record<Face, Rgb>> = REFS): Face {
   const v = Math.max(...rgb);
-  if (refs.D.every((c, k) => c === REFS.D[k]) && v > WHITE_MIN_V && descale((v - Math.min(...rgb)) * Math.round((255 << 12) / v), 12) < WHITE_MAX_S) return "D";
-  const p = point(rgb);
+  if (refs.D === REFS.D && v > WHITE_MIN_V && (v - Math.min(...rgb)) * 255 < WHITE_MAX_S * v) return "D";
+  const yellow = hueOf(point(refs.U)),
+    placed: Partial<Record<Face, number>> = { R: yellow / 2, L: yellow / 20 },
+    look = (face: Face): V3 => {
+      const hue = refs[face] === REFS[face] ? placed[face] : undefined;
+      return hue === undefined ? point(refs[face]) : [0.15, Math.cos((hue * Math.PI) / 180), Math.sin((hue * Math.PI) / 180)];
+    },
+    f = point(rgb);
   let best: Face = "D",
     d = Infinity;
   for (const face of Object.keys(REFS) as Face[]) {
-    const e = distance2(p, point(refs[face]));
+    const e = distance2(f, look(face));
     if (e < d) [best, d] = [face, e];
   }
   return best;
@@ -314,12 +311,6 @@ export interface CubeRead {
   confidence: number[];
 }
 
-/** Lightness counts less than hue: the light on a face changes it most. */
-const LIGHTNESS = 0.35;
-const feature = (rgb: readonly number[]): V3 => {
-  const [l, a, b] = oklab(rgb);
-  return [LIGHTNESS * l, a, b];
-};
 const faceOf = (i: number) => Math.floor(i / 9);
 const median = (values: number[]) => {
   const sorted = values.slice().sort((a, b) => a - b),
@@ -330,29 +321,10 @@ const median = (values: number[]) => {
 const middle = (colours: readonly V3[]): V3 => [0, 1, 2].map((k) => median(colours.map((c) => c[k]!))) as V3;
 
 /**
- * Each face's gains for these groups: the median ratio of its stickers' colours to their group's (which one glint does
- * not sway), a clipped or black channel left out; their geometric mean kept at one, since their scale is arbitrary.
+ * The six faces' stickers sorted in six groups of nine, one to a colour, under a guess of each face's light (`gains`),
+ * each colour's look found as they settle. The groups are not named yet.
  */
-function relight(x: readonly V3[], labels: readonly number[], gains: V3[]): V3[] {
-  const seen = x.map((c, i) => c.map((v, k) => v * gains[faceOf(i)]![k]!) as V3),
-    target = FACES.map((_, c) => middle(seen.filter((_, i) => labels[i] === c)));
-  const next = FACES.map(
-    (_, f) =>
-      [0, 1, 2].map((k) => {
-        const ratios: number[] = [];
-        for (let i = f * 9; i < f * 9 + 9; i++) if (x[i]![k]! < 0.97 && x[i]![k]! > 0.004) ratios.push(Math.log(target[labels[i]!]![k]! / x[i]![k]!));
-        return ratios.length ? Math.exp(median(ratios)) : gains[f]![k]!;
-      }) as V3,
-  );
-  const mean = [0, 1, 2].map((k) => Math.exp(next.reduce((s, g) => s + Math.log(g[k]!), 0) / 6));
-  return next.map((g) => g.map((v, k) => v / mean[k]!) as V3);
-}
-
-/**
- * The six faces' stickers sorted in six groups of nine, one to a colour, each face's light and each colour's look
- * found together, from a first guess of each face's light (`gains`). The groups are not named yet.
- */
-function cluster(x: readonly V3[], gains: V3[]) {
+function cluster(x: readonly V3[], gains: readonly V3[]) {
   let labels = x.map((_, i) => faceOf(i));
   for (let round = 0; round < 10; round++) {
     const seen = x.map((c, i) => c.map((v, k) => v * gains[faceOf(i)]![k]!) as V3),
@@ -364,10 +336,9 @@ function cluster(x: readonly V3[], gains: V3[]) {
       next = assign(features.map((f) => columns.map((c) => distance2(f, looks[c]!)))).map((column) => columns[column]!);
     const settled = round > 0 && next.every((c, i) => c === labels[i]);
     labels = next;
-    gains = relight(x, labels, gains);
     if (settled) break;
   }
-  return { labels, gains };
+  return labels;
 }
 
 /**
@@ -375,7 +346,7 @@ function cluster(x: readonly V3[], gains: V3[]) {
  * (Student's, three degrees of freedom) around the group's median look, so that one glint does not outweigh its piece;
  * and the part shared by all, which makes prices under other gains comparable.
  */
-function prices(x: readonly V3[], labels: readonly number[], gains: V3[]) {
+function prices(x: readonly V3[], labels: readonly number[], gains: readonly V3[]) {
   const features = x.map((c, i) => feature(c.map((v, k) => v * gains[faceOf(i)]![k]!))),
     looks = FACES.map((_, c) => middle(features.filter((_, i) => labels[i] === c))),
     // How far stickers stray from their group, all groups together, with a floor for a perfect picture.
@@ -400,8 +371,8 @@ export function readCube(samples: readonly Rgb[]): CubeRead {
     ];
   let best: (CubeRead & { cost: number }) | null = null;
   for (const guess of guesses) {
-    let { labels, gains } = cluster(x, guess),
-      { price, base } = prices(x, labels, gains),
+    let labels = cluster(x, guess),
+      { price, base } = prices(x, labels, guess),
       read: (CubeRead & { cost: number }) | null = null;
     // Each group named after the centre most like it, all six at once. Should centres carry a glint or a logo, other
     // names are weighed too: each two swapped (the cube read decides), and the names turned as the whole cube turns
@@ -420,11 +391,10 @@ export function readCube(samples: readonly Rgb[]): CubeRead {
     }
     if (!read) continue;
     read.cost += base;
-    // The cube read sorts the stickers better than the groups did: each face's light and each colour's look again.
+    // The cube read sorts the stickers better than the groups did: each colour's look again.
     for (let round = 0; round < 3; round++) {
       labels = read.colours.map((c) => FACES.indexOf(c));
-      gains = relight(x, labels, gains);
-      ({ price, base } = prices(x, labels, gains));
+      ({ price, base } = prices(x, labels, guess));
       const next = decide(price);
       if (!next || next.cost + base >= read.cost) break;
       read = { ...next, cost: next.cost + base };

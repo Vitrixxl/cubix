@@ -288,11 +288,16 @@ function look(rgba: ArrayLike<number>, w: number, h: number, bar: number): Found
 const FIND = 160;
 /** Frames a face found stays where it was when the next ones miss it (a blur, a hand). */
 const KEEP = 8;
+/** Readings of one face in a row whose median is read: a dim room's noise averaged out (~/dev/lab/scan). */
+const RECENT = 8;
+/** The median of each sticker's channels over several readings. */
+const medianOf = (readings: readonly Rgb[][]): Rgb[] =>
+  readings[0]!.map((_, i) => [0, 1, 2].map((k) => readings.map((r) => r[i]![k]!).sort((a, b) => a - b)[readings.length >> 1]!) as unknown as Rgb);
 
 /**
  * Reads the camera's square frame after frame: the face found in it, kept a few frames when missed, and the nine
- * colours read on that lattice, in a `VIEW`-pixel picture; null while no face is found (as the lab: no lattice, nothing
- * to read, until the cube is seen).
+ * colours read on that lattice, in a `VIEW`-pixel picture, each the median of the last frames while the face stays
+ * where it is; null while no face is found (as the lab: no lattice, nothing to read, until the cube is seen).
  */
 export function faceWatcher() {
   const make = (side: number) => {
@@ -303,7 +308,8 @@ export function faceWatcher() {
   const big = make(VIEW),
     small = make(FIND);
   let last: FoundFace | null = null,
-    missed = 0;
+    missed = 0,
+    recent: Rgb[][] = [];
   return (video: HTMLVideoElement): { centre: Point; u: Point; v: Point; colours: Rgb[] } | null => {
     const crop = Math.min(video.videoWidth, video.videoHeight),
       [sx, sy] = [(video.videoWidth - crop) / 2, (video.videoHeight - crop) / 2];
@@ -312,10 +318,16 @@ export function faceWatcher() {
       k = VIEW / FIND;
     if (face) [last, missed] = [{ ...face, centre: [face.centre[0] * k, face.centre[1] * k], u: [face.u[0] * k, face.u[1] * k], v: [face.v[0] * k, face.v[1] * k] }, 0];
     else if (++missed > KEEP) last = null;
-    if (!last) return null;
+    if (!last) return (recent = []), null;
     const { centre, u, v } = last;
     big.drawImage(video, sx, sy, crop, crop, 0, 0, VIEW, VIEW);
-    return { centre, u, v, colours: readFace(big.getImageData(0, 0, VIEW, VIEW).data, VIEW, VIEW, centre, u, v) };
+    const colours = readFace(big.getImageData(0, 0, VIEW, VIEW).data, VIEW, VIEW, centre, u, v),
+      before = recent.at(-1);
+    // Another face shown, or this one moved: its earlier readings are of something else.
+    if (before && colours.some((c, i) => Math.abs(c[0] - before[i]![0]) + Math.abs(c[1] - before[i]![1]) + Math.abs(c[2] - before[i]![2]) > 90)) recent = [];
+    recent.push(colours);
+    if (recent.length > RECENT) recent.shift();
+    return { centre, u, v, colours: medianOf(recent) };
   };
 }
 
