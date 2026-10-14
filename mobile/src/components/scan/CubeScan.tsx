@@ -1,4 +1,4 @@
-import { Camera, CameraOff, Check, Paintbrush, RefreshCw, Settings, SwitchCamera, TriangleAlert, Undo2 } from "lucide-react-native";
+import { Camera, CameraOff, Check, Hand, RefreshCw, Settings, SwitchCamera, TriangleAlert, Undo2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { AppState, Linking, Pressable, View } from "react-native";
 import Svg, { G, Path, Polygon } from "react-native-svg";
@@ -174,7 +174,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
       <View className="size-12 items-center justify-center rounded-2xl bg-muted"><Icon as={CameraOff} size={22} className="text-muted-foreground" /></View>
       <Text className="text-lg font-semibold tracking-tight">{tr("No camera")}</Text>
       <View className="w-full max-w-xs gap-2 pt-2">
-        <Button size="lg" className="h-12" accessibilityLabel={tr("Enter the colours by hand")} onPress={onHand}><Icon as={Paintbrush} size={18} /><Text>{tr("By hand")}</Text></Button>
+        <Button size="lg" className="h-12" accessibilityLabel={tr("Enter the colours by hand")} onPress={onHand}><Icon as={Hand} size={18} /><Text>{tr("By hand")}</Text></Button>
         <View className="flex-row gap-2">
           <Button variant="outline" size="lg" className="h-12 flex-1" onPress={() => { setStatus("starting"); setAttempt(a => a + 1); }}><Icon as={RefreshCw} size={17} /><Text>{tr("Try again")}</Text></Button>
           <Button variant="outline" size="lg" className="h-12 flex-1" onPress={() => void Linking.openSettings()}><Icon as={Settings} size={17} /><Text>{tr("Settings")}</Text></Button>
@@ -226,7 +226,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
         <Icon as={Undo2} size={17} /><Text>{tr("Undo")}</Text>
       </Button>
       <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={onHand}>
-        <Icon as={Paintbrush} size={17} /><Text>{tr("By hand")}</Text>
+        <Icon as={Hand} size={17} /><Text>{tr("By hand")}</Text>
       </Button>
     </View>
   </View>;

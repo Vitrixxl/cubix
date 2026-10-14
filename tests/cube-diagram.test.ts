@@ -16,13 +16,13 @@ describe('merged diagram paths', () => {
     expect(tiles.length).toBeLessThanOrEqual(7);
     for (const cell of cells) expect(tiles.find(t => t.fill === cell.fill)!.d).toContain(`M${cell.points.replaceAll(' ', 'L')}Z`);
   });
-  test('the isometric diagram keeps its hull and three edges; the top view has neither', () => {
+  test('the isometric diagram keeps its hull and the seams of its three edges, one a piece; the top view has neither', () => {
     const state = applyAlg(solved(), "F R U R' U' F'");
     const iso = diagramPaths(state, 'full', 'iso');
     // Android's native PathParser rejects polygon coordinates in a Path's d prop.
     expect(iso.hull).toMatch(/^M[-\d.,L]+Z$/);
     expect(subpaths(iso.hull!)).toBe(1);
-    expect(subpaths(iso.edges!)).toBe(3);
+    expect(subpaths(iso.edges!)).toBe(9);
     const top = diagramPaths(state, 'OLL', 'top');
     expect(top.hull).toBeUndefined();
     expect(top.edges).toBeUndefined();

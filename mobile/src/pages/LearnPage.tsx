@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, ListFilter, Lock, Play, Timer, type LucideIcon } from "lucide-react-native";
+import { BookA, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lightbulb, ListFilter, Lock, Play, Timer, type LucideIcon } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -650,7 +650,14 @@ function IntuitiveBench({ puzzle, method, entry, row = false }: { puzzle: Puzzle
       <Text className={cn("min-w-0 flex-1 text-base font-extrabold", primary && "text-primary-foreground", on && "text-success")}>{title}</Text>
     </Pressable>;
   const { tips, mine, read } = useStepRead(puzzle, method, entry);
+  // The step's useful moves (`help`), played one after another in a sheet: help, never algorithms to learn.
+  const [helping, setHelping] = useState<number | null>(null), size = puzzleInfo(puzzle).cubeSize;
+  const help = useMemo(() => size ? (step.help ?? []).map((m): PlayItem => ({ key: m.name, name: m.name, context: step.title, algs: [m.alg], note: m.note, size, mask: stepPicture(method, entry.step).mask, setup: m.setup })) : [], [step, size, method, entry.step]);
   return <View className="gap-2.5" accessibilityLabel={tr("Workbench")}>
+    {help.length > 0 && <>
+      <Chip icon={Lightbulb} onPress={() => setHelping(0)} accessibilityLabel={tr("Useful moves")}>{tr("Useful moves")}</Chip>
+      <AlgPlayerSheet items={help} index={helping} onIndex={setHelping} onClose={() => setHelping(null)} />
+    </>}
     {step.missing ? <Text className="text-sm text-muted-foreground">{tr(step.missing)}</Text>
     // Locked until every tip is read and ticked.
     : !read ? <View className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-muted px-4">
@@ -731,7 +738,8 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const index = piece ? all.indexOf(piece) : -1;
   const alg = piece ? piece.algs[choice] ?? piece.algs[0] ?? "" : "";
   const select = (key: string | undefined) => { setPick(key); setOpen(false); setChoice(0); };
-  const go = (by: number) => select(all[(index + by + all.length) % all.length]?.key);
+  // The first case has nothing before it, the last nothing after it: two cases never lead to the same one both ways.
+  const go = (by: number) => { const to = all[index + by]; if (to) select(to.key); };
   const use = (p: Piece, a: string) => {
     const algs = p.mine.includes(a) ? p.mine.filter(x => x !== a) : [...p.mine, a];
     void api.setLearned(p.c!.id, algs.length > 0, algs).catch(() => { /* Reported by the sync indicator. */ });
@@ -794,7 +802,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     </View>;
     // A tablet: the case and its diagram large on the left, its note, algorithms and the cases either side on the right.
     if (tablet) {
-      const previous = all[(index - 1 + all.length) % all.length]!, following = all[(index + 1) % all.length]!;
+      const previous = index > 0 ? all[index - 1] : undefined, following = all[index + 1];
       return <View className="flex-row gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Workbench")}>
         <View className="w-[270px] gap-1">
           <Text numberOfLines={1} className="text-[40px] leading-[44px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
@@ -807,14 +815,12 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           {well}
           <View className="flex-1" />
           <View className="min-h-11 flex-row items-center justify-end gap-2">
-            {all.length > 1 && <>
-              <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} onPress={() => go(-1)} className="h-11 flex-row items-center gap-1 rounded-xl pr-3.5 pl-2 active:bg-muted/70">
-                <Icon as={ChevronLeft} size={18} /><Text numberOfLines={1} className="text-[15px] font-bold">{said(previous.short ?? previous.name)}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={() => go(1)} className="h-11 flex-row items-center gap-1 rounded-xl bg-muted pr-2 pl-3.5 active:bg-muted/70">
-                <Text numberOfLines={1} className="text-[15px] font-bold">{said(following.short ?? following.name)}</Text><Icon as={ChevronRight} size={18} />
-              </Pressable>
-            </>}
+            {previous && <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} onPress={() => go(-1)} className="h-11 flex-row items-center gap-1 rounded-xl pr-3.5 pl-2 active:bg-muted/70">
+              <Icon as={ChevronLeft} size={18} /><Text numberOfLines={1} className="text-[15px] font-bold">{said(previous.short ?? previous.name)}</Text>
+            </Pressable>}
+            {following && <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={() => go(1)} className="h-11 flex-row items-center gap-1 rounded-xl bg-muted pr-2 pl-3.5 active:bg-muted/70">
+              <Text numberOfLines={1} className="text-[15px] font-bold">{said(following.short ?? following.name)}</Text><Icon as={ChevronRight} size={18} />
+            </Pressable>}
           </View>
         </View>
       </View>;
@@ -900,8 +906,8 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           <View className="flex-1" />
           <HeadButton icon={ListFilter} label={tr("Filter")} active={filter !== "all"} onPress={() => setFiltering(true)} />
           {all.length > 1 && <>
-            <HeadButton icon={ChevronLeft} label={tr("Previous case")} onPress={() => go(-1)} />
-            <HeadButton icon={ChevronRight} label={tr("Next case")} onPress={() => go(1)} />
+            <HeadButton icon={ChevronLeft} label={tr("Previous case")} disabled={index <= 0} onPress={() => go(-1)} />
+            <HeadButton icon={ChevronRight} label={tr("Next case")} disabled={index >= all.length - 1} onPress={() => go(1)} />
           </>}
         </View>
         {shownGroups.map(([name, pieces]) => {

@@ -91,8 +91,10 @@ function Catalog({ mobile }: { mobile: boolean }) {
   if (!section) return <div className={PAGE}><Empty>{tr("No cases for this puzzle.")}</Empty></div>;
   const set = section.active,
     count = section.all.length,
-    pick = picked && ((id: string) => setPicked((p) => (p && new Set(p.has(id) ? [...p].filter((v) => v !== id) : [...p, id])))),
-    grid = <Shelves set={set} section={section} wide={!mobile} small={small} picked={picked} pick={pick} />;
+    // A right click picks a case too, starting the selection when none is under way.
+    toggle = (id: string) => setPicked((p) => new Set(p?.has(id) ? [...p].filter((v) => v !== id) : [...(p ?? []), id])),
+    pick = picked && toggle,
+    grid = <Shelves set={set} section={section} wide={!mobile} small={small} picked={picked} pick={pick} select={toggle} />;
   if (mobile)
     return (
       <div className={PAGE}>
@@ -283,7 +285,7 @@ function FilterChoice({ section }: { section: any }) {
 let jumpTo: ((id: string) => void) | null = null;
 
 /** The set's groups as shelves: the group's name, how far it is learned and its Train on the left, its cases beside. */
-function Shelves({ set, section, wide, small, picked, pick }: { set: any; section: any; wide: boolean; small: boolean; picked: Set<string> | null; pick: ((id: string) => void) | null }) {
+function Shelves({ set, section, wide, small, picked, pick, select }: { set: any; section: any; wide: boolean; small: boolean; picked: Set<string> | null; pick: ((id: string) => void) | null; select: (id: string) => void }) {
   const scroll = useScrollPosition(`catalog:${s.puzzle}:${set.id}`),
     list = useRef<Virtualizer<HTMLElement, Element> | null>(null);
   const members = (group: string) => section.all.filter((c: any) => c.group === group);
@@ -317,7 +319,7 @@ function Shelves({ set, section, wide, small, picked, pick }: { set: any; sectio
   const grid = (cases: any[], className?: string) => (
     <div className={cn(tiles, className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {cases.map((c: any) => (
-        <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} />
+        <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} onPick={() => select(c.id)} />
       ))}
     </div>
   );
@@ -434,6 +436,7 @@ export function CaseTile({
   small = false,
   size = small ? 40 : 62,
   onPress,
+  onPick,
 }: {
   c: any;
   touch?: boolean;
@@ -447,6 +450,8 @@ export function CaseTile({
   /** The diagram's side, in pixels: the shelves size it to fill the column. */
   size?: number;
   onPress?: () => void;
+  /** A right click: the case picked among several. */
+  onPick?: () => void;
 }) {
   const st = s.stat(c.id),
     learned = s.learned.has(c.id),
@@ -474,6 +479,7 @@ export function CaseTile({
         small ? "gap-0.5 px-0.5 py-1" : "gap-1 px-1 pt-2 pb-1.5",
         touch && !on && "active:bg-muted",
       )}
+      onContextMenu={onPick && ((e) => (e.preventDefault(), onPick()))}
     >
       {open && (name && !small ? <Tip content={said(name)}>{open}</Tip> : open)}
       <span

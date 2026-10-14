@@ -151,8 +151,9 @@ test("a step's workbench shows one case at a time, learns it, and trains the sho
   expect(control("Got it")).toBeUndefined();
   await press("Mark Sune learned");
   expect(learnedCalls.at(-1)).toEqual(["2L-OLL Sune", true]);
-  // The arrows over the cases move to the next case, round the step.
-  await act(() => button("Next case")!.props.onPress());
+  // The arrows over the cases move from case to case and stop at the ends: nothing after the last one.
+  expect(button("Next case")!.props.disabled).toBe(true);
+  await act(() => button("Previous case")!.props.onPress());
   expect(texts()).toContain("I-Shape");
   // Train the shown set: its cases, from the training's setup skipped.
   await act(() => button("Train 2-Look OLL")!.props.onPress());

@@ -44,9 +44,9 @@ test("every set a step names exists in the catalogue for its puzzle", () => {
       }
 });
 
-test("every inline algorithm is valid notation for its puzzle, and undoes its own case", async () => {
+test("every inline algorithm and help move is valid notation for its puzzle, and undoes its own case", async () => {
   for (const { puzzle, method } of every) {
-    const algs = method.steps.flatMap(step => step.algs ?? []);
+    const algs = method.steps.flatMap(step => [...(step.algs ?? []), ...(step.help ?? [])]);
     if (!algs.length) continue;
     const kp = await puzzles[PUZZLES.find(p => p.id === puzzle)!.twisty]!.kpuzzle(), start = kp.defaultPattern();
     for (const a of algs) {

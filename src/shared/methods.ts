@@ -37,6 +37,11 @@ export interface MethodStep {
   /** The training mode that practises an intuitive step (Training → Cross). */
   train?: "cross";
   /**
+   * Moves that help an intuitive step (an edge brought down, two pieces swapped…), each shown on the case it solves:
+   * help on the step's page, never in its algorithms nor in the catalogue.
+   */
+  help?: MethodAlgorithm[];
+  /**
    * The step's before and after pictures: `done` the puzzle once the step is done, as moves from solved (solved when
    * absent); `from` the puzzle before it when that is not where the step before ends (a scramble for the first step);
    * `mask` the pieces both show, the step's own mask otherwise. Checked by tests/method-pictures.test.ts.
@@ -59,6 +64,28 @@ const CORNER_INSERTION: MethodAlgorithm = {
   alg: "R U R' U'",
   note: "Hold the corner above its slot, at front right, or in its slot when it is twisted there. Repeat until it is solved, five times at most.",
 };
+/** The cross's usual moves, white at the bottom: one edge at a time, then two edges swapped. */
+const CROSS_HELP: MethodAlgorithm[] = [
+  { name: "Edge on top, white up", alg: "F2", note: "Turn the top until its side colour is over its centre, then turn that face twice." },
+  { name: "Edge on top, white facing you", alg: "U' R' F R", note: "The edge in front, its other colour above the front centre: R' and R put the right edge back." },
+  { name: "Edge in the middle layer", alg: "F", note: "White on the right, its other colour on the front: one turn of the front brings it down." },
+  { name: "Edge in its place, flipped", alg: "F' D R' D'", note: "White facing out at the bottom: D and D' put the other cross edges back." },
+  { name: "Two edges swapped side by side", alg: "F2 U' R2 U F2", note: "The front and right edges each in the other's place." },
+  { name: "Two edges swapped across", alg: "F2 U2 B2 U2 F2", note: "The front and back edges each in the other's place." },
+];
+/** A 2×2's first corners, white at the bottom: the corner above its slot, at front right. */
+const FIRST_CORNERS_HELP: MethodAlgorithm[] = [
+  { name: "White facing right", alg: "R U R'" },
+  { name: "White facing you", alg: "F' U' F" },
+  { name: "White on top", alg: "R U2 R' U' R U R'", note: "Turned to face the side first, then inserted as one of the two others." },
+];
+/** A pair's corner and edge brought together and dropped into their slot, with R and U alone. */
+const PAIR_HELP: MethodAlgorithm[] = [
+  { name: "Front pair, split", alg: "R U R'", note: "The corner above its slot, white facing right, its edge at the back: R U R' joins them and drops them in." },
+  { name: "Front pair, joined", alg: "R U' R'", note: "The pair already made on top: R U' R' drops it into the front slot." },
+  { name: "Back pair, split", alg: "R' U' R", note: "The same as the front pair, for the back slot." },
+];
+
 /** Repeating the Sune orients any last layer whose edges are done; checked on every case by tests/methods.test.ts. */
 const SUNE_REPEATED: MethodAlgorithm = {
   name: "Sune",
@@ -187,6 +214,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
             "Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.",
             "Hold the cube white side down from here on.",
           ],
+          help: CROSS_HELP,
         },
         {
           title: "First-layer corners", text: "Bring each white corner under its slot and repeat R U R' U' until it drops in correctly.",
@@ -251,6 +279,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           title: "Cross", text: "Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.", train: "cross",
           picture: { from: SCRAMBLE, done: CROSS, mask: "cross" },
           tips: ["Build it on the bottom from the start, so the pairs stay in view.", "Place edges relative to each other first; the centres can be matched with one last turn.", "Most crosses take eight moves or fewer: if yours takes more, look for a shorter one."],
+          help: CROSS_HELP,
         },
         { title: "F2L", text: "Pair a corner with its edge and insert them together into their slot, four times. The 41 basic cases are learnt intuitively first.", sets: ["f2l"], picture: { done: LL, mask: "F2L" } },
         { title: "OLL", text: "Make the top face one colour in a single algorithm (57 cases), or in two steps with 2-look OLL (10 algorithms).", sets: ["2look-oll", "oll"], picture: { done: LL_PERMUTED, mask: "OLL" } },
@@ -270,11 +299,16 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         {
           title: "First block", text: "Build a 1×2×3 block on the left, at the bottom.",
           tips: ["Plan the edge and one of the pairs during inspection.", "Build the 1×2×2 square first, then add the back pair."],
+          help: [
+            { name: "Front pair, split", alg: "L' U' L", note: "The corner above its slot, its edge on top: L' U' L joins them and drops them into the front of the block." },
+            { name: "Back pair, split", alg: "L U L'", note: "The same, for the back of the block." },
+          ],
           picture: { from: SCRAMBLE, done: `${SECOND_BLOCK} R U' R' U2 R U R2 U' R2`, mask: "blocks" },
         },
         {
           title: "Second block", text: "Build the matching 1×2×3 block on the right using R, r, U and M turns, keeping the first block intact.",
           tips: ["Place the bottom edge first, then insert the two pairs as in F2L.", "Free M turns help: the middle slice is not solved yet."],
+          help: PAIR_HELP,
           picture: { done: SECOND_BLOCK, mask: "blocks" },
         },
         {
@@ -313,11 +347,16 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         {
           title: "EOLine", text: "Orient all twelve edges and place the front and back bottom edges. EOCross places all four bottom edges instead.",
           tips: ["An edge is bad when an R, L, U or D move alone cannot fix it: count the bad edges during inspection.", "F or B turns flip four edges at once: use them to bring the count to zero."],
+          help: [
+            { name: "Four bad edges on the front", alg: "F", note: "One turn of the front flips its four edges." },
+            { name: "Four bad edges at the back", alg: "B", note: "One turn of the back flips its four edges." },
+          ],
           picture: { from: SCRAMBLE, done: `${LL_CROSS} R U R' U' R U2 R' L' U L R U' R' U2 L' U' L`, mask: "edges" },
         },
         {
           title: "F2L", text: "Build the left and right blocks using only R, U and L turns.",
           tips: ["No rotations: build the left block with L and U, the right one with R and U.", "Every edge stays oriented, so pairs never need F or B turns."],
+          help: PAIR_HELP,
           picture: { done: LL_CROSS, mask: "F2L" },
         },
         {
@@ -357,6 +396,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         {
           title: "First face", text: "Make one face a single colour. The side colours do not need to match yet.",
           tips: ["Plan the whole face during inspection: it takes four or five moves.", "Pick the colour whose face is quickest, usually white or yellow."],
+          help: FIRST_CORNERS_HELP,
           picture: { from: SCRAMBLE_2, done: `${PBL} R U2 R' U' R U' R'`, mask: "F2L" },
         },
         { title: "OLL", text: "Turn the opposite face one colour with one of 7 algorithms.", sets: ["2x2-oll"], picture: { done: PBL, mask: "OLL" } },
@@ -370,6 +410,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         {
           title: "First layer", text: "Solve a complete first layer, with matching side colours.",
           tips: ["Plan the whole layer during inspection.", "Build it on the bottom, so the top is in view for recognition."],
+          help: FIRST_CORNERS_HELP,
           picture: { from: SCRAMBLE_2, done: LL_CROSS, mask: "F2L" },
         },
         { title: "CLL", text: "Orient and permute the last layer in one algorithm (42 cases).", sets: ["2x2-cll"], picture: { mask: "PLL" } },
@@ -382,6 +423,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         {
           title: "First face", text: "Make one face a single colour; the first layer may be solved, adjacent-swapped or diagonal-swapped.",
           tips: ["Recognise the bottom layer during inspection: solved, adjacent swap or diagonal swap."],
+          help: FIRST_CORNERS_HELP,
           picture: { from: SCRAMBLE_2, done: `${PBL} R U2 R' U' R U' R'`, mask: "F2L" },
         },
         { title: "CLL, EG-1 or EG-2", text: "Recognise the case and solve both layers in one algorithm: CLL, EG-1 or EG-2 depending on the first layer, 42 cases each.", sets: ["2x2-cll", "2x2-eg1", "2x2-leg1", "2x2-eg2"] },

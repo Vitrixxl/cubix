@@ -301,8 +301,8 @@ html.landing a:focus-visible {
 }
 
 /* By day the tiles of a diagram seen from above get the theme's dark rim (see `themeTokens`): pale yellow and white
-   stickers would melt into the page. The catalogue's diagrams are images: a hairline shadow draws it around each tile. */
-html:not(.dark) .diagram-top polygon {
+   stickers would melt into the page. A puzzle's own diagrams are images: a hairline shadow draws it around each tile. */
+html:not(.dark) .diagram-top path {
   stroke: var(--rim);
   stroke-width: 1.2;
 }

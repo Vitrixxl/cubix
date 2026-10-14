@@ -9,7 +9,7 @@
  */
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronLeft, ChevronRight, GraduationCap, Info, RefreshCw, RotateCcw, ScanLine, Timer, TriangleAlert, Undo2, Unplug, X } from "lucide-react";
+import { Camera, Check, ChevronLeft, ChevronRight, GraduationCap, Hand, Info, RefreshCw, RotateCcw, ScanLine, Timer, TriangleAlert, Undo2, Unplug, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyAlg, invertToken, solved, type CubeState, type Face } from "../../src/shared/cube";
 import { assistedCourse, solveMethod } from "../../src/client/lib/methodSolver";
@@ -20,7 +20,7 @@ import { colours, COLOUR_NAMES, type CatalogCase } from "../../src/client/lib/so
 import { ScrambleTracker, type ScrambleProgress } from "../../src/client/lib/scrambleTracker";
 import { SmartCube, canonicalTurn, heldTurn, smartCube, stateToFacelets } from "../../src/client/lib/smartCube";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
-import { CubeScan, CameraPicture, FlatFace, HoldNote, Notice, hex, useSquare } from "./CubeScan";
+import { CubeScan, HoldNote, Notice, hex, useSquare } from "./CubeScan";
 import { LiveCube } from "./LiveCube";
 import { ViewButtons } from "./AlgPlayer";
 import { CubeView } from "../../src/client/lib/cubeView";
@@ -188,7 +188,7 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
       title: tr("Show the faces"),
       meta: tr("Six faces, one at a time"),
       go: tr("Start"),
-      picture: <CameraPicture />,
+      picture: <Camera aria-hidden="true" className="size-24 text-muted-foreground" strokeWidth={1.25} />,
     },
     {
       id: "hand" as const,
@@ -197,7 +197,7 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
       title: tr("By hand"),
       meta: tr("No camera needed"),
       go: tr("Start"),
-      picture: <HandPicture />,
+      picture: <Hand aria-hidden="true" className="size-24 text-muted-foreground" strokeWidth={1.25} />,
     },
   ].filter((way) => !!way);
   return (
@@ -233,25 +233,6 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
         </div>
       </div>
     </Page>
-  );
-}
-
-/** A cube painted by hand: a flat cube, three faces done, the others waiting with only their centre. */
-function HandPicture() {
-  const READ: Partial<Record<Face, Face[]>> = {
-    U: ["R", "U", "U", "F", "U", "B", "U", "L", "D"],
-    L: ["D", "B", "U", "U", "L", "R", "F", "L", "R"],
-    F: ["B", "B", "D", "R", "F", "U", "L", "U", "F"],
-  };
-  const place: Record<Face, string> = { U: "col-start-2 row-start-1", L: "col-start-1 row-start-2", F: "col-start-2 row-start-2", R: "col-start-3 row-start-2", B: "col-start-4 row-start-2", D: "col-start-2 row-start-3" };
-  return (
-    <span className="grid grid-cols-4 gap-1" aria-hidden="true">
-      {(Object.keys(place) as Face[]).map((face) => (
-        <span key={face} className={place[face]}>
-          <FlatFace face={face} colours={READ[face]} size={36} />
-        </span>
-      ))}
-    </span>
   );
 }
 

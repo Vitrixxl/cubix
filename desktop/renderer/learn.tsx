@@ -6,13 +6,14 @@
  */
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lock, Route, Timer, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lightbulb, Lock, Route, Timer, type LucideIcon } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { Link } from "react-router";
 import { pageUrl } from "./navigation";
-import { viewForMask } from "../../src/shared/cubeDiagram";
+import { viewForMask, type CubeMask } from "../../src/shared/cubeDiagram";
+import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import {
   LEVEL_LABEL, algId, algSetup, courseEntry, stepRead, stepReadKey, toggled, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
   type CourseEntry,
@@ -20,7 +21,7 @@ import {
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
+import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Icon, LearnToggle, Modal, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
 import { FootBar, PlayDiagram } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { caseTitle, casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
@@ -391,7 +392,8 @@ function useBench(pieces: StepPieces) {
     index = piece ? all.indexOf(piece) : -1,
     alg = piece ? (piece.algs[choice] ?? piece.algs[0] ?? "") : "";
   const select = (key: string | undefined) => (setPick(key), setShown(false), setChoice(0));
-  const go = (step: number) => select(all[(index + step + all.length) % all.length]?.key);
+  // The first case has nothing before it, the last nothing after it: two cases never lead to the same one both ways.
+  const go = (step: number) => { const to = all[index + step]; if (to) select(to.key); };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (!piece || e.altKey || e.ctrlKey || e.metaKey || s.overlay || s.caseDialog || s.assisted || (e.target as HTMLElement).closest?.("input,textarea,[role=dialog]")) return;
@@ -408,8 +410,8 @@ function useBench(pieces: StepPieces) {
     open: shown,
     alg,
     choice,
-    previous: all.length > 1 ? all[(index - 1 + all.length) % all.length] : undefined,
-    next: all.length > 1 ? all[(index + 1) % all.length] : undefined,
+    previous: index > 0 ? all[index - 1] : undefined,
+    next: index >= 0 ? all[index + 1] : undefined,
     show: () => setShown(!shown),
     choose: (i: number) => setChoice(i),
     pick: (key: string) => select(key),
@@ -540,12 +542,12 @@ function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
         {tr(bench.open ? "Hide" : "Show")}
         {!touch && <Kbd>{tr("Space")}</Kbd>}
       </UiButton>
-      {touch && bench.previous && bench.next && (
+      {touch && (bench.previous || bench.next) && (
         <>
-          <UiButton variant="ghost" size="icon" data-action="benchStep:previous" onClick={() => bench.go(-1)} aria-label={`${tr("Previous case")} · ${said(bench.previous.name)}`}>
+          <UiButton variant="ghost" size="icon" data-action="benchStep:previous" disabled={!bench.previous} onClick={() => bench.go(-1)} aria-label={bench.previous ? `${tr("Previous case")} · ${said(bench.previous.name)}` : tr("Previous case")}>
             <ChevronLeft />
           </UiButton>
-          <UiButton variant="secondary" size="icon" data-action="benchStep:next" onClick={() => bench.go(1)} aria-label={`${tr("Next case")} · ${said(bench.next.name)}`}>
+          <UiButton variant="secondary" size="icon" data-action="benchStep:next" disabled={!bench.next} onClick={() => bench.go(1)} aria-label={bench.next ? `${tr("Next case")} · ${said(bench.next.name)}` : tr("Next case")}>
             <ChevronRight />
           </UiButton>
         </>
@@ -618,6 +620,7 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
     tips = step.tips ?? [],
     key = stepReadKey(puzzle, method.id, step),
     [ticked, setTicked] = useState<Record<string, number[]>>({}),
+    [help, setHelp] = useState(false),
     mine = ticked[key] ?? [],
     read = stepRead(step, entry, !!s.prefs["cubix.learn.read"]?.[key]);
   const tick = (i: number) => {
@@ -644,6 +647,13 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
         </figure>
       )}
       <p className={cn("leading-relaxed", touch ? "text-base" : "text-xl")}>{said(step.text)}</p>
+      {step.help && (
+        <UiButton variant="secondary" data-action="stepHelp" onClick={() => setHelp(true)} className="self-start">
+          <Lightbulb />
+          {tr("Useful moves")}
+        </UiButton>
+      )}
+      {step.help && help && <StepHelp step={step} puzzle={puzzle} mask={stepPicture(method, entry.step).mask} onClose={() => setHelp(false)} />}
       {tips.length > 0 && (
         <ol className="flex flex-col gap-2.5" aria-label={tr("Tips")}>
           {tips.map((tip, i) => {
@@ -686,6 +696,33 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
         <StepNav method={method} entry={entry} />
       </div>
     </Surface>
+  );
+}
+
+/** An intuitive step's useful moves (`help`), each played on the case it solves: help, never an algorithm to learn. */
+function StepHelp({ step, puzzle, mask, onClose }: { step: MethodStep; puzzle: PuzzleId; mask: CubeMask; onClose: () => void }) {
+  const moves = step.help!,
+    [i, setI] = useState(0),
+    move = moves[i]!,
+    player = useAlgPlayer(move.alg, puzzleInfo(puzzle).cubeSize, mask, { setup: move.setup });
+  return (
+    <Modal open onOpenChange={(open) => !open && onClose()} title={tr("Useful moves")} description={said(step.title)} className="sm:max-w-3xl">
+      <div className="grid gap-5 md:grid-cols-[15rem_minmax(0,1fr)]">
+        <nav aria-label={tr("Useful moves")} className="flex flex-col gap-0.5">
+          {moves.map((m, k) => (
+            <button key={m.name} type="button" data-action={"stepHelp:" + k} aria-current={k === i ? "page" : undefined} onClick={() => setI(k)} className={cn(ROW, "flex min-h-10 items-center px-3 py-2 text-sm font-semibold")}>
+              {said(m.name)}
+            </button>
+          ))}
+        </nav>
+        <div className="flex min-w-0 flex-col items-center gap-3">
+          {player && <PlayerCube key={i} player={player} size={220} />}
+          {player && <PlayerAlg player={player} text={move.alg} size={22} />}
+          {player && <PlayerControls player={player} inline />}
+          {move.note && <p className="text-center text-sm leading-relaxed text-muted-foreground">{said(move.note)}</p>}
+        </div>
+      </div>
+    </Modal>
   );
 }
 

@@ -2,8 +2,9 @@
  * Geometry and colours of the static case diagrams. Web, desktop exports and mobile
  * all draw from these cells so every platform shows the same picture for a case.
  */
-import { cubeSize, type CubeState, type Face } from "./cube";
+import { cubeSize, type CubeState } from "./cube";
 import { hexOf, stickerColors, type CubeMask } from "./cubeAppearance";
+import { CUBE_BODY, cubeShapes, cubeViewRadius } from "./cubeScene";
 export type { CubeMask } from "./cubeAppearance";
 
 const palettes = new WeakMap<CubeState, Map<string, number[]>>();
@@ -17,45 +18,22 @@ export function stickerHex(state: CubeState, slot: number, mask: CubeMask, held 
   return hexOf(palette[state[slot]]);
 }
 
-export const ISO_VIEWBOX = "0 0 120 118";
+export const ISO_VIEWBOX = "0 0 120 120";
 export const TOP_VIEWBOX = "0 0 120 120";
 /** Stickerless speedcube look: coloured pieces meet at hairline seams over a dark core, no black rims. */
 export const SEAM_FILL = "#121216";
 /** Each tile is stroked in its own colour so its corners come out slightly rounded. */
 export const TILE_STROKE = { strokeWidth: 0.9, strokeLinejoin: "round" } as const;
-/** Hairline drawn over the cube edges, where two colours of one piece meet. */
-export const EDGE_STROKE = { fill: "none", stroke: SEAM_FILL, strokeWidth: 0.6, strokeLinecap: "round", strokeLinejoin: "round" } as const;
-// Half the seam between two neighbouring tiles, as a fraction of one tile.
-const GAP = 0.05;
-// Same piece shapes as the desktop 3D cube, in tile units: centres and the centre side of edges are rounded,
-// the inner tip of a corner piece gets a softer radius, and cube vertices a barely visible one.
+/** Hairline drawn over the cube edges, where two colours of one piece meet: one screen pixel, as on the 3D cube. */
+export const EDGE_STROKE = { fill: "none", stroke: SEAM_FILL, strokeWidth: 1, vectorEffect: "non-scaling-stroke", strokeLinecap: "round", strokeLinejoin: "round" } as const;
+// Same piece shapes as the desktop 3D cube, in tile units: centres and the centre side of edges are rounded, the inner
+// tip of a corner piece gets a softer radius.
 const ROUND = 0.26;
 const CORNER_ROUND = 0.12;
-// The vertex rounding starts TIP along each cube edge and pulls the point where three colours meet in by TIP_DEPTH per axis.
-const TIP = 0.12;
-const TIP_DEPTH = 0.024;
 const ARC_STEPS = 6;
 
 type Point = readonly [number, number];
-type Vector = readonly [number, number, number];
-const sum = (a: Vector, b: Vector, factor = 1): Vector => [a[0] + b[0] * factor, a[1] + b[1] * factor, a[2] + b[2] * factor];
 const format = (points: Point[]) => points.map(([x, y]) => `${+x.toFixed(2)},${+y.toFixed(2)}`).join(" ");
-/** Distance from the eye to the cube's centre, in cube widths, as on the 3D cube (shared/cubeScene `CUBE_EYE`). */
-const EYE = 5;
-// Depth of the silhouette's nearest vertices, in cube widths: drawn where the flat projection put them, so the cube keeps its size.
-const FIT = (EYE - 0.5 / Math.sqrt(3)) / EYE;
-/**
- * Projection of a point in tile units: x runs right along the front face, y down, z from the back of the top face to the
- * front. The isometric view with a gentle perspective, as the 3D cube: the near corner comes forward, the far side
- * shrinks a little, so the back of the cube no longer reads larger than its front.
- */
-const project = ([x, y, z]: Vector, dimension: number): Point => {
-  const scale = 3 / dimension, half = dimension / 2;
-  // Towards the eye, which looks at the cube from its front top right corner.
-  const depth = (x - half - (y - half) + (z - half)) / (dimension * Math.sqrt(3));
-  const factor = FIT * EYE / (EYE - depth);
-  return [60 + 17 * scale * (x - z) * factor, 59 + (9 * scale * (x + z) + 18 * scale * y - 54) * factor];
-};
 /** Quarter turn from `from` to `to` around `center`, both one radius away on perpendicular sides. */
 function arc(center: Point, from: Point, to: Point): Point[] {
   return Array.from({ length: ARC_STEPS + 1 }, (_, step) => {
@@ -63,92 +41,40 @@ function arc(center: Point, from: Point, to: Point): Point[] {
     return [center[0] + cos * (from[0] - center[0]) + sin * (to[0] - center[0]), center[1] + cos * (from[1] - center[1]) + sin * (to[1] - center[1])] as const;
   });
 }
-/** Seam shared by two faces near a cube vertex: from the cube edge running along `along` to the pulled-in tip. */
-function tipCurve(vertex: Vector, along: Vector, inward: Vector): Vector[] {
-  const start = sum(vertex, along, TIP), control = sum(vertex, along, 3 * TIP_DEPTH), tip = sum(vertex, inward, TIP_DEPTH);
-  return Array.from({ length: ARC_STEPS + 1 }, (_, step) => {
-    const t = step / ARC_STEPS;
-    return sum(sum(sum([0, 0, 0], start, (1 - t) ** 2), control, 2 * t * (1 - t)), tip, t * t);
-  });
-}
-/** Unit step from `from` towards `to` along each axis. */
-const toward = (from: Vector, to: Vector): Vector => [Math.sign(to[0] - from[0]), Math.sign(to[1] - from[1]), Math.sign(to[2] - from[2])];
-/** In along one seam of a cube vertex, out along the other. */
-const tipCorner = (vertex: Vector, first: Vector, last: Vector, inward: Vector) => [...tipCurve(vertex, first, inward), ...tipCurve(vertex, last, inward).reverse().slice(1)];
-
-interface IsoFace { face: Face; index: number; origin: (dimension: number) => Vector; column: Vector; row: Vector; normal: Vector }
-const FACES: readonly IsoFace[] = [
-  { face: "U", index: 0, origin: () => [0, 0, 0], column: [1, 0, 0], row: [0, 0, 1], normal: [0, 1, 0] },
-  { face: "F", index: 2, origin: dimension => [0, 0, dimension], column: [1, 0, 0], row: [0, 1, 0], normal: [0, 0, -1] },
-  { face: "R", index: 4, origin: dimension => [dimension, 0, dimension], column: [0, 0, -1], row: [0, 1, 0], normal: [-1, 0, 0] },
-];
 const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const;
-/** Tile of a face: pulled back from its neighbours by the seam, flush with the cube edge on the outside. */
-function cell({ origin, column: columnAxis, row: rowAxis, normal }: IsoFace, column: number, row: number, dimension: number): string {
-  const last = dimension - 1;
-  const outside = (index: number, sign: number) => index === (sign < 0 ? 0 : last);
-  const bound = (index: number, sign: number) => sign < 0 ? index + (outside(index, sign) ? 0 : GAP) : index + 1 - (outside(index, sign) ? 0 : GAP);
-  const isCorner = (column === 0 || column === last) && (row === 0 || row === last);
-  const place = (c: number, r: number) => sum(sum(origin(dimension), columnAxis, c), rowAxis, r);
-  const flat = ([c, r]: Point) => project(place(c, r), dimension);
-  return format(CORNERS.flatMap(([sc, sr]) => {
-    const c = bound(column, sc), r = bound(row, sr);
-    // The perimeter reaches this corner along one side and leaves along the other.
-    const alongRowFirst = sc * sr > 0;
-    if (outside(column, sc) && outside(row, sr)) {
-      const inward = sum(sum(normal, columnAxis, -sc), rowAxis, -sr);
-      const alongColumn = sum([0, 0, 0], columnAxis, -sc), alongRow = sum([0, 0, 0], rowAxis, -sr);
-      return tipCorner(place(c, r), alongRowFirst ? alongRow : alongColumn, alongRowFirst ? alongColumn : alongRow, inward).map(point => project(point, dimension));
-    }
-    if (outside(column, sc) || outside(row, sr)) return [flat([c, r])];
-    const radius = isCorner ? CORNER_ROUND : ROUND;
-    const onRowSide: Point = [c, r - sr * radius], onColumnSide: Point = [c - sc * radius, r];
-    return arc([c - sc * radius, r - sr * radius], alongRowFirst ? onRowSide : onColumnSide, alongRowFirst ? onColumnSide : onRowSide).map(flat);
-  }));
-}
-
-const hulls = new Map<number, string>();
-/** Silhouette of the isometric cube with its rounded vertices; painted in the seam colour under the tiles. */
-export function isoHull(state: CubeState): string {
-  const dimension = cubeSize(state);
-  let hull = hulls.get(dimension);
-  if (!hull) {
-    const n = dimension;
-    const vertices: Vector[] = [[0, 0, 0], [n, 0, 0], [n, n, 0], [n, n, n], [0, n, n], [0, 0, n]];
-    hulls.set(dimension, hull = format(vertices.flatMap((vertex, index) => {
-      const previous = vertices[(index + 5) % 6], next = vertices[(index + 1) % 6];
-      return tipCorner(vertex, toward(vertex, previous), toward(vertex, next), toward(vertex, [n / 2, n / 2, n / 2])).map(point => project(point, dimension));
-    })));
-  }
-  return hull;
-}
-
-const edges = new Map<number, string[]>();
-/** The three cube edges between the visible faces, following the rounded vertices; drawn over the tiles. */
-export function isoEdges(state: CubeState): string[] {
-  const dimension = cubeSize(state);
-  let lines = edges.get(dimension);
-  if (!lines) {
-    const n = dimension, near: Vector = [n, 0, n], middle: Vector = [n / 2, n / 2, n / 2];
-    const far: Vector[] = [[0, 0, n], [n, 0, 0], [n, n, n]];
-    edges.set(dimension, lines = far.map(vertex => format([
-      ...tipCurve(near, toward(near, vertex), toward(near, middle)).reverse(),
-      ...tipCurve(vertex, toward(vertex, near), toward(vertex, middle)),
-    ].map(point => project(point, dimension)))));
-  }
-  return lines;
-}
 
 export interface IsoCell { key: string; points: string; fill: string; stroke: string }
-/** Isometric view: U, F and R faces of any cube size, 3·n² polygons. */
-export function isoCells(state: CubeState, mask: CubeMask, held = false): IsoCell[] {
-  const dimension = cubeSize(state);
-  return FACES.flatMap(face => Array.from({ length: dimension * dimension }, (_, index) => {
-    const row = Math.floor(index / dimension), column = index % dimension;
-    const fill = stickerHex(state, face.index * dimension * dimension + index, mask, held);
-    return { key: `${face.face}-${index}`, points: cell(face, column, row, dimension), fill, stroke: fill };
-  }));
+interface IsoPicture { hull: string; cells: IsoCell[]; edges: string[] }
+const pictures = new WeakMap<CubeState, Map<string, IsoPicture>>();
+/**
+ * Isometric view: the 3D cube's own shapes at rest (shared/cubeScene), from its camera, in ISO_VIEWBOX: a picture is
+ * the cube the app turns, pieces, seams and proportions alike. Memoised per state, mask and palette.
+ */
+function isoPicture(state: CubeState, mask: CubeMask, held: boolean): IsoPicture {
+  let masks = pictures.get(state);
+  if (!masks) pictures.set(state, masks = new Map());
+  const key = held ? `${mask}:held` : mask;
+  let picture = masks.get(key);
+  if (!picture) {
+    const scene = { size: cubeSize(state), colors: stickerColors(state, mask, held), states: [Array.from(state)], moves: [] };
+    const unit = 60 / cubeViewRadius(scene);
+    const points = (shape: number[][]) => format(shape.map(([x, y]) => [60 + x! * unit, 60 - y! * unit] as const));
+    picture = { hull: "", cells: [], edges: [] };
+    for (const [index, shape] of cubeShapes(scene, 0).entries()) {
+      if (shape.line) picture.edges.push(points(shape.points));
+      else if (shape.color === CUBE_BODY && !picture.hull) picture.hull = points(shape.points);
+      else picture.cells.push({ key: `t-${index}`, points: points(shape.points), fill: hexOf(shape.color), stroke: hexOf(shape.color) });
+    }
+    masks.set(key, picture);
+  }
+  return picture;
 }
+/** Silhouette of the cube's body, painted in the seam colour under the tiles. */
+export const isoHull = (state: CubeState) => isoPicture(state, "full", false).hull;
+/** The seams where two colours of one piece meet along the cube's edges, drawn over the tiles. */
+export const isoEdges = (state: CubeState) => isoPicture(state, "full", false).edges;
+/** The stickers the eye sees: the U, F and R faces of any cube size. */
+export const isoCells = (state: CubeState, mask: CubeMask, held = false) => isoPicture(state, mask, held).cells;
 
 /**
  * Which picture explains a case best. Last-layer cases (OLL, PLL, parities) are read from above with the side

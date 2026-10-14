@@ -32,7 +32,9 @@ import {
 } from "@/components/ui/context-menu";
 import { EVENTS } from "../../src/shared/puzzles";
 import { cubeScene } from "../../src/shared/cubeScene";
-import { maskForStage } from "../../src/client/lib/caseState";
+import { caseState, maskForStage } from "../../src/client/lib/caseState";
+import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
+import { viewForStage } from "../../src/shared/cubeDiagram";
 import { fmtSolve } from "../../src/client/lib/format";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
@@ -417,15 +419,16 @@ export function PenaltyToggles({
   );
 }
 
+/**
+ * A case's picture: its own diagram (a puzzle drawn apart, desktop/scripts/export-assets.tsx), else drawn here, never
+ * downloaded: seen from above when its stage reads so, else on the 3D cube.
+ */
 export function Diagram({ c, size = 96, className }: { c: any; size?: number; className?: string }) {
-  // Cases without a drawn diagram nor a view from above show on the 3D cube (desktop/scripts/export-assets.tsx).
   const scene = useMemo(() => (c && !c.diagram && !c.flat ? cubeScene(c.setup, c.cube_size ?? 3, maskForStage(c.stage), false) : undefined), [c?.setup, c?.cube_size, c?.stage, c?.diagram, c?.flat]);
   if (!c) return null;
-  return scene ? (
-    <Cube scene={scene} size={size} animated={false} />
-  ) : (
-    <img className={cn("case-diagram block shrink-0", className)} src={"/assets/" + c.asset} width={size} height={size} alt={c.id} />
-  );
+  if (scene) return <Cube scene={scene} size={size} animated={false} />;
+  if (c.diagram) return <img className={cn("case-diagram block shrink-0", className)} src={"/assets/" + c.asset} width={size} height={size} alt={c.id} />;
+  return <StaticCubeSvg state={caseState(c)} size={size} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} className={cn("block shrink-0", className)} />;
 }
 
 /** The page header (base.tsx), with the puzzle and its session on phones when the page has one (`puzzle`). */

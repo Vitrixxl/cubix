@@ -7,7 +7,7 @@
  * seen from outside).
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Camera, CameraOff, Check, Paintbrush, RefreshCw, Sun, SwitchCamera, TriangleAlert, Undo2, type LucideIcon } from "lucide-react";
+import { Camera, CameraOff, Check, Hand, RefreshCw, Sun, SwitchCamera, TriangleAlert, Undo2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -107,22 +107,6 @@ export function FlatFace({ face, colours, size, doubt }: { face: Face; colours?:
           </span>
         );
       })}
-    </span>
-  );
-}
-
-/** A face held up to the camera, the grid found drawn on it, each sticker marked with the colour read: the camera's way, drawn. */
-export function CameraPicture() {
-  const face: Face[] = ["R", "U", "D", "F", "U", "L", "B", "U", "F"];
-  return (
-    <span aria-hidden="true" className="flex size-[190px] items-center justify-center rounded-[22px] bg-[radial-gradient(circle_at_50%_40%,#4a3a38,#241a1c_70%)]">
-      <span className="grid size-[110px] -rotate-9 -skew-x-4 grid-cols-3 gap-[3px] rounded-[10px] bg-[#151012] p-1">
-        {face.map((c, k) => (
-          <span key={k} className="flex items-center justify-center rounded-[5px] ring-[1.5px] ring-[#f8ebe4]/90" style={{ background: hex(c) }}>
-            <span className="size-2 rounded-full border-[1.5px] border-[#1c1317]" />
-          </span>
-        ))}
-      </span>
     </span>
   );
 }
@@ -368,7 +352,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
           <ActionCard primary icon={Camera} title={tr("Read")} kbd={tr("Space")} onClick={readNow} disabled={state !== "live" || !live} action="scan:read" className="max-md:col-span-2" />
           <ActionCard icon={Undo2} title={tr("Undo")} text={last >= 0 ? <span className="first-letter:uppercase max-md:hidden">{said(COLOUR_NAMES[ORDER[last]!.face])}</span> : undefined} kbd="⌫" onClick={undo} disabled={last < 0} action="scan:undo" />
-          <ActionCard icon={Paintbrush} title={tr("By hand")} onClick={onHand} action="scan:hand" />
+          <ActionCard icon={Hand} title={tr("By hand")} onClick={onHand} action="scan:hand" />
         </div>
       </div>
     </div>
@@ -432,7 +416,7 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
   if (impossible)
     return frame(
       <Notice icon={TriangleAlert} title={tr("This cube cannot be solved")} text={problem ? said(problem) : tr("A piece is twisted or two pieces are swapped. Check the colours.")}>
-        <ActionCard primary icon={Paintbrush} title={tr("Check")} onClick={() => setImpossible(false)} action="scan:check" />
+        <ActionCard primary icon={Hand} title={tr("Check")} onClick={() => setImpossible(false)} action="scan:check" />
         {onCamera && <ActionCard icon={Camera} title={tr("Read again")} onClick={onCamera} action="scan:again" />}
       </Notice>,
       () => setImpossible(false),

@@ -15,7 +15,8 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
   const outline = !hull && rim !== "transparent" ? { stroke: rim, strokeWidth: 1.2 } : null;
   return <Svg width={size} height={size} viewBox={view === "iso" ? ISO_VIEWBOX : TOP_VIEWBOX}>
     {hull && <Path d={hull} fill={SEAM_FILL} />}
-    {tiles.map(({ fill, d }) => <Path key={fill} d={d} fill={fill} stroke={fill} {...TILE_STROKE} {...outline} />)}
+    {/* The 3D cube's stickers are filled alone; seen from above, each is stroked in its colour to round it. */}
+    {tiles.map(({ fill, d }) => <Path key={fill} d={d} fill={fill} {...(hull ? null : { stroke: fill, ...TILE_STROKE, ...outline })} />)}
     {edges && <Path d={edges} {...EDGE_STROKE} />}
   </Svg>;
 });

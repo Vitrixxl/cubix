@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import {
-  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Camera, Check, ChevronLeft, ChevronRight, GraduationCap, Info, Paintbrush, Repeat2, RotateCcw, RotateCw,
+  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Camera, Check, ChevronLeft, ChevronRight, GraduationCap, Hand, Info, Repeat2, RotateCcw, RotateCw,
   ScanLine, Timer, TriangleAlert, Undo2, X, type LucideIcon,
 } from "lucide-react-native";
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -115,7 +115,7 @@ function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
     {/* The two ways side by side on a tablet. */}
     <View className={cn("min-h-0 flex-1 gap-2.5", tablet && "flex-row gap-3")}>
       <WayTile icon={Camera} title={tr("Camera")} onPress={() => onChoose("scan")} />
-      <WayTile icon={Paintbrush} title={tr("By hand")} onPress={() => onChoose("hand")} />
+      <WayTile icon={Hand} title={tr("By hand")} onPress={() => onChoose("hand")} />
     </View>
     <View className="flex-row items-center gap-3 rounded-[20px] bg-card px-4 py-3">
       <StaticCubeSvg state={solved(3)} size={48} />
