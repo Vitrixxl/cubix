@@ -35,12 +35,12 @@ export const hex = (face: Face) => hexOf(HELD_HEX[face]);
  * quarter turn of the whole cube (to the right, or tipped back).
  */
 const ORDER: { face: Face; top: Face; title: string; turn?: "right" | "back" }[] = [
+  { face: "D", top: "F", title: "White face to the camera" },
   { face: "U", top: "B", title: "Yellow face to the camera" },
   { face: "R", top: "U", title: "Orange face to the camera" },
   { face: "L", top: "U", title: "Red face to the camera" },
   { face: "B", top: "U", title: "Blue face to the camera", turn: "right" },
   { face: "F", top: "U", title: "Green face to the camera" },
-  { face: "D", top: "F", title: "White face to the camera", turn: "back" },
 ];
 /** Below this, a sticker read is marked to check. */
 const DOUBT = 0.8;

@@ -66,7 +66,8 @@ describe("face by face, as the lab reads", () => {
     for (const face of FACES) expect(scanColour(REFS[face])).toBe(face);
     // The yellow face is read first, its centre held: a warm camera's yellows in shadow stay yellow.
     for (const yellow of [[0, 151, 202], [0, 155, 206], [0, 162, 213]] as Rgb[]) expect(scanColour(bgr(yellow), { ...REFS, U: bgr([0, 159, 195]) })).toBe("U");
-    for (const beige of [[103, 155, 188], [99, 158, 192], [90, 141, 169], [94, 175, 221]] as Rgb[]) expect(scanColour(bgr(beige), { ...REFS, U: bgr([0, 159, 195]) })).toBe("D");
+    // White is read first: a warm camera's beige whites balanced by its own white are white again.
+    for (const beige of [[103, 155, 188], [99, 158, 192], [90, 141, 169], [94, 175, 221]] as Rgb[]) expect(scanColour(bgr(beige), { ...REFS, D: bgr([94, 175, 221]), U: bgr([0, 159, 195]) })).toBe("D");
     expect(scanColour(bgr([120, 90, 40]))).toBe("B");
     // Once white is read, pale and bright is no longer white by itself.
     expect(scanColour(bgr([90, 141, 169]), { ...REFS, D: [250, 250, 250], U: bgr([0, 159, 195]) })).toBe("U");

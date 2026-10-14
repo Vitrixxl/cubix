@@ -43,12 +43,12 @@ export function useSquare(element: HTMLElement | null) {
  * yellow on top, to show the face asked for; `turn`, when the last step comes by a quarter turn.
  */
 const ORDER: { face: Face; setup: string; title: string; turn?: boolean }[] = [
+  { face: "D", setup: "x'", title: "White face to the camera" },
   { face: "U", setup: "x", title: "Yellow face to the camera" },
   { face: "R", setup: "y'", title: "Orange face to the camera" },
   { face: "L", setup: "y", title: "Red face to the camera" },
   { face: "B", setup: "y y", title: "Blue face to the camera", turn: true },
   { face: "F", setup: "", title: "Green face to the camera" },
-  { face: "D", setup: "x'", title: "White face to the camera", turn: true },
 ];
 /** Below this, a sticker read is marked to check. */
 const DOUBT = 0.8;

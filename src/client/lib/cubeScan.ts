@@ -37,31 +37,36 @@ function feature(rgb: readonly number[]): V3 {
     h = max === min ? 0 : max === r ? ((g - b) / (max - min) + 6) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
   return [0.15 * Math.cbrt(max), s * Math.cos((h * Math.PI) / 3), s * Math.sin((h * Math.PI) / 3)];
 }
-const point = (rgb: Rgb): V3 => feature(rgb.map(linear));
+/**
+ * Each channel's gain that turns white's look grey: the light and the camera's white balance undone, every colour then
+ * compared as under a neutral light (a warm camera's beige white grey again, its dull blue still blue). White is read
+ * first (`SCAN_FACES`).
+ */
+const balanceOf = (white: Rgb): V3 => {
+  const w = white.map((v) => Math.max(linear(v), 1e-3)),
+    mean = (w[0]! + w[1]! + w[2]!) / 3;
+  return w.map((v) => mean / v) as V3;
+};
+const point = (rgb: Rgb, gains: readonly number[] = [1, 1, 1]): V3 => feature(rgb.map((v, k) => linear(v) * gains[k]!));
 /** Where a colour stands on the hue circle, in degrees. */
 const hueOf = (f: V3) => ((Math.atan2(f[2], f[1]) * 180) / Math.PI + 360) % 360;
 
 /** How each colour looks to a camera before its face is read. */
 export const REFS: Readonly<Record<Face, Rgb>> = { D: [235, 235, 235], U: [255, 240, 0], R: [255, 188, 0], L: [255, 40, 30], B: [0, 110, 255], F: [0, 220, 60] };
-/** Until white is read, pale and bright is white (a warm camera turns it beige): OpenCV's 8-bit HSV bounds. */
-const WHITE_MAX_S = 150,
-  WHITE_MIN_V = 110;
-
 /**
- * The colour closest to `rgb` among `refs`. Until white is read, pale and bright is white. A colour not read yet is
- * placed by the yellow, held first: cameras squeeze or stretch the hues between red and yellow (a warm webcam's yellow
- * at 35°, a phone's at 60°), orange about halfway, red near the start.
+ * The colour closest to `rgb` among `refs`, every one balanced by white's look (`refs.D`, read first). A colour not read
+ * yet is placed by the yellow once it is: cameras squeeze or stretch the hues between red and yellow (a phone that
+ * saturates puts its yellow at 60°, an even camera at 48°), orange at two fifths of its hue, red near the start.
  */
 export function scanColour(rgb: Rgb, refs: Readonly<Record<Face, Rgb>> = REFS): Face {
-  const v = Math.max(...rgb);
-  if (refs.D === REFS.D && v > WHITE_MIN_V && (v - Math.min(...rgb)) * 255 < WHITE_MAX_S * v) return "D";
-  const yellow = hueOf(point(refs.U)),
-    placed: Partial<Record<Face, number>> = { R: yellow / 2, L: yellow / 20 },
+  const gains = balanceOf(refs.D),
+    yellow = hueOf(point(refs.U, gains)),
+    placed: Partial<Record<Face, number>> = { R: yellow * 0.4, L: yellow * 0.02 },
     look = (face: Face): V3 => {
       const hue = refs[face] === REFS[face] ? placed[face] : undefined;
-      return hue === undefined ? point(refs[face]) : [0.15, Math.cos((hue * Math.PI) / 180), Math.sin((hue * Math.PI) / 180)];
+      return hue === undefined ? point(refs[face], gains) : [0.15, Math.cos((hue * Math.PI) / 180), Math.sin((hue * Math.PI) / 180)];
     },
-    f = point(rgb);
+    f = point(rgb, gains);
   let best: Face = "D",
     d = Infinity;
   for (const face of Object.keys(REFS) as Face[]) {
@@ -117,8 +122,11 @@ export function readFace(rgba: ArrayLike<number>, w: number, h: number, centre: 
   });
 }
 
-/** The faces in the order the lab reads them, by their centre's colour: yellow, orange, red, blue, green, white. */
-export const SCAN_FACES: readonly Face[] = ["U", "R", "L", "B", "F", "D"];
+/**
+ * The faces in the order they are read, by their centre's colour: white first, whose look under this light and camera
+ * balances every other colour (`balanceOf`), then yellow, orange, red, blue and green.
+ */
+export const SCAN_FACES: readonly Face[] = ["D", "U", "R", "L", "B", "F"];
 /**
  * The six faces read in `SCAN_FACES`'s order, each held any way round and read as the camera sees it, in Cubix's
  * sticker order, each face turned as it must be (`orientFaces`).
@@ -142,7 +150,8 @@ export const scanStickers = (faces: readonly (readonly Rgb[] | null)[], refs: Re
  * groups' means again, ten times; each group named after its centre. A warm camera's beige white stays apart.
  */
 export function resolve(samples: readonly Rgb[]): Face[] {
-  const pts = samples.map(point);
+  const gains = balanceOf(samples[WHITE]!),
+    pts = samples.map((s) => point(s, gains));
   let means = FACES.map((_, k) => pts[k * 9 + 4]!);
   const label = new Array<number>(54);
   for (let round = 0; round < 10; round++) {
@@ -312,6 +321,8 @@ export interface CubeRead {
 }
 
 const faceOf = (i: number) => Math.floor(i / 9);
+/** White's centre among the 54 stickers, in Cubix's order. */
+const WHITE = FACES.indexOf("D") * 9 + 4;
 const median = (values: number[]) => {
   const sorted = values.slice().sort((a, b) => a - b),
     m = sorted.length >> 1;
@@ -360,7 +371,8 @@ function prices(x: readonly V3[], labels: readonly number[], gains: readonly V3[
  */
 export function readCube(samples: readonly Rgb[]): CubeRead {
   left = 300_000;
-  const x = samples.map((s) => s.map((v) => Math.max(1e-4, linear(v))) as V3);
+  const gains = balanceOf(samples[WHITE]!),
+    x = samples.map((s) => s.map((v, k) => Math.max(1e-4, linear(v) * gains[k]!)) as V3);
   // First guesses of each face's light: none; a grey face on average (the six colours mixed come out grey); its centre
   // as its colour usually looks.
   const all = [0, 1, 2].map((k) => x.reduce((s, c) => s + c[k]!, 0) / 54),
