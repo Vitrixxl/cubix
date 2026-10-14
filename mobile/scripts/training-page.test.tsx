@@ -34,7 +34,7 @@ mock.module("../src/api", () => ({ api: { setLearned: async () => {} }, authToke
 } }));
 mock.module("expo-keep-awake", () => ({ useKeepAwake() {} }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: "CaseDiagram" }));
-mock.module("../src/components/AlgPlayer", () => ({ PlayerCube: "PlayerCube", useAlgPlayer: () => null }));
+mock.module("../src/components/AlgPlayer", () => ({ PlayerAlg: "PlayerAlg", PlayerControls: "PlayerControls", PlayerCube: "PlayerCube", useAlgPlayer: () => null }));
 mock.module("../src/components/CaseSelector", () => ({ CaseSelector: "CaseSelector" }));
 mock.module("../src/components/CrossPractice", () => ({ CrossPractice: "CrossPractice" }));
 mock.module("../src/components/SlideSwitch", () => ({ SlideSwitch: ({ children }: any) => createElement(Fragment, {}, children) }));
@@ -125,7 +125,7 @@ test("Learned opens its screen; a selection from elsewhere drills its learned ca
   expect(texts()).not.toContain("Aa");
 });
 
-test("a recognition run counts down, shows cases without their names until Close, then how many were done", async () => {
+test("a recognition run counts down, shows cases without their names, a tap pausing one to show its algorithm and Next moving on, until Close, then how many were done", async () => {
   await mount(s => { s.set(trainingRunAtom, "recognition"); s.set(trainingStepAtom, "practice"); });
   expect(texts()).toContain("3");
   // Each second is its own step of the countdown.
@@ -133,8 +133,13 @@ test("a recognition run counts down, shows cases without their names until Close
   expect(renderer.root.findAllByType("CubePreview" as any).length).toBe(1);
   expect(texts().some(t => ["Runway", "Zamboni", "Anti-Nazi", "R U R' U'"].includes(t))).toBe(false);
   const first = renderer.root.findAllByType("CubePreview" as any)[0]!.props.alg;
-  await act(() => pressable("Next case")!.props.onPress());
-  await act(() => pressable("Next case")!.props.onPress());
+  for (let i = 0; i < 2; i++) {
+    await act(() => pressable("Show the algorithm")!.props.onPress());
+    // Paused: the case named, its algorithm shown, no cube waiting for a tap.
+    expect(renderer.root.findAllByType("CubePreview" as any).length).toBe(0);
+    expect(renderer.root.findAll((n: any) => n.type === "Alg" && typeof n.props.text === "string" && n.props.text.length > 0).length).toBe(1);
+    await act(() => chip("Next")!.props.onPress());
+  }
   expect(typeof first).toBe("string");
   await act(() => chip("Close")!.props.onPress());
   expect(texts()).toEqual(expect.arrayContaining(["2", "cases done"]));

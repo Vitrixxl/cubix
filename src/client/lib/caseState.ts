@@ -18,8 +18,8 @@ export function caseState(c: CaseDto): CubeState {
 }
 
 export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" || stage === "Last slot" ? "OLL" : stage === "PLL" || stage === "ZBLL" || stage === "OLLCP" || stage === "COLL" ? "PLL" : stage === "CMLL" ? "CMLL" : stage === "F2L" ? "F2L" : "full");
-/** Stages whose case is read on the top layer's sides too: their cube draws the hidden stickers of that layer (`cubeShapes` hints). */
-export const hintsForStage = (stage: Stage) => ["OLL", "PLL", "ZBLL", "OLLCP", "COLL", "CMLL", "CLL", "EG", "PBL", "Last slot", "TCLL", "ELL", "TTLL"].includes(stage);
+/** Stages whose case is read on stickers the eye cannot see too: their cube draws them (`cubeShapes` hints). */
+export const hintsForStage = (stage: Stage) => ["F2L", "OLL", "PLL", "ZBLL", "OLLCP", "COLL", "CMLL", "CLL", "EG", "PBL", "Last slot", "TCLL", "ELL", "TTLL"].includes(stage);
 
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);

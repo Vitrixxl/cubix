@@ -5,7 +5,6 @@ import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
 import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
-import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import { useBackTo } from "./Practice";
 import { useLayout } from "../hooks/useLayout";
 import { Sheet } from "./Sheet";
 import { useTourTarget } from "../tour";
+import { hintsForStage } from "../lib/caseState";
 import { said, tr } from "../../../src/client/i18n";
 
 /** Whole sets the training drills (their learned cases), per puzzle (shared with the web prefs' names). */
@@ -157,7 +157,8 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const chosen = data.recognition;
   const handPicked = data.hand.filter(id => data.learned.has(id)).length, recommendedPicked = data.picks.filter(id => data.learned.has(id)).length;
   const tour = useTourTarget("training");
-  const top = cube && !!chosen && viewForStage(chosen.set.stage) === "top";
+  // The hidden stickers of the recognition's cube, for the sets read on them (the last layer's sides, an F2L pair's back).
+  const hidden = cube && !!chosen && hintsForStage(chosen.set.stage);
   const toggleSet = (id: string) => setTrainSets(trainSets.includes(id) ? trainSets.filter(x => x !== id) : [...trainSets, id]);
   const ofSet = (x: TrainingData["setRows"][number]) => tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length });
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
@@ -198,7 +199,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       </Field>
       {cube && <View className="flex-row flex-wrap gap-1.5">
         <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)}>{tr("Random AUF")}</Chip>
-        {top && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the top layer's stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
+        {hidden && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
       </View>}
       <StartButton onPress={() => start("recognition")} disabled={!chosen} />
     </Sheet>

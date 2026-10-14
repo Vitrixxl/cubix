@@ -101,6 +101,18 @@ figcaption ul { color: var(--mfg); font-size: 14px; line-height: 1.5; padding-le
 .side a.on { background: var(--acc); color: var(--fg); }
 .side a.on svg.lucide { color: var(--pri); }
 .side a .n { margin-left: auto; font-size: 12px; color: var(--faint); }
+.secbar { display: flex; align-items: flex-end; gap: 28px; margin: 0 32px; border-bottom: 1px solid var(--border); flex: none; }
+.secbar .title { padding-bottom: 10px; font-size: 30px; }
+.rechead { display: flex; align-items: center; gap: 12px; padding: 14px 32px 0; flex: none; }
+.rechead b { font-size: 28px; font-weight: 800; letter-spacing: -.03em; }
+.rechead .back { width: 36px; height: 36px; border-radius: 11px; background: var(--muted); display: grid; place-items: center; }
+.alg { font-size: 34px; font-weight: 800; letter-spacing: .01em; word-spacing: 8px; text-align: center; }
+.alg .done { color: var(--faint); } .alg .now { color: var(--pri); }
+.kbd { font-size: 12px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(28,19,23,.15); margin-left: 4px; }
+.btn:not(.pri) .kbd { background: var(--acc); }
+.player { display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-radius: 18px; background: var(--card); color: var(--mfg); }
+.player .playb { width: 40px; height: 40px; border-radius: 12px; background: var(--pri); color: var(--pri-fg); display: grid; place-items: center; }
+.dia { width: 64px; height: 64px; flex: none; }
 </style>
 </head>
 <body>
@@ -444,7 +456,146 @@ Community / Coaching). La barre du haut ne garde que les cinq sections.</p>
 </div>
 </figure>
 </section>
+
+<!-- ===================================================================== Recognition pause -->
+<section class="series" id="recognition">
+<h2>3 · La reconnaissance en pause : Espace montre l'algorithme</h2>
+<p>Aujourd'hui, Espace passe au cas suivant. Proposition commune aux trois pistes : pendant qu'un cas est affiché,
+<b>Espace met en pause</b> (la barre s'arrête là où elle en était) et <b>montre l'algorithme</b> ; un second Espace
+passe au cas suivant, et la barre repart. Un clic ou un tap fait de même. Exemple : F2L 5, mis en pause après 1,6 s.</p>
+
+<figure>
+<figcaption>
+  <b><i>A</i> Sur place : l'algorithme sous le cube</b>
+  <span>Rien ne bouge : le cube reste au centre, la barre se fige en gris avec le temps écoulé, et le nom du cas et son
+  algorithme principal apparaissent dessous, en grand. Deux boutons seulement : Next (Espace) et Play (le voir en 3D).
+  La forme la plus légère, et celle qui garde le rythme. Sur téléphone, c'est la même colonne.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="rechead"><span class="back"><i data-lucide="chevron-left"></i></span><b>Recognition</b><span class="mfg">F2L · 7 cases</span><div class="sp"></div><span class="btn ghost sm"><i data-lucide="x"></i>Close</span></div>
+  <div class="main" style="align-items: center; justify-content: center; gap: 22px;">
+    <div class="cube3d" data-case="f2l5" data-size="300"></div>
+    <div class="row" style="width: 380px; gap: 12px;"><div class="progress" style="flex: 1; height: 6px;"><span style="width: 46%; background: var(--faint);"></span></div><span class="num mfg" style="font-weight: 800; font-size: 14px;"><i data-lucide="pause" style="width: 14px; height: 14px;"></i> 1.6 s</span></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <div class="row" style="gap: 10px;"><b style="font-size: 22px; letter-spacing: -.02em;">F2L 5</b><span class="mfg">Disconnected Pairs</span></div>
+      <div class="alg">U' R U R' U2 R U' R'</div>
+      <span class="faint" style="font-size: 13px; font-weight: 700;">+ 4 other algorithms</span>
+    </div>
+    <div class="row"><span class="btn"><i data-lucide="play"></i>Play</span><span class="btn pri"><i data-lucide="skip-forward"></i>Next<span class="kbd">Space</span></span></div>
+  </div>
 </div>
+</figure>
+
+<figure>
+<figcaption>
+  <b><i>B</i> Une fiche à droite</b>
+  <span>Le cube glisse à gauche, une fiche du cas s'ouvre à droite : son nom et son groupe, le temps mis à le
+  reconnaître, l'algorithme principal en grand puis les autres, chacun lisible d'un coup d'œil, et Next en bas. Plus
+  d'information, pour qui veut revoir ses variantes. Sur téléphone, la fiche monte en tiroir depuis le bas.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="rechead"><span class="back"><i data-lucide="chevron-left"></i></span><b>Recognition</b><span class="mfg">F2L · 7 cases</span><div class="sp"></div><span class="btn ghost sm"><i data-lucide="x"></i>Close</span></div>
+  <div class="main" style="flex-direction: row; gap: 28px;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;">
+      <div class="cube3d" data-case="f2l5" data-size="300"></div>
+      <div class="row" style="width: 360px; gap: 12px;"><div class="progress" style="flex: 1; height: 6px;"><span style="width: 46%; background: var(--faint);"></span></div><span class="num mfg" style="font-weight: 800; font-size: 14px;">Paused</span></div>
+    </div>
+    <div class="card" style="width: 460px; flex: none; gap: 16px;">
+      <div class="h"><div class="dia" data-case="f2l5"></div><div style="flex: 1;"><h3>F2L 5</h3><div class="mfg" style="font-size: 14px; margin-top: 2px;">Disconnected Pairs</div></div><span class="pill p num">1.6 s</span></div>
+      <div class="cap">Algorithm</div>
+      <div class="alg" style="font-size: 26px; text-align: left;">U' R U R' U2 R U' R'</div>
+      <div class="row mfg" style="font-size: 13px; font-weight: 700; gap: 14px;"><span>8 STM</span><span>R U</span><span>69 SpeedCubeDB votes</span></div>
+      <div class="cap" style="margin-top: 6px;">Other algorithms</div>
+      <div class="list">
+        <div class="li"><span class="faint num" style="font-weight: 800;">2</span><div class="t"><b class="num">F2 L' U' L U F2</b></div><span class="mfg" style="font-size: 13px;">6 STM</span></div>
+        <div class="li"><span class="faint num" style="font-weight: 800;">3</span><div class="t"><b class="num">U' R U R' U' R U2 R'</b></div><span class="mfg" style="font-size: 13px;">8 STM</span></div>
+        <div class="li"><span class="faint num" style="font-weight: 800;">4</span><div class="t"><b class="num">U' R U R' U R' F R F'</b></div><span class="mfg" style="font-size: 13px;">9 STM</span></div>
+      </div>
+      <div class="sp"></div>
+      <span class="btn pri" style="height: 52px;"><i data-lucide="skip-forward"></i>Next<span class="kbd">Space</span></span>
+    </div>
+  </div>
+</div>
+</figure>
+
+<figure>
+<figcaption>
+  <b><i>C</i> Le cube joue la solution</b>
+  <span>À la pause, le cube devient le lecteur 3D : il joue l'algorithme coup par coup, le coup en cours éclairé dans
+  le texte, avec les commandes habituelles du lecteur. On voit la paire s'insérer, ce qui aide à mémoriser le geste.
+  Espace passe au suivant, les flèches avancent ou reculent d'un coup. Sur téléphone, les commandes passent sous le cube.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="rechead"><span class="back"><i data-lucide="chevron-left"></i></span><b>Recognition</b><span class="mfg">F2L · 7 cases</span><div class="sp"></div><span class="btn ghost sm"><i data-lucide="x"></i>Close</span></div>
+  <div class="main" style="align-items: center; justify-content: center; gap: 18px;">
+    <div class="row" style="gap: 10px;"><span class="pill num"><i data-lucide="pause" style="width: 12px; height: 12px;"></i> 1.6 s</span><b style="font-size: 20px; letter-spacing: -.02em;">F2L 5</b><span class="mfg">Disconnected Pairs</span></div>
+    <div class="cube3d" data-case="f2l5b" data-size="320"></div>
+    <div class="alg"><span class="done">U' R U</span> <span class="now">R'</span> U2 R U' R'</div>
+    <div class="player"><i data-lucide="chevrons-left"></i><i data-lucide="step-back"></i><span class="playb"><i data-lucide="pause"></i></span><i data-lucide="step-forward"></i><div class="progress" style="width: 220px; height: 5px;"><span style="width: 50%;"></span></div><span class="num mfg" style="font-weight: 800;">4 / 8</span><span class="mfg" style="font-weight: 800;">1×</span></div>
+    <div class="row"><span class="btn pri"><i data-lucide="skip-forward"></i>Next<span class="kbd">Space</span></span></div>
+  </div>
+</div>
+</figure>
+</section>
+</div>
+<script>
+// An isometric 3×3, its U, F and R faces from colour letters (g grey, w white, b blue, r red, o orange, y yellow, G green).
+const HEX = { g: "#6e6e78", w: "#f1ebe6", b: "#6b9be8", r: "#e3636a", o: "#ff9d5c", y: "#ffd34d", G: "#68c48e" };
+const CASES = {
+  f2l5: { U: "ggggggrgg", F: "ggbbbbbbb", R: "gggrrgrrg", float: [] },
+  f2l5b: { U: "gggggggrg", F: "ggbbbbbbb", R: "ggwrrgrrg", float: [] },
+};
+function iso(x, y, z, s) { return [(x - z) * 0.866 * s, ((x + z) * 0.5 - y) * s]; }
+function face(points, s, ox, oy) { return points.map(([x, y, z]) => iso(x, y, z, s)).map(([a, b]) => `${(a + ox).toFixed(1)},${(b + oy).toFixed(1)}`).join(" "); }
+function cube(el, c) {
+  const size = +el.dataset.size || 300, s = size / 6.4, ox = size / 2, oy = size * 0.5, g = 0.08, polys = [];
+  const quad = (pts, col) => polys.push(`<polygon points="${face(pts, s, ox, oy)}" fill="${HEX[col]}" stroke="#141010" stroke-width="${s * 0.09}" stroke-linejoin="round"/>`);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    // U: x right-back, z left-back; F at z = 3 (left), R at x = 3 (right).
+    quad([[j + g, 3, i + g], [j + 1 - g, 3, i + g], [j + 1 - g, 3, i + 1 - g], [j + g, 3, i + 1 - g]].map(([x, y, z]) => [x - 1.5, y - 1.5, z - 1.5]), c.U[i * 3 + j]);
+    quad([[j + g, 3 - i - g, 3], [j + 1 - g, 3 - i - g, 3], [j + 1 - g, 2 - i + g, 3], [j + g, 2 - i + g, 3]].map(([x, y, z]) => [x - 1.5, y - 1.5, z - 1.5]), c.F[i * 3 + j]);
+    quad([[3, 3 - i - g, 3 - j - g], [3, 3 - i - g, 2 - j + g], [3, 2 - i + g, 2 - j + g], [3, 2 - i + g, 3 - j - g]].map(([x, y, z]) => [x - 1.5, y - 1.5, z - 1.5]), c.R[i * 3 + j]);
+  }
+  // Hidden stickers of the pair, floating behind the back faces.
+  const back = c.float.map(([col, row, colour]) => `<polygon points="${face([[col + g, 3 - row - g, -1.4], [col + 1 - g, 3 - row - g, -1.4], [col + 1 - g, 2 - row + g, -1.4], [col + g, 2 - row + g, -1.4]].map(([x, y, z]) => [x - 1.5, y - 1.5, z - 1.5]), s, ox, oy)}" fill="${HEX[colour]}"/>`);
+  el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${back.join("")}<polygon points="${face([[0,3,0],[3,3,0],[3,3,3],[3,0,3],[0,0,3],[0,3,3]].map(([x,y,z])=>[x-1.5,y-1.5,z-1.5]), s, ox, oy)}" fill="#141010"/>${polys.join("")}</svg>`;
+}
+document.querySelectorAll(".cube3d").forEach((el) => cube(el, CASES[el.dataset.case]));
+// The case's flat diagram: the top face with the side stickers around it.
+document.querySelectorAll(".dia").forEach((el) => {
+  const c = CASES[el.dataset.case], cells = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cells.push(`<rect x="${12 + j * 14}" y="${12 + i * 14}" width="12" height="12" rx="2.5" fill="${HEX[c.U[i * 3 + j]]}"/>`);
+  for (let j = 0; j < 3; j++) cells.push(`<rect x="${12 + j * 14}" y="54" width="12" height="6" rx="2" fill="${HEX[c.F[j]]}"/>`, `<rect x="54" y="${12 + j * 14}" width="6" height="12" rx="2" fill="${HEX[c.R[2 - j]]}"/>`);
+  el.innerHTML = `<svg viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#2f2422"/>${cells.join("")}</svg>`;
+});
+</script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script>window.lucide?.createIcons();</script>
 </body>

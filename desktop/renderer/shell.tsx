@@ -356,7 +356,7 @@ export const SectionBar = memo(function SectionBar() {
     here = currentPage();
   if (!section || section.pages.length < 2) return null;
   return (
-    <div className={cn("mx-6 flex shrink-0 items-end gap-7 border-b border-border lg:mx-9", FADE)}>
+    <div className={cn("mx-6 flex shrink-0 items-end gap-7 lg:mx-9", FADE)}>
       <h1 className="pb-2.5 text-[30px] leading-tight font-extrabold tracking-[-0.04em]">{said(section.label)}</h1>
       <nav aria-label={said(section.label)} className="flex items-center gap-1">
         {section.pages.map(([page, label, shortcut]) => {
@@ -372,7 +372,7 @@ export const SectionBar = memo(function SectionBar() {
               title={shortcut ? `${tr(label)} · ${shortcut}` : undefined}
               className={cn(
                 "group/tab relative flex items-center gap-2 rounded-xl px-3.5 pt-2 pb-3.5 text-base font-bold text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground",
-                "after:absolute after:inset-x-3.5 after:-bottom-px after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100",
+                "after:absolute after:inset-x-3.5 after:bottom-0 after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100",
                 FOCUS,
               )}
             >

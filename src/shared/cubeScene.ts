@@ -1,5 +1,5 @@
 import { applyMove, parseAlg, parseScramble, slotsFor, solved, type Move } from './cube';
-import { stickerColors, type CubeMask } from './cubeAppearance';
+import { GREY, stickerColors, type CubeMask } from './cubeAppearance';
 
 /**
  * The 3D cube of the desktop timer, as pure geometry: the canvas of the timer and the SVG of both
@@ -141,8 +141,8 @@ export function cubeFace(size: number, normal: V, orientation: CubeOrientation) 
   return { centre: project(centre), corners, seen: n[0]! * -centre[0]! + n[1]! * -centre[1]! + n[2]! * (eye - centre[2]!) > 0.0001 };
 }
 /**
- * `hints` also draws the top layer's stickers the eye cannot see, floating behind their faces: the last layer's sides
- * a recognition needs, read without turning the cube.
+ * `hints` also draws the stickers the eye cannot see, floating behind their faces: the last layer's sides a recognition
+ * needs, and the hidden faces of the pieces out of their place (an F2L case's pair), read without turning the cube.
  */
 export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation, hints = false): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,
@@ -193,17 +193,24 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
   };
   if (hints)
     slotsFor(scene.size).forEach(({ p, n }, slot) => {
-      // The side stickers of the top layer on a hidden face, pushed out along their normal, painted first: behind it all.
-      if (n[1] !== 0 || Math.abs(p[1]! - h) > 0.0001) return;
+      // A hidden sticker pushed out along its normal, painted first (behind it all): the top layer's sides, and any
+      // sticker out of its place (an F2L case's pair, under the cube too). The mask's grey says nothing: left out.
+      const top = n[1] === 0 && Math.abs(p[1]! - h) <= 0.0001,
+        color = scene.colors[state[slot]!]!;
+      if ((!top && state[slot] === slot) || color === GREY) return;
       const moved = moving(Math.round(p[axis]! + h)),
         center = add(p, scale(n, 0.5 + HINT_GAP));
       if (seen(n, add(p, scale(n, 0.5)), moved)) return;
-      const along = n[0] !== 0 ? 2 : 0;
+      // The square in the face's plane: its two axes other than the normal's.
+      const normal = n.findIndex((v) => v !== 0),
+        a = (normal + 1) % 3,
+        b = (normal + 2) % 3;
       paint(CORNERS.map(([sa, sb]) => {
-        const v = [center[0]!, center[1]! + sb * 0.42, center[2]!];
-        v[along] += sa * 0.42;
+        const v = [center[0]!, center[1]!, center[2]!];
+        v[a] += sa * 0.42;
+        v[b] += sb * 0.42;
         return pose(v, moved);
-      }), scene.colors[state[slot]!]!);
+      }), color);
     });
   for (const { start, end, turn } of slabs) {
     const lo = [-h - 0.5, -h - 0.5, -h - 0.5],

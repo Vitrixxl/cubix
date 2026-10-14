@@ -11,12 +11,15 @@ import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/share
 import { recommendedWhy, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { hintsForStage, maskForStage } from "../../src/client/lib/caseState";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Play, RotateCcw, Rotate3d, Shuffle, Target, Timer, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
+import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
+import { Button as UiButton } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { store as s, matches, type TrainingMode } from "./store";
 import { PhoneSheet } from "./phone";
 import { Practice } from "./practice";
 import { Cube } from "./Cube";
-import { ActionToggle, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
 import { CaseTile, TILES } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -289,7 +292,7 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
           {tr("Random AUF")}
         </ActionToggle>
         {chosen && hintsForStage(chosen.set.stage) && (
-          <ActionToggle action="recognitionBack" pressed={s.recognitionBack} icon={Rotate3d} tip={tr("Show the top layer's stickers hidden at the back")}>
+          <ActionToggle action="recognitionBack" pressed={s.recognitionBack} icon={Rotate3d} tip={tr("Show the stickers hidden at the back")}>
             {tr("Back stickers")}
           </ActionToggle>
         )}
@@ -407,30 +410,72 @@ function TimedRecognition() {
   );
 }
 
-/** A case alone, never named: Space or a click moves on at once. Nothing is recorded. */
+/**
+ * A case alone, never named, the bar running out under it. Space or a click pauses it and plays its algorithm on the
+ * cube (RecognitionSolution); a second press moves on. Nothing is recorded.
+ */
 function RecognitionCase({ c }: { c: any }) {
   const { w, h } = useViewport(),
     bar = useRef<HTMLDivElement>(null),
+    animation = useRef<Animation | undefined>(undefined),
+    // The seconds the case was seen before the pause; null while the bar runs.
+    [paused, setPaused] = useState<number | null>(null),
     size = Math.round(Math.max(160, Math.min(h * 0.55, w * 0.8, 480))),
     next = () => void s.action("next"),
     // Every cube's case in 3D, its hidden stickers shown unless turned off; other puzzles their diagram.
     cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize;
   useEffect(() => {
-    const animation = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
-    animation?.finished.then(next, () => {});
-    return () => animation?.cancel();
+    const running = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
+    animation.current = running;
+    running?.finished.then(next, () => {});
+    return () => running?.cancel();
   }, []);
+  const press = () => {
+    if (paused !== null) return next();
+    animation.current?.pause();
+    setPaused(Number(animation.current?.currentTime ?? 0) / 1000);
+  };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat || s.overlay) return;
       e.preventDefault();
-      next();
+      e.stopPropagation();
+      press();
     };
-    addEventListener("keydown", key);
-    return () => removeEventListener("keydown", key);
-  }, []);
+    // Before the player's buttons, which Space would press.
+    addEventListener("keydown", key, true);
+    return () => removeEventListener("keydown", key, true);
+  }, [paused]);
+  const timeBar = (
+    <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-muted">
+      <div ref={bar} className="h-full origin-left rounded-full bg-primary" />
+    </div>
+  );
+  if (paused !== null)
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4">
+        <div className="flex items-center gap-2.5">
+          <span className={cn(NUMERIC, "flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-muted-foreground")}>
+            <Pause className="size-3" />
+            {tr("{0} s", { 0: paused.toFixed(1) })}
+          </span>
+          <b className="text-xl font-extrabold tracking-[-0.02em]">{c.id}</b>
+          <span className="text-muted-foreground">{tr(c.name !== c.id ? c.name : c.group)}</span>
+        </div>
+        {cubeSize && s.training?.algorithm ? (
+          <RecognitionSolution c={c} cubeSize={cubeSize} size={Math.round(size * 0.85)} />
+        ) : (
+          <Alg text={s.training?.algorithm ?? ""} size={28} />
+        )}
+        <UiButton onClick={next} data-action="recognition:next">
+          <SkipForward />
+          {tr("Next")}
+          <Kbd className="ml-1 bg-primary-foreground/15 text-primary-foreground">{tr("Space")}</Kbd>
+        </UiButton>
+      </div>
+    );
   return (
-    <button type="button" onClick={next} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-[26px]", FOCUS)} aria-label={tr("Next case")}>
+    <button type="button" onClick={press} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-[26px]", FOCUS)} aria-label={tr("Show the algorithm")}>
       {cubeSize ? (
         <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={s.recognitionBack && hintsForStage(c.stage)} />
       ) : s.training?.svg ? (
@@ -438,10 +483,32 @@ function RecognitionCase({ c }: { c: any }) {
       ) : (
         <Diagram c={c} size={size} />
       )}
-      <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-muted">
-        <div ref={bar} className="h-full origin-left rounded-full bg-primary" />
-      </div>
+      {timeBar}
     </button>
+  );
+}
+
+/** The paused case's algorithm played on its cube, its move under way lit in the text; the arrows step it. */
+function RecognitionSolution({ c, cubeSize, size }: { c: any; cubeSize: number; size: number }) {
+  const player = useAlgPlayer(s.training.algorithm, cubeSize, maskForStage(c.stage), { setup: s.training.setup, hints: s.recognitionBack && hintsForStage(c.stage), autoplay: 400 });
+  useEffect(() => {
+    if (!player) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") player.stepBack();
+      else if (e.key === "ArrowRight") player.stepForward();
+      else return;
+      e.preventDefault();
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [player]);
+  if (!player) return <Alg text={s.training.algorithm} size={28} />;
+  return (
+    <>
+      <PlayerCube player={player} size={size} />
+      <PlayerAlg player={player} text={s.training.algorithm} size={28} />
+      <PlayerControls player={player} inline />
+    </>
   );
 }
 
