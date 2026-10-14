@@ -1,25 +1,25 @@
 // Runs inside the camera's WebView (src/scan). Bundled by scripts/build-scan.ts.
 import { type Face } from "../../src/shared/cube";
 import { HELD_HEX } from "../../src/shared/cubeAppearance";
-import { scanColour, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
+import { scanColours, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
 import { faceWatcher, latticeShapes } from "../../src/client/lib/faceFinder";
 
 /**
  * The camera's picture read as the web's (desktop/renderer/CubeScan.tsx): the face found wherever it stands (nothing
- * drawn and nothing to read while none is), read 30 times a second, each cell marked with the colour read there, the face posted when the app asks. The app gives each
- * colour's look (`refs`) and the colour of the face asked for (`want`), whose live centre is that colour's look.
+ * drawn and nothing to read while none is), read 30 times a second, each cell marked with the colour read there, the face posted when the app asks. The app gives the
+ * faces read (`faces`) and the colour of the face asked for (`want`), whose live centre is that colour's look.
  */
 declare global {
   interface Window { ReactNativeWebView?: { postMessage(message: string): void }; __scan(message: Incoming): void }
 }
-type Incoming = { type: "state"; refs: Record<Face, Rgb>; want: Face | null } | { type: "read" } | { type: "switch" };
+type Incoming = { type: "state"; faces: (Rgb[] | null)[]; want: Face | null } | { type: "read" } | { type: "switch" };
 
 const post = (message: unknown) => window.ReactNativeWebView?.postMessage(JSON.stringify(message));
 const hex = (face: Face) => `#${HELD_HEX[face].toString(16).padStart(6, "0")}`;
 const video = document.querySelector("video")!, view = document.getElementById("view")!, overlay = document.getElementById("overlay")!;
 overlay.setAttribute("viewBox", `0 0 ${VIEW} ${VIEW}`);
 const watch = faceWatcher();
-let app: { refs: Record<Face, Rgb> | null; want: Face | null } = { refs: null, want: null };
+let app: { faces: (Rgb[] | null)[] | null; want: Face | null } = { faces: null, want: null };
 let samples: Rgb[] | null = null, stream: MediaStream | null = null;
 let devices: string[] = [], device: string | null = null, sent = "";
 
@@ -67,7 +67,7 @@ function tick() {
   if (!video.videoWidth || document.hidden) return;
   const face = watch(video), read = (samples = face?.colours ?? null);
   // The face asked for's centre is its colour while it is held.
-  draw(face, read && app.refs && app.want ? read.map(c => scanColour(c, { ...app.refs!, [app.want!]: read[4]! })) : null);
+  draw(face, read && app.faces && app.want ? scanColours(app.faces, { colours: read, face: app.want }).held : null);
   // Only what changed crosses to the app.
   const live = JSON.stringify({ type: "live", found: !!face, dark: !!read && read.reduce((s, [r, g, b]) => s + 0.3 * r + 0.59 * g + 0.11 * b, 0) / 9 < 45 });
   if (live !== sent) { sent = live; window.ReactNativeWebView?.postMessage(live); }

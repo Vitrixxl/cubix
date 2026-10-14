@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, FACES, slotsFor, solved, type Face } from "../src/shared/cube";
 import { REAL_HELD_HEX as HELD_HEX } from "../src/shared/cubeAppearance";
-import { cubeSamples, readCube, readFace, REFS, resolve, SCAN_FACES, scanColour, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
+import { cubeSamples, readCube, readFace, resolve, SCAN_FACES, scanColours, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
 import { colours } from "../src/client/lib/solveAnalysis";
 
 /** A seeded generator, 0 to 1. */
@@ -62,15 +62,38 @@ describe("cube read", () => {
 const bgr = ([b, g, r]: Rgb): Rgb => [r, g, b];
 
 describe("face by face, as the lab reads", () => {
-  test("the lab's colours: shadowed yellows, a warm camera's beige whites, a dark blue", () => {
-    for (const face of FACES) expect(scanColour(REFS[face])).toBe(face);
-    // The yellow face is read first, its centre held: a warm camera's yellows in shadow stay yellow.
-    for (const yellow of [[0, 151, 202], [0, 155, 206], [0, 162, 213]] as Rgb[]) expect(scanColour(bgr(yellow), { ...REFS, U: bgr([0, 159, 195]) })).toBe("U");
-    // White is read first: a warm camera's beige whites balanced by its own white are white again.
-    for (const beige of [[103, 155, 188], [99, 158, 192], [90, 141, 169], [94, 175, 221]] as Rgb[]) expect(scanColour(bgr(beige), { ...REFS, D: bgr([94, 175, 221]), U: bgr([0, 159, 195]) })).toBe("D");
-    expect(scanColour(bgr([120, 90, 40]))).toBe("B");
-    // Once white is read, pale and bright is no longer white by itself.
-    expect(scanColour(bgr([90, 141, 169]), { ...REFS, D: [250, 250, 250], U: bgr([0, 159, 195]) })).toBe("U");
+  /** The stickers of each face, held as the scan asks, as a camera shows them; the colours read live face by face. */
+  function scanLive(truth: Face[], look: (face: Face, k: number) => Rgb) {
+    const faces: (Rgb[] | null)[] = SCAN_FACES.map(() => null);
+    let wrong = 0;
+    SCAN_FACES.forEach((face, i) => {
+      const at = FACES.indexOf(face) * 9,
+        held = truth.slice(at, at + 9).map((c, k) => look(c, at + k));
+      wrong += scanColours(faces, { colours: held, face }).held!.filter((c, k) => c !== truth[at + k]).length;
+      faces[i] = held;
+    });
+    return { wrong, faces: faces as Rgb[][] };
+  }
+
+  test("live, face by face, under a warm light, a washed-out webcam and an even one: nearly every sticker right, then the whole cube", () => {
+    const linear = (v: number) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4),
+      srgb = (v: number) => Math.round(255 * Math.min(1, v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
+    // ~/dev/lab/scan/live.ts's cameras: a warm one turns white beige, a washed-out one greys every colour.
+    const cameras: Record<string, (c: number[]) => Rgb> = {
+      even: (c) => c.map((v) => srgb(v * 0.85)) as unknown as Rgb,
+      "washed out": (c) => c.map((v) => Math.round(srgb(v * 0.9) * 0.55 + 200 * 0.45)) as unknown as Rgb,
+      warm: (c) => c.map((v, k) => srgb(v * [0.95, 0.62, 0.22][k]!)) as unknown as Rgb,
+    };
+    for (const [name, camera] of Object.entries(cameras)) {
+      let wrong = 0;
+      for (let seed = 1; seed <= 10; seed++) {
+        const truth = scrambled(seed),
+          read = scanLive(truth, (c) => camera(hex(c).map(linear)));
+        wrong += read.wrong;
+        expect(readCube(cubeSamples(read.faces)).colours, `${name} seed ${seed}`).toEqual(truth);
+      }
+      expect(wrong / 10, name).toBeLessThan(2.5);
+    }
   });
 
   test("the resolve of a warm camera, an edge flipped: exactly the cube", () => {
@@ -103,12 +126,17 @@ describe("face by face, as the lab reads", () => {
   }
 
   test("a phone that saturates: red, orange and yellow told apart by their hue, live and read whole", () => {
-    // DroidCam on a phone (~/dev/lab/scan): channels at 255 or 0, the yellow centre held.
-    const refs = { ...REFS, U: [255, 255, 0] as Rgb };
-    for (const orange of [[255, 212, 0], [255, 157, 9], [255, 176, 0], [255, 196, 0]] as Rgb[]) expect(scanColour(orange, refs)).toBe("R");
-    for (const red of [[255, 50, 33], [255, 71, 25], [255, 43, 24]] as Rgb[]) expect(scanColour(red, refs)).toBe("L");
-    expect(scanColour([255, 254, 32], refs)).toBe("U");
+    // DroidCam on a phone (~/dev/lab/scan): channels at 255 or 0.
     const look: Record<Face, Rgb[]> = { U: [[255, 255, 0], [255, 254, 32]], R: [[255, 212, 0], [255, 157, 9], [255, 176, 0]], L: [[255, 50, 33], [255, 71, 25]], D: [[255, 255, 255], [255, 255, 254]], B: [[0, 125, 255], [29, 111, 216]], F: [[0, 225, 57], [0, 214, 46]] };
+    // Live, its darkest orange (20°) sometimes nearer red (2°) than the orange read so far (40°): the cube read whole
+    // puts it right.
+    let wrong = 0;
+    for (let seed = 1; seed <= 10; seed++) {
+      const truth = scrambled(seed),
+        r = random(seed);
+      wrong += scanLive(truth, (c) => look[c][Math.floor(r() * look[c].length)]!).wrong;
+    }
+    expect(wrong).toBeLessThanOrEqual(5);
     for (let seed = 1; seed <= 10; seed++) {
       const truth = scrambled(seed),
         r = random(seed);

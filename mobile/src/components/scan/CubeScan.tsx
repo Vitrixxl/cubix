@@ -5,7 +5,7 @@ import Svg, { G, Path, Polygon } from "react-native-svg";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { FACES, slotsFor, type Face, type Vec3 } from "../../../../src/shared/cube";
 import { GREY, hexOf, HELD_HEX } from "../../../../src/shared/cubeAppearance";
-import { cubeSamples, readCube, resolve, scanColour, scanProblem, scanRefs, scanStickers, type Rgb } from "../../../../src/client/lib/cubeScan";
+import { cubeSamples, readCube, resolve, scanColours, scanProblem, scanStickers, type Rgb } from "../../../../src/client/lib/cubeScan";
 import { COLOUR_NAMES } from "../../../../src/client/lib/solveAnalysis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,12 +35,12 @@ export const hex = (face: Face) => hexOf(HELD_HEX[face]);
  * quarter turn of the whole cube (to the right, or tipped back).
  */
 const ORDER: { face: Face; top: Face; title: string; turn?: "right" | "back" }[] = [
-  { face: "D", top: "F", title: "White face to the camera" },
   { face: "U", top: "B", title: "Yellow face to the camera" },
   { face: "R", top: "U", title: "Orange face to the camera" },
   { face: "L", top: "U", title: "Red face to the camera" },
   { face: "B", top: "U", title: "Blue face to the camera", turn: "right" },
   { face: "F", top: "U", title: "Green face to the camera" },
+  { face: "D", top: "F", title: "White face to the camera", turn: "back" },
 ];
 /** Below this, a sticker read is marked to check. */
 const DOUBT = 0.8;
@@ -133,14 +133,16 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     [side, setSide] = useState(0);
   const current = redo ?? faces.findIndex(f => !f),
     step = ORDER[current] ?? ORDER[0]!,
-    refs = scanRefs(faces),
+    // The face read again is left out: the camera's page reads the one held against the others.
+    others = faces.map((f, i) => (i === current ? null : f)),
+    colours = scanColours(others),
     last = faces.findLastIndex(Boolean),
     // Kept current for the messages of the page.
     latest = useRef({ faces, current });
   latest.current = { faces, current };
   const send = (message: object) => web.current?.injectJavaScript(`window.__scan&&window.__scan(${JSON.stringify(message)});true;`);
-  // The page learns each colour's look and the face asked for.
-  const state = () => send({ type: "state", refs, want: current >= 0 ? step.face : null });
+  // The page learns the faces read and the face asked for.
+  const state = () => send({ type: "state", faces: others, want: current >= 0 ? step.face : null });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(state, [faces, current]);
 
@@ -206,14 +208,14 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
       </Button>}
     </View>
     <View className="flex-row items-center gap-3" accessibilityLiveRegion="polite">
-      <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={scanStickers(faces, refs)} />
+      <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={scanStickers(colours.faces)} />
       <Text className="min-w-0 flex-1 text-lg font-extrabold tracking-[-0.02em]">{tr(step.title)}</Text>
     </View>
     <View className="gap-2 rounded-2xl bg-card px-3 py-2.5">
       <Label className="font-bold tracking-widest uppercase">{tr("Faces read")} · {done} / {ORDER.length}</Label>
       <View className="flex-row justify-between">
         {ORDER.map((o, i) => <View key={o.face} className="items-center gap-0.5">
-          <MiniFace step={o} colours={faces[i]?.map(c => scanColour(c, refs))} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />
+          <MiniFace step={o} colours={colours.faces[i] ?? undefined} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />
           <Text className={cn("text-xs font-bold", i === current ? "text-foreground" : "text-muted-foreground")}>{i === current ? tr("Now") : capitalised(tr(COLOUR_NAMES[o.face]!))}</Text>
         </View>)}
       </View>

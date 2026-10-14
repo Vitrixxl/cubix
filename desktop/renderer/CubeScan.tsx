@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { FACES, type Face } from "../../src/shared/cube";
 import { cubeOrientation, cubeScene } from "../../src/shared/cubeScene";
 import { heldColors, hexOf, HELD_HEX } from "../../src/shared/cubeAppearance";
-import { cubeSamples, readCube, resolve, scanColour, scanProblem, scanRefs, scanStickers, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
+import { cubeSamples, readCube, resolve, scanColours, scanProblem, scanStickers, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
 import { faceWatcher, latticeShapes } from "../../src/client/lib/faceFinder";
 import { COLOUR_NAMES } from "../../src/client/lib/solveAnalysis";
 import { tr } from "../../src/client/i18n";
@@ -43,12 +43,12 @@ export function useSquare(element: HTMLElement | null) {
  * yellow on top, to show the face asked for; `turn`, when the last step comes by a quarter turn.
  */
 const ORDER: { face: Face; setup: string; title: string; turn?: boolean }[] = [
-  { face: "D", setup: "x'", title: "White face to the camera" },
   { face: "U", setup: "x", title: "Yellow face to the camera" },
   { face: "R", setup: "y'", title: "Orange face to the camera" },
   { face: "L", setup: "y", title: "Red face to the camera" },
   { face: "B", setup: "y y", title: "Blue face to the camera", turn: true },
   { face: "F", setup: "", title: "Green face to the camera" },
+  { face: "D", setup: "x'", title: "White face to the camera", turn: true },
 ];
 /** Below this, a sticker read is marked to check. */
 const DOUBT = 0.8;
@@ -150,8 +150,9 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     side = useSquare(box);
   const current = redo ?? faces.findIndex((f) => !f),
     step = ORDER[current] ?? ORDER[0]!,
-    refs = scanRefs(faces),
-    last = faces.findLastIndex(Boolean);
+    last = faces.findLastIndex(Boolean),
+    // The face read again is left out while it is held.
+    colours = scanColours(faces.map((f, i) => (i === current ? null : f)), live && current >= 0 ? { colours: live, face: step.face } : undefined);
 
   const readNow = () => {
     if (!live || current < 0) return;
@@ -227,7 +228,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
   });
 
   // The face asked for's centre is its colour while it is held.
-  const seen = live && current >= 0 ? live.map((c) => scanColour(c, { ...refs, [step.face]: live[4]! })) : null,
+  const seen = colours.held,
     dark = !!live && live.reduce((s, [r, g, b]) => s + 0.3 * r + 0.59 * g + 0.11 * b, 0) / 9 < 45,
     done = faces.filter(Boolean).length,
     shapes = face && latticeShapes(face.centre, face.u, face.v),
@@ -303,10 +304,10 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
             <h2 className="text-xl leading-tight font-extrabold tracking-[-0.03em] text-balance max-md:order-2 md:text-[28px]">{said(step.title)}</h2>
             <div className="flex items-center gap-4 max-md:order-1">
               <span className="md:hidden">
-                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(faces, refs)} size={56} />
+                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(colours.faces)} size={56} />
               </span>
               <span className="max-md:hidden">
-                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(faces, refs)} size={110} />
+                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(colours.faces)} size={110} />
               </span>
             </div>
           </div>
@@ -317,7 +318,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
           </span>
           <div className="flex justify-between gap-1.5">
             {ORDER.map((o, i) => {
-              const read = faces[i]?.map((c) => scanColour(c, refs)),
+              const read = colours.faces[i] ?? undefined,
                 tile = (
                   <button
                     type="button"

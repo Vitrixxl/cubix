@@ -39,8 +39,7 @@ function feature(rgb: readonly number[]): V3 {
 }
 /**
  * Each channel's gain that turns white's look grey: the light and the camera's white balance undone, every colour then
- * compared as under a neutral light (a warm camera's beige white grey again, its dull blue still blue). White is read
- * first (`SCAN_FACES`).
+ * compared as under a neutral light (a warm camera's beige white grey again, its dull blue still blue).
  */
 const balanceOf = (white: Rgb): V3 => {
   const w = white.map((v) => Math.max(linear(v), 1e-3)),
@@ -53,27 +52,69 @@ const hueOf = (f: V3) => ((Math.atan2(f[2], f[1]) * 180) / Math.PI + 360) % 360;
 
 /** How each colour looks to a camera before its face is read. */
 export const REFS: Readonly<Record<Face, Rgb>> = { D: [235, 235, 235], U: [255, 240, 0], R: [255, 188, 0], L: [255, 40, 30], B: [0, 110, 255], F: [0, 220, 60] };
+/** Stickers seen that count as much as a neutral guess of the light (`lightOf`). */
+const TRUST = 18;
+
 /**
- * The colour closest to `rgb` among `refs`, every one balanced by white's look (`refs.D`, read first). A colour not read
- * yet is placed by the yellow once it is: cameras squeeze or stretch the hues between red and yellow (a phone that
- * saturates puts its yellow at 60°, an even camera at 48°), orange at two fifths of its hue, red near the start.
+ * The light on the stickers, as each channel's gain that undoes it: white's own look once read (`balanceOf`); before,
+ * the stickers seen so far, grey on average (a scrambled cube shows its six colours about alike), trusted as they add up.
  */
-export function scanColour(rgb: Rgb, refs: Readonly<Record<Face, Rgb>> = REFS): Face {
-  const gains = balanceOf(refs.D),
+function lightOf(seen: readonly Rgb[], white?: Rgb): V3 {
+  if (white) return balanceOf(white);
+  const sum = [0, 1, 2].map((k) => seen.reduce((s, c) => s + linear(c[k]!), 0)),
+    mean = (sum[0]! + sum[1]! + sum[2]!) / 3,
+    weight = seen.length / (seen.length + TRUST);
+  return sum.map((v) => (v > 0 ? (mean / v) ** weight : 1)) as V3;
+}
+
+/**
+ * The colours of the faces read so far (in `SCAN_FACES`'s order) and of the face `held` before the camera, whose centre
+ * is `face`'s colour: each sticker the nearest colour's look under the light found (`lightOf`), a colour by its centre
+ * once read. Before, white is grey whatever the light; red and orange are placed by the yellow (read first): cameras
+ * squeeze or stretch the hues between red and yellow (a phone that saturates puts its yellow at 60°, an even camera at
+ * 48°), orange at two fifths of its hue, red near the start.
+ */
+export function scanColours(faces: readonly (readonly Rgb[] | null)[], held?: { colours: readonly Rgb[]; face: Face }): { faces: (Face[] | null)[]; held: Face[] | null } {
+  const refs: Record<Face, Rgb> = { ...REFS };
+  faces.forEach((f, i) => f && (refs[SCAN_FACES[i]!] = f[4]!));
+  if (held) refs[held.face] = held.colours[4]!;
+  const white = refs.D === REFS.D ? undefined : refs.D,
+    gains = lightOf([...faces.flatMap((f) => f ?? []), ...(held?.colours ?? [])], white),
     yellow = hueOf(point(refs.U, gains)),
     placed: Partial<Record<Face, number>> = { R: yellow * 0.4, L: yellow * 0.02 },
-    look = (face: Face): V3 => {
+    looks = (Object.keys(REFS) as Face[]).map((face): [Face, V3] => {
       const hue = refs[face] === REFS[face] ? placed[face] : undefined;
-      return hue === undefined ? point(refs[face], gains) : [0.15, Math.cos((hue * Math.PI) / 180), Math.sin((hue * Math.PI) / 180)];
-    },
-    f = point(rgb, gains);
-  let best: Face = "D",
-    d = Infinity;
-  for (const face of Object.keys(REFS) as Face[]) {
-    const e = distance2(f, look(face));
-    if (e < d) [best, d] = [face, e];
+      if (face === "D" && !white) return [face, [0.15, 0, 0]];
+      return [face, hue === undefined ? point(refs[face], gains) : [0.15, Math.cos((hue * Math.PI) / 180), Math.sin((hue * Math.PI) / 180)]];
+    }),
+    // Every sticker seen, each face's centre its own colour.
+    seen = [...faces.map((f, i) => f && { face: SCAN_FACES[i]!, colours: f }), held && { face: held.face, colours: held.colours }].filter((f) => !!f),
+    points = seen.flatMap((f) => f.colours.map((c) => point(c, gains))),
+    centres = seen.flatMap((f) => f.colours.map((_, k) => (k === 4 ? f.face : null))),
+    order = looks.map(([face]) => face);
+  // Grouped nine at most to a colour, the nearest first, then each colour's look the middle of its group and its first
+  // look (`resolve` as far as the cube is seen): a camera that spreads a colour (an orange from 20° to 40°) keeps it whole.
+  let labels: number[] = [],
+    means = looks.map(([, look]) => look);
+  for (let round = 0; round < 6; round++) {
+    const count = order.map(() => 0);
+    labels = centres.map((c) => (c ? order.indexOf(c) : -1));
+    labels.forEach((k) => k >= 0 && count[k]!++);
+    const pairs = points.flatMap((p, i) => (labels[i]! >= 0 ? [] : means.map((m, k) => ({ i, k, d: distance2(p, m) })))).sort((a, b) => a.d - b.d);
+    for (const { i, k } of pairs)
+      if (labels[i]! < 0 && count[k]! < 9) {
+        labels[i] = k;
+        count[k]!++;
+      }
+    means = looks.map(([, look], k) => {
+      const group = points.filter((_, i) => labels[i] === k);
+      return [0, 1, 2].map((c) => (look[c]! + group.reduce((s, p) => s + p[c]!, 0)) / (1 + group.length)) as V3;
+    });
   }
-  return best;
+  const named = labels.map((k) => order[k]!),
+    read = seen.map((_, n) => named.slice(n * 9, n * 9 + 9));
+  let n = 0;
+  return { faces: faces.map((f) => (f ? read[n++]! : null)), held: held ? read[n]! : null };
 }
 
 const median8 = (values: number[]) => {
@@ -122,27 +163,17 @@ export function readFace(rgba: ArrayLike<number>, w: number, h: number, centre: 
   });
 }
 
-/**
- * The faces in the order they are read, by their centre's colour: white first, whose look under this light and camera
- * balances every other colour (`balanceOf`), then yellow, orange, red, blue and green.
- */
-export const SCAN_FACES: readonly Face[] = ["D", "U", "R", "L", "B", "F"];
+/** The faces in the order they are read, by their centre's colour: yellow, orange, red, blue, green, white. */
+export const SCAN_FACES: readonly Face[] = ["U", "R", "L", "B", "F", "D"];
 /**
  * The six faces read in `SCAN_FACES`'s order, each held any way round and read as the camera sees it, in Cubix's
  * sticker order, each face turned as it must be (`orientFaces`).
  */
 export const cubeSamples = (faces: readonly (readonly Rgb[])[]): Rgb[] => orientFaces(FACES.flatMap((face) => faces[SCAN_FACES.indexOf(face)]!));
 
-/** Each colour's look from the faces read so far (in `SCAN_FACES`'s order): its face's centre, else `REFS`. */
-export const scanRefs = (faces: readonly (readonly Rgb[] | null)[]): Record<Face, Rgb> => {
-  const refs = { ...REFS };
-  faces.forEach((f, i) => f && (refs[SCAN_FACES[i]!] = f[4]!));
-  return refs;
-};
-
-/** The cube as read so far, in Cubix's order: each face read as its colours are now sorted, else only its centre. */
-export const scanStickers = (faces: readonly (readonly Rgb[] | null)[], refs: Readonly<Record<Face, Rgb>>): (Face | null)[] =>
-  FACES.flatMap((face) => faces[SCAN_FACES.indexOf(face)]?.map((c) => scanColour(c, refs)) ?? Array.from({ length: 9 }, (_, k) => (k === 4 ? face : null)));
+/** The cube as read so far, in Cubix's order: each face's colours (`scanColours`), else only its centre. */
+export const scanStickers = (colours: readonly (readonly Face[] | null)[]): (Face | null)[] =>
+  FACES.flatMap((face): (Face | null)[] => [...(colours[SCAN_FACES.indexOf(face)] ?? Array.from({ length: 9 }, (_, k) => (k === 4 ? face : null)))]);
 
 /**
  * The 54 colours read (Cubix's order, centres where the cube is held) compared with each other rather than with
