@@ -103,8 +103,11 @@ test("the course to carry on and every method open as courses, remembered per ac
   expect(store.get(routeAtom)).toEqual({ page: "learn", method: "cfop" });
   expect(store.get(learnMethodAtom)).toBe("cfop");
   expect(store.get(courseProgressAtom).methods).toEqual({ "333": "cfop" });
-  // The cross is intuitive: nothing to train from a set, its workbench marks it mastered.
+  // The cross is intuitive: nothing to train from a set, its workbench marks it mastered once each tip is read and ticked.
   expect(button("Train OLL")).toBeUndefined();
+  expect(control("Mark as mastered")).toBeUndefined();
+  const unticked = () => renderer.root.findAll((n: any) => n.type === "Pressable" && n.props.accessibilityLabel === "I got it" && !n.props.accessibilityState?.checked)[0];
+  for (let tip = unticked(); tip; tip = unticked()) await act(() => tip!.props.onPress());
   await tap("Mark as mastered");
   expect(store.get(courseProgressAtom).courses["333:cfop"]!.learned).toEqual(["cross"]);
   // The steps wait in a drawer behind the current one's button; a step picked there opens.

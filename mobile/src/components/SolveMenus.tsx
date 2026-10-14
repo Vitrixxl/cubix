@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { Ban, Info, MessageSquare, Plus, Trash2 } from "lucide-react-native";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, View, type PressableProps } from "react-native";
@@ -22,8 +22,6 @@ import { useLayout } from "../hooks/useLayout";
 import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { said, tr } from "../../../src/client/i18n";
 
-/** Notes are capped like the server does; the field simply stops accepting text there. */
-const COMMENT_MAX = 500;
 /** What the actions need from a solve; history rows on the profile provide the same fields. */
 export type SolveSummary = Pick<SolveDto, "id" | "time_ms" | "penalty" | "created_at" | "comment"> & { scramble?: string | null };
 

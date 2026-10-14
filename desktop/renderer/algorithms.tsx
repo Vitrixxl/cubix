@@ -1,11 +1,13 @@
 /** The algorithms page: every set of the puzzle beside the chosen one's cases; a case in its dialog, opened from anywhere. */
 import { caseContext, catalogSections } from "../../src/client/lib/practiceCatalog";
-import { casePlayItem, displayAlg, moveCount, shortId } from "../../src/client/lib/caseState";
+import { caseDetail, casePlayItem, displayAlg, moveCount, shortId } from "../../src/client/lib/caseState";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
 import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
-import { store as s } from "./store";
+import { methodSets, store as s } from "./store";
+import { METHODS, type SolvingMethod } from "../../src/shared/methods";
+import { stepSets } from "../../src/client/lib/course";
 import { fmtTime } from "../../src/client/lib/format";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
 import { Button as UiButton } from "@/components/ui/button";
@@ -53,6 +55,20 @@ function currentSet() {
   return { sections, section: sections.find((section) => section.stage === stage) };
 }
 
+/** The puzzle's methods that teach sets of the catalogue, and the one the page shows (none: every set by its stage). */
+function catalogMethods() {
+  const puzzle = s.puzzle as PuzzleId,
+    methods = (METHODS[puzzle] ?? []).filter((m) => methodSets(puzzle, m.id).length);
+  return { methods, chosen: methods.find((m) => m.id === s.algsMethod) };
+}
+
+/** The tree's sections for a method: each of its steps with the sets it teaches, under the step's name. */
+const methodSections = (method: SolvingMethod) =>
+  method.steps.flatMap((step) => {
+    const variants = stepSets(step, s.allSets(), s.puzzle as PuzzleId);
+    return variants.length ? [{ stage: step.title, variants }] : [];
+  });
+
 const learnedOf = (cases: any[]) => cases.filter((c: any) => s.learned.has(c.id)).length;
 const groupId = (set: string, group: string) => `group-${set}-${group}`.replace(/\W+/g, "-");
 
@@ -62,7 +78,7 @@ const groupId = (set: string, group: string) => `group-${set}-${group}`.replace(
  */
 function Catalog({ mobile }: { mobile: boolean }) {
   const { sections, section } = currentSet();
-  const learned = sections.reduce((sum, v) => sum + v.variants.reduce((n: number, set: any) => n + learnedOf(s.cases().filter((c: any) => c.set === set.id)), 0), 0);
+  const learned = sections.reduce((sum, v) => sum + v.variants.reduce((n: number, set: any) => n + learnedOf(s.setCases(set.id)), 0), 0);
   const total = s.cases().length;
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const [small, setSmall] = useState(() => s.prefs["cubix.algs.tileSize"] === "small");
@@ -90,15 +106,26 @@ function Catalog({ mobile }: { mobile: boolean }) {
             variant="secondary"
             align="start"
             value={set.id}
-            options={sections.flatMap((v) => v.variants.map((x: any) => ({ id: x.id, label: `${said(x.label)} · ${learnedOf(s.cases().filter((c: any) => c.set === x.id))} / ${x.count}` })))}
+            options={sections.flatMap((v) => v.variants.map((x: any) => ({ id: x.id, label: `${said(x.label)} · ${learnedOf(s.setCases(x.id))} / ${x.count}` })))}
           />
           <FilterChoice section={section} />
         </div>
         {grid}
       </div>
     );
+  const byMethod = catalogMethods();
   return (
     <div className={PAGE}>
+      {/* The sets by method first: the chosen method's steps and their sets on the left. */}
+      {byMethod.methods.length > 0 && (
+        <Choice
+          prefix="algsMethod:"
+          label={tr("Method")}
+          value={byMethod.chosen?.id ?? "all"}
+          className="shrink-0 self-start"
+          options={[{ id: "all", label: tr("All") }, ...byMethod.methods.map((m) => ({ id: m.id, label: said(m.name) }))]}
+        />
+      )}
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
         <Surface data-tour="algorithms" className="w-[min(19rem,32%)] shrink-0 gap-3 p-3 pt-4">
           <Button action="search" variant="secondary" className="shrink-0 justify-start text-muted-foreground">
@@ -110,7 +137,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
             <span className="text-[15px] font-bold">{s.event().label}</span>
             <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>{tr("{0} of {1} learned", { 0: learned, 1: total.toLocaleString() })}</span>
           </div>
-          <SetTree sections={sections} active={set.id} />
+          <SetTree sections={byMethod.chosen ? methodSections(byMethod.chosen) : sections} active={set.id} />
           <Button action="methods" icon={BookOpen} variant="ghost" className="shrink-0 justify-start text-muted-foreground">
             {tr("Methods")}</Button>
         </Surface>
@@ -146,7 +173,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
 
 /** Every set of the puzzle under its step, each with its ring of cases learned; the chosen one lists its groups, folded
  * and unfolded by a click on it again. */
-function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>["sections"]; active: string }) {
+function SetTree({ sections, active }: { sections: { stage: string; variants: any[] }[]; active: string }) {
   const list = useRef<HTMLDivElement>(null);
   // The set whose groups are folded; another set chosen opens unfolded.
   const [folded, setFolded] = useState("");
@@ -159,7 +186,7 @@ function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>
         <div key={section.stage} className="flex flex-col gap-0.5 pb-2">
           <p className={cn(LABEL, "px-2.5 pt-2 pb-1 font-semibold tracking-wider uppercase")}>{said(section.stage)}</p>
           {section.variants.map((set: any) => {
-            const cases = s.cases().filter((c: any) => c.set === set.id),
+            const cases = s.setCases(set.id),
               learned = learnedOf(cases),
               on = set.id === active,
               groups = on ? [...new Set(cases.map((c: any) => c.group))] : [],
@@ -207,7 +234,7 @@ function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>
 function SetHead({ set, section }: { set: any; section: any }) {
   const all: any[] = section.all,
     learned = section.learnedCount,
-    trained = all.filter((c) => !s.learned.has(c.id) && s.stats.some((v) => v.caseId === c.id)).length,
+    trained = all.filter((c) => !s.learned.has(c.id) && s.stat(c.id)).length,
     legend: [number, string, string][] = [
       [learned, tr("learned"), "bg-success"],
       [trained, tr("in progress"), "bg-primary/45"],
@@ -421,10 +448,10 @@ export function CaseTile({
   size?: number;
   onPress?: () => void;
 }) {
-  const st = s.stats.find((v) => v.caseId === c.id),
+  const st = s.stat(c.id),
     learned = s.learned.has(c.id),
     on = pressed ?? (selected && !touch),
-    name = detail ?? (c.name !== c.id ? c.name : undefined),
+    name = detail ?? caseDetail(c),
     play = casePlayItem(c),
     marks = pressed === undefined && !plain,
     label = name ? `${c.id} · ${said(name)}` : said(c.id);
@@ -547,29 +574,24 @@ export function FootBar({ children, className }: Props) {
 }
 
 /** Previous and next of a list (`action:previous`, `action:next`), with where this one stands. */
-export function Stepper({ action, index, count, tips, to, names }: { action: string; index: number; count: number; tips: [string, string]; to?: [string | undefined, string | undefined]; names?: [string | undefined, string | undefined] }) {
+export function Stepper({ action, index, count, tips, to }: { action: string; index: number; count: number; tips: [string, string]; to?: [string | undefined, string | undefined] }) {
   // With addresses (a case on the algorithms page), the arrows are links: a crawler follows them from one case to the next.
   const variant = useQuiet();
-  const step = (side: 0 | 1, icon: typeof ChevronLeft) => {
+  const step = (side: 0 | 1, I: typeof ChevronLeft) => {
     const id = action + (side ? ":next" : ":previous"),
-      href = to?.[side],
-      // The neighbour's name beside its arrow, when the list names them (the cases of a set).
-      name = names?.[side],
-      I = icon,
-      inner = side ? <>{name}<I /></> : <><I />{name}</>,
-      size = name ? "default" : "icon";
-    if (!href)
-      return (
-        <Tip content={tips[side]}>
-          <UiButton data-action={id} variant={variant} size={size} aria-label={tips[side]} disabled={side ? index === count - 1 : index === 0} onClick={run(id)}>
-            {inner}
-          </UiButton>
-        </Tip>
-      );
+      href = to?.[side];
     return (
       <Tip content={tips[side]}>
-        <UiButton data-action={id} variant={variant} size={size} aria-label={tips[side]} nativeButton={false} render={<Link to={href} onClick={(e) => (e.preventDefault(), run(id)(e))} />}>
-          {inner}
+        <UiButton
+          data-action={id}
+          variant={variant}
+          size="icon"
+          aria-label={tips[side]}
+          {...(href
+            ? { nativeButton: false, render: <Link to={href} onClick={(e) => (e.preventDefault(), run(id)(e))} /> }
+            : { disabled: side ? index === count - 1 : index === 0, onClick: run(id) })}
+        >
+          <I />
         </UiButton>
       </Tip>
     );
@@ -577,7 +599,8 @@ export function Stepper({ action, index, count, tips, to, names }: { action: str
   return (
     <div className="flex shrink-0 items-center gap-1">
       {step(0, ChevronLeft)}
-      <span className={cn(NUMERIC, "min-w-12 text-center text-xs text-muted-foreground")}>
+      {/* Written as the buttons beside it are. */}
+      <span className={cn(NUMERIC, "min-w-14 text-center text-sm font-semibold")}>
         {index + 1} / {count}
       </span>
       {step(1, ChevronRight)}
@@ -597,13 +620,13 @@ function turns(alg: string) {
 /** The tips of the case stepper (Stepper). */
 const caseTips = (): [string, string] => [tr("Previous case (←)"), tr("Next case (→)")];
 
-/** Where a case stands in its set, and its neighbours: their short names, their addresses on the algorithms page. */
+/** Where a case stands in its set, and its neighbours' addresses on the algorithms page. */
 const caseSteps = (c: any) => {
-  const cases = s.cases().filter((v: any) => v.set === c.set),
+  const cases = s.setCases(c.set),
     index = cases.findIndex((v: any) => v.id === c.id),
     near = [cases[index - 1], cases[index + 1]],
     to = (v?: any) => v && pageUrl("algorithms", { caseId: v.id, puzzle: s.puzzle as PuzzleId });
-  return { index, count: cases.length, to: near.map(to) as [string | undefined, string | undefined], names: near.map((v) => v && shortId(v)) as [string | undefined, string | undefined] };
+  return { index, count: cases.length, to: near.map(to) as [string | undefined, string | undefined] };
 };
 
 type Choices = { total: number; algs: Record<string, number> } | null;
@@ -686,8 +709,8 @@ function CaseCard({ id }: { id: string }) {
     phone = usePhone(),
     { h } = useViewport(),
     [tab, setTab] = useState(s.caseView),
-    { index, count, to, names } = caseSteps(c),
-    st = s.stats.find((v) => v.caseId === c.id),
+    { index, count, to } = caseSteps(c),
+    st = s.stat(c.id),
     learned = s.learned.has(c.id),
     chosen: string[] = learned ? (s.learnedAlgs[c.id] ?? []) : [],
     choices = useChoices(c.id, chosen),
@@ -696,9 +719,9 @@ function CaseCard({ id }: { id: string }) {
     // The algorithm played: the one used, else the first.
     [picked, pick] = useState(order[0] ?? 0),
     play = casePlayItem(c),
-    name = c.name !== c.id ? c.name : undefined;
+    name = caseDetail(c);
   // On the algorithms page the arrows are links: a crawler follows them from one case to the next.
-  const stepper = <Stepper action="caseStep" index={index} count={count} tips={caseTips()} to={s.caseDialog ? undefined : to} names={phone ? undefined : names} />;
+  const stepper = <Stepper action="caseStep" index={index} count={count} tips={caseTips()} to={s.caseDialog ? undefined : to} />;
   const size = phone ? 80 : 96,
     diagram = play ? (
       <PlayDiagram id={c.id} name={c.id} onPlay={() => (s.openAlg([play], 0), void s.action("algChoice:" + picked))}>

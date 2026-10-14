@@ -1,6 +1,7 @@
 import type { CaseDto } from "../../shared/types";
 import { puzzleOf } from "../../shared/puzzles";
 import { msg } from "../i18n/msg";
+import { dayKey } from "./profile";
 
 export const LEARNING_TRACKS = ["F2L", "OLL", "PLL"] as const;
 export type LearningTrack = typeof LEARNING_TRACKS[number];
@@ -8,12 +9,9 @@ export type LearningTrack = typeof LEARNING_TRACKS[number];
 export type LearningMode = "practice" | "review" | LearningTrack | `review:${LearningTrack}`;
 export interface DailyAssignment { caseId: string; assignedOn: string; completedOn?: string }
 export interface LearningPlan { mode: LearningMode; tracks: Partial<Record<LearningTrack, DailyAssignment>>; groupOrder?: Partial<Record<LearningTrack, string[]>> }
-export const EMPTY_LEARNING_PLAN: LearningPlan = { mode: "practice", tracks: {} };
 export const learningKey = (userId: string) => `cubix.learning.v1:${userId}`;
 export const isLearningTrack = (value: unknown): value is LearningTrack => LEARNING_TRACKS.includes(value as LearningTrack);
-export function localDay(date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
+export const localDay = (date = new Date()): string => dayKey(date);
 export function learningCases(cases: readonly CaseDto[], track: LearningTrack, order?: readonly string[]): CaseDto[] {
   // Only the core CFOP sets: no 2-look, advanced F2L or cases of other puzzles.
   const pool = cases.filter(c => puzzleOf(c) === "333" && c.set === track.toLowerCase());
@@ -45,10 +43,6 @@ export const learningTrackOf = (mode: LearningMode) => isLearningTrack(mode) ? m
 /** Revision always stays on the selected puzzle, across every stage and set, the chosen stages, or one learning track. */
 export function reviewCases(cases: readonly CaseDto[], learned: ReadonlySet<string>, puzzle: string, track?: LearningTrack, stages?: ReadonlySet<string>): CaseDto[] {
   return (track ? learningCases(cases, track) : cases.filter(c => puzzleOf(c) === puzzle && (!stages?.size || stages.has(c.stage)))).filter(c => learned.has(c.id));
-}
-/** The stages of a puzzle, in catalogue order: what "Review learned" lets one pick. */
-export function puzzleStages(cases: readonly CaseDto[], puzzle: string): string[] {
-  return [...new Set(cases.filter(c => puzzleOf(c) === puzzle).map(c => c.stage))];
 }
 export function reviewStatus(mode: LearningMode, count: number): string {
   const track = reviewTrack(mode);

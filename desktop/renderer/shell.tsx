@@ -73,15 +73,11 @@ function Dot({ n, className }: { n: number; className?: string }) {
   return <span aria-label={tr("{0} unread", { 0: n })} className={cn("pointer-events-none absolute size-2 rounded-full bg-primary", className)} />;
 }
 
-/**
- * The pages of the current section as small tabs (none for a section of one page). Phones leave out the analysis; a
- * desktop's Challenges have their hub's boxes instead (duel.tsx).
- */
+/** Phones (PhoneTop): the pages of the current section as small tabs (none for a section of one page), the analysis left out. */
 export const SectionTabs = memo(function SectionTabs({ className }: { className?: string }) {
   useShell();
-  const phone = usePhone(),
-    section = currentSection(),
-    pages = (!phone && section?.id === "compete" ? [] : section?.pages.filter(([page]) => !(phone && page === "analysis"))) ?? [];
+  const section = currentSection(),
+    pages = section?.pages.filter(([page]) => page !== "analysis") ?? [];
   if (pages.length < 2) return null;
   const here = currentPage();
   return (

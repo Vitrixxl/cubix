@@ -10,8 +10,9 @@
  * `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, openSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
+import { join, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
 const PI = process.env.CUBIX_PI ?? "vitrix@82.67.236.74";
@@ -61,9 +62,24 @@ const prebuild = api && new Promise<number>((done) => {
 const WEB = resolve(root, "dist/deploy");
 const { EXPO_PUBLIC_API_ORIGIN: _, ...env } = process.env;
 run("bun", ["desktop/web.ts", WEB], { CUBIX_PRERENDER_JOBS: "3", ...env });
-// Unpacked in a directory of its own beside the one served.
+// Unpacked in a directory of its own beside the one served. Only what differs from the build served goes: the rest is
+// hard-linked from it (the case diagrams and the phone app seldom change; the pages change with the app's scripts).
+// Each build's list of files and their hashes is kept beside it, in files/, outside what the server serves.
 const dist = `${pi}/repo/dist`;
-run("bash", ["-o", "pipefail", "-c", `tar -C "${WEB}" -cf - . | zstd -3 -T0 -q | ssh ${PI} 'set -e; mkdir -p ${dist}; cd ${dist}; rm -rf next; mkdir next; zstd -dcq | tar -xf - -C next; mv next web-$(date +%s)'`]);
+const sums = new Map(await Promise.all((await readdir(WEB, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile()).map(async (entry) => {
+  const path = join(entry.parentPath, entry.name);
+  return [relative(WEB, path), new Bun.CryptoHasher("sha1").update(await readFile(path)).digest("hex")] as const;
+})));
+const served = new Map(spawnSync("ssh", [PI, `cat ${dist}/files/"$(readlink ${dist}/web)" 2>/dev/null || true`], { encoding: "utf8", maxBuffer: 1 << 28 }).stdout
+  .split("\n").filter(Boolean).map((line) => line.split("\t") as [string, string]));
+// Sorted: each page beside its neighbours, whose likeness zstd finds again (it halves what goes).
+const changed = [...sums].filter(([path, sum]) => served.get(path) !== sum).map(([path]) => path).sort();
+writeFileSync(join(WEB, ".files"), [...sums].map((entry) => entry.join("\t")).join("\n") + "\n");
+writeFileSync(join(WEB, ".gone"), [...served.keys()].filter((path) => !sums.has(path)).map((path) => path + "\n").join(""));
+writeFileSync(resolve(root, "dist/deploy.list"), [".files", ".gone", ...changed].join("\n") + "\n");
+console.log(`Sending ${changed.length} of ${sums.size} files.`);
+// tar replaces a file it extracts over by a new one: a hard-linked file of the build served stays as it is.
+run("bash", ["-o", "pipefail", "-c", `tar -C "${WEB}" -cf - --verbatim-files-from -T "${resolve(root, "dist/deploy.list")}" | zstd -3 -T0 -q | ssh ${PI} 'set -e; mkdir -p ${dist}/files; cd ${dist}; rm -rf next; ${served.size ? "cp -al web/. next" : "mkdir next"}; zstd -dcq | tar -xf - -C next; cd next; xargs -r -d "\\n" rm -f -- < .gone; rm .gone; name=web-$(date +%s); mv .files ../files/$name; cd ..; mv next $name'`]);
 if (prebuild) {
   // pihost builds it again if that failed, and shows why.
   if ((await prebuild) !== 0) console.warn(`Building the API ahead on the Pi failed: ${PREBUILD_LOG}\n${readFileSync(PREBUILD_LOG, "utf8").slice(-2000)}`);
@@ -72,7 +88,7 @@ if (prebuild) {
 }
 // dist/web then links to the new build, renamed over the old link at once; the previous build stays for the pages
 // still open on it, older ones go.
-run("ssh", [PI, `set -e; cd ${dist}; [ -L web ] || rm -rf web; ln -sfn "$(ls -d web-* | sort | tail -n 1)" web.next; mv -T web.next web; ls -d web-* | sort | head -n -2 | xargs -r rm -rf`]);
+run("ssh", [PI, `set -e; cd ${dist}; [ -L web ] || rm -rf web; ln -sfn "$(ls -d web-* | sort | tail -n 1)" web.next; mv -T web.next web; for old in $(ls -d web-* | sort | head -n -2); do rm -rf "$old" "files/$old"; done`]);
 if (api) {
   // pihost returns once compose is up; wait until the new binary answers with this commit.
   const deadline = Date.now() + 5 * 60 * 1000;

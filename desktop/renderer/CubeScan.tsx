@@ -13,7 +13,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { FACES, type Face } from "../../src/shared/cube";
 import { cubeOrientation, cubeScene } from "../../src/shared/cubeScene";
-import { heldColors, HELD_HEX } from "../../src/shared/cubeAppearance";
+import { heldColors, hexOf, HELD_HEX } from "../../src/shared/cubeAppearance";
 import { cubeSamples, readCube, resolve, scanColour, scanProblem, scanRefs, scanStickers, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
 import { faceWatcher, latticeShapes } from "../../src/client/lib/faceFinder";
 import { COLOUR_NAMES } from "../../src/client/lib/solveAnalysis";
@@ -21,7 +21,7 @@ import { tr } from "../../src/client/i18n";
 import { Cube } from "./Cube";
 import { ActionCard, FOCUS, IconTile, said, Tip } from "./base";
 
-export const hex = (face: Face) => `#${HELD_HEX[face].toString(16).padStart(6, "0")}`;
+export const hex = (face: Face) => hexOf(HELD_HEX[face]);
 
 /** The side of the largest square that fits in an element. */
 export function useSquare(element: HTMLElement | null) {

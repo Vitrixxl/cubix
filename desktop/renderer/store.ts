@@ -11,7 +11,7 @@ import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, PUZZLES, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_MOVES, CROSS_TARGETS, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
-import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
+import { courseEntry, courseStorageKey, goToStep, methodOf, methodSetIds, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import type { PolyPuzzle } from "../../src/shared/puzzleScene";
@@ -60,6 +60,13 @@ export const catalog = catalogData as any;
 /** The catalogue never changes while the app runs: its cases by id, and by puzzle once asked for (never to be modified). */
 const caseById = new Map<string, any>(catalog.cases.map((c: any) => [c.id, c]));
 const casesByPuzzle = new Map<string, any[]>();
+/** Its cases by set, in its order: a set belongs to one puzzle, so a set's cases are its puzzle's too. */
+const casesBySet = new Map<string, any[]>();
+for (const c of catalog.cases) {
+  const list = casesBySet.get(c.set);
+  if (list) list.push(c);
+  else casesBySet.set(c.set, [c]);
+}
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; hints?: boolean; setup?: string; puzzle?: PolyPuzzle }
 /** Whether every word typed starts a word of the case (shared with the phone app). */
@@ -71,6 +78,10 @@ const GROUP_ORDER_KEY = "cubix.learn.groupOrder";
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
 /** Whether a window this wide keeps the session's times beside the stage, with no button to fold them away. */
 export const timesAlwaysShown = (width: number, training: boolean) => !isPhone(width) && width >= (training ? 1200 : 980);
+/** The catalogue's sets, by id. */
+const KNOWN_SETS = new Set<string>(catalog.sets.map((set: any) => set.id));
+/** The catalogue sets a method's steps teach, in order, once each; none for "all" or a method without any. */
+export const methodSets = (puzzle: PuzzleId, method: string) => methodSetIds(methodOf(puzzle, method)).filter((id) => KNOWN_SETS.has(id));
 export class Store {
   listeners = new Set<() => void>();
   version = 0;
@@ -268,6 +279,19 @@ export class Store {
     if (!cases) casesByPuzzle.set(p, (cases = catalog.cases.filter((c: any) => puzzleOf(c) === p)));
     return cases!;
   };
+  /** A set's cases, in the catalogue's order (`casesBySet`): never to be modified. */
+  setCases = (set: string): any[] => casesBySet.get(set) ?? [];
+  /** A case's statistics among `stats`, by its id: indexed once for each list read. */
+  private statsIndex: { of: any[]; byId: Map<string, any> } | null = null;
+  stat = (id: string) => {
+    if (this.statsIndex?.of !== this.stats) {
+      // The first one of a case, as `find` would.
+      const byId = new Map<string, any>();
+      for (const v of this.stats) if (!byId.has(v.caseId)) byId.set(v.caseId, v);
+      this.statsIndex = { of: this.stats, byId };
+    }
+    return this.statsIndex.byId.get(id);
+  };
   allSets = (p = this.puzzle) =>
     catalog.sets.filter((c: any) => puzzleOf(c) === p);
   find = (id: string) => caseById.get(id);
@@ -339,10 +363,12 @@ export class Store {
   get trainingMode(): TrainingMode { return TRAINING_MODES.includes(this.prefs["cubix.training.mode"]) ? this.prefs["cubix.training.mode"] : "learned"; }
   /** The set the recognition goes through, per puzzle, and the seconds each case is shown without a connected cube. */
   get recognitionSet(): string {
-    const learned = (set: string) => this.cases().some((c: any) => c.set === set && this.learned.has(c.id)),
+    const learned = (set: string) => this.setCases(set).some((c: any) => this.learned.has(c.id)),
       chosen = this.prefs["cubix.training.recognitionByCube"]?.[this.puzzle];
     return chosen && learned(chosen) ? chosen : (this.allSets().find((set: any) => learned(set.id))?.id ?? "");
   }
+  /** The method the algorithms page shows its sets by, per puzzle ("all": every set by its stage). */
+  get algsMethod(): string { return this.prefs["cubix.algs.methodByCube"]?.[this.puzzle] ?? "all"; }
   get recognitionSeconds(): number { return this.prefs["cubix.training.recognitionSeconds"] ?? 3; }
   /** Whether the recognition draws the top layer's stickers hidden at the back (`cubeShapes` hints). */
   get recognitionBack(): boolean { return this.prefs["cubix.training.recognitionBack"] ?? true; }
@@ -377,7 +403,7 @@ export class Store {
     return [
       ...(picks ? [tr("{0} recommended", { 0: picks })] : []),
       ...this.allSets().flatMap((set: any) => {
-        const n = this.trainSets.includes(set.id) ? this.cases().filter((c: any) => c.set === set.id && this.learned.has(c.id)).length : 0;
+        const n = this.trainSets.includes(set.id) ? this.setCases(set.id).filter((c: any) => this.learned.has(c.id)).length : 0;
         return n ? [tr("{0} · {1} learned", { 0: tr(set.label), 1: n })] : [];
       }),
       ...(hand ? [tr("{0} by hand", { 0: hand })] : []),
@@ -1068,6 +1094,13 @@ export class Store {
           this.catalogStage = catalog.sets.find((s: any) => s.id === arg).stage;
           this.per("cubix.algs.stageByCube", this.catalogStage);
           break;
+        // The algorithms page by method: its steps' sets on the left (algorithms.tsx), the chosen set one of them.
+        case "algsMethod": {
+          this.per("cubix.algs.methodByCube", arg);
+          const sets = methodSets(this.puzzle as PuzzleId, arg);
+          if (sets.length && !sets.includes(this.sets[this.catalogStage] ?? "")) void this.action("set:" + sets[0]);
+          break;
+        }
         case "collapse":
           this.collapsed.has(arg)
             ? this.collapsed.delete(arg)
@@ -1400,9 +1433,7 @@ export class Store {
         case "caseStep": {
           const current = this.caseDialog || this.caseId,
             c = this.find(current),
-            ids = this.cases()
-              .filter((v: any) => v.set === c.set)
-              .map((v: any) => v.id),
+            ids = this.setCases(c.set).map((v: any) => v.id),
             next =
               ids[ids.indexOf(current) + (arg === "previous" ? -1 : 1)];
           if (next && this.caseDialog) await this.action("caseDialog:" + next);
@@ -1412,9 +1443,7 @@ export class Store {
           break;
         }
         case "selectorToggle": {
-          const count = this.cases().filter(
-            (c: any) => c.set === arg && this.selected.has(c.id),
-          ).length;
+          const count = this.setCases(arg).filter((c: any) => this.selected.has(c.id)).length;
           this.selectorOpen[arg] = !(
             this.selectorOpen[arg] ??
             (count > 0 || !!this.query)

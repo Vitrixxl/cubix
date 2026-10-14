@@ -16,7 +16,7 @@ import { Choice, Empty, GroupToggle, Label, Numeric, SearchField } from "./layou
 import { Sheet, SheetScrollView } from "./Sheet";
 import { TimerStats } from "./TimesChart";
 import { tr } from "../../../src/client/i18n";
-import { caseContext } from "../../../src/client/lib/practiceCatalog";
+import { caseContext, groupBySet } from "../../../src/client/lib/practiceCatalog";
 
 /**
  * The profile's cases (pushed from its shortcuts): the training progress grid of cases (`TrainingProgress`) and the
@@ -53,17 +53,18 @@ export function TrainingProgress({ cases, sets, profile, learned, onOpen, scroll
   const tileWidth = width ? Math.floor((width - 4 * (columns - 1)) / columns) : 84;
   const q = query.trim();
   type Row = { key: string } & ({ kind: "set"; set: SetDto; trained: number; count: number; open: boolean } | { kind: "cases"; cases: CaseDto[] });
+  const bySet = useMemo(() => groupBySet(cases), [cases]);
   const rows = useMemo(() => {
     const result: Row[] = [];
     for (const set of sets) {
-      const chosen = cases.filter(c => c.set === set.id && (stage === "all" || c.stage === stage) && (!q || matches(c, set.label, q)));
+      const chosen = (bySet.get(set.id) ?? []).filter(c => (stage === "all" || c.stage === stage) && (!q || matches(c, set.label, q)));
       if (!chosen.length) continue;
       const open = !closed[set.id];
       result.push({ key: set.id, kind: "set", set, trained: chosen.filter(c => byCase.has(c.id)).length, count: chosen.length, open });
       if (open) for (let i = 0; i < chosen.length; i += columns) result.push({ key: `${set.id}:${i}`, kind: "cases", cases: chosen.slice(i, i + columns) });
     }
     return result;
-  }, [sets, cases, stage, q, closed, columns, byCase]);
+  }, [sets, bySet, stage, q, closed, columns, byCase]);
   const key = `${scrollKey}:${columns}`;
   const scroll = usePreservedList<Row>(key);
   const previousFilter = useRef(`${stage}:${q}`);

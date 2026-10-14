@@ -8,7 +8,11 @@
 export type ActivitySolve = { at: string; time: number | null; timer: boolean };
 
 /** A local day as "2026-03-12". */
-export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** The local calendar day of a moment (a date or its milliseconds), as YYYY-MM-DD. */
+export function dayKey(at: number | Date) {
+  const d = new Date(at);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 type Timed = { at: string; time: number | null };
 
@@ -90,10 +94,6 @@ export function heatDays(solves: readonly ActivitySolve[]) {
   return map;
 }
 
-/** The years with solves, and this one, newest first. */
-export const heatYears = (days: ReadonlyMap<string, HeatDay>) =>
-  [...new Set([new Date().getFullYear(), ...[...days.keys()].map((k) => Number(k.slice(0, 4)))])].sort((a, b) => b - a);
-
 /** The days to draw: the last 53 weeks up to today, or one calendar year. */
 function period(year: number | null) {
   const today = new Date(),
@@ -138,26 +138,6 @@ export function heatmap(days: ReadonlyMap<string, HeatDay>, year: number | null)
 /* The timer curve. */
 
 const finite = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
-
-/**
- * The scale of the timer curve over the latest `count` solves and their Ao5, drawn `height` tall with `top` and
- * `bottom` margins: null under two times. The slowest few percent would squash the rest, so the scale stops near the
- * top 3 %. `line` draws a series as an SVG path, `x` mapping an index to its abscissa.
- */
-export function trendScale<P extends { time: number | null }>(history: readonly P[], averages: readonly (number | null)[], count: number, height: number, margin = 8) {
-  const from = Math.max(0, history.length - count),
-    shown = history.slice(from),
-    ao5 = averages.slice(from),
-    values = [...shown.map((v) => v.time), ...ao5].filter(finite);
-  if (values.length < 2) return null;
-  const sorted = [...values].sort((a, b) => a - b),
-    low = sorted[0]!,
-    high = Math.max(low + 1, sorted[Math.floor(sorted.length * 0.97)]!),
-    y = (v: number) => margin + (1 - (Math.min(v, high) - low) / (high - low)) * (height - 2 * margin),
-    line = (points: readonly (number | null)[], x: (i: number) => number, round: (n: number) => number | string = (n) => n) =>
-      points.map((v, i) => (finite(v) ? `${finite(points[i - 1]) ? "L" : "M"}${round(x(i))} ${round(y(v))}` : "")).join(" ");
-  return { from, shown, ao5, low, high, y, line, ticks: [0, 1, 2].map((i) => high - ((high - low) * i) / 2), finite };
-}
 
 /* The journal. */
 

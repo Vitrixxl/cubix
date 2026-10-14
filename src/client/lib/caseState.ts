@@ -1,4 +1,4 @@
-import { applyAlg, solved, type CubeState } from "../../shared/cube";
+import { applyAlg, combineAuf, compensateAuf, solved, type CubeState } from "../../shared/cube";
 import type { CaseDto, Stage } from "../../shared/types";
 import type { CubeMask } from "../../shared/cubeAppearance";
 import { isPolyPuzzle, type PolyPuzzle } from "../../shared/puzzleScene";
@@ -21,9 +21,20 @@ export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" || stag
 /** Stages whose case is read on stickers the eye cannot see too: their cube draws them (`cubeShapes` hints). */
 export const hintsForStage = (stage: Stage) => ["F2L", "OLL", "PLL", "ZBLL", "OLLCP", "COLL", "CMLL", "CLL", "EG", "PBL", "Last slot", "TCLL", "ELL", "TTLL"].includes(stage);
 
+/** A case's name beside its id ("H Shape" for "OLL 21"), none when its name is its id. */
+export const caseDetail = (c: { id: string; name: string }) => (c.name !== c.id ? c.name : undefined);
+
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);
 export const executableAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `${a.pre_auf} ${a.alg}` : a.alg);
+/** A case shown with `auf` turned before it (on a cube; other puzzles take none): its setup, and its first algorithm made to start there. */
+export function caseWithAuf(c: { setup: string; algorithms: { alg: string; pre_auf?: string }[] }, auf: string, cube: boolean) {
+  const first = c.algorithms[0];
+  return {
+    setup: cube ? combineAuf(c.setup, auf) : c.setup,
+    algorithm: first ? (cube ? compensateAuf(executableAlg(first), auf) : executableAlg(first)) : "",
+  };
+}
 
 /** An algorithm's length in the slice turn metric: every turn counts one, rotations (x, y, z) none. The catalogue's own `stm`. */
 export const moveCount = (alg: string): number => alg.replace(/[()[\]]/g, " ").split(/\s+/).filter((m) => m && !/^[xyz]/.test(m)).length;
@@ -41,5 +52,5 @@ export function casePlayItem(c: CaseDto): { key: string; name: string; detail?: 
     puzzle = isPolyPuzzle(id) ? id : undefined,
     size = c.cube_size ?? puzzleInfo(id)?.cubeSize ?? 0;
   if (!puzzle && !size) return null;
-  return { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage), hints: hintsForStage(c.stage), puzzle };
+  return { key: c.id, name: c.id, detail: caseDetail(c), context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage), hints: hintsForStage(c.stage), puzzle };
 }

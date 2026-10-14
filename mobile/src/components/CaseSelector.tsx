@@ -1,7 +1,7 @@
 import { Check } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState, type ReactElement } from "react";
 import { FlatList, Pressable, View } from "react-native";
-import { groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
+import { groupBySet, groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -40,10 +40,11 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   const sel = useMemo(() => new Set(selected), [selected]);
   const q = query.trim();
   const toggle = (ids: string[]) => onChange([...toggleSelection(sel, ids)]);
+  const bySet = useMemo(() => groupBySet(cases), [cases]);
   const rows = useMemo(() => {
     const result: Row[] = [];
     for (const set of sets) {
-      const chosen = cases.filter(c => c.set === set.id && (!q || matches(c, q)));
+      const chosen = (bySet.get(set.id) ?? []).filter(c => !q || matches(c, q));
       if (!chosen.length) continue;
       const ids = chosen.map(c => c.id), count = ids.filter(id => sel.has(id)).length;
       const expanded = open[set.id] ?? (count > 0 || !!q);
@@ -57,7 +58,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
       }
     }
     return result;
-  }, [sets, cases, q, sel, open, columns]);
+  }, [sets, bySet, q, sel, open, columns]);
   const scroll = usePreservedList<Row>(`case-selector:${selectorKey}:${q}`);
   const tileWidth = width > 0 ? (width - TILE_GAP * (columns - 1)) / columns : TILE_MIN;
   const List = (inSheet ? SheetFlatList : FlatList) as unknown as typeof FlatList;

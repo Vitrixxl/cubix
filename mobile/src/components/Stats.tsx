@@ -21,7 +21,7 @@ import { useLayout } from "../hooks/useLayout";
 import { Pill, PillSeg, PuzzleGrid, PuzzleIcon, SheetChoice } from "./PuzzlePicker";
 import { Sheet, SheetFlatList } from "./Sheet";
 import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
-import { fitRange, HistoryChart, type Range } from "./TimesChart";
+import { HistoryChart, type Range } from "./TimesChart";
 import { locale, said, tr } from "../../../src/client/i18n";
 
 /**

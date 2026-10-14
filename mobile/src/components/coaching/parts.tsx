@@ -54,11 +54,8 @@ export const day = (ms: number) => dayFormat.format(ms);
 export const time = (ms: number) => timeFormat.format(ms);
 /** "Tue 7 Oct · 18:00–19:00" */
 export const span = (start: number, end?: number) => `${day(start)} · ${time(start)}${end ? "–" + time(end) : ""}`;
-/** The local calendar day of a moment, as YYYY-MM-DD. */
-export function dayKey(ms: number | Date) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { dayKey } from "../../../../src/client/lib/profile";
+export { dayKey };
 /** "in 3 hours", "in 2 days", "now", "2 days ago", translated as the tournaments' (Hermes has no Intl.RelativeTimeFormat). */
 export function relative(ms: number, now = Date.now()) {
   const minutes = Math.round((ms - now) / 60_000), abs = Math.abs(minutes), future = minutes > 0;
@@ -69,7 +66,7 @@ export function relative(ms: number, now = Date.now()) {
   const days = Math.round(abs / 1440);
   return future ? tn(days, "in {n} day") : tn(days, "{n} day ago", "{n} days ago");
 }
-export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+export { clockTime } from "../../../../src/client/lib/coaching";
 
 /** An account's face, the same as in the conversations. */
 export { Face } from "../chat/kit";

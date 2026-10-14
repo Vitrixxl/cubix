@@ -7,7 +7,7 @@
  *   bun scripts/i18n-display.ts
  */
 import * as ts from "typescript";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { applyEdits, READ, type Edit } from "./i18n-common";
 

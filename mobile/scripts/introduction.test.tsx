@@ -1,7 +1,6 @@
 import { expect, mock, test } from "bun:test";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { atom, createStore, Provider } from "jotai";
-import type { ReactNode } from "react";
 import { TOUR_STEPS, journeyProfile, type Journey } from "../../src/client/lib/journey";
 import { mockLucide } from "../tests/lucide-mock";
 
@@ -30,11 +29,6 @@ mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/input", () => ({ Input: "Input" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
-// The card renders its heading controls and body in place, so the goals' "Add goal" is reachable.
-mock.module("../src/components/ProfileCard", () => ({
-  Section: ({ aside, children }: { aside?: ReactNode; children?: ReactNode }) => <>{aside}{children}</>,
-  EmptyLine: "EmptyLine", Tag: "Tag",
-}));
 mock.module("../src/components/ImportTimes", () => ({ ImportTimes: "ImportTimes" }));
 mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
 mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: "PuzzleIcon" }));

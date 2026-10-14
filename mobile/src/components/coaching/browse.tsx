@@ -19,7 +19,7 @@ import { SheetChoice } from "../PuzzlePicker";
 import { Sheet } from "../Sheet";
 import { Pill } from "../community/marks";
 import { Bar, Empty, Numeric, SearchField } from "../layout";
-import { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen, coaching, price, useCoaching, type Coach } from "./client";
+import { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen, coaching, mondayOf, price, useCoaching, zone, type Coach } from "./client";
 import { Activity, Learned, PuzzleCard } from "./person";
 import { CheckRow, Face, Stars, day, dayKey, span, time, useAction, useCoachingNav } from "./parts";
 
@@ -35,7 +35,6 @@ const PRICES = [
   { id: "any", label: "Any price" }, { id: "0", label: "Free" }, { id: "1000", label: "Up to €10" },
   { id: "2000", label: "Up to €20" }, { id: "3000", label: "Up to €30" }, { id: "5000", label: "Up to €50" },
 ];
-export const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** Every coach, in two columns on a tablet; on a wide screen a coach's page docks beside the list, `selected` marked. */
 export function CoachList({ selected }: { selected?: string }) {
@@ -237,9 +236,9 @@ function ProfileSkeleton() {
 
 /** Booking a coach on its own, as from a conversation: their week of slots, and the way back. */
 export function BookPage({ id }: { id: string }) {
-  const cs = useCoaching(), nav = useCoachingNav();
+  useCoaching();
+  const nav = useCoachingNav();
   useEffect(() => { void coaching.load(`coach:${id}`); }, [id]);
-  const c = cs.profiles.get(id) ?? cs.coaches?.find(x => x.id === id);
   // Opened from a conversation, the way back returns to it.
   const fromConversation = nav.previous?.startsWith("messages/");
   return <View className="min-h-0 flex-1">
@@ -250,13 +249,6 @@ export function BookPage({ id }: { id: string }) {
 
 const weekdayName = localFormat({ weekday: "short" });
 const dayMonth = localFormat({ day: "numeric", month: "short" });
-/** The Monday starting the week of a moment, at midnight on this device. */
-function mondayOf(ms: number) {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d.getTime();
-}
 /** The seven days of the week starting on a Monday, at midnight. */
 function weekOf(monday: number) {
   return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d.getTime(); });

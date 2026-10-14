@@ -9,8 +9,9 @@ import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { METHODS } from "../../src/shared/methods";
 import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/shared/crossTraining";
 import { recommendedWhy, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
+import { groupBySet } from "../../src/client/lib/practiceCatalog";
 import { smartCube } from "../../src/client/lib/smartCube";
-import { hintsForStage, maskForStage } from "../../src/client/lib/caseState";
+import { caseDetail, hintsForStage, maskForStage } from "../../src/client/lib/caseState";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -43,8 +44,7 @@ function courseAction(setId: string) {
 function useSets() {
   const cases = s.cases();
   return useMemo(() => {
-    const bySet = new Map<string, any[]>();
-    for (const c of cases) bySet.set(c.set, [...(bySet.get(c.set) ?? []), c]);
+    const bySet = groupBySet(cases);
     const sets: { set: any; all: any[]; learned: number }[] = s.allSets().flatMap((set: any) => {
       const all = bySet.get(set.id) ?? [];
       return all.length ? [{ set, all, learned: all.filter((c: any) => s.learned.has(c.id)).length }] : [];
@@ -411,8 +411,8 @@ function TimedRecognition() {
 }
 
 /**
- * A case alone, never named, the bar running out under it. Space or a click pauses it and plays its algorithm on the
- * cube (RecognitionSolution); a second press moves on. Nothing is recorded.
+ * A case alone, never named, the bar running out under it. Space or a click pauses it: the bar stops, the cube can be
+ * turned and its algorithm shows, played only when asked (RecognitionSolution); a second press moves on. Nothing is recorded.
  */
 function RecognitionCase({ c }: { c: any }) {
   const { w, h } = useViewport(),
@@ -460,7 +460,7 @@ function RecognitionCase({ c }: { c: any }) {
             {tr("{0} s", { 0: paused.toFixed(1) })}
           </span>
           <b className="text-xl font-extrabold tracking-[-0.02em]">{c.id}</b>
-          <span className="text-muted-foreground">{tr(c.name !== c.id ? c.name : c.group)}</span>
+          <span className="text-muted-foreground">{tr(caseDetail(c) ?? c.group)}</span>
         </div>
         {cubeSize && s.training?.algorithm ? (
           <RecognitionSolution c={c} cubeSize={cubeSize} size={Math.round(size * 0.85)} />
@@ -488,9 +488,9 @@ function RecognitionCase({ c }: { c: any }) {
   );
 }
 
-/** The paused case's algorithm played on its cube, its move under way lit in the text; the arrows step it. */
+/** The paused case on a cube to turn, its algorithm under it, played or stepped (the arrows) only when asked. */
 function RecognitionSolution({ c, cubeSize, size }: { c: any; cubeSize: number; size: number }) {
-  const player = useAlgPlayer(s.training.algorithm, cubeSize, maskForStage(c.stage), { setup: s.training.setup, hints: s.recognitionBack && hintsForStage(c.stage), autoplay: 400 });
+  const player = useAlgPlayer(s.training.algorithm, cubeSize, maskForStage(c.stage), { setup: s.training.setup, hints: s.recognitionBack && hintsForStage(c.stage) });
   useEffect(() => {
     if (!player) return;
     const key = (e: KeyboardEvent) => {
@@ -736,7 +736,7 @@ function CasesPicker({ free = false }: { free?: boolean }) {
   // Every set's row, then its groups opened: a group's name, its cases a row at a time. `end` closes a group, `last` a set.
   const rows: PickerRow[] = [];
   for (const set of s.allSets()) {
-    const all = cases.filter((c: any) => c.set === set.id),
+    const all = s.setCases(set.id).filter((c: any) => free || s.learned.has(c.id)),
       chosen = all.filter((c: any) => matches(c, s.query)),
       count = chosen.filter((c: any) => picks.has(c.id)).length,
       open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);

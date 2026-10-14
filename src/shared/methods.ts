@@ -41,7 +41,8 @@ export interface MethodStep {
    * absent); `from` the puzzle before it when that is not where the step before ends (a scramble for the first step);
    * `mask` the pieces both show, the step's own mask otherwise. Checked by tests/method-pictures.test.ts.
    */
-  picture?: { done?: string; from?: string; mask?: CubeMask };
+  /** `held`: drawn in the colours the moves leave (a whole-cube turn shows), not set back by the centres. */
+  picture?: { done?: string; from?: string; mask?: CubeMask; held?: boolean };
 }
 
 /** A short, English walkthrough of one way to solve a puzzle: the solving methods guide and the Learn section. */
@@ -179,7 +180,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       steps: [
         {
           title: "White cross", text: "Place the four white edges around the white centre so their side colours match the side centres.", train: "cross",
-          picture: { from: SCRAMBLE, done: CROSS, mask: "cross" },
+          // Turned over (x2) and held so, white on top: a beginner sees the cross being made, not a yellow face.
+          picture: { from: `${SCRAMBLE} x2`, done: `${CROSS} x2`, mask: "cross", held: true },
           tips: [
             "Start with a daisy: the four white edges around the yellow centre, white facing up.",
             "Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.",
@@ -188,7 +190,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         },
         {
           title: "First-layer corners", text: "Bring each white corner under its slot and repeat R U R' U' until it drops in correctly.",
-          mask: "F1L", algs: [CORNER_INSERTION], picture: { done: FIRST_LAYER },
+          // White down again from here on: the cross as it is held.
+          mask: "F1L", algs: [CORNER_INSERTION], picture: { from: CROSS, done: FIRST_LAYER },
           tips: ["Turn the top until the corner sits above the slot between its two side colours."],
         },
         {

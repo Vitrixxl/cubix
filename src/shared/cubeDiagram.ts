@@ -3,7 +3,7 @@
  * all draw from these cells so every platform shows the same picture for a case.
  */
 import { cubeSize, type CubeState, type Face } from "./cube";
-import { stickerColors, type CubeMask } from "./cubeAppearance";
+import { hexOf, stickerColors, type CubeMask } from "./cubeAppearance";
 export type { CubeMask } from "./cubeAppearance";
 
 const palettes = new WeakMap<CubeState, Map<string, number[]>>();
@@ -14,7 +14,7 @@ export function stickerHex(state: CubeState, slot: number, mask: CubeMask, held 
   const key = held ? `${mask}:held` : mask;
   let palette = masks.get(key);
   if (!palette) masks.set(key, palette = stickerColors(state, mask, held));
-  return `#${palette[state[slot]].toString(16).padStart(6, "0")}`;
+  return hexOf(palette[state[slot]]);
 }
 
 export const ISO_VIEWBOX = "0 0 120 118";

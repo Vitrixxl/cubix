@@ -6,7 +6,6 @@
  * States use cubing.js's 3×3 pattern layout: position i holds piece `pieces[i]` with `orientation[i]`.
  * Edges: UF UR UB UL DF DR DB DL FR FL BR BL. Corners: UFR URB UBL ULF DRF DFL DLB DBR. White is on U.
  */
-import { msg } from "../client/i18n/msg";
 
 export type Orbit = { pieces: number[]; orientation: number[] };
 export type PatternData = { EDGES: Orbit; CORNERS: Orbit; CENTERS: Orbit };
@@ -15,8 +14,6 @@ type Move = { face: number; edges: [number[], number[]]; corners: [number[], num
 export const CROSS_TARGETS = ["cross", "xcross", "xxcross"] as const;
 export type CrossTarget = (typeof CROSS_TARGETS)[number];
 export const CROSS_TARGET_LABELS: Record<CrossTarget, string> = { cross: "Cross", xcross: "XCross", xxcross: "XXCross" };
-/** What each target builds, to translate where shown. */
-export const CROSS_TARGET_DETAILS: Record<CrossTarget, string> = { cross: msg("The four edges"), xcross: msg("Cross and one pair"), xxcross: msg("Cross and two pairs") };
 /** The move counts offered per target, the middle one by default. */
 export const CROSS_MOVES: Record<CrossTarget, readonly number[]> = { cross: [4, 5, 6], xcross: [5, 6, 7], xxcross: [6, 7, 8] };
 export const isCrossTarget = (value: unknown): value is CrossTarget => CROSS_TARGETS.includes(value as CrossTarget);

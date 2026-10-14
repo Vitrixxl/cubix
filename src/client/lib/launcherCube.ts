@@ -7,6 +7,7 @@
  * polygons of `launcherCubeFrame` and drives the progress with `launcherProgress`.
  */
 import { invertAlg } from "../../shared/cube";
+import { hexOf } from "../../shared/cubeAppearance";
 import { CUBE_YAW, cubeScene, cubeSceneDuration, cubeShapes, cubeViewRadius } from "../../shared/cubeScene";
 
 /** A filled polygon, or an outline (`line`) one screen pixel wide, in the view box. */
@@ -57,7 +58,6 @@ const SCENE = (() => {
 })();
 const CENTER = 60, UNIT = CENTER / cubeViewRadius(SCENE);
 const clamp = (t: number) => Math.min(1, Math.max(0, t));
-const hex = (color: number) => "#" + color.toString(16).padStart(6, "0");
 const format = (points: number[][]) => points.map(([x, y]) => `${Math.round((CENTER + x * UNIT) * 100) / 100},${Math.round((CENTER - y * UNIT) * 100) / 100}`).join(" ");
 
 /**
@@ -70,6 +70,6 @@ export function launcherCubeFrame(progress: number, time = 0): LauncherPolygon[]
   // No fade: the cube is fully drawn from the first frame and stays on screen, scrambled, between cycles.
   const opacity = 1;
   return cubeShapes(SCENE, t * cubeSceneDuration(SCENE), CUBE_YAW + sway).map((shape, index) => ({
-    key: `s${index}`, points: format(shape.points), color: hex(shape.color), line: shape.line, opacity,
+    key: `s${index}`, points: format(shape.points), color: hexOf(shape.color), line: shape.line, opacity,
   }));
 }

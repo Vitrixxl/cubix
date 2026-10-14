@@ -25,7 +25,9 @@ export const REAL_HELD_HEX: Record<Face, number> = {
 export const HELD_HEX: Record<Face, number> = {
   U: FACE_HEX.U, D: FACE_HEX.D, F: FACE_HEX.B, B: FACE_HEX.F, R: FACE_HEX.L, L: FACE_HEX.R,
 };
-export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, `#${FACE_HEX[f].toString(16).padStart(6, '0')}`])) as Record<Face, string>;
+/** A colour as CSS writes it: `#rrggbb`. */
+export const hexOf = (color: number) => '#' + color.toString(16).padStart(6, '0');
+export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, hexOf(FACE_HEX[f])])) as Record<Face, string>;
 // Neutral stickers remain readable against both light and dark app backgrounds.
 export const GREY = 0x6e6e78;
 const DIM = 0x4c4c56;

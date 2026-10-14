@@ -1,10 +1,9 @@
 import { DEFAULT_THEME, type ThemeId } from "../../src/client/lib/theme";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { eventInfo, eventOf, isPuzzle, puzzleInfo, puzzleOf, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
-import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
+import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
+import type { CaseDto, CaseStatsDto, SolveDto, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
-import { sets as catalogSets } from "../../src/client/local/catalog";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
 import { pageUrl, readRoute } from "../../src/client/lib/route";
 import { api, authToken, local } from "./api";
@@ -247,15 +246,7 @@ export function perPuzzleAtom<T>(key: string, fallback: T) {
     set(values, { ...get(values), [puzzle]: typeof update === "function" ? (update as (value: T) => T)(previous) : update });
   });
 }
-const preferredStageAtom = perPuzzleAtom<Stage | null>("cubix.algs.stageByCube", null);
-export const stageAtom = atom(get => {
-  const available = catalogSets.filter(s => puzzleOf(s) === get(puzzleAtom));
-  const preferred = get(preferredStageAtom);
-  return preferred !== null && available.some(s => s.stage === preferred) ? preferred : available[0]?.stage ?? "F2L";
-}, (_get, set, value: Stage) => set(preferredStageAtom, value));
-export const setByStageAtom = perPuzzleAtom<Partial<Record<Stage, string>>>("cubix.algs.setByCube", { F2L: "f2l", OLL: "oll", PLL: "pll" });
 export const learningFilterAtom = persisted<"all" | "learned" | "not-learned">("cubix.algs.learningFilter", "all");
-export const collapsedAlgorithmGroupsAtom = persisted<Record<string, boolean>>("cubix.algs.collapsedGroups", {});
 
 // ---------------------------------------------------------------------------
 // Data
@@ -285,18 +276,12 @@ export const statsAtom = atom(get => {
 // Training preferences
 // ---------------------------------------------------------------------------
 export const selectedCaseIdsAtom = perPuzzleAtom<string[]>("cubix.training.selectionByCube", []);
-/** The stages Review draws from, per puzzle (as on the web); none picked reviews every stage. */
-export const reviewStagesAtom = perPuzzleAtom<string[]>("cubix.training.reviewStages", []);
 export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true);
 /** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
-/** Cases of the catalogue, or cross scrambles (cross, XCross or XXCross) on the 3×3; shared with the web prefs. */
-type TrainingKind = "cases" | "cross";
+// The training kind the web shares ("cross1", the former first-block training, maps to the XCross).
 const storedTrainingKindAtom = persisted<string>("cubix.training.kind", "cases");
-// "cross1" was the first-block training (a pair and two cross edges): its nearest is the XCross.
-export const trainingKindAtom = atom(get => ["cross", "cross1"].includes(get(storedTrainingKindAtom)) ? "cross" as const : "cases" as const,
-  (_get, set, kind: TrainingKind) => set(storedTrainingKindAtom, kind));
 const storedCrossTargetAtom = persisted<string>("cubix.training.crossTarget", "");
 const storedCrossMovesAtom = persisted<number>("cubix.training.crossMoves", 5);
 export const crossTargetAtom = atom<CrossTarget, [CrossTarget], void>(get => {

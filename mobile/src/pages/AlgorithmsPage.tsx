@@ -6,7 +6,7 @@ import {
 } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { BackHandler, FlatList, Linking, PanResponder, Pressable, ScrollView, View } from "react-native";
-import { caseContext, groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
+import { caseContext, groupBySet, groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import { moveCount } from "../../../src/client/lib/caseState";
 import { algScene, polyAlgScene } from "../../../src/client/lib/algPlayer";
 import { fmtTime } from "../../../src/client/lib/format";
@@ -136,8 +136,7 @@ function Catalogue() {
   const learnedTotal = cases.filter(c => learned.has(c.id)).length;
   const trainedTotal = cases.filter(c => !learned.has(c.id) && stats.has(c.id)).length;
   const rows = useMemo(() => {
-    const bySet = new Map<string, CaseDto[]>();
-    for (const c of cases) bySet.set(c.set, [...(bySet.get(c.set) ?? []), c]);
+    const bySet = groupBySet(cases);
     const out: CatalogueRow[] = [];
     for (const stage of new Set(sets.map(s => s.stage))) {
       out.push({ kind: "stage", key: `stage:${stage}`, label: said(stage) });

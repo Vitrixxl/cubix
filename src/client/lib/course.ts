@@ -61,7 +61,8 @@ export function courseEntry(progress: CourseProgress, puzzle: PuzzleId, method: 
 function update(progress: CourseProgress, puzzle: PuzzleId, method: string, change: (entry: CourseEntry) => CourseEntry): CourseProgress {
   return { methods: { ...progress.methods, [puzzle]: method }, courses: { ...progress.courses, [courseKey(puzzle, method)]: change(courseEntry(progress, puzzle, method)) } };
 }
-const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter(v => v !== id) : [...list, id]);
+/** The list with the item added, or taken out if it was in it. */
+export const toggled = <T,>(list: readonly T[], item: T): T[] => (list.includes(item) ? list.filter(v => v !== item) : [...list, item]);
 
 /** Opening a method makes it the puzzle's course and starts it where it was left. */
 export const openCourse = (progress: CourseProgress, puzzle: PuzzleId, method: string) => update(progress, puzzle, method, entry => entry);
@@ -71,7 +72,7 @@ export function goToStep(progress: CourseProgress, puzzle: PuzzleId, method: str
   return update(progress, puzzle, method, entry => ({ ...entry, step: Math.max(0, Math.min(steps - 1, index)) }));
 }
 export const toggleAlgLearned = (progress: CourseProgress, puzzle: PuzzleId, method: string, id: string) =>
-  update(progress, puzzle, method, entry => ({ ...entry, learned: toggle(entry.learned, id) }));
+  update(progress, puzzle, method, entry => ({ ...entry, learned: toggled(entry.learned, id) }));
 
 /** The catalogue sets of a step that exist for the puzzle, in the step's order. */
 export function stepSets<S extends Pick<SetDto, "id" | "puzzle_id" | "cube_size">>(step: MethodStep, sets: readonly S[], puzzle: PuzzleId): S[] {
@@ -85,9 +86,11 @@ export const setGroups = <C extends Pick<CaseDto, "set" | "group">>(cases: reado
 export function stepAlgorithmCount(step: MethodStep, cases: readonly Pick<CaseDto, "set">[]): number {
   return (step.algs?.length ?? 0) + (step.sets ?? []).reduce((sum, id) => sum + cases.filter(c => c.set === id).length, 0);
 }
+/** The sets a method's steps teach, in their order, a set shared by two steps once. */
+export const methodSetIds = (method: SolvingMethod | undefined) => [...new Set((method?.steps ?? []).flatMap(step => step.sets ?? []))];
 /** A method at a glance: its steps and its algorithms, a set shared by two steps counted once. */
 export function methodFacts(method: SolvingMethod, cases: readonly Pick<CaseDto, "set">[]) {
-  const sets = new Set(method.steps.flatMap(step => step.sets ?? []));
+  const sets = new Set(methodSetIds(method));
   const inline = method.steps.reduce((sum, step) => sum + (step.algs?.length ?? 0), 0);
   return { steps: method.steps.length, algorithms: inline + cases.filter(c => sets.has(c.set)).length };
 }
@@ -113,9 +116,13 @@ export function methodShare(method: SolvingMethod, cases: readonly Pick<CaseDto,
 }
 /** An intuitive step marked mastered: nothing to learn, so it is the learner's word. */
 export const stepMastered = (step: Pick<MethodStep, "title">, entry: CourseEntry) => entry.learned.includes(stepId(step));
+/** Where a device keeps that an intuitive step was read (`cubix.learn.read`), on the web and the phone alike. */
+export const stepReadKey = (puzzle: PuzzleId, method: string, step: Pick<MethodStep, "title">) => `${puzzle}:${method}:${stepId(step)}`;
+/** An intuitive step is read before it is marked or trained: every tip ticked once (`readOnce`), unless mastered or without tips. */
+export const stepRead = (step: Pick<MethodStep, "title" | "tips">, entry: CourseEntry, readOnce: boolean) => stepMastered(step, entry) || !step.tips?.length || readOnce;
 /** A step is done once every algorithm it teaches is learned; an intuitive one once marked mastered; one whose algorithms are to come never is. */
-export function stepDone(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
-  const count = stepLearned(step, cases, learned, entry);
+/** `count`: the step's `stepLearned`, when the caller has it already. */
+export function stepDone(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry, count = stepLearned(step, cases, learned, entry)) {
   return count.total > 0 ? count.learned === count.total : !step.missing && stepMastered(step, entry);
 }
 
@@ -135,7 +142,7 @@ export function stepLearned(step: MethodStep, cases: readonly Pick<CaseDto, "id"
 
 /** Learned algorithms of a whole method, a set shared by two steps counted once (out of `methodFacts`' algorithms). */
 export function methodLearned(method: SolvingMethod, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
-  const sets = new Set(method.steps.flatMap(step => step.sets ?? []));
+  const sets = new Set(methodSetIds(method));
   const own = method.steps.flatMap(step => (step.algs ?? []).map(a => algId(step, a)));
   return cases.filter(c => sets.has(c.set) && learned.has(c.id)).length + own.filter(id => entry.learned.includes(id)).length;
 }
@@ -146,5 +153,5 @@ export const algSetup = (alg: Pick<MethodAlgorithm, "alg" | "setup">) => alg.set
 /** A step's before and after pictures (see `MethodStep.picture`): the puzzle before and after it, as moves from solved, and the pieces shown. */
 export function stepPicture(method: SolvingMethod, index: number) {
   const step = method.steps[index]!, picture = step.picture ?? {};
-  return { before: picture.from ?? method.steps[index - 1]?.picture?.done ?? "", after: picture.done ?? "", mask: picture.mask ?? step.mask ?? "full" };
+  return { before: picture.from ?? method.steps[index - 1]?.picture?.done ?? "", after: picture.done ?? "", mask: picture.mask ?? step.mask ?? "full", held: !!picture.held };
 }

@@ -628,3 +628,21 @@ export function cardText(m: Pick<Message, "match" | "tournament"> | { card: "mat
   if ("card" in m) return kind === "match" ? tr("Battle") : tr("Tournament");
   return kind === "match" ? tr("Battle · {0}", { 0: eventName(m.match!.event) }) : tr("Tournament · {0}", { 0: m.tournament!.name });
 }
+
+/** What the solves so far tell: the latest one decided, its set, and the seat that took the set with it. */
+export function lastOutcome(m: Match) {
+  const wins = [0, 0];
+  let set = 1,
+    out: { solve: MatchSolve; set: number; setWon: number | null } | null = null;
+  for (const solve of m.solves ?? []) {
+    if (!solve.results[0] || !solve.results[1]) break;
+    let setWon: number | null = null;
+    if (solve.winner !== null && ++wins[solve.winner]! >= m.points) {
+      setWon = solve.winner;
+      wins[0] = wins[1] = 0;
+    }
+    out = { solve, set, setWon };
+    if (setWon !== null) set++;
+  }
+  return out;
+}

@@ -7,6 +7,7 @@
 import type { PatternData } from "../../shared/crossTraining";
 import type { ScrambleEngine } from "./practiceScrambleCore";
 import { msg } from "../i18n/msg";
+import { effective } from "./format";
 
 /** The events with a daily scramble: the 3×3 random-state ones. */
 export const DAILY_EVENTS = ["333", "333oh"] as const;
@@ -85,7 +86,7 @@ export interface DailyBoard {
 export function bucketOf(board: Pick<DailyBoard, "buckets">, place: Pick<DailyPlace, "timeMs" | "penalty"> | null) {
   const { from, width, counts } = board.buckets;
   if (!place || place.penalty === "dnf" || !counts.length || !width) return -1;
-  const ms = place.timeMs + (place.penalty === "+2" ? 2000 : 0);
+  const ms = effective(place.timeMs, place.penalty)!;
   return Math.max(0, Math.min(counts.length - 1, Math.floor((ms - from) / width)));
 }
 
@@ -93,7 +94,7 @@ export function bucketOf(board: Pick<DailyBoard, "buckets">, place: Pick<DailyPl
 export type DailyDay = DailyPlace & { day: string; verified: boolean; total: number };
 /** What the history adds up to: best and mean of the finished, mean rank, the run of days up to today (or yesterday). */
 export function dailyStats(history: DailyDay[], today = dailyDay()) {
-  const done = history.filter((d) => d.penalty !== "dnf").map((d) => d.timeMs + (d.penalty === "+2" ? 2000 : 0));
+  const done = history.flatMap((d) => effective(d.timeMs, d.penalty) ?? []);
   const days = new Set(history.map((d) => d.day));
   let streak = 0;
   const day = new Date(today + "T00:00:00Z");

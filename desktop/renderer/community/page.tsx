@@ -41,8 +41,7 @@ export function CommunityPage() {
   }, [view, arg]);
   const id = view === "messages" && arg ? Number(arg) : null,
     list = community.conversations,
-    current = list?.find((c) => c.id === id),
-    me = community.me;
+    current = list?.find((c) => c.id === id);
   // On a wide window the latest conversation opens when none is chosen; a phone shows the list first.
   useEffect(() => {
     if (view === "people") return;

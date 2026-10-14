@@ -16,8 +16,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
-/** Touch targets: at least 44px each way. */
-export const TOUCH = "min-h-11 min-w-11";
 
 /**
  * A sheet from the bottom: a handle to swipe it away, its title, then its content. `tall` takes the screen's height

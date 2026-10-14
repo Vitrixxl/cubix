@@ -20,7 +20,7 @@ import { Alg, Avatar, Empty, FADE, NUMERIC, PAGE, PageHead, PenaltyToggles, Surf
 import { Back } from "../coaching/parts";
 import { ask } from "../confirm";
 import { Fly, KICKER, LiveDot, PanelHead, RoundStrip, Stage, StageFigure, Verdict, longest, type Cell } from "./format";
-import { community, communityUrl, eventName, formatText, scoreOf, tournamentUrl, type Match, type MatchSolve } from "../community/client";
+import { community, communityUrl, eventName, formatText, lastOutcome, scoreOf, tournamentUrl, type Match, type MatchSolve } from "../community/client";
 import { live, resultTime, type Phase } from "./matchClient";
 import { shownSolve } from "../../../src/client/lib/duel";
 import { cn } from "@/lib/utils";
@@ -313,23 +313,6 @@ function Race({ m }: { m: Match }) {
   );
 }
 
-/** What the solves so far tell: the latest one decided, its set, and the seat that took the set with it. */
-function lastOutcome(m: Match) {
-  const wins = [0, 0];
-  let set = 1,
-    out: { solve: MatchSolve; set: number; setWon: number | null } | null = null;
-  for (const solve of m.solves ?? []) {
-    if (!solve.results[0] || !solve.results[1]) break;
-    let setWon: number | null = null;
-    if (solve.winner !== null && ++wins[solve.winner]! >= m.points) {
-      setWon = solve.winner;
-      wins[0] = wins[1] = 0;
-    }
-    out = { solve, set, setWon };
-    if (setWon !== null) set++;
-  }
-  return out;
-}
 const nameOf = (m: Match, seat: number) => (m.players[seat]?.id === s.user.id ? tr("You") : (m.players[seat]?.username ?? "–"));
 
 /** The latest solve decided, in words, as a line of the race's feed: who took it and by how much, and the set it closed. */

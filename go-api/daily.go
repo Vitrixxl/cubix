@@ -18,17 +18,6 @@ const dailyMaxMs = 3_600_000
 
 func dailyDay(t time.Time) string { return t.UTC().Format("2006-01-02") }
 
-// dailyEffective: the time a result counts for, nil for a DNF.
-func dailyEffective(ms float64, penalty string) *float64 {
-	switch penalty {
-	case "dnf":
-		return nil
-	case "+2":
-		ms += 2000
-	}
-	return &ms
-}
-
 // dailyPlace: the rank of a time among `times` (DNF last) and the share of the others it beats, in percent. `in`
 // says whether the time is one of `times` (the player's own result) or only placed against them.
 func dailyPlace(times []*float64, t *float64, in bool) M {
@@ -107,7 +96,7 @@ func dailyField(db *Conn, day, event string, verified bool) ([]M, []*float64, er
 	times := make([]*float64, len(rows))
 	for i, row := range rows {
 		ms, _ := asFloat(row["time_ms"])
-		times[i] = dailyEffective(ms, str(row["penalty"]))
+		times[i] = statsEffectiveMs(ms, str(row["penalty"]))
 	}
 	return rows, times, nil
 }
@@ -139,7 +128,7 @@ func dailyBoard(db *Conn, day, event, user string, placed *[2]any, verified bool
 		if own != nil {
 			ms, _ := asFloat(own["time_ms"])
 			in := !verified || truthy(own["verified"])
-			mine := dailyPlace(times, dailyEffective(ms, str(own["penalty"])), in)
+			mine := dailyPlace(times, statsEffectiveMs(ms, str(own["penalty"])), in)
 			mine["timeMs"], mine["penalty"], mine["verified"] = own["time_ms"], own["penalty"], truthy(own["verified"])
 			mine["cancellable"] = dailyCancellable(db, day, event, user, str(own["created_at"]))
 			out["mine"] = mine
@@ -147,7 +136,7 @@ func dailyBoard(db *Conn, day, event, user string, placed *[2]any, verified bool
 	}
 	if placed != nil {
 		ms, _ := asFloat(placed[0])
-		p := dailyPlace(times, dailyEffective(ms, str(placed[1])), false)
+		p := dailyPlace(times, statsEffectiveMs(ms, str(placed[1])), false)
 		p["timeMs"], p["penalty"] = ms, placed[1]
 		out["placed"] = p
 	}
@@ -185,7 +174,7 @@ func dailyHistory(db *Conn, event, user string, verified bool) ([]M, error) {
 			return nil, err
 		}
 		ms, _ := asFloat(row["time_ms"])
-		place := dailyPlace(times, dailyEffective(ms, str(row["penalty"])), true)
+		place := dailyPlace(times, statsEffectiveMs(ms, str(row["penalty"])), true)
 		place["day"], place["timeMs"], place["penalty"], place["verified"], place["total"] = row["day"], row["time_ms"], row["penalty"], truthy(row["verified"]), len(times)
 		out = append(out, place)
 	}

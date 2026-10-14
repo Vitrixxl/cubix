@@ -5,7 +5,7 @@ import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { Input } from "@/components/ui/input";
 import { fmtTime } from "../../../src/client/lib/format";
-import { eventInfo, eventLabel, heldScramble, puzzleInfo } from "../../../src/shared/puzzles";
+import { eventInfo, eventLabelOf, heldScramble, puzzleInfo } from "../../../src/shared/puzzles";
 import type { Conversation, Person } from "../../../src/client/lib/community";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -50,10 +50,6 @@ export function DuelPage() {
   return duel.status === "racing" ? <Race /> : <Lobby />;
 }
 
-const shortEvent = (id: string) => {
-  const e = eventInfo(id);
-  return e ? eventLabel(e.puzzle, e.solveMode) : id;
-};
 
 function Lobby() {
   const { tablet, wide } = useLayout(), signedIn = useAtomValue(signedInAtom);
@@ -214,7 +210,7 @@ function Played({ className, sheet = false }: { className?: string; sheet?: bool
       <UserAvatar user={{ username: b.opponent, isGuest: false }} size={32} />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="text-sm font-bold">{b.opponent}</Text>
-        <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{shortEvent(b.event)} · {relative(Date.parse(b.at))} · {a}–{z}</Numeric>
+        <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{eventLabelOf(b.event)} · {relative(Date.parse(b.at))} · {a}–{z}</Numeric>
       </View>
       <View className="items-end">
         <Numeric className="text-sm font-bold">{raceAverage(mine) || "–"}</Numeric>
@@ -385,7 +381,7 @@ function ChatBody({ docked = false }: { docked?: boolean }) {
     <View className={docked ? "min-h-0 flex-1" : "min-h-0 shrink"}><List ref={list} data={duel.chat} keyExtractor={(_, i) => String(i)} contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 8, gap: 6 }}
       onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
       ListHeaderComponent={<>
-        <Said icon={Swords}>{tr("vs {0} · {1}", { 0: duel.opponent.name, 1: shortEvent(duel.event) })}</Said>
+        <Said icon={Swords}>{tr("vs {0} · {1}", { 0: duel.opponent.name, 1: eventLabelOf(duel.event) })}</Said>
         {!duel.chat.length ? <Text className="py-3 text-center text-sm text-muted-foreground">{tr("No messages yet.")}</Text> : null}
       </>}
       ListFooterComponent={<>

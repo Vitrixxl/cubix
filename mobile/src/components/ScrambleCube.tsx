@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { hexOf } from "../../../src/shared/cubeAppearance";
 import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { cubeOrientation, cubeScene, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeOrientation, type CubeShape } from "../../../src/shared/cubeScene";
@@ -32,7 +33,7 @@ export function pathsOf(shapes: CubeShape[]) {
   for (const { points, color, line } of shapes) {
     // An invalid number in `d` is a native crash (react-native-svg's PathParser), never just a missing shape.
     if (points.length < 2 || !points.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y))) continue;
-    const hex = "#" + color.toString(16).padStart(6, "0");
+    const hex = hexOf(color);
     const d = points.map(([x, y], i) => `${i ? "L" : "M"}${x!.toFixed(3)} ${(-y!).toFixed(3)}`).join("") + (line ? "" : "Z");
     const last = paths.at(-1);
     if (last && last.color === hex && last.line === line) last.d += d;

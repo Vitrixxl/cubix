@@ -8,23 +8,11 @@ import { FOCUS, NUMERIC, Surface, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { tr, localFormat } from "../../../src/client/i18n";
+import { tr } from "../../../src/client/i18n";
+import { WEEKDAYS, addDays, keyOf, longDay, monthName, shiftMonth, shortDay, toDate, weekdayOf } from "../../../src/client/lib/coaching";
 import { said } from "../base";
 
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export const toDate = (key: string) => new Date(key + "T00:00:00Z");
-export const keyOf = (d: Date) => d.toISOString().slice(0, 10);
-export const addDays = (key: string, n: number) => keyOf(new Date(toDate(key).getTime() + n * 86_400_000));
-export const weekdayOf = (key: string) => (toDate(key).getUTCDay() + 6) % 7;
-export const longDay = localFormat({ weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-export const shortDay = localFormat({ day: "numeric", month: "short", timeZone: "UTC" });
-const monthName = localFormat({ month: "long", year: "numeric", timeZone: "UTC" });
-/** The month ("2026-10") some months away. */
-function shiftMonth(month: string, n: number) {
-  const d = toDate(month + "-01");
-  d.setUTCMonth(d.getUTCMonth() + n);
-  return keyOf(d).slice(0, 7);
-}
+export { WEEKDAYS, addDays, keyOf, longDay, shortDay, toDate, weekdayOf };
 
 /** Shown when a day is too narrow for its hours as text: a line under the date. */
 export const NARROW_BAR = "hidden h-1 shrink-0 rounded-full bg-primary/50 @max-[5.5rem]:block";

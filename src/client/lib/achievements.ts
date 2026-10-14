@@ -133,9 +133,6 @@ export function level(xp: number): { level: number; into: number; span: number }
   return { level: n, into: xp - floor, span: 100 * n };
 }
 
-/** Group order for display: puzzles in registry order, then general goals. */
-export const ACHIEVEMENT_GROUPS = [...PUZZLES.map(p => p.label), msg("General")];
-export const achievementPuzzle = (group: string): PuzzleId | undefined => PUZZLES.find(p => p.label === group)?.id;
 
 /** What an achievement counts, read from its id: a time goal (single, ao5, one-handed, blindfolded) or a count. */
 export type AchievementKind = "single" | "ao5" | "oh" | "bld" | "solves" | "sets" | "algorithms" | "times" | "drills" | "days" | "streak";

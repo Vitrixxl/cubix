@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { localFormat, tr } from "../../../../src/client/i18n";
+import { tr } from "../../../../src/client/i18n";
+import { WEEKDAYS, addDays, keyOf, longDay, monthName, shiftMonth, shortDay, toDate, weekdayOf } from "../../../../src/client/lib/coaching";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,20 +15,7 @@ import { Surface } from "../layout";
  * sessions: a month as one grid, Monday first, six weeks tall, each day a cell its page fills. Days are YYYY-MM-DD
  * keys, computed in UTC so the phone's own zone never shifts them.
  */
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-export const toDate = (key: string) => new Date(key + "T00:00:00Z");
-export const keyOf = (d: Date) => d.toISOString().slice(0, 10);
-export const addDays = (key: string, n: number) => keyOf(new Date(toDate(key).getTime() + n * 86_400_000));
-export const weekdayOf = (key: string) => (toDate(key).getUTCDay() + 6) % 7;
-export const longDay = localFormat({ weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-export const shortDay = localFormat({ day: "numeric", month: "short", timeZone: "UTC" });
-const monthName = localFormat({ month: "long", year: "numeric", timeZone: "UTC" });
-/** The month ("2026-10") some months away. */
-function shiftMonth(month: string, n: number) {
-  const d = toDate(month + "-01");
-  d.setUTCMonth(d.getUTCMonth() + n);
-  return keyOf(d).slice(0, 7);
-}
+export { WEEKDAYS, addDays, keyOf, longDay, shortDay, toDate, weekdayOf };
 const COLUMN = { width: `${100 / 7}%` } as const;
 
 /** A day too narrow for its hours as text: a line under the date. */

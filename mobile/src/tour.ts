@@ -49,5 +49,3 @@ export function measureTourTarget(key: string): Promise<Rect | null> {
   });
 }
 
-/** Test helper: forget every tagged view. */
-export function resetTourTargets() { targets.clear(); }

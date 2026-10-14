@@ -36,11 +36,10 @@ import { maskForStage } from "../../src/client/lib/caseState";
 import { fmtSolve } from "../../src/client/lib/format";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
-import { tn } from "../../src/client/i18n";
 
 export * from "./base";
 /** A count and its noun in the current language: plural(3, "solve") is "3 solves", or "3 résolutions". */
-export const plural = (count: number, noun: string) => tn(count, `{n} ${noun}`);
+export { plural } from "../../src/client/lib/format";
 export { run } from "./store";
 
 /** The button sizes of components/ui/button.tsx: standard, or compact for dense lists. */

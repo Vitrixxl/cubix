@@ -4,7 +4,7 @@ import { AppState, Linking, Pressable, View } from "react-native";
 import Svg, { G, Path, Polygon } from "react-native-svg";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { FACES, slotsFor, type Face, type Vec3 } from "../../../../src/shared/cube";
-import { GREY, HELD_HEX } from "../../../../src/shared/cubeAppearance";
+import { GREY, hexOf, HELD_HEX } from "../../../../src/shared/cubeAppearance";
 import { cubeSamples, readCube, resolve, scanColour, scanProblem, scanRefs, scanStickers, type Rgb } from "../../../../src/client/lib/cubeScan";
 import { COLOUR_NAMES } from "../../../../src/client/lib/solveAnalysis";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ import { tr } from "../../../../src/client/i18n";
  */
 
 const UNKNOWN = `#${GREY.toString(16)}`;
-export const hex = (face: Face) => `#${HELD_HEX[face].toString(16).padStart(6, "0")}`;
+export const hex = (face: Face) => hexOf(HELD_HEX[face]);
 
 /**
  * The faces in the order they are shown (`SCAN_FACES`, the lab's), each held any way round: `cubeSamples` finds how

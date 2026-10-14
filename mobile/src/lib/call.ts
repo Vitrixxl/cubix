@@ -9,7 +9,7 @@
  */
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { Alert, Linking } from "react-native";
-import { MediaStream, RTCPeerConnection, mediaDevices, type MediaStreamTrack, type RTCRtpTransceiver } from "react-native-webrtc";
+import { MediaStream, RTCPeerConnection, mediaDevices, type MediaStreamTrack } from "react-native-webrtc";
 import type { Booking, CallEvent } from "../../../src/client/lib/coaching";
 import { coaching } from "./social";
 
@@ -49,8 +49,6 @@ export class Call {
   unstable = false;
   devices = { audio: false, video: false };
   private pc?: RTCPeerConnection;
-  private audio?: RTCRtpTransceiver;
-  private video?: RTCRtpTransceiver;
   private pending: Candidate[] = [];
   private closed = false;
   /** Socket events are handled one after the other: each may wait on the connection. */
@@ -203,8 +201,8 @@ export class Call {
       this.emit();
     }, CONNECT_TIMEOUT);
     if (this.offers) {
-      this.audio = pc.addTransceiver(this.local.getAudioTracks()[0] ?? "audio", { direction: "sendrecv", streams: [this.local] });
-      this.video = pc.addTransceiver(this.local.getVideoTracks()[0] ?? "video", { direction: "sendrecv", streams: [this.local] });
+      pc.addTransceiver(this.local.getAudioTracks()[0] ?? "audio", { direction: "sendrecv", streams: [this.local] });
+      pc.addTransceiver(this.local.getVideoTracks()[0] ?? "video", { direction: "sendrecv", streams: [this.local] });
       await this.offer();
     }
     this.sendState();
@@ -240,8 +238,6 @@ export class Call {
           const track = kind === "audio" ? this.local.getAudioTracks()[0] : this.local.getVideoTracks()[0];
           t.direction = "sendrecv";
           if (track) await t.sender.replaceTrack(track);
-          if (kind === "audio") this.audio = t;
-          else this.video = t;
         }
         await pc.setLocalDescription(await pc.createAnswer());
         this.send({ description: pc.localDescription!.toJSON() });
@@ -273,7 +269,7 @@ export class Call {
     this.trouble = "";
     this.unstable = false;
     this.pc?.close();
-    this.pc = this.audio = this.video = undefined;
+    this.pc = undefined;
     this.pending = [];
     this.remote = new MediaStream();
     this.peerMic = this.peerCamera = true;

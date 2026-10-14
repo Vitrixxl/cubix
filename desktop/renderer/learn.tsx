@@ -6,7 +6,7 @@
  */
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
-import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Route, Timer, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lock, Route, Timer, type LucideIcon } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
@@ -14,10 +14,10 @@ import { Link } from "react-router";
 import { pageUrl } from "./navigation";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, stepRead, stepReadKey, toggled, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
-import { StaticCubeSvg, type CubeMask } from "../../src/client/diagrams/StaticCubeSvg";
+import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
 import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
@@ -367,11 +367,14 @@ function trainAction(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry
 }
 
 /** The cube before or after a step (see `stepPicture`), showing the pieces of its mask; other puzzles their icon. */
-function StepCube({ puzzle, setup, mask, size }: { puzzle: PuzzleId; setup: string; mask: CubeMask; size: number }) {
+/** A step's picture (`stepPicture`), the cube before it or after it. */
+function StepCube({ puzzle, picture, side, size }: { puzzle: PuzzleId; picture: ReturnType<typeof stepPicture>; side: "before" | "after"; size: number }) {
   const cube = puzzleInfo(puzzle).cubeSize,
+    { mask, held } = picture,
+    setup = picture[side],
     state = useMemo(() => (cube ? applyAlg(solved(cube), setup) : undefined), [cube, setup]);
   if (!state) return <span className="flex shrink-0 items-center justify-center text-muted-foreground" style={{ width: size, height: size }}><Icon name={"Puzzle" + puzzle} size={size * 0.7} /></span>;
-  return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
+  return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} held={held} className="shrink-0" />;
 }
 
 /**
@@ -603,34 +606,98 @@ function Workbench({ bench }: { bench: Bench }) {
   );
 }
 
-/** An intuitive step's workbench, or one whose algorithms are to come: what there is to do, as separate cards. */
+/**
+ * An intuitive step's workbench, or one whose algorithms are to come. The step is read before it is done: its title,
+ * its explanation and its tips, each ticked once read; Mastered (first: a step is learned here) and Train the cross
+ * stay locked until every tip is ticked. A step read once, or mastered, opens unlocked (`cubix.learn.read`, this device).
+ */
 function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
   const step = method.steps[entry.step]!,
     train = step.train && puzzle === "333",
-    mastered = stepMastered(step, entry);
+    mastered = stepMastered(step, entry),
+    tips = step.tips ?? [],
+    key = stepReadKey(puzzle, method.id, step),
+    [ticked, setTicked] = useState<Record<string, number[]>>({}),
+    mine = ticked[key] ?? [],
+    read = stepRead(step, entry, !!s.prefs["cubix.learn.read"]?.[key]);
+  const tick = (i: number) => {
+    const next = toggled(mine, i);
+    setTicked({ ...ticked, [key]: next });
+    if (next.length === tips.length) s.pref("cubix.learn.read", { ...s.prefs["cubix.learn.read"], [key]: true });
+  };
   const card = (action: string, icon: LucideIcon, title: string, primary = false, pressed?: boolean) => (
     <ActionCard key={action} primary={primary} pressed={pressed} icon={icon} title={tr(title)} action={action} onClick={run(action)} className={cn(touch ? "w-full" : "flex-1", pressed && "text-success")} />
   );
+  const picture = stepPicture(method, entry.step);
   const body = step.missing ? (
     <Empty icon={Info} title={tr("Algorithms to come")}>
       {said(step.missing)}
     </Empty>
   ) : (
-    <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5 text-center">
-      <h2 className={cn("leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[26px]" : "text-[40px]")}>{tr("An intuitive step")}</h2>
-      <div className={cn("flex w-full justify-center gap-3", touch && "flex-col")}>
-        {train && card("trainingSetup:" + step.train, Dumbbell, "Train the cross", true)}
-        {card("courseAlg:" + stepId(step), Check, "Mastered", !train, mastered)}
-      </div>
+    <div className="flex w-full flex-col gap-5">
+      {!touch && <h2 className="text-[40px] leading-none font-extrabold tracking-[-0.04em]">{said(step.title)}</h2>}
+      {touch && puzzleInfo(puzzle).cubeSize && (
+        <figure className="flex items-center justify-center gap-2 rounded-2xl bg-muted p-3" aria-label={tr("Before and after this step")}>
+          <StepCube puzzle={puzzle} picture={picture} side="before" size={64} />
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+          <StepCube puzzle={puzzle} picture={picture} side="after" size={64} />
+        </figure>
+      )}
+      <p className={cn("leading-relaxed", touch ? "text-base" : "text-xl")}>{said(step.text)}</p>
+      {tips.length > 0 && (
+        <ol className="flex flex-col gap-2.5" aria-label={tr("Tips")}>
+          {tips.map((tip, i) => {
+            const on = read || mine.includes(i);
+            return (
+              <li key={tip} className={cn("flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-colors", on ? "bg-success/10" : "bg-muted")}>
+                <span className={cn(NUMERIC, "flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-sm font-bold text-primary")}>{i + 1}</span>
+                <span className={cn("min-w-0 flex-1 leading-relaxed", touch ? "text-[15px]" : "text-base")}>{said(tip)}</span>
+                {!read && (
+                  <UiButton variant={on ? "success" : "secondary"} aria-pressed={on} data-action={"learnTip:" + i} onClick={() => tick(i)} className="shrink-0">
+                    <Check />
+                    {on ? tr("Got it") : tr("I got it")}
+                  </UiButton>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {read ? (
+        <div className={cn("mt-auto flex gap-3 pt-2", touch && "flex-col")}>
+          {/* Mastered first: the course is where a step is learned; training leaves it. */}
+          {card("courseAlg:" + stepId(step), Check, "Mastered", !mastered, mastered)}
+          {train && card("trainingSetup:" + step.train, Dumbbell, "Train the cross")}
+        </div>
+      ) : (
+        <p className="mt-auto flex items-center gap-3 rounded-2xl bg-muted px-4 py-3.5 text-sm font-semibold text-muted-foreground" data-slot="learn-locked">
+          <Lock className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">{tr("Read each tip, then tick it")}</span>
+          <span className={NUMERIC}>{mine.length} / {tips.length}</span>
+        </p>
+      )}
     </div>
   );
   if (touch) return body;
   return (
-    <Surface className="min-w-0 gap-3 px-6 pt-5 pb-4" aria-label={tr("Workbench")}>
-      <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-2">{body}</div>
+    <Surface className="min-w-0 gap-3 px-7 pt-7 pb-4" aria-label={tr("Workbench")}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{body}</div>
       <div className="flex shrink-0 items-center gap-3 pt-1">
         <StepNav method={method} entry={entry} />
       </div>
+    </Surface>
+  );
+}
+
+/** Beside an intuitive step's lesson: the cube before it and after it, large. */
+function StepPictureCard({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
+  const picture = stepPicture(method, entry.step);
+  if (!puzzleInfo(puzzle).cubeSize) return <StepSheet puzzle={puzzle} method={method} entry={entry} />;
+  return (
+    <Surface className="min-w-0 items-center justify-center gap-4 p-6" aria-label={tr("Before and after this step")}>
+      <StepCube puzzle={puzzle} picture={picture} side="before" size={150} />
+      <ChevronDown className="size-6 text-muted-foreground" aria-hidden="true" />
+      <StepCube puzzle={puzzle} picture={picture} side="after" size={220} />
     </Surface>
   );
 }
@@ -748,15 +815,15 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
     picture = stepPicture(method, entry.step),
     count = stepLearned(step, s.cases(), s.learned, entry),
     train = trainAction(puzzle, method, entry),
-    learnedInSet = train ? s.cases().filter((c: any) => c.set === train.slice("train:".length) && s.learned.has(c.id)).length : 0;
+    learnedInSet = train ? s.setCases(train.slice("train:".length)).filter((c: any) => s.learned.has(c.id)).length : 0;
   const content = (
     <>
       {!touch && <h2 className="text-[30px] leading-none font-extrabold tracking-[-0.04em]">{said(step.title)}</h2>}
       {puzzleInfo(puzzle).cubeSize && (
         <figure className="flex items-center justify-center gap-2 rounded-2xl bg-muted p-3" aria-label={tr("Before and after this step")}>
-          <StepCube puzzle={puzzle} setup={picture.before} mask={picture.mask} size={touch ? 56 : 66} />
+          <StepCube puzzle={puzzle} picture={picture} side="before" size={touch ? 56 : 66} />
           <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-          <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={touch ? 56 : 66} />
+          <StepCube puzzle={puzzle} picture={picture} side="after" size={touch ? 56 : 66} />
         </figure>
       )}
       <p className="text-[15px] leading-relaxed text-muted-foreground">{said(step.text)}</p>
@@ -810,7 +877,7 @@ function StepTrack({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solvin
     <nav aria-label={tr("Steps")} className="flex min-w-0 flex-1 items-center gap-2">
       {method.steps.map((st, i) => {
         const learned = stepLearned(st, cases, s.learned, entry),
-          done = s.learnFinished || stepDone(st, cases, s.learned, entry),
+          done = s.learnFinished || stepDone(st, cases, s.learned, entry, learned),
           here = i === entry.step && !s.learnFinished;
         return (
           <Fragment key={st.title}>
@@ -843,7 +910,7 @@ function StepRows({ method, entry, touch = false, onPick }: { method: SolvingMet
   const cases = s.cases();
   return method.steps.map((st, i) => {
     const learned = stepLearned(st, cases, s.learned, entry),
-      done = stepDone(st, cases, s.learned, entry),
+      done = stepDone(st, cases, s.learned, entry, learned),
       here = i === entry.step && !s.learnFinished;
     return (
       <Link
@@ -909,7 +976,7 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
             picture = stepPicture(method, i);
           return (
             <li key={st.title} className="flex items-center gap-3 rounded-2xl bg-muted px-3 py-2.5">
-              <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={34} />
+              <StepCube puzzle={puzzle} picture={picture} side="after" size={34} />
               <span className="min-w-0 flex-1 truncate text-[15px] font-bold">{said(st.title)}</span>
               <span className={cn(NUMERIC, "shrink-0 text-[13px] font-semibold text-muted-foreground")}>
                 {learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : stepMastered(st, entry) ? tr("Mastered") : tr("Intuitive")}
@@ -978,14 +1045,15 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
       {s.learnFinished ? (
         <Finished puzzle={puzzle} method={method} />
       ) : (
-        <div className={cn("grid min-h-0 flex-1 gap-4", hasPieces ? "grid-cols-[21rem_minmax(0,1fr)_17.5rem] min-[1400px]:grid-cols-[24rem_minmax(0,1fr)_19rem]" : "grid-cols-[minmax(0,1fr)_19.5rem]")}>
+        <div className={cn("grid min-h-0 flex-1 gap-4", hasPieces ? "grid-cols-[21rem_minmax(0,1fr)_17.5rem] min-[1400px]:grid-cols-[24rem_minmax(0,1fr)_19rem]" : "grid-cols-[minmax(0,1.6fr)_minmax(18rem,1fr)]")}>
           {hasPieces && (
             <Surface className="min-w-0 gap-3 p-3 pt-4">
               <Rail pieces={pieces} bench={bench} />
             </Surface>
           )}
           {hasPieces ? <Workbench bench={bench} /> : <IntuitiveBench puzzle={puzzle} method={method} entry={entry} />}
-          <StepSheet puzzle={puzzle} method={method} entry={entry} />
+          {/* An intuitive step reads its lesson in the workbench: its cube before and after beside it. */}
+          {hasPieces || method.steps[entry.step]!.missing ? <StepSheet puzzle={puzzle} method={method} entry={entry} /> : <StepPictureCard puzzle={puzzle} method={method} entry={entry} />}
         </div>
       )}
     </div>
@@ -1060,7 +1128,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
               ) : (
                 <IntuitiveBench puzzle={puzzle} method={method} entry={entry} touch />
               )}
-              <StepSheet puzzle={puzzle} method={method} entry={entry} touch />
+              {(hasPieces || step.missing) && <StepSheet puzzle={puzzle} method={method} entry={entry} touch />}
             </div>
             {hasPieces && bench.piece && (
               <div className="shrink-0 px-2 pt-2">

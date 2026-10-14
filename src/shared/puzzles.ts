@@ -38,6 +38,11 @@ export const eventInfo = (id: string) => EVENTS.find(e => e.id === id);
 /** Solves recorded before events kept any mode on any puzzle: they still get a name. */
 export const eventLabel = (puzzle: PuzzleId, solveMode: SolveMode) =>
   eventOf(puzzle, solveMode)?.label ?? `${puzzleInfo(puzzle)?.label ?? puzzle} · ${modeLabel(solveMode)}`;
+/** An event's name by its id ("333oh"): the id itself for one no longer known. */
+export const eventLabelOf = (id: string) => {
+  const e = eventInfo(id);
+  return e ? eventLabel(e.puzzle, e.solveMode) : id;
+};
 export const scrambleLabel = (type: ScrambleType) => SCRAMBLE_TYPES.find(s => s.id === type)?.label ?? type;
 export function validContext(context: PracticeContext, training = false): boolean {
   return isPuzzle(context.puzzle) && SOLVE_MODES.some(m => m.id === context.solveMode)

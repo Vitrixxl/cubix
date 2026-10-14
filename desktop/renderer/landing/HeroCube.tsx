@@ -6,6 +6,7 @@
  * Without scripts, the page's HTML shows it scrambled, as a picture (`CubeStill`).
  */
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { hexOf } from "../../../src/shared/cubeAppearance";
 import { Pause, Play } from "lucide-react";
 import { CUBE_PITCH, CUBE_YAW, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, type CubeOrientation, type CubeScene } from "../../../src/shared/cubeScene";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,6 @@ import { tr } from "../../../src/client/i18n";
 
 /** The solve alone (from the scrambled cube), for the cubes that only solve it (the duel's). */
 export const SCENE = solveScene();
-const hex = (color: number) => "#" + color.toString(16).padStart(6, "0");
 
 /** Whether the reader asked for less motion; false until the page runs. */
 export function useCalm() {
@@ -69,8 +69,8 @@ export function CubeStill({ solved = false, className }: { solved?: boolean; cla
         <polygon
           key={i}
           points={points.map((v) => `${v[0]!.toFixed(2)},${(-v[1]!).toFixed(2)}`).join(" ")}
-          fill={line ? "none" : hex(color)}
-          stroke={line ? hex(color) : undefined}
+          fill={line ? "none" : hexOf(color)}
+          stroke={line ? hexOf(color) : undefined}
           strokeWidth={line ? 1 : undefined}
           vectorEffect="non-scaling-stroke"
         />

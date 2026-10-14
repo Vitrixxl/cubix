@@ -3,7 +3,7 @@ import type { FlatList, NativeScrollEvent, NativeSyntheticEvent } from "react-na
 
 const positions = new Map<string, number>();
 
-/** Virtualized-list counterpart to usePreservedScroll. Remount the list when its key changes. */
+/** Keeps a virtualized list's scroll position. Remount the list when its key changes. */
 export function usePreservedList<T>(key: string) {
   const ref = useRef<FlatList<T>>(null);
   const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {

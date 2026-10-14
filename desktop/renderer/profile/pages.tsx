@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
 import { fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
-import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
+import { eventLabelOf } from "../../../src/shared/puzzles";
 import { Back, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, run } from "../ui";
 import { TILES } from "../algorithms";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
@@ -48,7 +48,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
         }
       >
         {s.allSets(s.profilePuzzle).map((set: any) => {
-          const chosen = cases.filter((c) => c.set === set.id && (s.profileStage === "all" || s.profileStage === c.stage) && matches(c, s.query));
+          const chosen = s.setCases(set.id).filter((c: any) => (s.profileStage === "all" || s.profileStage === c.stage) && matches(c, s.query));
           if (!chosen.length) return null;
           const key = "profile:" + set.id,
             done = chosen.filter((c) => p.cases?.some((v: any) => v.summary?.caseId === c.id)).length,
@@ -103,10 +103,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
   );
 }
 
-const battleEvent = (b: DuelRecord) => {
-  const e = eventInfo(b.event);
-  return e ? eventLabel(e.puzzle, e.solveMode) : b.event;
-};
+const battleEvent = (b: DuelRecord) => eventLabelOf(b.event);
 
 export function BattlesPage({ phone }: { phone: boolean }) {
   const list = battles(),

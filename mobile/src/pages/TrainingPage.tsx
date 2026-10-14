@@ -8,7 +8,7 @@ import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningG
 import { practiceSummary, trainingSessionRows } from "../../../src/client/lib/practiceSummary";
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
 import { nextRecognition, recognitionCases, recommendedWhy } from "../../../src/client/lib/trainingPicks";
-import { combineAuf, compensateAuf, randomAuf } from "../../../src/shared/cube";
+import { randomAuf } from "../../../src/shared/cube";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import type { CaseDto, SolveDto } from "../../../src/shared/types";
@@ -33,7 +33,7 @@ import {
 } from "../components/TrainingSetup";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
-import { executableAlg, hintsForStage, maskForStage } from "../lib/caseState";
+import { caseDetail, caseWithAuf, hintsForStage, maskForStage } from "../lib/caseState";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "../components/AlgPlayer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import {
@@ -150,7 +150,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
     setSaving(true);
     try {
       const sessionId = await ensureLaunchSession("training", context, selected);
-      const setupText = cube ? combineAuf(current.c.setup, current.auf) : current.c.setup;
+      const setupText = caseWithAuf(current.c, current.auf, !!cube).setup;
       const solve = await api.addSolve({ sessionId, caseId: current.c.id, timeMs: ms, scramble: setupText, puzzle, solveMode, scrambleType: "case" });
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
       setLastSolveId(solve.id);
@@ -171,8 +171,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
   };
   const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
   const primary = current?.c.algorithms[0];
-  const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
-  const shownAlgorithm = primary && current ? (cube ? compensateAuf(executableAlg(primary), current.auf) : executableAlg(primary)) : "";
+  const { setup: shownSetup, algorithm: shownAlgorithm } = current ? caseWithAuf(current.c, current.auf, !!cube) : { setup: "", algorithm: "" };
   // Back through the cases drawn this session, those still in the pool only (as on the web).
   const canPrevious = previousIndex(caseHistory, selectedCases) !== -1;
   const previousCase = () => {
@@ -421,7 +420,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
     return () => clearTimeout(timeout);
   }, [state.phase, state.left]);
   const next = () => setState(s => s.phase === "running" ? { ...s, ...draw(s.current), done: s.done + 1 } : s);
-  // A first tap pauses the case and plays its algorithm; the next moves on (the bar running out moves on too).
+  // A first tap pauses the case (its cube to turn, its algorithm shown); the next moves on (the bar running out too).
   const press = () => setState(s => s.phase !== "running" ? s : s.paused === null ? { ...s, paused: (Date.now() - s.since) / 1000 } : { ...s, ...draw(s.current), done: s.done + 1 });
   // On the web (a keyboard), the space bar does as a tap.
   useEffect(() => {
@@ -431,8 +430,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
     return () => removeEventListener("keydown", down, true);
   });
   const c = cases.find(x => x.id === state.current);
-  const setup = c && cube ? combineAuf(c.setup, state.auf) : c?.setup ?? "",
-    algorithm = c?.algorithms[0] ? (cube ? compensateAuf(executableAlg(c.algorithms[0]), state.auf) : executableAlg(c.algorithms[0])) : "";
+  const { setup, algorithm } = c ? caseWithAuf(c, state.auf, !!cube) : { setup: "", algorithm: "" };
   const size = Math.round(Math.max(160, Math.min(height * 0.45, width - 48, tablet ? 440 : 420)));
   const sub = set ? `${tr(set.label)} · ${plural(state.done, "case")}` : undefined;
   return <View className="flex-1">
@@ -458,7 +456,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
             <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} s", { 0: state.paused.toFixed(1) })}</Numeric>
           </View>
           <Text className="text-lg font-extrabold">{c.id}</Text>
-          <Text numberOfLines={1} className="shrink text-muted-foreground">{tr(c.name !== c.id ? c.name : c.group)}</Text>
+          <Text numberOfLines={1} className="shrink text-muted-foreground">{tr(caseDetail(c) ?? c.group)}</Text>
         </View>
         {cube && !c.diagram ? <RecognitionSolution key={"play" + state.done} algorithm={algorithm} setup={setup} cube={cube} size={Math.round(size * 0.85)} stage={c.stage} hints={back && hintsForStage(c.stage)} />
           : <Alg text={algorithm} size={22} />}
@@ -484,9 +482,9 @@ function RecognitionCube({ setup, cube, size, stage, hints }: { setup: string; c
     : <CubePreview alg={setup} cube={cube} size={size} mask={maskForStage(stage)} view={viewForStage(stage)} />;
 }
 
-/** The paused case's algorithm played on its cube from its setup, the move under way lit in the text, its controls under it. */
+/** The paused case on a cube to turn, its algorithm under it, played only when asked with the controls under it. */
 function RecognitionSolution({ algorithm, setup, cube, size, stage, hints }: { algorithm: string; setup: string; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
-  const player = useAlgPlayer(algorithm, cube, maskForStage(stage), { setup, hints, autoplay: 400 });
+  const player = useAlgPlayer(algorithm, cube, maskForStage(stage), { setup, hints });
   if (!player) return <Alg text={algorithm} size={22} />;
   return <>
     <PlayerCube player={player} size={size} />

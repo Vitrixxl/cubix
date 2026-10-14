@@ -72,7 +72,6 @@ export function useSocial<T = number>(read?: () => T): T {
   return useSyncExternalStore(subscribe, read ?? (() => version as T));
 }
 /** Each client, drawing again on every change. */
-export const useCommunity = () => (useSocial(), community);
 export const useCoaching = () => (useSocial(), coaching);
 export const useLive = () => (useSocial(), live);
 

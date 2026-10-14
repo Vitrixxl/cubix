@@ -3400,7 +3400,7 @@
  "Algorithm {0} of {1}": "Algoritmo {0} di {1}",
  "Missed": "Sbagliato",
  "Hesitated": "Esitato",
- "Got it": "Riuscito",
+ "Got it": "Capito",
  "{n} try": "{n} tentativo",
  "{n} tries": "{n} tentativi",
  "Other ways": "Altri modi",
@@ -3783,5 +3783,7 @@
  "Change username": "Cambia nome utente",
  "This username is taken.": "Questo nome utente è già in uso.",
  "Main cube": "Cubo principale",
- "Show the stickers hidden at the back": "Mostra gli sticker nascosti dietro"
+ "Show the stickers hidden at the back": "Mostra gli sticker nascosti dietro",
+ "I got it": "Ho capito",
+ "Read each tip, then tick it": "Leggi ogni consiglio, poi spuntalo"
 }

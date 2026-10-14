@@ -1786,18 +1786,6 @@ func coachingLossy(b []byte) string {
 	return out.String()
 }
 
-// coachingSignedIn: the account of an `Authorization: Bearer …` header.
-func coachingSignedIn(db *Conn, authorization string) (M, error) {
-	user, err := accountsAuth(db, authorization)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return nil, apiErr(401, "Please sign in again.")
-	}
-	return user, nil
-}
-
 // coachingQuota fails when `size` more bytes would take the sender past their allowance of pictures and videos.
 func coachingQuota(db *Conn, uid string, size int64) error {
 	row, err := dbOne(db, "SELECT coalesce(sum(media_size),0) total,coalesce(sum(CASE WHEN created_at>? THEN media_size END),0) day FROM coach_messages WHERE sender_id=? AND media_id IS NOT NULL",
@@ -1837,7 +1825,7 @@ func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
 	var user, conversation M
 	err := state.db.Call(func(db *Conn) error {
 		var err error
-		if user, err = coachingSignedIn(db, authorization); err != nil {
+		if user, err = accountsSignedIn(db, authorization); err != nil {
 			return err
 		}
 		if conversation, err = coachingWritable(db, id, str(user["id"])); err != nil {
@@ -1903,7 +1891,7 @@ func coachingMedia(state *AppState, w http.ResponseWriter, r *http.Request) {
 	}
 	authorization := headerText(r, "Authorization")
 	kind, err := dbCall(state.db, func(db *Conn) (string, error) {
-		user, err := coachingSignedIn(db, authorization)
+		user, err := accountsSignedIn(db, authorization)
 		if err != nil {
 			return "", err
 		}
@@ -1975,7 +1963,7 @@ func coachingReplaceAvatar(state *AppState, remove bool, authorization string, b
 		// The type travels in the name, so serving it needs no lookup.
 		file = newUUID() + "." + strings.TrimPrefix(kind, "image/")
 	}
-	user, err := dbCall(state.db, func(db *Conn) (M, error) { return coachingSignedIn(db, authorization) })
+	user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, authorization) })
 	if err != nil {
 		return nil, err
 	}
@@ -2281,20 +2269,12 @@ func coachingWritable(db *Conn, id, uid string) (M, error) {
 // coachingClash fails when another session of the coach or of the student overlaps `start..end`.
 func coachingClash(db *Conn, booking M, start, end int64) error {
 	taken, err := dbOne(db, "SELECT coach_id FROM coach_bookings WHERE id!=?1 AND status='booked' AND starts_at<?4 AND ?3<ends_at AND (coach_id IN (?2,?5) OR student_id IN (?2,?5))",
-		coachingStrOrNil(booking["id"]), coachingStrOrNil(booking["coach_id"]), start, end, coachingStrOrNil(booking["student_id"]))
+		optString(booking["id"]), optString(booking["coach_id"]), start, end, optString(booking["student_id"]))
 	if err != nil {
 		return err
 	}
 	if taken != nil {
 		return apiErr(409, "Another session already takes that time.")
-	}
-	return nil
-}
-
-// coachingStrOrNil is `value.as_str()` as a parameter: the text, or NULL.
-func coachingStrOrNil(v any) any {
-	if s, ok := asStr(v); ok {
-		return s
 	}
 	return nil
 }

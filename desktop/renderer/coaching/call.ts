@@ -41,7 +41,6 @@ export class Call {
   unstable = false;
   devices = { audio: false, video: false };
   private pc?: RTCPeerConnection;
-  private audio?: RTCRtpTransceiver;
   private video?: RTCRtpTransceiver;
   /** The screen (or window) being shown instead of the camera. */
   screen?: MediaStream;
@@ -188,7 +187,7 @@ export class Call {
       this.emit();
     }, CONNECT_TIMEOUT);
     if (this.offers) {
-      this.audio = pc.addTransceiver(this.local.getAudioTracks()[0] ?? "audio", { direction: "sendrecv", streams: [this.local] });
+      pc.addTransceiver(this.local.getAudioTracks()[0] ?? "audio", { direction: "sendrecv", streams: [this.local] });
       this.video = pc.addTransceiver(this.screenTrack() ?? this.local.getVideoTracks()[0] ?? "video", { direction: "sendrecv", streams: [this.local] });
       await this.offer();
     }
@@ -226,8 +225,7 @@ export class Call {
           t.direction = "sendrecv";
           if (track) await t.sender.replaceTrack(track);
           t.sender.setStreams?.(this.local);
-          if (kind === "audio") this.audio = t;
-          else this.video = t;
+          if (kind !== "audio") this.video = t;
         }
         await pc.setLocalDescription(await pc.createAnswer());
         this.send({ description: pc.localDescription!.toJSON() });
@@ -259,7 +257,7 @@ export class Call {
     this.trouble = "";
     this.unstable = false;
     this.pc?.close();
-    this.pc = this.audio = this.video = undefined;
+    this.pc = this.video = undefined;
     this.pending = [];
     this.remote = new MediaStream();
     this.peerMic = this.peerCamera = true;

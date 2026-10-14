@@ -20,7 +20,6 @@ import { Apply } from "./apply";
 import { Dashboard, CoachProfile, StudentsView } from "./coach";
 import { Schedule } from "./schedule";
 import { CallView } from "./callView";
-import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PLAYER_SECTIONS } from "../../../src/client/lib/coaching";

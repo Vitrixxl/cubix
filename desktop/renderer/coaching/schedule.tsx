@@ -9,10 +9,10 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarCog, CalendarOff, CalendarPlus, CalendarX, ChevronLeft, ChevronRight, Repeat, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Empty, LABEL, NUMERIC, ROW, TILE, Tip, plural } from "../ui";
-import { coaching, type Booking, type Opening, type Override } from "./client";
+import { coaching, type Booking, type Override } from "./client";
 import { Tools, clockTime, time } from "./parts";
 import { PersonDialog, SessionCard } from "./person";
-import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, NARROW_BAR, WEEKDAYS, addDays, longDay, shortDay, toDate, weekdayOf } from "./calendar";
+import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, NARROW_BAR, WEEKDAYS, addDays, longDay, toDate } from "./calendar";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -25,20 +25,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr } from "../../../src/client/i18n";
+import { TIMES, daysText, hoursOn, inForce, periodText, rangeText, rulesOf, windowsOf, type Range, type Rule } from "../../../src/client/lib/coaching";
 import { ask } from "../confirm";
 import { said } from "../base";
 
-/** Weekly hours repeated on some weekdays (0 = Monday), between two dates or for good. */
-interface Rule {
-  days: number[];
-  start: number;
-  end: number;
-  from: string | null;
-  until: string | null;
-}
-type Range = [start: number, end: number];
 
-const TIMES = Array.from({ length: 49 }, (_, i) => i * 30);
 const zones = (() => {
   try {
     return (Intl as any).supportedValuesOf("timeZone") as string[];
@@ -52,40 +43,10 @@ function onClock(ms: number, zone: string) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(ms).map((p) => [p.type, p.value]));
   return { day: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
-const rangeText = ([s, e]: Range) => `${clockTime(s)}–${clockTime(e)}`;
 /** "18–21", "9:30–12": hours as short as a calendar cell needs. */
 const short = (m: number) => (m % 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}` : String(m / 60));
 const rangeShort = ([s, e]: Range) => `${short(s)}–${short(e)}`;
 
-/** The weekly openings as the server keeps them (one per weekday), gathered back into rules. */
-function rulesOf(windows: Opening[]): Rule[] {
-  const rules = new Map<string, Rule>();
-  for (const w of windows) {
-    const key = [w.start, w.end, w.from ?? "", w.until ?? ""].join("|");
-    const rule = rules.get(key) ?? { days: [], start: w.start, end: w.end, from: w.from ?? null, until: w.until ?? null };
-    if (!rule.days.includes(w.weekday)) rule.days.push(w.weekday);
-    rules.set(key, rule);
-  }
-  return [...rules.values()].map((r) => ({ ...r, days: r.days.sort() }));
-}
-function windowsOf(rules: Rule[]): Opening[] {
-  return rules.flatMap((r) => r.days.map((weekday) => ({ weekday, start: r.start, end: r.end, ...(r.from ? { from: r.from } : {}), ...(r.until ? { until: r.until } : {}) })));
-}
-const inForce = (r: Rule, day: string) => r.days.includes(weekdayOf(day)) && (!r.from || r.from <= day) && (!r.until || day <= r.until);
-/** A day's open hours, as the server counts them: the rules in force and the extra hours, less the hours taken back. */
-function hoursOn(day: string, rules: Rule[], changes: Override[], off: Set<string>): Range[] {
-  if (off.has(day)) return [];
-  const open = [...rules.filter((r) => inForce(r, day)).map((r): Range => [r.start, r.end]), ...changes.filter((c) => c.open && c.date === day).map((c): Range => [c.start, c.end])].sort((a, b) => a[0] - b[0]);
-  let merged: Range[] = [];
-  for (const [s, e] of open) {
-    const last = merged[merged.length - 1];
-    if (last && s <= last[1]) last[1] = Math.max(last[1], e);
-    else merged.push([s, e]);
-  }
-  for (const c of changes.filter((c) => !c.open && c.date === day))
-    merged = merged.flatMap(([s, e]): Range[] => [[s, Math.min(e, c.start)], [Math.max(s, c.end), e]]).filter(([s, e]) => s < e);
-  return merged;
-}
 
 
 export function Schedule() {
@@ -299,9 +260,6 @@ function weekdaysText(days: number[]) {
   }
   return runs.flatMap((r) => (r.length > 2 ? [`${WEEKDAYS[r[0]!]}–${WEEKDAYS[r[r.length - 1]!]}`] : r.map((d) => WEEKDAYS[d]!))).join(", ");
 }
-const periodText = (r: Pick<Rule, "from" | "until">) =>
-  r.from || r.until ? [r.from && tr("from {0}", { 0: shortDay.format(toDate(r.from)) }), r.until && tr("until {0}", { 0: shortDay.format(toDate(r.until)) })].filter(Boolean).join(" ") : tr("every week");
-const daysText = (days: string[]) => (days.length === 1 ? longDay.format(toDate(days[0]!)) : `${plural(days.length, "day")} · ${shortDay.format(toDate(days[0]!))} – ${shortDay.format(toDate(days[days.length - 1]!))}`);
 
 /** What to change: open a date, cancel a date, add weekly hours; then the weekly hours in force and the settings. */
 function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; pending: boolean; commit: (change: Partial<Availability>) => Promise<boolean>; choose: (kind: Picking | "rule") => void; edit: (index: number) => void }) {

@@ -61,7 +61,10 @@ export function nextRecognition(ids: readonly string[], last: string | undefined
 /** Of each set, its learned cases timed enough that are slower than the set's usual (the mean of them all). */
 function slower(rows: { id: string; set: string; time: number; count: number }[]) {
   const bySet = new Map<string, typeof rows>();
-  for (const row of rows) bySet.set(row.set, [...(bySet.get(row.set) ?? []), row]);
+  for (const row of rows) {
+    const list = bySet.get(row.set);
+    if (list) list.push(row); else bySet.set(row.set, [row]);
+  }
   return [...bySet.values()].flatMap((list) => {
     // One case alone has no usual to be compared with.
     if (list.length < 2) return [];

@@ -5,8 +5,8 @@ import { cubeScene as cubePreview } from '../../src/shared/cubeScene';
 import { createLocalClient } from '../../src/client/local/client';
 import { createApiClient } from '../../src/client/api-client';
 import { createLive, type LiveMessage } from '../../src/client/live';
-import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from '../../src/shared/cube';
-import { executableAlg, maskForStage } from '../../src/client/lib/caseState';
+import { applyAlg, randomAuf, solved } from '../../src/shared/cube';
+import { caseWithAuf, maskForStage } from '../../src/client/lib/caseState';
 import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
 import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
@@ -107,8 +107,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     trainingHistories.set(key, history);
     const entry = history.entries[history.index];
     if (!entry) return null;
-    const { c, auf } = entry, setup = size ? combineAuf(c.setup, auf) : c.setup;
-    return { id: c.id, canPrevious: previousIndex(history, pool) !== -1, setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
+    const { c, auf } = entry, { setup, algorithm } = caseWithAuf(c, auf, !!size);
+    return { id: c.id, canPrevious: previousIndex(history, pool) !== -1, setup, algorithm, svg: size ? caseSvg(size, setup, c.stage) : null };
   }
   const unlocked = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   // A solve's date never changes: each is formatted once, not at every refresh of a long history.
@@ -231,8 +231,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'trainingCase') {
       const [c, useAuf] = req.args, size = puzzleInfo(c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3)).cubeSize;
       const auf = useAuf && size ? randomAuf() : '';
-      const setup = size ? combineAuf(c.setup, auf) : c.setup;
-      return { setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
+      const { setup, algorithm } = caseWithAuf(c, auf, !!size);
+      return { setup, algorithm, svg: size ? caseSvg(size, setup, c.stage) : null };
     }
     if (req.method === 'addSolve') {
       // A timer solve that beats the all-time single, Ao5 or Ao12 of its context comes back with its praise.

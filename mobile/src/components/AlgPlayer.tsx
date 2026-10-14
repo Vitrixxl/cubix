@@ -5,7 +5,7 @@ import Svg, { ClipPath, Defs, G, Path, Polygon, Polyline, Rect, Text as SvgText 
 import { useColors } from "../theme";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { AlgPlayer, algScene, polyAlgScene, readAlg, speedLabel, type PlayerOptions } from "../../../src/client/lib/algPlayer";
-import type { CubeMask } from "../../../src/shared/cubeAppearance";
+import { hexOf, type CubeMask } from "../../../src/shared/cubeAppearance";
 import type { PolyPuzzle } from "../../../src/shared/puzzleScene";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -36,7 +36,6 @@ export function useAlgPlayer(alg: string, size: number | null | undefined, mask:
 /** The playback, re-rendering on each of its frames. */
 export const usePlayback = (player: AlgPlayer) => useSyncExternalStore(player.subscribe, player.getSnapshot);
 
-const hex = (color: number) => "#" + color.toString(16).padStart(6, "0");
 /** The cube: drag to turn it, double-tap to see it from the start again. */
 export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }) {
   // Every change of the player (a frame, a turn of the view) redraws.
@@ -66,8 +65,8 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
   return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel={tr("3D cube: drag to turn it, double-tap to reset")} style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox="0 0 120 120">
       {player.shapes().map((shape, i) => shape.line
-        ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hex(shape.color)} strokeWidth={120 / size} />
-        : <Polygon key={i} points={points(shape.points)} fill={hex(shape.color)} />)}
+        ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hexOf(shape.color)} strokeWidth={120 / size} />
+        : <Polygon key={i} points={points(shape.points)} fill={hexOf(shape.color)} />)}
       <Pulse pulse={player.pulse()} unit={unit} shapes={player.shapes()} size={size} />
     </Svg>
   </View>;

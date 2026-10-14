@@ -4,7 +4,8 @@
  * and the host's `changed` redraws them. The web app and the Android app each give it their own host (community.ts).
  */
 import { msg } from "../i18n/msg";
-import { locale, tr } from "../i18n";
+import { locale, localFormat, tr } from "../i18n";
+import { plural } from "./format";
 import type { SocialHost } from "./community";
 
 /** Version stored with each booking when the student accepts the cancellation terms. */
@@ -587,3 +588,79 @@ export class Coaching {
     return 0;
   }
 }
+
+// ---------------------------------------------------------------------------
+// The coaching calendar's days (web and phone): YYYY-MM-DD keys, computed in UTC so a device's own zone never shifts them.
+// ---------------------------------------------------------------------------
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const toDate = (key: string) => new Date(key + "T00:00:00Z");
+export const keyOf = (d: Date) => d.toISOString().slice(0, 10);
+export const addDays = (key: string, n: number) => keyOf(new Date(toDate(key).getTime() + n * 86_400_000));
+export const weekdayOf = (key: string) => (toDate(key).getUTCDay() + 6) % 7;
+export const longDay = localFormat({ weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+export const shortDay = localFormat({ day: "numeric", month: "short", timeZone: "UTC" });
+export const monthName = localFormat({ month: "long", year: "numeric", timeZone: "UTC" });
+/** The month ("2026-10") some months away. */
+export function shiftMonth(month: string, n: number) {
+  const d = toDate(month + "-01");
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return keyOf(d).slice(0, 7);
+}
+
+// ---------------------------------------------------------------------------
+// The coach's availability (web and phone): weekly rules, and a day's open hours as the server counts them.
+// ---------------------------------------------------------------------------
+/** Minutes after midnight as a clock reads: 570 is "09:30". */
+export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+/** Weekly hours repeated on some weekdays (0 = Monday), between two dates or for good. */
+export interface Rule {
+  days: number[];
+  start: number;
+  end: number;
+  from: string | null;
+  until: string | null;
+}
+export type Range = [start: number, end: number];
+/** The half hours of a day, its end included. */
+export const TIMES = Array.from({ length: 49 }, (_, i) => i * 30);
+export const rangeText = ([s, e]: Range) => `${clockTime(s)}–${clockTime(e)}`;
+/** The weekly openings as the server keeps them (one per weekday), gathered back into rules. */
+export function rulesOf(windows: Opening[]): Rule[] {
+  const rules = new Map<string, Rule>();
+  for (const w of windows) {
+    const key = [w.start, w.end, w.from ?? "", w.until ?? ""].join("|");
+    const rule = rules.get(key) ?? { days: [], start: w.start, end: w.end, from: w.from ?? null, until: w.until ?? null };
+    if (!rule.days.includes(w.weekday)) rule.days.push(w.weekday);
+    rules.set(key, rule);
+  }
+  return [...rules.values()].map(r => ({ ...r, days: r.days.sort() }));
+}
+export function windowsOf(rules: Rule[]): Opening[] {
+  return rules.flatMap(r => r.days.map(weekday => ({ weekday, start: r.start, end: r.end, ...(r.from ? { from: r.from } : {}), ...(r.until ? { until: r.until } : {}) })));
+}
+export const inForce = (r: Rule, day: string) => r.days.includes(weekdayOf(day)) && (!r.from || r.from <= day) && (!r.until || day <= r.until);
+/** A day's open hours, as the server counts them: the rules in force and the extra hours, less the hours taken back. */
+export function hoursOn(day: string, rules: Rule[], changes: Override[], off: Set<string>): Range[] {
+  if (off.has(day)) return [];
+  const open = [...rules.filter(r => inForce(r, day)).map((r): Range => [r.start, r.end]), ...changes.filter(c => c.open && c.date === day).map((c): Range => [c.start, c.end])].sort((a, b) => a[0] - b[0]);
+  let merged: Range[] = [];
+  for (const [s, e] of open) {
+    const last = merged[merged.length - 1];
+    if (last && s <= last[1]) last[1] = Math.max(last[1], e);
+    else merged.push([s, e]);
+  }
+  for (const c of changes.filter(c => !c.open && c.date === day))
+    merged = merged.flatMap(([s, e]): Range[] => [[s, Math.min(e, c.start)], [Math.max(s, c.end), e]]).filter(([s, e]) => s < e);
+  return merged;
+}
+export const periodText = (r: Pick<Rule, "from" | "until">) =>
+  r.from || r.until ? [r.from && tr("from {0}", { 0: shortDay.format(toDate(r.from)) }), r.until && tr("until {0}", { 0: shortDay.format(toDate(r.until)) })].filter(Boolean).join(" ") : tr("every week");
+export const daysText = (days: string[]) => (days.length === 1 ? longDay.format(toDate(days[0]!)) : `${plural(days.length, "day")} · ${shortDay.format(toDate(days[0]!))} – ${shortDay.format(toDate(days[days.length - 1]!))}`);
+/** The Monday starting the week of a moment, at midnight on this device. */
+export function mondayOf(ms: number) {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+export const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;

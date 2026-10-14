@@ -86,4 +86,3 @@ export const TOUR_STEPS = [
   { page: "learn", target: "learn", inner: "learn", title: "Learn a new puzzle", body: "Pick a method and follow it step by step, with every algorithm of each step." },
   { page: "profile", target: "profile", inner: "profile-overview", title: "Watch your progress", body: "Your times, practice and results live here. You can replay this tour from the guides." },
 ] as const;
-export type TourStep = typeof TOUR_STEPS[number];

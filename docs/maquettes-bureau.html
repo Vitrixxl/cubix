@@ -113,6 +113,33 @@ figcaption ul { color: var(--mfg); font-size: 14px; line-height: 1.5; padding-le
 .player { display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-radius: 18px; background: var(--card); color: var(--mfg); }
 .player .playb { width: 40px; height: 40px; border-radius: 12px; background: var(--pri); color: var(--pri-fg); display: grid; place-items: center; }
 .dia { width: 64px; height: 64px; flex: none; }
+.flow { display: flex; gap: 22px; align-items: flex-start; }
+.screen { display: flex; flex-direction: column; gap: 10px; }
+.scap { font-size: 15px; font-weight: 800; color: var(--mfg); }
+.win.mini { zoom: .33; }
+.secbar.nob { border-bottom: 0; }
+.coursebar { display: flex; align-items: center; gap: 10px; padding: 16px 32px 8px; flex: none; }
+.coursebar .back { width: 38px; height: 38px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; }
+.coursebar b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin-right: 8px; }
+.stepchip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 11px; border-radius: 12px; background: var(--muted); color: var(--mfg); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.stepchip.on { background: var(--pri); color: var(--pri-fg); }
+.stepchip.on .ring { border-color: var(--pri-fg); }
+.stepline { flex: 1; height: 1px; background: var(--border); min-width: 4px; }
+.lesson { padding: 36px 40px; }
+.lead { font-size: 22px; line-height: 1.5; color: var(--fg); max-width: 760px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); }
+.dot.on { background: var(--pri); width: 26px; border-radius: 6px; }
+.btn.big { height: 56px; font-size: 17px; padding: 0 24px; border-radius: 16px; }
+.num-badge { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--pri); font-weight: 800; font-size: 14px; flex: none; }
+.li.tip.done { background: color-mix(in srgb, var(--ok) 8%, var(--muted)); }
+.tick { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 11px; background: var(--acc); color: var(--fg); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.tick svg.lucide { width: 15px; height: 15px; opacity: .35; }
+.tick.on { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.tick.on svg.lucide { opacity: 1; }
+.locked { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 16px; background: var(--muted); color: var(--mfg); font-weight: 700; }
+.choice { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; border-radius: 22px; background: var(--muted); box-shadow: inset 0 0 0 2px transparent; }
+.choice.picked { box-shadow: inset 0 0 0 3px var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--muted)); }
+.choice b { font-size: 20px; }
 </style>
 </head>
 <body>
@@ -564,6 +591,208 @@ passe au cas suivant, et la barre repart. Un clic ou un tap fait de même. Exemp
 </div>
 </figure>
 </section>
+
+<!-- ===================================================================== Intuitive steps -->
+<section class="series" id="intuitive">
+<h2>4 · Les étapes intuitives : faire lire avant d'entraîner</h2>
+<p>Aujourd'hui, le centre affiche « An intuitive step » et deux boutons, et l'explication reste dans le panneau de droite :
+on clique sans lire. Les trois pistes mettent la leçon au centre et ne montrent « Train the cross » et « Mastered »
+qu'une fois qu'elle a été parcourue. Une étape déjà lue s'ouvre directement sur son dernier écran, pour réviser sans
+tout refaire. Exemple : Beginner, White cross.</p>
+<figure>
+<figcaption><b><i>A</i> Les conseils un par un</b><span>Un écran par conseil, en grand, avec son cube : l'intro montre le but (mélangé → croix faite), puis chaque conseil avec « Next tip », et seulement à la fin les deux boutons, à côté du rappel des trois conseils. Simple, linéaire, impossible de sauter au bouton.</span></figcaption>
+<div class="flow"><div class="screen"><span class="scap">1 · Le but de l'étape</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="card lesson" style="flex:1;align-items:center;justify-content:center;gap:26px;text-align:center">
+  <span class="pill p">Step 1 of 6 · intuitive</span>
+  <div class="title" style="font-size:52px">White cross</div>
+  <div class="row" style="gap:28px"><div class="cube3d" data-case="scramble" data-size="230"></div><i data-lucide="arrow-right" style="width:34px;height:34px" class="faint"></i><div class="cube3d" data-case="cross" data-size="230"></div></div>
+  <p class="lead">Place the four white edges around the white centre so their side colours match the side centres.</p>
+  <div class="row" style="gap:6px"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <span class="btn pri big">Read the 3 tips<i data-lucide="arrow-right"></i></span>
+</div></div>
+</div></div><div class="screen"><span class="scap">2 · Un conseil à la fois</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="card lesson" style="flex:1;align-items:center;justify-content:center;gap:26px;text-align:center">
+  <span class="cap">Tip 1 of 3</span>
+  <div class="cube3d" data-case="daisy" data-size="300"></div>
+  <p class="lead" style="font-size:30px;max-width:900px">Start with a <b class="pri">daisy</b>: the four white edges around the yellow centre, white facing up.</p>
+  <div class="row" style="gap:6px"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="row"><span class="btn"><i data-lucide="arrow-left"></i>Back</span><span class="btn pri big">Next tip<i data-lucide="arrow-right"></i></span></div>
+</div></div>
+</div></div><div class="screen"><span class="scap">3 · Fin : place à l'entraînement</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="grid" style="grid-template-columns: 1fr 1fr; flex:1">
+  <div class="card lesson" style="justify-content:center;gap:16px">
+    <span class="cap">You read the 3 tips</span>
+    <div class="list" style="gap:10px"><div class="li" style="align-items:flex-start"><span class="num-badge">1</span><div class="t"><span style="font-size:15px;line-height:1.45">Start with a daisy: the four white edges around the yellow centre, white facing up.</span></div><i data-lucide="check" class="ok"></i></div><div class="li" style="align-items:flex-start"><span class="num-badge">2</span><div class="t"><span style="font-size:15px;line-height:1.45">Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.</span></div><i data-lucide="check" class="ok"></i></div><div class="li" style="align-items:flex-start"><span class="num-badge">3</span><div class="t"><span style="font-size:15px;line-height:1.45">Hold the cube white side down from here on.</span></div><i data-lucide="check" class="ok"></i></div></div>
+    <span class="btn ghost sm" style="align-self:flex-start"><i data-lucide="rotate-ccw"></i>Read again</span>
+  </div>
+  <div class="card lesson" style="align-items:center;justify-content:center;gap:22px;text-align:center">
+    <div class="cube3d" data-case="cross" data-size="240"></div>
+    <div class="title" style="font-size:34px">Now, your turn</div>
+    <span class="btn pri big" style="width:360px"><i data-lucide="dumbbell"></i>Train the cross</span>
+    <span class="btn" style="width:360px"><i data-lucide="check"></i>Mastered</span>
+  </div>
+</div></div>
+</div></div></div>
+</figure>
+<figure>
+<figcaption><b><i>B</i> Lire et cocher</b><span>Toute la leçon tient sur un écran, les conseils en liste ; chacun se coche d'un « I got it », et le cube à droite illustre le conseil en cours. Train the cross reste verrouillé, avec le nombre de conseils restants, jusqu'au dernier coché. On voit tout d'un coup, mais il faut confirmer chaque point.</span></figcaption>
+<div class="flow"><div class="screen"><span class="scap">1 · Premier conseil coché</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="grid" style="grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); flex:1">
+  <div class="card lesson" style="gap:18px">
+    <div class="title" style="font-size:40px">White cross</div>
+    <p class="lead" style="text-align:left">Place the four white edges around the white centre so their side colours match the side centres.</p>
+    <div class="list" style="gap:10px"><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">1</span><div class="t"><span style="font-size:17px;line-height:1.45">Start with a daisy: the four white edges around the yellow centre, white facing up.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div><div class="li tip" style="align-items:center;padding:16px 18px"><span class="num-badge">2</span><div class="t"><span style="font-size:17px;line-height:1.45">Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.</span></div><span class="tick"><i data-lucide="check"></i>I got it</span></div><div class="li tip" style="align-items:center;padding:16px 18px"><span class="num-badge">3</span><div class="t"><span style="font-size:17px;line-height:1.45">Hold the cube white side down from here on.</span></div><span class="tick"><i data-lucide="check"></i>I got it</span></div></div>
+    <div class="sp"></div>
+    <div class="locked"><i data-lucide="lock"></i><span>Tick the 3 tips to start training</span><div class="sp"></div><span class="btn" style="opacity:.45"><i data-lucide="dumbbell"></i>Train the cross</span></div>
+  </div>
+  <div class="card lesson" style="align-items:center;justify-content:center;gap:18px"><div class="cube3d" data-case="daisy" data-size="300"></div><span class="mfg" style="font-weight:700">Tip 1 · the daisy</span></div>
+</div></div>
+</div></div><div class="screen"><span class="scap">2 · Il en reste un</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="grid" style="grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); flex:1">
+  <div class="card lesson" style="gap:18px">
+    <div class="title" style="font-size:40px">White cross</div>
+    <p class="lead" style="text-align:left">Place the four white edges around the white centre so their side colours match the side centres.</p>
+    <div class="list" style="gap:10px"><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">1</span><div class="t"><span style="font-size:17px;line-height:1.45">Start with a daisy: the four white edges around the yellow centre, white facing up.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">2</span><div class="t"><span style="font-size:17px;line-height:1.45">Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div><div class="li tip" style="align-items:center;padding:16px 18px"><span class="num-badge">3</span><div class="t"><span style="font-size:17px;line-height:1.45">Hold the cube white side down from here on.</span></div><span class="tick"><i data-lucide="check"></i>I got it</span></div></div>
+    <div class="sp"></div>
+    <div class="locked"><i data-lucide="lock"></i><span>1 tip left</span><div class="sp"></div><span class="btn" style="opacity:.45"><i data-lucide="dumbbell"></i>Train the cross</span></div>
+  </div>
+  <div class="card lesson" style="align-items:center;justify-content:center;gap:18px"><div class="cube3d" data-case="downward" data-size="300"></div><span class="mfg" style="font-weight:700">Tip 2 · match, then turn twice</span></div>
+</div></div>
+</div></div><div class="screen"><span class="scap">3 · Tout est coché : déverrouillé</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="grid" style="grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); flex:1">
+  <div class="card lesson" style="gap:18px">
+    <div class="title" style="font-size:40px">White cross</div>
+    <p class="lead" style="text-align:left">Place the four white edges around the white centre so their side colours match the side centres.</p>
+    <div class="list" style="gap:10px"><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">1</span><div class="t"><span style="font-size:17px;line-height:1.45">Start with a daisy: the four white edges around the yellow centre, white facing up.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">2</span><div class="t"><span style="font-size:17px;line-height:1.45">Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div><div class="li tip done" style="align-items:center;padding:16px 18px"><span class="num-badge">3</span><div class="t"><span style="font-size:17px;line-height:1.45">Hold the cube white side down from here on.</span></div><span class="tick on"><i data-lucide="check"></i>Got it</span></div></div>
+    <div class="sp"></div>
+    <div class="row" style="gap:12px"><span class="btn pri big" style="flex:1"><i data-lucide="dumbbell"></i>Train the cross</span><span class="btn big"><i data-lucide="check"></i>Mastered</span></div>
+  </div>
+  <div class="card lesson" style="align-items:center;justify-content:center;gap:18px"><div class="cube3d" data-case="cross" data-size="300"></div><span class="mfg" style="font-weight:700">Tip 3 · white down from here on</span></div>
+</div></div>
+</div></div></div>
+</figure>
+<figure>
+<figcaption><b><i>C</i> Regarder, puis répondre</b><span>Chaque conseil est joué en 3D par le lecteur (la marguerite qui se forme, l'arête qui descend), puis une ou deux questions rapides en images vérifient qu'on a compris ; une bonne réponse ouvre l'entraînement. Le plus engageant, et la vérification la plus sûre, mais une question de plus à écrire par étape.</span></figcaption>
+<div class="flow"><div class="screen"><span class="scap">1 · Le conseil joué en 3D</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="card lesson" style="flex:1;align-items:center;justify-content:center;gap:22px;text-align:center">
+  <span class="cap">Watch · 1 of 3</span>
+  <div class="cube3d" data-case="daisy" data-size="320"></div>
+  <p class="lead" style="font-size:26px;max-width:860px">Start with a <b class="pri">daisy</b>: the four white edges around the yellow centre, white facing up.</p>
+  <div class="player"><i data-lucide="chevrons-left"></i><i data-lucide="step-back"></i><span class="playb"><i data-lucide="pause"></i></span><i data-lucide="step-forward"></i><div class="progress" style="width: 220px; height: 5px;"><span style="width: 62%;"></span></div><span class="num mfg" style="font-weight: 800;">5 / 8</span></div>
+  <div class="row"><div class="row" style="gap:6px"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div><span class="btn pri" style="margin-left:18px">Next<i data-lucide="arrow-right"></i></span></div>
+</div></div>
+</div></div><div class="screen"><span class="scap">2 · Une question en images</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="card lesson" style="flex:1;align-items:center;justify-content:center;gap:26px;text-align:center">
+  <span class="cap">Quick check</span>
+  <div class="title" style="font-size:40px">Which cube is a daisy?</div>
+  <div class="row" style="gap:20px">
+    <div class="choice"><div class="cube3d" data-case="cross" data-size="200"></div><b>A</b></div>
+    <div class="choice picked"><div class="cube3d" data-case="daisy" data-size="200"></div><b>B</b></div>
+    <div class="choice"><div class="cube3d" data-case="scramble" data-size="200"></div><b>C</b></div>
+  </div>
+  <span class="mfg">Pick one to go on · 1 of 2 questions</span>
+</div></div>
+</div></div><div class="screen"><span class="scap">3 · Réussi : à l'entraînement</span><div class="win mini">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="secbar nob"><div class="title">Learn</div><nav class="nav" style="gap: 2px;"><a class="on" style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a><a style="padding: 10px 14px 14px; font-size: 16px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training</span></a></nav></div>
+  <div class="coursebar"><span class="back"><i data-lucide="chevron-left"></i></span><b>Beginner</b><span class="stepchip on"><span class="ring half" style="width:14px;height:14px;border-width:2px"></span>White cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>First-layer corners</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Second-layer edges</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow cross</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Yellow face</span><span class="stepline"></span><span class="stepchip"><span class="ring" style="width:14px;height:14px;border-width:2px"></span>Last layer permutation</span><span class="chip"><i data-lucide="route"></i>My cube</span></div>
+  <div class="main"><div class="card lesson" style="flex:1;align-items:center;justify-content:center;gap:24px;text-align:center">
+  <span class="pill w" style="font-size:14px;padding:6px 14px"><i data-lucide="check" style="width:14px;height:14px"></i> 2 of 2 right</span>
+  <div class="cube3d" data-case="cross" data-size="260"></div>
+  <div class="title" style="font-size:40px">You know the white cross</div>
+  <div class="row" style="gap:12px"><span class="btn pri big" style="width:340px"><i data-lucide="dumbbell"></i>Train the cross</span><span class="btn big"><i data-lucide="check"></i>Mastered</span></div>
+  <span class="btn ghost sm"><i data-lucide="rotate-ccw"></i>Watch again</span>
+</div></div>
+</div></div></div>
+</figure>
+</section>
 </div>
 <script>
 // An isometric 3×3, its U, F and R faces from colour letters (g grey, w white, b blue, r red, o orange, y yellow, G green).
@@ -571,6 +800,10 @@ const HEX = { g: "#6e6e78", w: "#f1ebe6", b: "#6b9be8", r: "#e3636a", o: "#ff9d5
 const CASES = {
   f2l5: { U: "ggggggrgg", F: "ggbbbbbbb", R: "gggrrgrrg", float: [] },
   f2l5b: { U: "gggggggrg", F: "ggbbbbbbb", R: "ggwrrgrrg", float: [] },
+  scramble: { U: "rwbGyorbw", F: "oyGwbrGyb", R: "bGowrywGo", float: [] },
+  daisy: { U: "gwgwywgwg", F: "grggbgggg", R: "gbggrgggg", float: [] },
+  downward: { U: "gwgwygggg", F: "gbggbgggg", R: "gggggggrg", float: [] },
+  cross: { U: "gwgwwwgwg", F: "gbggbgggg", R: "grggrgggg", float: [] },
 };
 function iso(x, y, z, s) { return [(x - z) * 0.866 * s, ((x + z) * 0.5 - y) * s]; }
 function face(points, s, ox, oy) { return points.map(([x, y, z]) => iso(x, y, z, s)).map(([a, b]) => `${(a + ox).toFixed(1)},${(b + oy).toFixed(1)}`).join(" "); }

@@ -19,11 +19,7 @@ export function catalogSections<C extends Pick<CaseDto, "id" | "set" | "group">,
   cases: readonly C[], sets: readonly S[], preferred: Readonly<Record<string, string>>,
   learned: ReadonlySet<string>, filter: string,
 ) {
-  const bySet = new Map<string, C[]>();
-  for (const c of cases) {
-    const list = bySet.get(c.set);
-    if (list) list.push(c); else bySet.set(c.set, [c]);
-  }
+  const bySet = groupBySet(cases);
   return [...new Set(sets.map(set => set.stage))].map(stage => {
     const variants = sets.filter(set => set.stage === stage);
     const active = variants.find(set => set.id === preferred[stage]) ?? variants[0];
@@ -32,6 +28,16 @@ export function catalogSections<C extends Pick<CaseDto, "id" | "set" | "group">,
     const visible = all.filter(c => filter === "all" || (filter === "learned") === learned.has(c.id));
     return { stage, variants, active, all, learnedCount, groups: [...groupCases(visible)] };
   });
+}
+
+/** Cases by their set, each set's in the order given. */
+export function groupBySet<C extends Pick<CaseDto, "set">>(cases: readonly C[]): Map<string, C[]> {
+  const bySet = new Map<string, C[]>();
+  for (const c of cases) {
+    const list = bySet.get(c.set);
+    if (list) list.push(c); else bySet.set(c.set, [c]);
+  }
+  return bySet;
 }
 
 /** Toggle a whole group without mutating the caller's selection. */

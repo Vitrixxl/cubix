@@ -11,7 +11,7 @@ import { store as s } from "../store";
 import { Avatar, Icon, NUMERIC, SelectMenu, plural, usePhone } from "../ui";
 import { go } from "../navigation";
 import { EVENTS, eventInfo } from "../../../src/shared/puzzles";
-import { coaching, price, type Coach } from "./client";
+import { coaching, mondayOf, price, zone, type Coach } from "./client";
 import { fmtTime } from "../../../src/client/lib/format";
 import { Back, Tools, dayKey, day, span, time, url } from "./parts";
 import { Bar, Count, Empty, LINK, ListSkeleton, SearchField, Stars, Surface, Tip } from "../base";
@@ -43,7 +43,6 @@ const PRICES = [
   { id: "3000", label: "Up to €30" },
   { id: "5000", label: "Up to €50" },
 ];
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function CoachList() {
   useEffect(() => {
@@ -470,13 +469,6 @@ export function BookPage({ id }: { id: string }) {
 const weekdayName = localFormat({ weekday: "short" });
 const dayMonth = localFormat({ day: "numeric", month: "short" });
 const longDay = localFormat({ weekday: "long", day: "numeric", month: "long" });
-/** The Monday starting the week of a moment, at midnight on this device. */
-function mondayOf(ms: number) {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d.getTime();
-}
 /** The seven days of the week starting on a Monday, at midnight. */
 function weekOf(monday: number) {
   return Array.from({ length: 7 }, (_, i) => {

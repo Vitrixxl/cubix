@@ -20,11 +20,8 @@ import { Numeric, SearchField } from "../layout";
 // Dates, as the web's coaching/parts.tsx (the day, the time and "2 days ago" are the tournaments').
 export { day, relative, time } from "../tournaments/format";
 const shortDay = localFormat({ day: "numeric", month: "short" });
-/** The local calendar day of a moment, as YYYY-MM-DD. */
-export function dayKey(ms: number) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { dayKey } from "../../../../src/client/lib/profile";
+export { dayKey };
 /** When a conversation last moved: the time today, "Yesterday", the date before. */
 function stamp(at: number) {
   const key = dayKey(at);

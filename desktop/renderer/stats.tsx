@@ -656,12 +656,13 @@ function TimerStatsView({ data, table, tools }: { data: any; table: SolveTableSt
   const zoomed = range[0] > 0 || range[1] < history.length - 1,
     count = range[1] - range[0] + 1,
     total = <span className="text-sm text-muted-foreground">{zoomed ? tr("{0} of {1} solves", { 0: count, 1: history.length }) : plural(count, "solve")}</span>;
-  const figures = timerFigures(data.summary);
+  const figures = timerFigures(data.summary),
+    figureDots = dots(figures.map((f) => f[2]));
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <Stats columns={figures.length} className="shrink-0 gap-2.5 max-md:grid-cols-2">
-        {figures.map(([label, value, tone], i) => (
-          <StatCard key={label} label={said(label)} value={value} dot={dots(figures.map((f) => f[2]))[i]} size="sm" className="bg-background" />
+        {figures.map(([label, value], i) => (
+          <StatCard key={label} label={said(label)} value={value} dot={figureDots[i]} size="sm" className="bg-background" />
         ))}
       </Stats>
       {s.statsView === "table" ? (

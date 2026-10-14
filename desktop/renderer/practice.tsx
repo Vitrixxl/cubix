@@ -363,12 +363,14 @@ export function Practice() {
     // A training follows the cube on the cases it can see set up and solved (F2L, OLL, PLL, ZBLL).
     trainee = training ? s.find(s.training?.id) : null,
     goal = trainee ? caseGoal(trainee) : null,
-    liveCase = live && training && !!goal;
+    liveCase = live && training && !!goal,
+    // The training's cases, worked out by the store at each reading: read once.
+    pool = training ? s.practiceSelected : null;
   const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
-      (!training || (!!s.practiceSelected.size && s.practiceSelected.has(s.training?.id))),
+      (!pool || (!!pool.size && pool.has(s.training?.id))),
     typing = s.page === "playground" && s.entry === "typing",
     // Blindfolded solves have no inspection (it is part of the time) but split the memorisation from the execution.
     blind = !training && s.solveMode === "blindfolded",
@@ -392,7 +394,7 @@ export function Practice() {
     if (typing && !s.overlay) typedRef.current?.focus();
   }, [typing, s.overlay, s.timerEpoch]);
   const c = training ? s.find(s.training?.id) : null,
-    ready = training ? !!c && s.practiceSelected.has(c.id) : true,
+    ready = pool ? !!c && pool.has(c.id) : true,
     cubeSize = training ? 0 : s.info()?.cubeSize,
     // The pyraminx and the megaminx get their own 3D model; the other puzzles without a cube size show none.
     poly = !training && isPolyPuzzle(s.puzzle),
@@ -635,8 +637,7 @@ export function Practice() {
       : chosen
         ? s.figuresShown()
         : s.metrics().filter(([label]) => !(label === "Solves" && timesColumn));
-  const columns = balancedColumns(metrics.length, bandWidth),
-    rows = Math.ceil(metrics.length / columns);
+  const columns = balancedColumns(metrics.length, bandWidth);
   // The last solve's actions, once there is one.
   const lastSolve = last && (
     <div className="flex min-w-0 flex-1 gap-2" role="group" aria-label={tr("Last solve")}>
@@ -649,13 +650,14 @@ export function Practice() {
       </Button>
     </div>
   );
+  const metricDots = dots(metrics.map((m) => m[2]));
   const statistics = chosen ? (
     <FiguresBand />
   ) : (
     // The training's few figures as tiles, as many to a row as fit.
     <section ref={setBand} aria-label={tr("Statistics")} data-tour="session" className={cn("grid shrink-0 grid-cols-[repeat(var(--columns),minmax(0,1fr))] gap-3", FADE)} style={{ "--columns": Math.min(columns, 4) } as React.CSSProperties}>
-      {metrics.map(([label, value, tone], i) => (
-        <StatCard key={label} label={label} value={value} dot={dots(metrics.map((m) => m[2]))[i]} size="sm" />
+      {metrics.map(([label, value], i) => (
+        <StatCard key={label} label={label} value={value} dot={metricDots[i]} size="sm" />
       ))}
     </section>
   );
@@ -994,7 +996,7 @@ function SessionPeek({ training }: { training: boolean }) {
 
 /** The last attempt against its case's mean, its best and mean over its attempts in the tip. */
 function Verdict({ solve }: { solve: any }) {
-  const st = s.stats.find((v: any) => v.caseId === solve.case_id),
+  const st = s.stat(solve.case_id),
     c = s.find(solve.case_id),
     time = effective(solve.time_ms, solve.penalty);
   if (!st || !c || st.mean == null || time == null) return null;
@@ -1189,7 +1191,11 @@ function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode
 function SessionCases() {
   const pool = s.practiceSelected,
     sets = new Map<string, any[]>();
-  for (const c of s.cases()) if (pool.has(c.id)) sets.set(c.setLabel, [...(sets.get(c.setLabel) ?? []), c]);
+  for (const c of s.cases()) if (pool.has(c.id)) {
+    const list = sets.get(c.setLabel);
+    if (list) list.push(c);
+    else sets.set(c.setLabel, [c]);
+  }
   return (
     <section aria-label={tr("Cases")} className="flex shrink-0 flex-col gap-2 px-4 pt-4" data-no-timer>
       <div className="flex items-center gap-2">

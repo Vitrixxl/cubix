@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
+import { groupBySet } from "../../../src/client/lib/practiceCatalog";
 import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
 import { puzzleInfo } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
@@ -56,8 +57,9 @@ export function useTrainingData() {
   const recommended = useMemo(() => recommend(cases, learned, [...stats.values()], []), [cases, learned, stats]);
   const picks = useMemo(() => storedPicks ?? recommended.slice(0, 4).map(r => r.id), [storedPicks, recommended]);
   const setRows = useMemo(() => {
+    const bySet = groupBySet(cases);
     const rows = sets.flatMap(set => {
-      const all = cases.filter(c => c.set === set.id);
+      const all = bySet.get(set.id) ?? [];
       return all.length ? [{ set, all, learned: all.filter(c => learned.has(c.id)).length }] : [];
     });
     return [...rows.filter(x => x.learned), ...rows.filter(x => !x.learned)];
@@ -422,9 +424,15 @@ function PickSheet({ open, onClose, free = false, onStart }: { open: boolean; on
   const cases = useAtomValue(casesAtom), sets = useAtomValue(setsAtom), learnedIds = useAtomValue(learnedCaseIdsAtom);
   const [hand, setHand] = useAtom(selectedCaseIdsAtom), [freePicks, setFreePicks] = useAtom(freePicksAtom);
   const [query, setQuery] = useState("");
-  const shown = useMemo(() => free ? cases : cases.filter(c => learnedIds.includes(c.id)), [free, cases, learnedIds]);
+  const shown = useMemo(() => {
+    const learned = new Set(learnedIds);
+    return free ? cases : cases.filter(c => learned.has(c.id));
+  }, [free, cases, learnedIds]);
   const selected = free ? freePicks : hand, setSelected = free ? setFreePicks : setHand;
-  const count = shown.filter(c => selected.includes(c.id)).length;
+  const count = useMemo(() => {
+    const picked = new Set(selected);
+    return shown.filter(c => picked.has(c.id)).length;
+  }, [shown, selected]);
   return <Sheet open={open} onClose={onClose} title={tr("Pick cases")} contentClassName="gap-2 px-0"
     right={<Text className="text-sm text-muted-foreground"><Numeric className="text-base font-extrabold text-foreground">{count}</Numeric> {tr("picked")}</Text>}>
     {open && <>

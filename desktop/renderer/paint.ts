@@ -1,4 +1,5 @@
 import type { CubeShape } from "../../src/shared/cubeScene";
+import { hexOf } from "../../src/shared/cubeAppearance";
 import type { CubeView } from "../../src/client/lib/cubeView";
 import { tr } from "../../src/client/i18n";
 /** Paints cube shapes (see `cubeShapes`) centred on a square canvas of `size` CSS pixels, `radius` cube units across half of it. */
@@ -12,7 +13,7 @@ export function paintShapes(ctx: CanvasRenderingContext2D, shapes: CubeShape[], 
         y = size / 2 - v[1]! * unit;
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     });
-    const hex = "#" + color.toString(16).padStart(6, "0");
+    const hex = hexOf(color);
     if (line) {
       ctx.strokeStyle = hex;
       ctx.lineWidth = 1;

@@ -12,12 +12,10 @@ import { duel, ao5, clock, compare, matchRange, opponentStatus, raceAverage, rou
 import { Cube } from "./Cube";
 import { useSquare } from "./practice";
 import { PracticeTimer, timerHint, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
-import { fmtSolve, fmtTime } from "../../src/client/lib/format";
-import { dailyDay, isDailyEvent } from "../../src/client/lib/daily";
-import type { Penalty } from "../../src/shared/types";
-import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
+import { fmtTime } from "../../src/client/lib/format";
+import { eventInfo, eventLabel, eventLabelOf, heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
-import { Ban, Box, CalendarDays, Check, Copy, History, Link2, MessageSquare, Play, Plus, Send, Swords, Trophy, Undo2, UserPlus, Users, X } from "lucide-react";
+import { Ban, Box, Check, Copy, History, Link2, MessageSquare, Play, Plus, Send, Swords, Trophy, Undo2, UserPlus, Users, X } from "lucide-react";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 import { ActionToggle, Alg, Avatar, Button, Empty, FADE, NUMERIC, MenuAction, Modal, PAGE, PageHead, PenaltyToggles, SearchField, Surface, Tip, isPhone, usePhone, useViewport } from "./ui";
 import { LiveDigits } from "./practice";
@@ -455,10 +453,6 @@ function Friends({ onAdd, onSent }: { onAdd: () => void; onSent: () => void }) {
   );
 }
 
-const shortEvent = (id: string) => {
-  const e = eventInfo(id);
-  return e ? eventLabel(e.puzzle, e.solveMode) : id;
-};
 /** The races played on this device: the record as one bar, then each race as a ticket, newest first; all of them on the profile. */
 function Played() {
   const list: DuelRecord[] = s.prefs[DUELS_KEY] ?? [],
@@ -500,7 +494,7 @@ function RaceTicket({ b, measure }: { b: DuelRecord; measure?: (element: HTMLEle
       result={b.result}
       score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
       name={said(b.opponent)}
-      level={shortEvent(b.event)}
+      level={eventLabelOf(b.event)}
       sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
       aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
       className="hover:bg-muted"

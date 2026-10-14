@@ -9,7 +9,8 @@
  */
 import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { brotliCompressSync, gzipSync, constants } from "node:zlib";
+import { promisify } from "node:util";
+import { brotliCompress, gzip as gzipCompress, constants } from "node:zlib";
 import type { BuildOutput, BunPlugin } from "bun";
 import { compile, Features } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
@@ -247,18 +248,20 @@ async function exportPhone(out: string): Promise<string> {
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */
 const preloads = (fonts: Map<string, string>) => [...fonts.values()].map((href) => `<link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin />`);
 
-/** Precompressed copies the API serves when the browser accepts them; the Pi never compresses on the fly. */
+const brotli = promisify(brotliCompress), gzip = promisify(gzipCompress);
+
+/** Precompressed copies the API serves when the browser accepts them; the Pi never compresses on the fly. All at once,
+ * on every core: one after the other, the case diagrams' thousands took seconds. */
 async function compress(directory: string): Promise<void> {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) await compress(path);
-    else if (/\.(js|css|html|svg|json|webmanifest|ttf|xml|txt|wasm)$/.test(entry.name)) {
-      const bytes = await readFile(path);
-      if (bytes.length < 1024) continue;
-      await writeFile(path + ".br", brotliCompressSync(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }));
-      await writeFile(path + ".gz", gzipSync(bytes, { level: 9 }));
-    }
-  }
+  const files = (await readdir(directory, { recursive: true, withFileTypes: true }))
+    .filter((entry) => entry.isFile() && /\.(js|css|html|svg|json|webmanifest|ttf|xml|txt|wasm)$/.test(entry.name));
+  await Promise.all(files.map(async (entry) => {
+    const path = join(entry.parentPath, entry.name);
+    const bytes = await readFile(path);
+    if (bytes.length < 1024) return;
+    const [br, gz] = await Promise.all([brotli(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }), gzip(bytes, { level: 9 })]);
+    await Promise.all([writeFile(path + ".br", br), writeFile(path + ".gz", gz)]);
+  }));
 }
 
 if (import.meta.main) {

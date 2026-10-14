@@ -46,6 +46,8 @@ const cross = (state: CubeState) => solvedWhere(state, (p, h) => p[1] === -h && 
 /** What a step has done to the cube, by name. */
 const GOALS: Record<string, (state: CubeState) => boolean> = {
   cross,
+  // The beginner's cross pictured turned over (x2), white on top.
+  "cross shown up": s => cross(applyAlg(s, "x2")),
   "first layer": s => solvedWhere(s, (p, h) => p[1] === -h),
   "first face": s => faceIs(s, "D"),
   f2l: s => solvedWhere(s, (p, h) => p[1] < h),
@@ -68,7 +70,7 @@ const GOALS: Record<string, (state: CubeState) => boolean> = {
 const BIG = { reduction: ["centres", "paired", "solved", "solved"], yau: ["two centres", "three cross edges", "centres", "cross and pairs", "solved"] };
 const STEP_GOALS: Record<string, Record<string, string[]>> = {
   "333": {
-    beginner: ["cross", "first layer", "f2l", "yellow cross", "oll", "solved"],
+    beginner: ["cross shown up", "first layer", "f2l", "yellow cross", "oll", "solved"],
     cfop: ["cross", "f2l", "oll", "solved", "solved"],
     roux: ["first block", "second block", "cmll", "solved"],
     zz: ["eoline", "f2l", "solved"],
@@ -92,7 +94,8 @@ test("every step of a cube method pictures the cube before it and after it, one 
         const start = applyAlg(solved(p.cubeSize!), before), end = applyAlg(solved(p.cubeSize!), after);
         // Done after the step, and what the steps before it did still done; not done before it.
         expect(GOALS[goals![i]!]!(end), `${where}: done after`).toBe(true);
-        for (const earlier of goals!.slice(0, i)) expect(GOALS[earlier]!(end), `${where}: ${earlier} kept`).toBe(true);
+        // The cross pictured turned over is held white down again by the steps after it.
+        for (const earlier of goals!.slice(0, i)) expect(GOALS[earlier === "cross shown up" ? "cross" : earlier]!(end), `${where}: ${earlier} kept`).toBe(true);
         expect(GOALS[goals![i]!]!(start), `${where}: not done before`).toBe(false);
         // The two pictures differ where they are seen.
         expect(drawn(start, mask), `${where}: two different pictures`).not.toBe(drawn(end, mask));
