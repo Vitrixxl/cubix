@@ -26,6 +26,8 @@ import { Movable, type Place } from "./Movable";
  * dragging, turned to the other camera from it), the chat under it on demand. Leaving the page, or Android's back,
  * keeps the call going in a floating window (Floating.tsx). On a tablet the controls are larger; on a wide screen the
  * chat stands beside the picture rather than under it.
+ *
+ * @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx).
  */
 export function CallView({ id }: { id: string }) {
   const c = useCoaching(), nav = useCoachingNav();

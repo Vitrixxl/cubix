@@ -21,6 +21,8 @@ const floatingAt: Place = { x: 1, y: 1 };
  * The call under way while the player is elsewhere in the app (the web's coaching/floating.tsx): a small window over
  * the app with the other party and the main controls, dragged anywhere above the tab bar, or folded to a single button.
  * A tap on the picture takes the call back to its page. The other party is heard either way: WebRTC plays them itself.
+ *
+ * @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx).
  */
 export function FloatingCall() {
   useSocial();

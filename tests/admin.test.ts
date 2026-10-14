@@ -30,7 +30,7 @@ test("admin access requires the container-generated token; HttpOnly session last
 });
 
 test("admin lists accounts and HTTP traffic without secrets or spoofed IPs",async()=>{
- const {origin,db}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.devLogin("visible_user");
+ const {origin}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.devLogin("visible_user");
  await fetch(origin+"/missing-path?token=do-not-log-this",{headers:{"x-forwarded-for":"203.0.113.200",authorization:"Bearer do-not-log-this"}});
  const admin=await login(origin);
  const users=await adminGet(origin,admin.cookie,"/api/admin/users?filter=registered");
@@ -195,7 +195,7 @@ test("admin data endpoints require the admin session, never cache and validate t
  }
  expect((await call(origin,"GET","/api/auth/me",{token:user.token})).status).toBe(200);
  const admin=await login(origin);
- for(const [method,path] of routes.filter(([m])=>m==="GET"))await adminGet(origin,admin.cookie,path);
+ for(const [,path] of routes.filter(([m])=>m==="GET"))await adminGet(origin,admin.cookie,path);
  for(const path of ["/api/admin/requests?status=abc","/api/admin/requests?kind=bogus","/api/admin/requests?important=maybe","/api/admin/requests?from=-1","/api/admin/ips?days=0","/api/admin/ips?days=91","/api/admin/ips?sort=x","/api/admin/users?sort=x","/api/admin/users?filter=x","/api/admin/users?limit=500","/api/admin/users?page=-1","/api/admin/users?q="+"x".repeat(101)])
   expect((await fetch(origin+path,{headers:{cookie:admin.cookie}})).status).toBe(422);
  expect((await fetch(origin+"/api/admin/users/not-an-account",{headers:{cookie:admin.cookie}})).status).toBe(404);

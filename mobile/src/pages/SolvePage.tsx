@@ -28,6 +28,8 @@ import { useLayout } from "../hooks/useLayout";
  * A solve on its own screen, pushed from a list of times: its time and penalty, the scramble, the solution replayed in
  * 3D, and for a smart cube solve the bar of its steps; a step opens its analysis (`step`) on a screen of its own, as
  * the web's SolveView.tsx and SolveAnalysis.tsx.
+ *
+ * @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx).
  */
 export function SolvePage({ id, step, comment }: { id: number; step?: string; comment?: boolean }) {
   const version = useAtomValue(statsVersionAtom), updated = useAtomValue(updatedSolveAtom), deleted = useAtomValue(deletedSolveIdAtom);

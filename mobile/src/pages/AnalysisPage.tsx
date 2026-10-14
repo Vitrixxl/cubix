@@ -62,6 +62,7 @@ function useStart() {
 /** Only learned cases are trained: the others are learned first. */
 const learnedOnly = (ids: string[]) => { const learned = new Set(local.learned()); return ids.filter(id => learned.has(id)); };
 
+/** @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx). */
 export function AnalysisPage() {
   const { analysis: a, pending } = useSmartAnalysis("standard"),
     [methodId, setMethod] = useState("all"),

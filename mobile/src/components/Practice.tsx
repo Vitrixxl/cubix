@@ -37,7 +37,7 @@ import { said, tr } from "../../../src/client/i18n";
 /** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
 const SLOW_GENERATION_MS = 120;
 
-export { sessionMetrics, type Metric } from "../../../src/client/lib/practiceSummary";
+export { type Metric } from "../../../src/client/lib/practiceSummary";
 
 /**
  * This launch's session of a practice context (see lib/launchSession), oldest first; every solve still syncs to the

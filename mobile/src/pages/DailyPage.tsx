@@ -37,6 +37,8 @@ import { localFormat, tn, tr } from "../../../src/client/i18n";
  * (records and days) are in the History sheet; a past day (`day` YYYY-MM-DD) shows its scramble and its field. On a
  * tablet the scramble has its cube and the results come with the day: a card at its foot, or docked beside it on a wide
  * screen, where the day's stage and its field stand side by side.
+ *
+ * @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx).
  */
 export function DailyPage({ day }: { day?: string }) {
   const attempt = useAtomValue(attemptAtom);

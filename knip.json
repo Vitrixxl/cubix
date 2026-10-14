@@ -1,0 +1,69 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": [
+    "go",
+    "adb",
+    "emulator",
+    "keytool"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "desktop/*.{ts,tsx}",
+        "desktop/renderer/{main,boot,worker,sw,firstLaunch}.{ts,tsx}",
+        "desktop/renderer/{landing,legal}/main.tsx",
+        "desktop/renderer/dev/virtualCube.tsx",
+        "desktop/scripts/*.{ts,tsx}",
+        "desktop/testing/*.ts",
+        "desktop/tests/*.ts",
+        "scripts/*.ts",
+        "tests/**/*.ts"
+      ],
+      "project": [
+        "desktop/**/*.{ts,tsx}",
+        "src/**/*.{ts,tsx}",
+        "scripts/**/*.ts",
+        "tests/**/*.ts"
+      ],
+      "ignore": [
+        "desktop/renderer/components/ui/**"
+      ],
+      "ignoreDependencies": [
+        "shadcn",
+        "tailwindcss",
+        "tw-animate-css",
+        "ws"
+      ]
+    },
+    "mobile": {
+      "entry": [
+        "App.tsx",
+        "src/**/*.web.{ts,tsx}",
+        "scripts/**/*.{ts,tsx}",
+        "tests/**/*.ts"
+      ],
+      "project": [
+        "**/*.{ts,tsx}",
+        "../src/**/*.{ts,tsx}"
+      ],
+      "ignore": [
+        "src/components/ui/**"
+      ],
+      "ignoreDependencies": [
+        "expo-linking",
+        "svgo",
+        "react-native-svg-transformer",
+        "@rn-primitives/.+",
+        "expo-asset"
+      ],
+      "ignoreUnresolved": [
+        "scripts/build-scan.ts"
+      ],
+      "metro": false
+    }
+  },
+  "rules": {
+    "duplicates": "off"
+  }
+}

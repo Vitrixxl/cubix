@@ -31,6 +31,8 @@ import { said, tr } from "../../../src/client/i18n";
  * grouped rows: the appearance (mode and accent), the language, the data (importing, a copy to keep, the account deleted),
  * the guides, the legal documents and the installed version. A tablet sets the language in place
  * and lays the groups in two columns; a wide screen docks the account, the help and the version at the right.
+ *
+ * @public Loaded on demand, by `require` (App.tsx, CoachingPage.tsx).
  */
 export function SettingsPage() {
   useReleaseCheck(true);

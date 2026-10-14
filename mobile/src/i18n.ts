@@ -13,4 +13,4 @@ void start();
 /** The current language, drawing again when it changes. */
 export const useLanguage = () => useSyncExternalStore(onLanguage, language);
 
-export { LANGUAGES, setLanguage, tr, type Language } from "../../src/client/i18n";
+export { LANGUAGES, setLanguage, type Language } from "../../src/client/i18n";

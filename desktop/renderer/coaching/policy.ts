@@ -1,1 +1,1 @@
-export { CANCELLATION_NOTICE, CANCELLATION_POLICY, CANCELLATION_TERMS, cancellationOpen } from "../../../src/client/lib/coaching";
+export { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen } from "../../../src/client/lib/coaching";

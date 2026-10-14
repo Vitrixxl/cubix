@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-export { MATCH_STATUS, STATUS_TEXT, eventName, formatText, roundName, scoreOf, type Format } from "../../../src/client/lib/community";
+export { MATCH_STATUS, STATUS_TEXT, formatText, roundName, scoreOf, type Format } from "../../../src/client/lib/community";
 /** The date of `ms` as a `datetime-local` input wants it, on this device's clock. */
 export const localInput = (ms: number) => new Date(ms - new Date(ms).getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 

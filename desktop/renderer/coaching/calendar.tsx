@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { tr } from "../../../src/client/i18n";
-import { WEEKDAYS, addDays, keyOf, longDay, monthName, shiftMonth, shortDay, toDate, weekdayOf } from "../../../src/client/lib/coaching";
+import { WEEKDAYS, addDays, longDay, monthName, shiftMonth, toDate, weekdayOf } from "../../../src/client/lib/coaching";
 import { said } from "../base";
 
-export { WEEKDAYS, addDays, keyOf, longDay, shortDay, toDate, weekdayOf };
+export { WEEKDAYS, addDays, longDay, toDate, weekdayOf };
 
 /** Shown when a day is too narrow for its hours as text: a line under the date. */
 export const NARROW_BAR = "hidden h-1 shrink-0 rounded-full bg-primary/50 @max-[5.5rem]:block";

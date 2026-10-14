@@ -399,7 +399,7 @@ export function polyShapes(scene: PolyScene, seconds: number, orientation: CubeO
     return shapes;
   }
   for (const moving of groups) {
-    const members = scene.stickers.flatMap((s, i) => ((turn?.moving.has(i) ?? false) === moving ? [i] : [])),
+    const members = scene.stickers.flatMap((_, i) => ((turn?.moving.has(i) ?? false) === moving ? [i] : [])),
       pose = (i: number) => {
         const m = moving ? compose(partial, state[i]!) : state[i]!;
         return (v: V) => camera(apply(m, v));

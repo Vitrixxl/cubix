@@ -11,7 +11,7 @@ import type { EventId } from "../../../../src/shared/puzzles";
 import { useColors } from "../../theme";
 import { openUrl } from "../../lib/social";
 import { goBackAtom, previousRouteAtom } from "../../state";
-import { BackButton, Numeric } from "../layout";
+import { Numeric } from "../layout";
 import { PuzzleIcon } from "../PuzzlePicker";
 import { UserAvatar } from "../UserAvatar";
 import { LiveDot } from "../duel/parts";
@@ -46,9 +46,6 @@ export const when = (ms: number) => `${day(ms)} · ${time(ms)} · ${relative(ms)
 export function useBack(to: string) {
   const previous = useAtomValue(previousRouteAtom), goBack = useSetAtom(goBackAtom);
   return () => { if (previous) goBack(); else openUrl(to); };
-}
-export function Back({ to }: { to: string }) {
-  return <BackButton onPress={useBack(to)} />;
 }
 
 /** A status as a soft badge: the accent with the live dot while under way, green when ready or open, quiet once over. */

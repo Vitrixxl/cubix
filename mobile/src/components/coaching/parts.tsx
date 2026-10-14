@@ -3,7 +3,7 @@ import { Check, Star } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, View, type ViewProps } from "react-native";
 import { localFormat, tn, tr } from "../../../../src/client/i18n";
-import { EVENTS, eventInfo, type EventId } from "../../../../src/shared/puzzles";
+import { EVENTS } from "../../../../src/shared/puzzles";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -87,13 +87,6 @@ export function Strip({ className, ...props }: ViewProps) {
   return <View className={cn("flex-row flex-wrap gap-y-3 rounded-xl border border-border bg-muted/45 px-4 py-3", className)} {...props} />;
 }
 
-/** Events as their WCA glyphs. */
-export function Events({ events, size = 16 }: { events: string[]; size?: number }) {
-  const colors = useColors();
-  return <View className="flex-row flex-wrap items-center gap-1.5">
-    {events.filter(id => eventInfo(id)).map(id => <View key={id} accessibilityLabel={tr(eventInfo(id)!.label)}><PuzzleIcon puzzle={id as EventId} size={size} color={colors.mutedForeground} /></View>)}
-  </View>;
-}
 
 /** Events picked among every WCA event: glyph cells, the chosen ones tinted; several may be chosen. */
 export function EventPicker({ value, onChange }: { value: string[]; onChange: (events: string[]) => void }) {

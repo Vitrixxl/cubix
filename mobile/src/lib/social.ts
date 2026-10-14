@@ -73,6 +73,5 @@ export function useSocial<T = number>(read?: () => T): T {
 }
 /** Each client, drawing again on every change. */
 export const useCoaching = () => (useSocial(), coaching);
-export const useLive = () => (useSocial(), live);
 
 export * from "../../../src/client/lib/community";

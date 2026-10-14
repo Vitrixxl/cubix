@@ -87,13 +87,6 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
   </View>;
 }
 
-/** A titled group of rows on one card, split by hairlines (the settings and the ways to practise). */
-export function ListGroup({ title, children, className, ...props }: ViewProps & { title?: string }) {
-  return <View className={cn("gap-2", className)} {...props}>
-    {title ? <SectionHead title={title} className="px-1" /> : null}
-    <View className="overflow-hidden rounded-2xl border border-border bg-card">{children}</View>
-  </View>;
-}
 
 /**
  * A row of a list group: an icon on a tinted tile, its title and a line under it, then `trailing` (a figure, a word)
@@ -127,14 +120,6 @@ export function StatusMark({ done, current = false }: { done: boolean; current?:
   </View>;
 }
 
-/** Whether a case or an algorithm is learned, as a labelled toggle: "Learned", muted until it is, then in green. */
-export function LearnToggle({ learned, onPress, accessibilityLabel, disabled, mastery = false, className }: { learned: boolean; onPress: () => void; accessibilityLabel: string; disabled?: boolean; mastery?: boolean; className?: string }) {
-  return <Pressable onPress={onPress} disabled={disabled} accessibilityRole="switch" accessibilityState={{ checked: learned, disabled }} accessibilityLabel={accessibilityLabel}
-    className={cn("h-11 flex-row items-center gap-1.5 rounded-lg border px-3", learned ? "border-success/40 bg-success/15 active:bg-success/25" : "border-border active:bg-muted/50", disabled && "opacity-40", className)}>
-    <Icon as={Check} size={16} className={learned ? "text-success" : "text-muted-foreground"} />
-    <Text className={cn("text-sm font-medium", learned ? "text-success" : "text-muted-foreground")}>{mastery ? tr("Mastered") : tr("Learned")}</Text>
-  </Pressable>;
-}
 
 /** The "…" of a page head: the page's other controls as menu items. Controls in a page head are outlined. */
 export function MoreMenu({ children, label = "More" }: { children: ReactNode; label?: string }) {

@@ -38,7 +38,7 @@ mock.module("../src/api", () => ({ api: { setLearned: async (...args: any[]) => 
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: () => null }));
-mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null, ChoiceButton: "ChoiceButton" }));
+mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: () => null, ChoiceButton: "ChoiceButton" }));
 mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null, SheetScrollView: "SheetScrollView", SheetFlatList: "SheetFlatList" }));
 mock.module("react-native-svg", () => ({ default: "Svg", Svg: "Svg", Circle: "Circle" }));
 mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", SectionTabs: "SectionTabs" }));
@@ -56,7 +56,7 @@ mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "GroupToggle", "HeadButton", "IconTile", "Label", "LearnToggle", "ListGroup", "ListRow", "ListSkeleton", "SectionHead", "StatusMark", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "GroupToggle", "HeadButton", "IconTile", "Label", "ListRow", "ListSkeleton", "SectionHead", "StatusMark", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { LearnPage } = await import("../src/pages/LearnPage");
 const { routeAtom, learnMethodAtom, selectedCaseIdsAtom, courseProgressAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

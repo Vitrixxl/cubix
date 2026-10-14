@@ -89,19 +89,6 @@ export function SessionTrigger({ event, detail, onPress, disabled }: { event: Ev
 /** The puzzle sheet of the app, open from a page head: `timer` also holds the scramble type and the time entry. */
 export const sessionSheetAtom = atom<null | "puzzle" | "timer">(null);
 
-/**
- * The app's puzzle in a page head. On the timer (`scramble`), the same sheet also holds the scramble type and the
- * time entry, instead of three small menus. Locked while a solve holds the session.
- */
-export function SessionButton({ scramble = false }: { scramble?: boolean }) {
-  const open = useSetAtom(sessionSheetAtom);
-  const event = useAtomValue(eventAtom);
-  const locked = useAtomValue(cubeSwitchLockedAtom);
-  const scrambleType = useAtomValue(scrambleTypeAtom);
-  const entry = useAtomValue(timeEntryAtom);
-  return <SessionTrigger event={event} disabled={locked} onPress={() => open(scramble ? "timer" : "puzzle")}
-    detail={scramble ? [scrambleType !== "normal" && tr(scrambleLabel(scrambleType)), entry !== "timer" && said(TIME_ENTRIES.find(e => e.id === entry)?.label)].filter(Boolean).join(" · ") || undefined : undefined} />;
-}
 
 const json = createJSONStorage<any>(() => storage);
 /** The WCA inspection before a timer solve (the web's `cubix.timer.inspection`). */

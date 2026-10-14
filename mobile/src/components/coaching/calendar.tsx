@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { tr } from "../../../../src/client/i18n";
-import { WEEKDAYS, addDays, keyOf, longDay, monthName, shiftMonth, shortDay, toDate, weekdayOf } from "../../../../src/client/lib/coaching";
+import { WEEKDAYS, addDays, longDay, monthName, shiftMonth, shortDay, toDate, weekdayOf } from "../../../../src/client/lib/coaching";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,7 @@ import { Surface } from "../layout";
  * sessions: a month as one grid, Monday first, six weeks tall, each day a cell its page fills. Days are YYYY-MM-DD
  * keys, computed in UTC so the phone's own zone never shifts them.
  */
-export { WEEKDAYS, addDays, keyOf, longDay, shortDay, toDate, weekdayOf };
+export { WEEKDAYS, addDays, longDay, shortDay, toDate, weekdayOf };
 const COLUMN = { width: `${100 / 7}%` } as const;
 
 /** A day too narrow for its hours as text: a line under the date. */

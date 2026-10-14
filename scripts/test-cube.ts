@@ -82,7 +82,7 @@ checkDiagrams("speedcubedb_oll.json", true);
 
 // 3. consolidated data ----------------------------------------------------------
 type Check = "solved" | "oll" | "f2l";
-const centersSolved = (s: CubeState) => SLOTS.every((g, i) => (g.p[0] === 0 && g.p[1] === 0) || (g.p[0] === 0 && g.p[2] === 0) || (g.p[1] === 0 && g.p[2] === 0) ? true : true) && [4, 13, 22, 31, 40, 49].every((i) => s[i] === i);
+const centersSolved = (s: CubeState) => SLOTS.every((g) => (g.p[0] === 0 && g.p[1] === 0) || (g.p[0] === 0 && g.p[2] === 0) || (g.p[1] === 0 && g.p[2] === 0) ? true : true) && [4, 13, 22, 31, 40, 49].every((i) => s[i] === i);
 function reorient(s: CubeState): CubeState | null {
   const rots = ["", "x", "x2", "x'", "y", "y2", "y'", "z", "z2", "z'", "x y", "x y2", "x y'", "x' y", "x' y2", "x' y'", "x2 y", "x2 y'", "z y", "z y2", "z y'", "z' y", "z' y2", "z' y'"];
   for (const r of rots) {

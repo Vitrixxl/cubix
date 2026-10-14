@@ -20,7 +20,9 @@
     "import:history": "go-api/cubix-api --import-history",
     "stress": "tsx scripts/stress-api.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
-    "test": "bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && (cd scrambler && cargo test --release -q) && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
+    "knip": "knip --no-progress",
+    "check": "bun run typecheck && bun run knip",
+    "test": "bun run check && bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && (cd scrambler && cargo test --release -q) && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/server.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "test:ui": "bun run build:api && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts && bun desktop/testing/prerender.ts"
   },
@@ -56,6 +58,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "knip": "^6.41.0",
     "playwright": "^1.63.0",
     "sharp": "^0.35.4",
     "tsx": "^4.0.0",

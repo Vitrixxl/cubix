@@ -20,7 +20,7 @@ function scramble(seed: number) {
 }
 
 /** Roux's blocks are read whatever M turn the centres are at, the cube held either way about x. */
-const roux = (pieces: number[][]) => (c: Face[], state: CubeState) =>
+const roux = (pieces: number[][]) => (_: Face[], state: CubeState) =>
   ["", "x", "x2", "x'"].some((x) => [0, 1, 2, 3].some((k) => matches(colours(turnWhole(state, x ? [x] : [])), k, pieces)));
 /** What each step of each course has done once its last part is played. */
 const DONE: Record<string, ((c: Face[], state: CubeState) => boolean)[]> = {

@@ -232,7 +232,6 @@ export const pause = (p: Playback): Playback => ({
   playing: false,
   target: p.target > p.position ? Math.ceil(p.position) : Math.floor(p.position),
 });
-export const toggle = (p: Playback, total: number) => (p.playing ? pause(p) : play(p, total));
 /** One move on, turned. */
 export const stepForward = (p: Playback, total: number): Playback => ({ ...p, playing: false, target: Math.min(total, Math.floor(p.position) + 1) });
 /** One move back, turned backwards. */

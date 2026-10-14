@@ -3,7 +3,7 @@ import Svg, { Path } from "react-native-svg";
 import { useColors } from "../theme";
 import type { CubeState } from "../../../src/shared/cube";
 import { EDGE_STROKE, ISO_VIEWBOX, SEAM_FILL, TILE_STROKE, TOP_VIEWBOX, diagramPaths, viewForMask, type CubeMask, type DiagramView } from "../../../src/shared/cubeDiagram";
-export { FACE_COLORS, type CubeMask } from "../../../src/shared/cubeAppearance";
+export { type CubeMask } from "../../../src/shared/cubeAppearance";
 
 /**
  * Same cells and colours as the web/desktop diagrams (`shared/cubeDiagram`), drawn with react-native-svg.

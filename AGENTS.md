@@ -56,3 +56,29 @@ par tâche, en parallèle (avec un worktree isolé quand deux tâches touchent l
 mêmes fichiers). Les sous-agents ne relisent pas leur propre travail et ne
 commitent pas : la relecture, les tests, les captures et le rapport se font une
 seule fois, à la fin, sur l’ensemble.
+
+## Qualité du code
+
+`bun run check` (types des trois projets et knip) doit passer avant de rendre la
+main : il refuse les variables, paramètres, imports, exports, fichiers et
+dépendances inutilisés. Il tourne aussi en tête de `bun run test`, et un hook
+Claude Code (`.claude/settings.json`) le lance à la fin de chaque tour.
+
+Chercher avant d’écrire : un utilitaire, un composant ou une règle existe
+souvent déjà. Où regarder :
+
+- `src/shared/` : le cube, les puzzles et événements (`eventLabelOf`…), les
+  méthodes, les couleurs (`hexOf`), les types partagés avec l’API ;
+- `src/client/lib/` : la logique commune au web et au téléphone (`course.ts`,
+  `caseState.ts`, `practiceCatalog.ts` avec `groupBySet`, `coaching.ts`,
+  `community.ts`, `format.ts` avec `plural` et `effective`, `profile.ts` avec
+  `dayKey`…) ;
+- web : `desktop/renderer/base.tsx` et `ui.tsx` (boutons, `Surface`, `ROW`,
+  `PanelHead`…), `desktop/renderer/components/ui/` (shadcn : Popover, Command,
+  Dialog…), le store (`s.setCases`, `s.stat`…) ;
+- téléphone : `mobile/src/components/layout.tsx`, `mobile/src/components/ui/`.
+
+Une règle utilisée par le web et le téléphone vit une seule fois dans `src/`,
+jamais recopiée de chaque côté. L’interface utilise les composants de l’app,
+jamais un élément natif du navigateur ou un style refait à la main. Un export
+chargé seulement par `require` porte le tag `@public` pour knip.

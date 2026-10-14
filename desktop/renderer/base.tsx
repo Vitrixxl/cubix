@@ -19,7 +19,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LANGUAGES, language, onLanguage, setLanguage, tr, type Language } from "../../src/client/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from "react-router";
 /** The language in use: a component reading it is drawn again when it changes. */
 export const useLanguage = () => useSyncExternalStore(onLanguage, language, language);
 /** The languages, each under its own name: the choice is kept on this device. */
@@ -44,7 +43,7 @@ export function LanguagePicker({ className }: { className?: string }) {
 /** A text passed to a component, in the current language; elements pass through. */
 export const said = <T,>(x: T): T => (typeof x === "string" ? (tr(x) as T) : x);
 
-export { Badge as BrandBadge, Brand, Logo, Wordmark } from "./logo";
+export { Brand, Logo, Wordmark } from "./logo";
 export type { Tone } from "../../src/client/lib/tone";
 export { isPhone } from "../../src/client/lib/viewport";
 
@@ -131,42 +130,6 @@ export function WindowSidebar({ compact = false, ...props }: Omit<React.Componen
     [wide, compact],
   );
   return <SidebarProvider open={wide && (compact ? unfolded : !folded)} onOpenChange={change} {...props} />;
-}
-
-/** A link of a side list (`SideNav`): its address, name, icon, whether it is the page shown, and what waits there. */
-export type SideLink = { to: string; label: React.ReactNode; icon?: LucideIcon; current?: boolean; count?: number; action?: string };
-
-/**
- * A column of links on a quiet panel, for a page's own sections (coaching, the profile): the current one raised, its
- * count in the accent. `title` heads it; `groups` are separated and may carry a small caption.
- */
-export function SideNav({ title, groups, label, className }: { title?: React.ReactNode; groups: { caption?: React.ReactNode; links: SideLink[] }[]; label: string; className?: string }) {
-  return (
-    <nav aria-label={said(label)} className={cn("flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[26px] bg-card p-3", className)}>
-      {title && <h2 className="px-2.5 pt-1.5 text-lg font-extrabold">{said(title)}</h2>}
-      {groups.map((group, i) => (
-        <div key={i} className="flex flex-col gap-0.5">
-          {group.caption && <span className="px-2.5 pb-1 text-xs font-semibold text-faint">{said(group.caption)}</span>}
-          {group.links.map(({ to, label, icon: I, current, count, action }) => (
-            <Link
-              key={to}
-              to={to}
-              data-action={action}
-              aria-current={current ? "page" : undefined}
-              className={cn(
-                "flex h-10 items-center gap-2.5 rounded-[14px] px-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-foreground [&_svg]:size-4 [&_svg]:shrink-0",
-                FOCUS,
-              )}
-            >
-              {I && <I />}
-              <span className="min-w-0 flex-1 truncate">{said(label)}</span>
-              <Count n={count ?? 0} />
-            </Link>
-          ))}
-        </div>
-      ))}
-    </nav>
-  );
 }
 
 /** An SVG of desktop/assets/icons drawn in the current colour: the WCA puzzle icons. */
