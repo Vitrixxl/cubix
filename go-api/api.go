@@ -291,6 +291,21 @@ func isUsernameByte(b byte) bool {
 	return 'a' <= b && b <= 'z' || '0' <= b && b <= '9' || b == '_'
 }
 
+// apiUsername: the body's `username`, lower-cased: 3–24 letters, numbers or underscores.
+func apiUsername(body any) (string, error) {
+	username, err := apiString(body, "username", 3, 24)
+	if err != nil {
+		return "", err
+	}
+	username = strings.ToLower(strings.TrimSpace(username))
+	for i := 0; i < len(username); i++ {
+		if !isUsernameByte(username[i]) {
+			return "", apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
+		}
+	}
+	return username, nil
+}
+
 // apiAuthRequest signs in with Google (`auth/google`, its ID token) or, where CUBIX_DEV_LOGIN=1, with a bare username
 // (`auth/dev`: development and tests); either creates the account the first time.
 func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (any, error) {
@@ -299,15 +314,9 @@ func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (an
 		if os.Getenv("CUBIX_DEV_LOGIN") != "1" {
 			return nil, apiErr(404, "Not found")
 		}
-		username, err := apiString(body, "username", 3, 24)
+		username, err := apiUsername(body)
 		if err != nil {
 			return nil, err
-		}
-		username = strings.ToLower(strings.TrimSpace(username))
-		for i := 0; i < len(username); i++ {
-			if !isUsernameByte(username[i]) {
-				return nil, apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
-			}
 		}
 		return dbCall(state.db, func(db *Conn) (M, error) {
 			return accountsOpen(db, "username=? COLLATE NOCASE", username, username, nil)
@@ -592,6 +601,23 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		return nil, err
 	}
 	uid := str(user["id"])
+	// The account's new username (a Google account starts with one made from its name), free of any other account's.
+	if method == "POST" && path == "account/username" {
+		name, err := apiUsername(body)
+		if err != nil {
+			return nil, err
+		}
+		if taken, err := accountsByUsername(db, name); err != nil {
+			return nil, err
+		} else if taken != nil && str(taken["id"]) != uid {
+			return nil, apiErr(409, "This username is taken.")
+		}
+		if _, err := db.Exec("UPDATE users SET username=? WHERE id=?", name, uid); err != nil {
+			return nil, err
+		}
+		user["username"] = name
+		return M{"user": accountsPublic(user)}, nil
+	}
 	if path == "sync" {
 		if method == "GET" {
 			after := int64(0)

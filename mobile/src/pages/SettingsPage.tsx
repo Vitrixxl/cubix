@@ -1,12 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Hourglass, Languages, LogIn, LogOut, Monitor, Moon, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
+import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Languages, LogIn, LogOut, Monitor, Moon, Pencil, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
-import { INSPECTIONS, type Inspection } from "../../../src/client/lib/format";
 import { LEGAL_DOCUMENTS } from "../../../src/client/lib/legal";
 import { THEMES } from "../../../src/client/lib/theme";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { API_ORIGIN, api } from "../api";
 import { PushedBar } from "../components/AppBar";
 import { ImportSheet } from "../components/ImportTimes";
 import { ListRow } from "../components/layout";
-import { Caption, PillSeg, SheetChoice, inspectionAtom } from "../components/PuzzlePicker";
+import { Caption, PillSeg, SheetChoice } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { toastAtom } from "../components/Toast";
 import { UserAvatar } from "../components/UserAvatar";
@@ -27,9 +27,9 @@ import { colorModeAtom, guestModeAtom, guidesAtom, notationAtom, themeAtom, user
 import { said, tr } from "../../../src/client/i18n";
 
 /**
- * The settings, pushed from the profile (direction A): the account and signing out, then grouped rows: the
- * appearance (mode and accent), the timer and the language, the data (importing, a copy to keep, the account deleted),
- * the guides, the legal documents and the installed version. A tablet sets the inspection and the language in place
+ * The settings, pushed from the profile (direction A): the account (its username to change) and signing out, then
+ * grouped rows: the appearance (mode and accent), the language, the data (importing, a copy to keep, the account deleted),
+ * the guides, the legal documents and the installed version. A tablet sets the language in place
  * and lays the groups in two columns; a wide screen docks the account, the help and the version at the right.
  */
 export function SettingsPage() {
@@ -46,8 +46,8 @@ export function SettingsPage() {
     <View className="min-w-0 flex-1">
       {head}
       <ScrollView className="flex-1" contentContainerClassName="flex-row gap-3 px-7 pb-4" showsVerticalScrollIndicator={false}>
-        <View className="flex-1 gap-2.5"><Appearance /><InspectionChoice /></View>
-        <View className="flex-1 gap-2.5"><LanguageChoice /><Data /></View>
+        <View className="flex-1 gap-2.5"><Appearance /><LanguageChoice /></View>
+        <View className="flex-1 gap-2.5"><Data /></View>
       </ScrollView>
     </View>
     <View className="w-[404px] p-3 pl-0">
@@ -64,7 +64,7 @@ export function SettingsPage() {
     <ScrollView className="flex-1" contentContainerClassName="gap-3 px-7 pb-4" showsVerticalScrollIndicator={false}>
       <Account />
       <Appearance />
-      <View className="flex-row gap-3"><InspectionChoice className="flex-1" /><LanguageChoice className="flex-1" /></View>
+      <LanguageChoice />
       <View className="flex-row gap-3">
         <View className="flex-1 gap-2.5"><Data /></View>
         <View className="flex-1 gap-2.5"><Help /></View>
@@ -78,7 +78,7 @@ export function SettingsPage() {
     <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-4 pb-4" showsVerticalScrollIndicator={false}>
       <Account />
       <Appearance />
-      <TimerAndLanguage />
+      <LanguageGroup />
       <Data />
       <Help />
       <Legal />
@@ -116,10 +116,17 @@ function Account() {
   const user = useAtomValue(userAtom);
   const [busy, setBusy] = useState(false), setGuest = useSetAtom(guestModeAtom);
   if (!user) return null;
+  const [renaming, setRenaming] = useState(false);
   const signOut = async () => { setBusy(true); try { await api.logout(); } finally { setBusy(false); } };
   return <View className="flex-row items-center gap-3 rounded-2xl bg-primary/10 py-2.5 pr-2 pl-3" accessibilityLabel={tr("Account")}>
     <UserAvatar user={user} size={44} className="rounded-xl" />
-    <Text numberOfLines={1} className="min-w-0 flex-1 text-lg font-extrabold tracking-[-0.02em]">{user.username}</Text>
+    {/* An account's username, a tap away from a new one. */}
+    <Pressable disabled={user.isGuest} accessibilityRole={user.isGuest ? undefined : "button"} accessibilityLabel={user.isGuest ? undefined : tr("Change username")}
+      onPress={() => setRenaming(true)} className="min-w-0 flex-1 flex-row items-center gap-1.5">
+      <Text numberOfLines={1} className="min-w-0 shrink text-lg font-extrabold tracking-[-0.02em]">{user.username}</Text>
+      {!user.isGuest && <Icon as={Pencil} size={15} className="text-muted-foreground" />}
+    </Pressable>
+    <Rename open={renaming} onClose={() => setRenaming(false)} />
     {user.isGuest ? <Button className="h-11 gap-1.5 rounded-full" onPress={() => setGuest(false)}>
       <Icon as={LogIn} size={16} className="text-primary-foreground" />
       <Text>{tr("Sign in")}</Text>
@@ -128,6 +135,25 @@ function Account() {
       <Text className="text-muted-foreground">{busy ? tr("Logging out…") : tr("Sign out")}</Text>
     </Button>}
   </View>;
+}
+
+/** A new username in a sheet: the server's refusal (taken, wrong characters) under the field. */
+function Rename({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const user = useAtomValue(userAtom);
+  const [name, setName] = useState(user?.username ?? ""), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const save = async () => {
+    if (busy) return;
+    setBusy(true); setError("");
+    try { await api.setUsername(name.trim()); onClose(); } catch (e) { setError(said((e as Error).message)); } finally { setBusy(false); }
+  };
+  return <Sheet open={open} onClose={onClose} title={tr("Change username")}>
+    <Input value={name} onChangeText={setName} accessibilityLabel={tr("Username")} maxLength={24} autoCapitalize="none" autoCorrect={false} autoFocus onSubmitEditing={() => void save()} />
+    {error ? <Alert variant="destructive">{error}</Alert> : null}
+    <View className="flex-row justify-end gap-2">
+      <Button variant="ghost" onPress={onClose}><Text>{tr("Cancel")}</Text></Button>
+      <Button disabled={busy || !name.trim()} onPress={() => void save()}><Text>{tr("Save")}</Text></Button>
+    </View>
+  </Sheet>;
 }
 
 function Appearance() {
@@ -156,21 +182,11 @@ function Appearance() {
   </Group>;
 }
 
-function TimerAndLanguage() {
-  const [inspection, setInspection] = useAtom(inspectionAtom);
+function LanguageGroup() {
   const language = useLanguage();
-  return <Group title={tr("Timer & language")}>
-    <ChoiceRow<Inspection> first icon={Hourglass} title={tr("WCA inspection")} value={inspection} onChange={setInspection} options={INSPECTIONS.map(i => ({ id: i.id, label: tr(i.label) }))} />
-    <ChoiceRow<Language> icon={Languages} title={tr("Language of the app")} value={language} onChange={id => void setLanguage(id)} options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
+  return <Group title={tr("Language")}>
+    <ChoiceRow<Language> first icon={Languages} title={tr("Language of the app")} value={language} onChange={id => void setLanguage(id)} options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
   </Group>;
-}
-
-/** On a tablet: the WCA inspection's choices in place, on a card of their own. */
-function InspectionChoice({ className }: { className?: string }) {
-  const [inspection, setInspection] = useAtom(inspectionAtom);
-  return <View className={cn("rounded-2xl bg-card p-4", className)}>
-    <SheetChoice<Inspection> label={tr("WCA inspection")} columns={1} value={inspection} onChange={setInspection} options={INSPECTIONS.map(i => ({ id: i.id, label: tr(i.label) }))} />
-  </View>;
 }
 
 /** On a tablet: the app's languages in place, on a card of their own. */

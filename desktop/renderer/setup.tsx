@@ -103,7 +103,8 @@ export function TrainingSetup() {
   };
   return (
     <div className={PAGE} data-tour="training">
-      <PageHead title={tr("Training")} puzzle more={phone && <MenuAction action="auf" icon={Shuffle}>{tr("Random AUF")}{" "}{s.randomAuf ? tr("· on") : tr("· off")}</MenuAction>} />
+      {/* A desktop has the section's head above the page (shell.tsx). */}
+      {phone && <PageHead title={tr("Training")} puzzle more={<MenuAction action="auf" icon={Shuffle}>{tr("Random AUF")}{" "}{s.randomAuf ? tr("· on") : tr("· off")}</MenuAction>} />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-5">
         <div
           role={phone ? "navigation" : "radiogroup"}

@@ -44,10 +44,10 @@ async function solve(page: Page, ms = 150) {
 try {
   const a = await open(), b = await open();
   assert.equal(await a.locator("[data-sonner-toast]").count() + await b.locator("[data-sonner-toast]").count(), 0, "no tab waits for another");
-  // The Challenges open on their hub: a box per activity and no section tabs; each box opens its page, Back returns.
+  // The Challenges open on their hub: the duel, the daily and the tournaments; the section's rail beside it; each opens its page, Back returns.
   await a.waitForSelector(".challenges-hub");
-  assert.equal(await a.locator(".challenges-hub [data-hub]").count(), 3, "a box for the duel, the tournaments and the daily");
-  assert.equal(await a.locator('[data-action="nav:tournaments"]:visible').count(), 0, "no section tabs on a desktop");
+  assert.equal(await a.locator(".challenges-hub [data-hub]").count(), 3, "the duel, the tournaments and the daily");
+  assert.equal(await a.locator('nav[aria-label="Challenges"] [data-action="nav:tournaments"]').count(), 1, "the section's rail");
   assert.ok(await fits(a), "the hub fits the window");
   await a.screenshot({ path: `${SHOTS}/hub.png` });
   await a.locator('[data-hub="tournaments"]').click();

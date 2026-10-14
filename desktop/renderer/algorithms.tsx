@@ -4,7 +4,7 @@ import { casePlayItem, displayAlg, moveCount, shortId } from "../../src/client/l
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronLeft, ChevronRight, Filter, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
 import { store as s } from "./store";
 import { fmtTime } from "../../src/client/lib/format";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
@@ -144,9 +144,12 @@ function Catalog({ mobile }: { mobile: boolean }) {
   );
 }
 
-/** Every set of the puzzle under its step, each with its ring of cases learned; the chosen one lists its groups. */
+/** Every set of the puzzle under its step, each with its ring of cases learned; the chosen one lists its groups, folded
+ * and unfolded by a click on it again. */
 function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>["sections"]; active: string }) {
   const list = useRef<HTMLDivElement>(null);
+  // The set whose groups are folded; another set chosen opens unfolded.
+  const [folded, setFolded] = useState("");
   useEffect(() => {
     list.current?.querySelector("[aria-current]")?.scrollIntoView({ block: "nearest" });
   }, [active]);
@@ -159,28 +162,38 @@ function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>
             const cases = s.cases().filter((c: any) => c.set === set.id),
               learned = learnedOf(cases),
               on = set.id === active,
-              groups = on ? [...new Set(cases.map((c: any) => c.group))] : [];
+              groups = on ? [...new Set(cases.map((c: any) => c.group))] : [],
+              foldable = groups.length > 1,
+              open = foldable && folded !== set.id;
             return (
               <div key={set.id} className="flex flex-col gap-0.5">
-                <button type="button" data-action={"set:" + set.id} aria-current={on ? "page" : undefined} onClick={run("set:" + set.id)} className={cn(ROW, "flex h-10 w-full items-center gap-2.5 px-2.5")}>
+                <button type="button" data-action={"set:" + set.id} aria-current={on ? "page" : undefined} aria-expanded={foldable ? open : undefined}
+                  onClick={foldable ? () => setFolded(open ? set.id : "") : run("set:" + set.id)} className={cn(ROW, "flex h-10 w-full items-center gap-2.5 px-2.5")}>
                   <ProgressRing done={learned === cases.length && cases.length > 0} share={cases.length ? learned / cases.length : 0} />
                   <span className="min-w-0 flex-1 truncate text-[15px] font-bold">{said(set.label)}</span>
                   <span className={cn(NUMERIC, "text-xs font-semibold", learned === cases.length ? "text-success" : "text-muted-foreground")}>
                     {learned} / {cases.length}
                   </span>
+                  {foldable && <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", !open && "-rotate-90")} />}
                 </button>
-                {groups.length > 1 &&
-                  groups.map((group) => (
-                    <button
-                      key={group}
-                      type="button"
-                      onClick={() => jumpTo?.(groupId(set.id, group))}
-                      className={cn(ROW, "flex h-8 w-full items-center justify-between gap-2 pr-2.5 pl-9 text-sm text-muted-foreground hover:text-foreground")}
-                    >
-                      <span className="truncate">{tr(group)}</span>
-                      <span className={cn(NUMERIC, "text-xs")}>{cases.filter((c: any) => c.group === group).length}</span>
-                    </button>
-                  ))}
+                {open && (
+                  <div className="ml-[19px] flex flex-col gap-0.5 border-l border-border py-0.5 pl-2">
+                    {groups.map((group) => {
+                      const of = cases.filter((c: any) => c.group === group), done = learnedOf(of);
+                      return (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => jumpTo?.(groupId(set.id, group))}
+                          className={cn(ROW, "flex h-8 w-full items-center justify-between gap-2 px-2.5 text-sm text-muted-foreground hover:text-foreground")}
+                        >
+                          <span className="truncate">{tr(group)}</span>
+                          <span className={cn(NUMERIC, "text-xs", done === of.length && "text-success")}>{done} / {of.length}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

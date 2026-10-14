@@ -16,6 +16,8 @@ export interface JourneyProfile {
   priorityMethod?: string;
   /** The best single the player had on each known puzzle before Qbix, in milliseconds: optional. */
   bests?: Partial<Record<PuzzleId, number>>;
+  /** The 3×3 the player mains, from `CUBES_333` or typed: 60 characters at most. */
+  mainCube?: string;
   completedAt: string;
 }
 /** Entries other than the profile (personal goals, removed) are ignored. */
@@ -60,7 +62,7 @@ const validAt = (value: unknown) => typeof value === "string" && /^\d{4}-\d{2}-\
 export function validJourneyEntry(key: string, value: unknown): value is JourneyEntry {
   if (key !== PROFILE_KEY || !value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return v.kind === "profile" && (v.level === undefined || LEVEL_IDS.includes(v.level as Experience)) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
+  return v.kind === "profile" && (v.mainCube === undefined || typeof v.mainCube === "string" && !!v.mainCube.trim() && v.mainCube.length <= 60) && (v.level === undefined || LEVEL_IDS.includes(v.level as Experience)) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
     && Array.isArray(v.knownPuzzles) && v.knownPuzzles.length <= 11 && v.knownPuzzles.every(isPuzzle) && new Set(v.knownPuzzles).size === v.knownPuzzles.length
     && (v.priorityMethod === undefined || typeof v.priorityMethod === "string" && isPuzzle(v.priority) && METHODS[v.priority].some(m => m.id === v.priorityMethod))
     && (v.learningPuzzles === undefined || Array.isArray(v.learningPuzzles) && v.learningPuzzles.length <= 11 && v.learningPuzzles.every(isPuzzle) && new Set(v.learningPuzzles).size === v.learningPuzzles.length && (v.priority === null ? !v.learningPuzzles.length : v.learningPuzzles.includes(v.priority)))

@@ -25,6 +25,7 @@ import { StageAction, CARD_LINK, Fly, Gap, KICKER, LiveDot, NameTag, PanelHead, 
 import { community, matchUrl, type Conversation } from "./community/client";
 import { go } from "./navigation";
 import { FriendsDialog } from "./community/dialogs";
+import { DailyCard } from "./daily";
 import { relative } from "./coaching/parts";
 import { cn } from "@/lib/utils";
 import { VirtualList } from "./virtual";
@@ -147,6 +148,9 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
     tool(History, "History", "Races played", "duel:history", () => setOpen("history"), phone || hubbed),
   ];
   const level = duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level);
+  // The races played on this device, newest first, for the hub's record and list.
+  const played: DuelRecord[] = s.prefs[DUELS_KEY] ?? [],
+    count = (r: DuelRecord["result"]) => played.filter((b) => b.result === r).length;
   return (
     <div className={cn(PAGE, "duel-lobby")}>
       {phone && (
@@ -155,29 +159,54 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
         </PageHead>
       )}
       {hubbed ? (
-        <div className="challenges-hub grid min-h-0 flex-1 grid-cols-3 gap-5">
-          <HubBox
-            id="duel"
-            icon={Swords}
-            title={tr("Duel")}
-            value={searching ? clock(waited) : level}
-            label={searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}
-            tone={searching ? "accent" : undefined}
-            open={() => setHub(false)}
-            corner={tools.slice(1)}
-          >
+        <div className="challenges-hub grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] gap-5">
+          <Surface className="min-h-0 gap-5 p-6" aria-label={tr("Duel")}>
+            <div className="flex items-center gap-3">
+              <IconTile icon={Swords} />
+              <PanelHead title={tr("Duel")} className="min-w-0 flex-1" />
+              {tools.slice(1)}
+            </div>
+            {/* The level and the record; opens the duel's own page (the matching range). */}
+            <button type="button" {...opens(() => setHub(false), "link")} data-hub="duel" data-tour="duel" className={cn(CARD_LINK, "-m-2 flex flex-col gap-2.5 rounded-[18px] p-2 hover:bg-muted")}>
+              <span className={KICKER}>{searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}</span>
+              <b className={cn(NUMERIC, "text-[clamp(44px,5vw,72px)] leading-none font-extrabold tracking-[-0.05em]", searching && "text-primary")}>{searching ? clock(waited) : level}</b>
+              {played.length > 0 && <span className="max-w-sm"><Record won={count("win")} drawn={count("draw")} lost={count("loss")} /></span>}
+            </button>
             {duel.notice && <p className="text-sm text-balance text-destructive">{duel.notice}</p>}
-            {searching ? (
-              <Button action="duel:leave" icon={X} variant="secondary">
-                {tr("Cancel")}
-              </Button>
-            ) : (
-              <StageAction icon={Swords} title={tr("Face off")} data-action="duel:search" onClick={(e) => (setHub(false), run("duel:search")(e))} />
-            )}
-            {tools[0]}
-          </HubBox>
-          <TournamentsBox />
-          <DailyBox />
+            <div className="flex gap-2.5">
+              {searching ? (
+                <Button action="duel:leave" icon={X} variant="secondary" className="flex-1">
+                  {tr("Cancel")}
+                </Button>
+              ) : (
+                <UiButton className="flex-1" data-action="duel:search" onClick={(e) => (setHub(false), run("duel:search")(e))}>
+                  <Swords />
+                  {tr("Face off")}
+                </UiButton>
+              )}
+              {tool(Send, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends"), false)}
+            </div>
+            <div className="grid min-h-0 flex-1 grid-cols-2 gap-5">
+              <div className="flex min-h-0 flex-col gap-2.5">
+                <PanelHead title={tr("Races played")} meta={played.length || undefined} />
+                {played.length ? (
+                  <div className="-mx-1 flex min-h-0 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
+                    {played.slice(0, 8).map((b) => <RaceTicket key={b.id} b={b} />)}
+                  </div>
+                ) : (
+                  <Empty icon={Swords} title={tr("No race yet")} className="flex-1" />
+                )}
+              </div>
+              <div className="flex min-h-0 flex-col gap-2.5">
+                <PanelHead title={tr("Friends")} meta={community.me?.friends.length || undefined} />
+                <FriendList onChallenge={() => setOpen("friends")} onAdd={() => setAdding(true)} />
+              </div>
+            </div>
+          </Surface>
+          <div className="flex min-h-0 flex-col gap-5">
+            <DailyCard />
+            <TournamentsCard />
+          </div>
         </div>
       ) : (
         <Stage
@@ -223,64 +252,84 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
   );
 }
 
-/**
- * A box of the Challenges' hub: its icon and title, one figure large in the middle, its actions at the foot (the main
- * one filled), small buttons in its corner. The whole box opens its page; its buttons act on their own.
- */
-function HubBox({ id, icon, title, value, label, tone, open, corner, children }: { id: string; icon: typeof Swords; title: string; value: React.ReactNode; label: React.ReactNode; tone?: "accent" | "good"; open: () => void; corner?: React.ReactNode; children: React.ReactNode }) {
+/** The hub's Tournaments: the account's match to play first, then those under way; the whole card opens the page. */
+function TournamentsCard() {
+  useEffect(() => void community.load("tournaments"), []);
+  const list = community.tournaments,
+    shown = (list ?? []).filter((t) => t.myMatch || t.status === "running").sort((a, b) => Number(!!b.myMatch) - Number(!!a.myMatch)),
+    open = () => void s.action("nav:tournaments");
   return (
-    <Surface {...opens(open, "link")} aria-label={title} data-hub={id} data-tour={id === "duel" ? "duel" : undefined} className={cn(CARD_LINK, "relative items-center justify-between gap-6 p-7 text-center lg:p-9")}>
-      {corner && (
-        <div className="absolute top-4 right-4 flex gap-1" {...apart}>
-          {corner}
+    <Surface {...opens(open, "link")} aria-label={tr("Tournaments")} data-hub="tournaments" className={cn(CARD_LINK, "max-h-[45%] shrink-0 gap-3.5 p-5")}>
+      <div className="flex items-center gap-3">
+        <IconTile icon={Trophy} />
+        <PanelHead title={tr("Tournaments")} meta={list ? shown.length : undefined} className="min-w-0 flex-1" />
+      </div>
+      {!list ? (
+        <Skeleton className="h-14 rounded-[14px]" />
+      ) : shown.length ? (
+        <div className="-mx-1 flex min-h-0 flex-col gap-1.5 overflow-y-auto px-1" {...apart}>
+          {shown.map((t) => (
+            <div key={t.id} className={cn("flex items-center gap-3 rounded-[14px] px-3 py-2.5", t.myMatch ? "bg-primary/12" : "bg-muted")}>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <b className="truncate text-sm font-bold">{t.name}</b>
+                <span className={cn("truncate text-[13px]", t.myMatch ? "text-primary" : "text-muted-foreground")}>{t.myMatch ? tr("Your match") + " · " : ""}{said(roundName(t.round, t.rounds))}</span>
+              </span>
+              {t.myMatch ? (
+                <UiButton data-action="tournament:play" onClick={() => go(matchUrl(t.myMatch!))}>
+                  <Play />
+                  {tr("Play")}
+                </UiButton>
+              ) : (
+                <LiveDot />
+              )}
+            </div>
+          ))}
         </div>
+      ) : (
+        <Empty icon={Trophy} title={tr("Under way")} />
       )}
-      <div className="flex flex-col items-center gap-3">
-        <IconTile icon={icon} className="size-16 rounded-[20px] [&_svg]:size-7" />
-        <h2 className="text-[clamp(22px,2.2vw,30px)] leading-tight font-extrabold tracking-[-0.02em]">{title}</h2>
-      </div>
-      <div className="flex min-w-0 flex-col items-center gap-2">
-        <b className={cn(NUMERIC, "max-w-full text-[clamp(34px,4.2vw,60px)] leading-none font-extrabold tracking-[-0.04em] text-balance", tone === "accent" ? "text-primary" : tone === "good" && "text-success")}>{value}</b>
-        <span className="truncate text-[13px] font-semibold text-muted-foreground">{label}</span>
-      </div>
-      <div className="flex w-full flex-col items-center gap-2" {...apart}>
-        {children}
+      <div className="flex" {...apart}>
+        <UiButton variant="secondary" className="flex-1" data-action="tournaments:open" onClick={open}>
+          <Trophy />
+          {tr("Open")}
+        </UiButton>
       </div>
     </Surface>
   );
 }
 
-/** The hub's Tournaments box: the round of the account's match to play, else how many are under way. */
-function TournamentsBox() {
-  useEffect(() => void community.load("tournaments"), []);
-  const list = community.tournaments,
-    mine = list?.find((t) => t.myMatch),
-    open = () => void s.action("nav:tournaments");
+/** The friends on the hub, each a click from the challenge dialog; adding one last. */
+function FriendList({ onChallenge, onAdd }: { onChallenge: () => void; onAdd: () => void }) {
+  const signedIn = s.signedIn,
+    friends = community.me?.friends;
+  useEffect(() => {
+    if (signedIn && !community.me) void community.load("me");
+  }, [signedIn]);
+  if (!signedIn)
+    return (
+      <Empty icon={Users} title={tr("Challenge your friends")} className="flex-1">
+        <UiButton variant="outline" onClick={() => s.askSignIn()}>
+          {tr("Sign in")}
+        </UiButton>
+      </Empty>
+    );
+  if (!friends) return <Skeleton className="h-14 rounded-[14px]" />;
   return (
-    <HubBox
-      id="tournaments"
-      icon={Trophy}
-      title={tr("Tournaments")}
-      value={!list ? <Skeleton className="h-12 w-16" /> : mine ? said(roundName(mine.round, mine.rounds)) : list.filter((t) => t.status === "running").length}
-      label={mine ? tr("Your match") : tr("Under way")}
-      tone={mine ? "accent" : undefined}
-      open={open}
-    >
-      {mine ? <StageAction icon={Play} title={tr("Play")} data-action="tournament:play" onClick={() => go(matchUrl(mine.myMatch!))} /> : <StageAction icon={Trophy} title={tr("Open")} data-action="tournaments:open" onClick={open} />}
-    </HubBox>
-  );
-}
-
-/** The hub's Daily box: the time of today's attempt on the event (the 3×3's for one without a daily), or none yet; solving it, or its standing once made. */
-function DailyBox() {
-  const current = s.event().id,
-    event = isDailyEvent(current) ? current : "333",
-    done = s.dailyDone[`${dailyDay()}:${event}`],
-    open = () => void s.action("nav:daily");
-  return (
-    <HubBox id="daily" icon={CalendarDays} title={tr("Daily")} value={done ? fmtSolve(done.timeMs, done.penalty as Penalty) : "–"} label={done ? tr("Today") : tr("Not tried yet")} tone={done ? "good" : undefined} open={open}>
-      {done ? <StageAction icon={Trophy} title={tr("Standing")} data-action="daily:standing" onClick={open} /> : <StageAction icon={Play} title={tr("Solve")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />}
-    </HubBox>
+    <div className="-mx-1 flex min-h-0 flex-col gap-1.5 overflow-y-auto px-1">
+      {friends.map((f) => (
+        <div key={f.id} className="flex items-center gap-3 rounded-[14px] bg-muted px-3 py-2" data-friend={f.username}>
+          <Avatar name={f.username} src={f.avatar} size={30} />
+          <b className="min-w-0 flex-1 truncate text-sm font-bold">{f.username}</b>
+          <UiButton variant="secondary" onClick={onChallenge}>
+            {tr("Challenge")}
+          </UiButton>
+        </div>
+      ))}
+      <UiButton variant="ghost" className="justify-start text-muted-foreground" onClick={onAdd} data-action="duel:find-players">
+        <UserPlus />
+        {tr("Add a friend")}
+      </UiButton>
+    </div>
   );
 }
 
@@ -432,27 +481,30 @@ function Played() {
           scroller={scroller}
           estimate={60}
           rowKey={(b) => b.id}
-          row={(b, _, measure) => {
-            const [a, z] = roundsWon(b.mine, b.theirs),
-              [mine, theirs] = b.ao5;
-            return (
-              <Ticket
-                // Ticket hands `ref` to its root like its other attributes.
-                {...{ ref: measure }}
-                role="listitem"
-                result={b.result}
-                score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
-                name={said(b.opponent)}
-                level={shortEvent(b.event)}
-                sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
-                aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
-                className="hover:bg-muted"
-              />
-            );
-          }}
+          row={(b, _, measure) => <RaceTicket b={b} measure={measure} />}
         />
       </div>
     </div>
+  );
+}
+
+/** A race played, as a ticket: the score, the opponent and the event, when and the average, the gap. */
+function RaceTicket({ b, measure }: { b: DuelRecord; measure?: (element: HTMLElement | null) => void }) {
+  const [a, z] = roundsWon(b.mine, b.theirs),
+    [mine, theirs] = b.ao5;
+  return (
+    <Ticket
+      // Ticket hands `ref` to its root like its other attributes.
+      {...{ ref: measure }}
+      role="listitem"
+      result={b.result}
+      score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
+      name={said(b.opponent)}
+      level={shortEvent(b.event)}
+      sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
+      aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
+      className="hover:bg-muted"
+    />
   );
 }
 

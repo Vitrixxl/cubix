@@ -1,12 +1,12 @@
 import { useAtomValue } from "jotai";
-import { Sparkles } from "lucide-react-native";
+import { Sparkles, Trophy } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Animated, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { level } from "../../../src/client/lib/achievements";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { tr } from "../../../src/client/i18n";
+import { said, tr } from "../../../src/client/i18n";
 import { profileAchievementsAtom } from "../profile";
 import { timerRunningAtom, userAtom } from "../state";
 import { Numeric } from "./layout";
@@ -17,17 +17,19 @@ import { Numeric } from "./layout";
  */
 export function XpGain() {
   const insets = useSafeAreaInsets();
-  const xp = useAtomValue(profileAchievementsAtom)?.xp ?? null, owner = useAtomValue(userAtom)?.id ?? "", running = useAtomValue(timerRunningAtom);
-  const last = useRef<{ xp: number; owner: string } | null>(null);
-  const [gain, setGain] = useState<{ from: number; to: number } | null>(null);
+  const summary = useAtomValue(profileAchievementsAtom), xp = summary?.xp ?? null, owner = useAtomValue(userAtom)?.id ?? "", running = useAtomValue(timerRunningAtom);
+  // The XP and the achievements unlocked at the last reading, by id.
+  const last = useRef<{ xp: number; owner: string; earned: Set<string> } | null>(null);
+  // The gain, with the achievements unlocked that brought it.
+  const [gain, setGain] = useState<{ from: number; to: number; because: { title: string; xp: number }[] } | null>(null);
   const shown = useRef(new Animated.Value(0)).current, width = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (xp === null) return;
-    const before = last.current;
-    last.current = { xp, owner: String(owner) };
+    const before = last.current, unlocked = summary!.achievements.filter(a => a.unlocked);
+    last.current = { xp, owner: String(owner), earned: new Set(unlocked.map(a => a.id)) };
     if (!before || before.owner !== String(owner) || xp <= before.xp) return;
     const from = level(before.xp), to = level(xp), up = to.level > from.level;
-    setGain({ from: before.xp, to: xp });
+    setGain({ from: before.xp, to: xp, because: unlocked.filter(a => !before.earned.has(a.id)).map(a => ({ title: a.title, xp: a.xp ?? 0 })) });
     width.setValue(up ? 0 : from.into / from.span);
     Animated.sequence([
       Animated.timing(shown, { toValue: 1, duration: 300, useNativeDriver: false }),
@@ -52,6 +54,15 @@ export function XpGain() {
         <Animated.View className="h-full rounded-full bg-primary" style={{ width: width.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }} />
       </View>
       <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} / {1} XP", { 0: after.into.toLocaleString(), 1: after.span.toLocaleString() })}</Numeric>
+      {/* What brought it: the achievements unlocked, three at most. */}
+      {gain.because.length > 0 && <View className="gap-1 border-t border-border pt-2">
+        {gain.because.slice(0, 3).map(a => <View key={a.title} className="flex-row items-center gap-2">
+          <Icon as={Trophy} size={14} className="text-primary" />
+          <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] font-semibold">{said(a.title)}</Text>
+          <Numeric className="text-xs font-bold text-muted-foreground">{tr("+{0} XP", { 0: a.xp.toLocaleString() })}</Numeric>
+        </View>)}
+        {gain.because.length > 3 && <Text className="text-xs font-semibold text-muted-foreground">+{tr("{0} more", { 0: gain.because.length - 3 })}</Text>}
+      </View>}
     </Animated.View>
   </View>;
 }

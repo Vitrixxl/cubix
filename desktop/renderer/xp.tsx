@@ -1,6 +1,7 @@
 /** The account's level: its bar wherever it shows, and the one that rises from the bottom and fills when XP is earned. */
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Trophy } from "lucide-react";
+import { said } from "./base";
 import { store as s } from "./store";
 import { NUMERIC } from "./ui";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,19 @@ export function XpGain() {
         <span className={cn(NUMERIC, "text-xs font-bold text-muted-foreground")}>
           {tr("{0} / {1} XP", { 0: after.into.toLocaleString(), 1: after.span.toLocaleString() })}
         </span>
+        {/* What brought it: the achievements unlocked, three at most. */}
+        {gain.because.length > 0 && (
+          <ul className="flex flex-col gap-1 border-t border-border pt-2">
+            {gain.because.slice(0, 3).map(([title, gained]) => (
+              <li key={title} className="flex items-center gap-2 text-[13px]">
+                <Trophy className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate font-semibold">{said(title)}</span>
+                <span className={cn(NUMERIC, "text-xs font-bold text-muted-foreground")}>{tr("+{0} XP", { 0: gained.toLocaleString() })}</span>
+              </li>
+            ))}
+            {gain.because.length > 3 && <li className="text-xs font-semibold text-muted-foreground">+{tr("{0} more", { 0: gain.because.length - 3 })}</li>}
+          </ul>
+        )}
       </div>
     </div>
   );

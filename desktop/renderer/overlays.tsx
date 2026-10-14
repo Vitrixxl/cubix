@@ -1,6 +1,6 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
 import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
-import { Check, Compass, Download, GraduationCap, LogOut, Monitor, Moon, RotateCcw, Sun, Trash2 } from "lucide-react";
+import { Check, Compass, Download, GraduationCap, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
@@ -9,7 +9,6 @@ import { accents } from "./theme";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
-import { INSPECTIONS } from "../../src/client/lib/format";
 import { GUIDES, type Guide } from "../guides/pages";
 import { Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
 import { SessionSheet } from "./phone";
@@ -24,6 +23,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { CaseTile } from "./algorithms";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { language, tr } from "../../src/client/i18n";
 import { LanguagePicker, said } from "./base";
@@ -59,7 +59,7 @@ function Settings() {
       <section className="flex items-center gap-3 rounded-[20px] bg-muted p-3" aria-label={tr("Account")}>
         <Avatar name={s.user.username} size={44} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-base font-bold tracking-[-0.01em]">{s.user.username}</span>
+          {s.user.isGuest ? <span className="truncate text-base font-bold tracking-[-0.01em]">{s.user.username}</span> : <Username />}
           {joined && <span className="truncate text-xs text-muted-foreground">{tr("Joined")} {joined}</span>}
         </div>
         <Button action="logout" icon={LogOut} variant="ghost" className="text-muted-foreground hover:text-foreground">
@@ -101,11 +101,6 @@ function Settings() {
           ))}
         </SettingRow>
       </SettingGroup>
-      <SettingGroup title={tr("Timer")}>
-        <SettingRow label={tr("WCA inspection")}>
-          <Choice prefix="inspection:" label={tr("WCA inspection")} value={s.inspection} className="bg-muted" options={INSPECTIONS.map((i) => ({ id: i.id, label: tr(i.label) }))} />
-        </SettingRow>
-      </SettingGroup>
       <SettingGroup title={tr("Language")}>
         <SettingRow label={tr("Language of the app")}>
           <LanguagePicker className="w-40" />
@@ -123,6 +118,49 @@ function Settings() {
   );
 }
 
+
+/** The account's username, a pencil away from a new one. */
+function Username() {
+  const [draft, setDraft] = useState<string | null>(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || draft === null) return;
+    setBusy(true);
+    setError("");
+    try {
+      await s.rename(draft);
+      setDraft(null);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (draft === null)
+    return (
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate text-base font-bold tracking-[-0.01em]">{s.user.username}</span>
+        <Tip content={tr("Change username")}>
+          <UiButton variant="ghost" size="icon-sm" data-action="username:edit" aria-label={tr("Change username")} onClick={() => setDraft(s.user.username)} className="text-muted-foreground">
+            <Pencil />
+          </UiButton>
+        </Tip>
+      </span>
+    );
+  return (
+    <form onSubmit={save} className="flex flex-col gap-1.5">
+      <span className="flex items-center gap-1.5">
+        <Input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Escape" && (e.stopPropagation(), setDraft(null))}
+          aria-label={tr("Username")} maxLength={24} autoComplete="off" autoCapitalize="none" spellCheck={false} className="h-8 min-w-0 flex-1 bg-background" />
+        <UiButton type="submit" size="sm" disabled={busy || !draft.trim()} data-action="username:save">{tr("Save")}</UiButton>
+        <UiButton type="button" size="sm" variant="ghost" onClick={() => (setDraft(null), setError(""))}>{tr("Cancel")}</UiButton>
+      </span>
+      {error && <FieldError>{said(error)}</FieldError>}
+    </form>
+  );
+}
 
 /** The account's data: a copy to download, and the account deleted once confirmed. */
 function AccountData() {

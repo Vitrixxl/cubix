@@ -136,3 +136,41 @@ func TestSyncedSolveLimitsAndCompactReceipts(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// An account takes a new username: lower-cased, of the allowed characters, and never another account's.
+func TestUsernameChange(t *testing.T) {
+	db, err := dbOpen(filepath.Join(t.TempDir(), "cubix.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = db.Call(func(c *Conn) error {
+		if _, err := c.Exec("INSERT INTO users(id,username) VALUES('u','sam'),('v','lena')"); err != nil {
+			return err
+		}
+		state := &AppState{catalog: &Catalog{}}
+		rename := func(name string) (any, error) {
+			return apiRoute(c, state, "POST", "account/username", nil, M{"username": name}, &ApiCaller{user: M{"id": "u", "username": "sam"}})
+		}
+		got, err := rename(" Sam_Cubes ")
+		if err != nil || got.(M)["user"].(M)["username"] != "sam_cubes" {
+			t.Fatalf("renamed %v %v", got, err)
+		}
+		for _, bad := range []string{"LENA", "no spaces", "ab"} {
+			if _, err := rename(bad); err == nil {
+				t.Fatalf("%q was accepted", bad)
+			}
+		}
+		// Its own name again, in other letters, is no conflict.
+		if _, err := rename("SAM_cubes"); err != nil {
+			t.Fatal(err)
+		}
+		row, err := dbOne(c, "SELECT username FROM users WHERE id='u'")
+		if err != nil || row["username"] != "sam_cubes" {
+			t.Fatalf("stored %v %v", row, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

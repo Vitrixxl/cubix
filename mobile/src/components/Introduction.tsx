@@ -32,7 +32,7 @@ import { Logo } from "./Logo";
 import { PuzzleIcon } from "./PuzzlePicker";
 import { Sheet } from "./Sheet";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
-import { tr } from "../../../src/client/i18n";
+import { said, tr } from "../../../src/client/i18n";
 
 /** A step's content slides in a little from the side it comes from (forward: from the right) and fades in. */
 function StepTransition({ children, identity, direction = 1 }: { children: ReactNode; identity: string | number; direction?: number }) {
@@ -175,6 +175,8 @@ function Editor() {
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
   const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
   const [busy, setBusy] = useState(false), [error, setError] = useState(""), [importing, setImporting] = useState(false);
+  // The username Google's name gave the account, kept or changed on the welcome.
+  const user = useAtomValue(userAtom), [name, setName] = useState(user?.username ?? "");
   const go = (next: number) => { if (next < 0 || next > LAST) return; setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
   const cancel = () => { if (!busy) setIntro(null); };
   const save = async (changes: Journey, tour = false) => {
@@ -199,6 +201,12 @@ function Editor() {
       [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
     }, tour);
   };
+  const welcome = async () => {
+    if (busy) return;
+    if (!user || user.isGuest || name.trim() === user.username) return go(1);
+    setBusy(true); setError("");
+    try { await api.setUsername(name.trim()); go(1); } catch (e) { setError(said((e as Error).message)); } finally { setBusy(false); }
+  };
   const { title, sub } = STEPS[step]!;
   const tourNext = step === LAST && !existing;
   const actions = <>
@@ -214,7 +222,7 @@ function Editor() {
       </Button> : null}
       <View className="flex-1" />
       {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip the tour")}</Text></Button>}
-      <Button className="h-11" disabled={busy} onPress={() => step < LAST ? go(step + 1) : finish(!existing)}>
+      <Button className="h-11" disabled={busy} onPress={() => step === 0 ? void welcome() : step < LAST ? go(step + 1) : finish(!existing)}>
         <Text>{busy ? tr("Saving…") : step < LAST ? tr("Get started") : existing ? tr("Save") : tr("Start the tour")}</Text>
         {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
       </Button>
@@ -245,6 +253,10 @@ function Editor() {
                       <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(r.text)}</Text>
                     </View>
                   </View>)}
+                </View>}
+                {step === 0 && user && !user.isGuest && <View className="gap-1.5">
+                  <Text className="text-sm font-semibold text-muted-foreground">{tr("Username")}</Text>
+                  <Input value={name} onChangeText={setName} accessibilityLabel={tr("Username")} maxLength={24} autoCapitalize="none" autoCorrect={false} onSubmitEditing={() => void welcome()} />
                 </View>}
                 {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests} onImport={() => setImporting(true)}
                   onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}

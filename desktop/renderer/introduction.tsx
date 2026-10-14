@@ -53,13 +53,15 @@ function StepHead({ title }: { title: string }) {
   );
 }
 
-function Welcome() {
+/** The welcome: what the app does, and the username Google's name gave the account, to keep or change. */
+function Welcome({ name, onName }: { name: string; onName: (name: string) => void }) {
   const rows = [
     { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
     { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
     { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
   ];
   return (
+    <>
     <ol className="grid gap-2 sm:grid-cols-3 sm:gap-3" role="list">
       {rows.map((r, i) => (
         <Surface key={r.title} role="listitem" className="flex-row items-center gap-3 px-4 py-3 sm:flex-col sm:items-start sm:gap-4 sm:p-5">
@@ -74,6 +76,11 @@ function Welcome() {
         </Surface>
       ))}
     </ol>
+    <label className="flex max-w-sm flex-col gap-1.5">
+      <span className="text-sm font-semibold text-muted-foreground">{tr("Username")}</span>
+      <Input value={name} onChange={(e) => onName(e.target.value)} data-slot="journey-username" maxLength={24} autoComplete="off" autoCapitalize="none" spellCheck={false} />
+    </label>
+    </>
   );
 }
 
@@ -216,6 +223,7 @@ export function Onboarding() {
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
   const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
   const [saving, setSaving] = useState(false), [error, setError] = useState("");
+  const [name, setName] = useState(s.user.username);
   const owner = s.user.id;
   const reduced = useReducedMotion();
   const goTo = (next: number) => {
@@ -245,7 +253,13 @@ export function Onboarding() {
       s.overlay = tour ? "tour" : ""; s.emit();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
-  const advance = () => (step < LAST ? goTo(step + 1) : void finish(!existing));
+  // The welcome keeps the username, or takes the new one before going on.
+  const rename = async () => {
+    if (name.trim() === s.user.username) return goTo(1);
+    setSaving(true); setError("");
+    try { await s.rename(name); goTo(1); } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
+  };
+  const advance = () => (step === 0 ? void rename() : step < LAST ? goTo(step + 1) : void finish(!existing));
   // Enter continues, as in a form: from the page, a heading, a choice card or a tile, never from a button or field.
   const onKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -262,7 +276,7 @@ export function Onboarding() {
   };
   const methods = (p: PuzzleId, next: string[]) => setKnownMethods((v) => ({ ...v, [p]: next }));
   const content = [
-    <Welcome />,
+    <Welcome name={name} onName={setName} />,
     <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethods={methods} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
     // Imported puzzles are solved ones: they join the known puzzles.
     <ImportTimes onImported={(puzzles) => setKnown((v) => [...v, ...puzzles.filter((p) => !v.includes(p))])} />,

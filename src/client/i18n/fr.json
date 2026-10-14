@@ -3779,5 +3779,8 @@
  "Apply": "Postuler",
  "Reschedule": "Décaler",
  "Add friend": "Ajouter",
- "A friend or a group": "Un ami ou un groupe"
+ "A friend or a group": "Un ami ou un groupe",
+ "Change username": "Changer de nom d'utilisateur",
+ "This username is taken.": "Ce nom d'utilisateur est déjà pris.",
+ "Main cube": "Cube principal"
 }

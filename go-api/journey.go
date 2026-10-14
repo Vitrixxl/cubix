@@ -4,6 +4,8 @@ package main
 
 import (
 	_ "embed"
+	"strings"
+	"unicode/utf8"
 )
 
 //go:embed embed/method-ids.json
@@ -150,6 +152,13 @@ func journeyPut(db *Conn, uid string, body any) (any, error) {
 			if !contains(known, puzzle) || !ok || n < 1 || n >= 86_400_000 {
 				return nil, validation()
 			}
+		}
+	}
+	// The 3×3 the player mains: any name, 60 characters at most.
+	if cube, ok := get(v, "mainCube"); ok {
+		name, ok := asStr(cube)
+		if !ok || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 60 {
+			return nil, validation()
 		}
 	}
 	// Separate statements keep the change-feed trigger's REPLACE policy effective on updates.

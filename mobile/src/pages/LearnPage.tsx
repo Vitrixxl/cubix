@@ -649,7 +649,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
     if (list.length) result.push([tr("Algorithms"), list.map((a): Piece => {
       const id = algId(step, a), algs = [a.alg, ...(a.alternatives ?? [])];
       return {
-        key: id, name: a.name, sub: a.detail, note: a.note, algs, mine: [], learned: entry.learned.includes(id), group: tr("Algorithms"), own: a,
+        key: id, name: a.name, sub: a.detail && tr(a.detail), note: a.note, algs, mine: [], learned: entry.learned.includes(id), group: tr("Algorithms"), own: a,
         play: size || isPolyPuzzle(puzzle) ? { key: id, name: a.name, detail: a.detail, context: step.title, algs, note: a.note, size: size ?? 0, mask: step.mask ?? "full", setup: a.setup, puzzle: isPolyPuzzle(puzzle) ? puzzle : undefined } : undefined,
       };
     })]);

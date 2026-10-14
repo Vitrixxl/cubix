@@ -497,6 +497,14 @@ export function createLocalClient(options: {
       write("user",GUEST); options.clearToken(); report("local"); notify();
       return { ok:true };
     },
+    /** The account's new username, kept on this device once the server took it. Throws the server's message. */
+    setUsername: async (username: string) => {
+      const token = options.getToken();
+      if (current().isGuest || !token) throw new Error("Sign in first.");
+      const { user } = await options.remote(token).setUsername(username);
+      write("user",{ ...current(), ...user }); notify();
+      return user;
+    },
     logout: async () => {
       const token = options.getToken();
       write("user",GUEST); options.clearToken(); report("local"); notify();

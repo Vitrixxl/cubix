@@ -104,7 +104,7 @@ export async function act(page: Page, action: string) {
 /** The actions of the account menu (shell.tsx). */
 const ACCOUNT_MENU = ["settings", "help", "notation", "importTimes", "smartCube", "logout", "nav:login"];
 /** The pages' shortcuts (app.tsx). */
-const NAV_KEYS: Record<string, string> = { "nav:playground": "1", "nav:algorithms": "2", "nav:learn": "3", "nav:training": "4", "nav:duel": "5", "nav:tournaments": "6", "nav:community": "7", "nav:coaching": "8", "nav:analysis": "9" };
+const NAV_KEYS: Record<string, string> = { "nav:playground": "1", "nav:learn": "2", "nav:training": "3", "nav:algorithms": "4", "nav:duel": "5", "nav:tournaments": "6", "nav:community": "7", "nav:coaching": "8", "nav:analysis": "9" };
 
 /** Waits for a scramble on the practice page. */
 export const scrambled = (page: Page) =>

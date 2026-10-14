@@ -1,6 +1,6 @@
 /** The frame around the pages: the header with the five sections on a desktop, the tab bar on phones. */
 import { memo, useSyncExternalStore } from "react";
-import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, ChevronDown, Coffee, GraduationCap, LogIn, LogOut, Settings, Swords, Timer, Upload, UserRound, type LucideIcon } from "lucide-react";
+import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, CalendarDays, ChevronDown, Coffee, Gauge, GraduationCap, LogIn, LogOut, MessageSquare, Presentation, Settings, Swords, Target, Timer, Trophy, Upload, UserRound, Users, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -25,12 +25,12 @@ type Page = [page: string, label: string, shortcut: string];
 /**
  * The five sections, each with its pages: the timer (and the analysis of the smart cube solves), learning (the courses
  * and the drills), the algorithms, the challenges (duels, tournaments) and the player's own pages (profile, messages,
- * coaching). The Alt shortcuts keep their former numbers.
+ * coaching). The Alt shortcuts follow their order.
  */
 export const SECTIONS: { id: string; label: string; short: string; icon: LucideIcon; pages: Page[] }[] = [
   { id: "timer", label: "Timer", short: "Timer", icon: Timer, pages: [["playground", "Timer", "Alt+1"], ["analysis", "Analysis", "Alt+9"]] },
-  { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["learn", "Courses", "Alt+3"], ["training", "Training", "Alt+4"]] },
-  { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+2"]] },
+  { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["learn", "Courses", "Alt+2"], ["training", "Training", "Alt+3"]] },
+  { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+4"]] },
   { id: "compete", label: "Challenges", short: "Challenges", icon: Swords, pages: [["duel", "Duel", "Alt+5"], ["tournaments", "Tournaments", "Alt+6"], ["daily", "Daily", ""]] },
   { id: "me", label: "Me", short: "Me", icon: UserRound, pages: [["profile", "Profile", ""], ["community", "Messages", "Alt+7"], ["people", "Community", ""], ["coaching", "Coaching", "Alt+8"]] },
 ];
@@ -281,7 +281,7 @@ function SignIn() {
 
 /**
  * Desktop navigation, across the top: the brand, the five sections by name (the current one underlined in the
- * accent), the pages of the current section on wide windows, then the puzzle and the account on the right.
+ * accent), then the puzzle and the account on the right; the current section's pages are under it, at the head of the page (`SectionBar`).
  */
 export const Header = memo(function Header() {
   useShell();
@@ -315,7 +315,6 @@ export const Header = memo(function Header() {
           );
         })}
       </nav>
-      <SectionTabs className="hidden pl-3 2xl:flex" />
       <div className="ml-auto flex items-center gap-2.5">
         {/* Support for the app, in plain view: the app is free, a coffee keeps it going. */}
         <Tip content={tr("Buy me a coffee")}>
@@ -341,10 +340,52 @@ export const Header = memo(function Header() {
   );
 });
 
-/** Under the header, the current section's pages on windows too narrow to hold them beside the sections. */
-export function NarrowSectionTabs() {
-  return <SectionTabs className="shrink-0 px-6 pb-2 lg:px-9 2xl:hidden" />;
-}
+/** Each page's icon in its section's rail. */
+const PAGE_ICONS: Record<string, LucideIcon> = {
+  playground: Timer, analysis: Gauge, learn: GraduationCap, training: Target, duel: Swords, tournaments: Trophy, daily: CalendarDays,
+  profile: UserRound, community: MessageSquare, people: Users, coaching: Presentation,
+};
+
+/**
+ * Desktop, at the head of the page: the current section's name, then its pages as tabs, each with its icon and what
+ * waits there, the current one underlined in the accent like the sections above (none for a section of one page).
+ */
+export const SectionBar = memo(function SectionBar() {
+  useShell();
+  const section = currentSection(),
+    here = currentPage();
+  if (!section || section.pages.length < 2) return null;
+  return (
+    <div className={cn("mx-6 flex shrink-0 items-end gap-7 border-b border-border lg:mx-9", FADE)}>
+      <h1 className="pb-2.5 text-[30px] leading-tight font-extrabold tracking-[-0.04em]">{said(section.label)}</h1>
+      <nav aria-label={said(section.label)} className="flex items-center gap-1">
+        {section.pages.map(([page, label, shortcut]) => {
+          const I = PAGE_ICONS[page] ?? section.icon,
+            n = waiting[page]?.() ?? 0;
+          return (
+            <Link
+              key={page}
+              to={pageTo(page)}
+              data-action={"nav:" + page}
+              aria-current={here === page ? "page" : undefined}
+              aria-keyshortcuts={shortcut || undefined}
+              title={shortcut ? `${tr(label)} · ${shortcut}` : undefined}
+              className={cn(
+                "group/tab relative flex items-center gap-2 rounded-xl px-3.5 pt-2 pb-3.5 text-base font-bold text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground",
+                "after:absolute after:inset-x-3.5 after:-bottom-px after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100",
+                FOCUS,
+              )}
+            >
+              <I className="size-[18px] shrink-0 group-aria-[current=page]/tab:text-primary" />
+              {said(label)}
+              {n > 0 && <span data-slot={page + "-unread"} className="rounded-md bg-primary px-1.5 text-[11px] leading-[18px] text-primary-foreground tabular-nums">{n}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
+});
 
 /** Phones, above the page: the current section's pages; in the player's own section, their account's menu beside them. */
 export const PhoneTop = memo(function PhoneTop() {

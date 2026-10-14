@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { TOUR_STEPS, journeyProfile, type Journey } from "../../src/client/lib/journey";
 import { mockLucide } from "../tests/lucide-mock";
 
-const account = { id: "native-user", isGuest: false };
+const account = { id: "native-user", username: "native_user", isGuest: false };
 const userAtom = atom(account), statsVersionAtom = atom(0), eventAtom = atom("333"), puzzleAtom = atom("333"), scrambleTypeAtom = atom("normal"), replaceRouteAtom = atom({ page: "playground" });
 const routeAtom = atom({ page: "playground" }), courseProgressAtom = atom({ methods: {}, courses: {} });
 const trainingStepAtom = atom("setup"), trainingSetupModeAtom = atom("");

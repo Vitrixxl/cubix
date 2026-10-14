@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Bluetooth, CalendarDays, ChevronDown, Copy, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
+import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
@@ -51,7 +51,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const { height, tablet, wide } = useLayout();
   const info = puzzleInfo(context.puzzle);
   const entry = useAtomValue(timeEntryAtom);
-  const inspection = useAtomValue(inspectionAtom);
+  const [inspection, setInspection] = useAtom(inspectionAtom);
   const figureIds = useAtomValue(timerFiguresAtom);
   const openSheet = useSetAtom(sessionSheetAtom), openGuide = useSetAtom(guidesAtom);
   const [saving, setSaving] = useState(false);
@@ -151,6 +151,8 @@ function TimerSession({ context }: { context: PracticeContext }) {
             {/* A phone's bar has room for one: the sheet of the settings (puzzle, scramble, entry, inspection); its calendar is in the times' sheet. */}
             {tablet ? <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
               : <HeadButton icon={SlidersHorizontal} label={tr("Puzzle and scramble")} onPress={() => openSheet("timer")} />}
+            {/* The WCA inspection on the timer itself, on or off (spoken and on screen); its other ways in the sheet. */}
+            {!tablet && !blind && !typing && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? "both" : "off")} />}
             <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
           </AppBar>
           <SectionTabs />

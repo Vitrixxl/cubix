@@ -6,6 +6,8 @@ import React, { useEffect, useMemo, useRef, useState, type RefObject } from "rea
 import type { Virtualizer } from "@tanstack/react-virtual";
 import {
   BookOpen,
+  Box,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -13,11 +15,13 @@ import {
   Gauge,
   LogOut,
   NotebookPen,
+  Plus,
   Settings,
   Sheet,
   Swords,
   Trophy,
   Upload,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { store as s } from "../store";
@@ -31,7 +35,11 @@ import {
 } from "../../../src/client/lib/profile";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
 import { METHODS } from "../../../src/shared/methods";
-import { journeyProfile } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, journeyProfile } from "../../../src/client/lib/journey";
+import { CUBES_333 } from "../../../src/shared/cubes";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { toast } from "sonner";
 import { LevelBar } from "../xp";
 import { VirtualList } from "../virtual";
 import {
@@ -128,6 +136,7 @@ export function IdentityCard() {
           )}
         </div>
       </div>
+      <MainCube />
       <Level />
       <div className="grid grid-cols-2 gap-1.5">
         <Button
@@ -178,6 +187,63 @@ export function IdentityCard() {
         </Button>
       </div>
     </Surface>
+  );
+}
+
+/** The 3×3 they main, in a row under the name: a search among the known cubes, or any name typed; saved with their setup. */
+function MainCube() {
+  const profile = journeyProfile(s.journey),
+    [open, setOpen] = useState(false),
+    [query, setQuery] = useState("");
+  if (!profile) return null;
+  const typed = query.trim().slice(0, 60),
+    words = typed.toLowerCase().split(/\s+/).filter(Boolean),
+    found = CUBES_333.filter((name) => words.every((word) => name.toLowerCase().includes(word)));
+  async function save(name: string) {
+    const { mainCube: _, ...rest } = profile!;
+    setOpen(false);
+    setQuery("");
+    try {
+      await s.updateJourney({ [PROFILE_KEY]: name ? { ...rest, mainCube: name } : rest });
+    } catch (reason) {
+      toast.error(said((reason as Error).message));
+    }
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<UiButton variant="ghost" data-action="mainCube:edit" className="justify-start bg-muted text-muted-foreground hover:bg-accent hover:text-foreground" />}>
+        <Box />
+        <span className="text-muted-foreground">{tr("Main cube")}</span>
+        <span className="min-w-0 flex-1 truncate text-left font-bold text-foreground">{profile.mainCube ?? "—"}</span>
+        <ChevronDown />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-0">
+        {/* Filtered here, in the list's order, the name typed last. */}
+        <Command shouldFilter={false}>
+          <CommandInput value={query} onValueChange={setQuery} placeholder="GAN 16 3x3 Max" maxLength={60} />
+          <CommandList>
+            {found.map((name) => (
+              <CommandItem key={name} value={name} onSelect={() => void save(name)} data-checked={name === profile.mainCube ? "true" : undefined}>
+                {name}
+              </CommandItem>
+            ))}
+            {/* A cube the list does not know, kept as typed. */}
+            {typed && !CUBES_333.some((name) => name.toLowerCase() === typed.toLowerCase()) && (
+              <CommandItem value={"typed:" + typed} onSelect={() => void save(typed)}>
+                <Plus />
+                {typed}
+              </CommandItem>
+            )}
+            {profile.mainCube && !typed && (
+              <CommandItem value="remove:" onSelect={() => void save("")} className="text-muted-foreground">
+                <X />
+                {tr("Remove")}
+              </CommandItem>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 

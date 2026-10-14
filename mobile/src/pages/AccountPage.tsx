@@ -1,11 +1,15 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Flame, Gauge, History, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, ChartLine, Check, Pencil, ChevronLeft, ChevronRight, Flame, Gauge, History, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtTime, plural, shortDate } from "../../../src/client/lib/format";
 import { achievementLists, dayKey, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
 import { level } from "../../../src/client/lib/achievements";
-import { journeyProfile } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, journeyProfile, type JourneyProfile } from "../../../src/client/lib/journey";
+import { CUBES_333 } from "../../../src/shared/cubes";
+import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { api } from "../api";
 import { METHODS } from "../../../src/shared/methods";
 import { eventInfo, eventLabel, eventOf, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementDto } from "../../../src/shared/types";
@@ -114,8 +118,9 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
   const journey = useAtomValue(journeyAtom);
   const xp = useAtomValue(profileAchievementsAtom)?.xp ?? 0, l = level(xp);
   // The 3×3 method they solve with, the latest one they know.
-  const method = METHODS["333"].find(m => m.id === journeyProfile(journey)?.knownMethods?.["333"]?.at(-1));
+  const profile = journeyProfile(journey), method = METHODS["333"].find(m => m.id === profile?.knownMethods?.["333"]?.at(-1));
   const streak = d?.streak.current ?? 0;
+  const [cube, setCube] = useState(false);
   return <View className={cn("gap-2.5", size && "gap-3 rounded-3xl bg-card p-4")}>
     <View className={cn("flex-row items-center gap-3", size === "large" && "gap-4")}>
       <UserAvatar user={user} size={size === "large" ? 88 : 64} className={size === "large" ? "rounded-3xl" : "rounded-[20px]"} />
@@ -128,7 +133,12 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
             <Numeric className={cn("text-xs font-bold", streak ? "text-warning" : "text-muted-foreground")}>{tr("{0} d", { 0: streak })}</Numeric>
           </Pressable>
         </View>
-        {method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
+        {/* The method they solve with, and the 3×3 they main, a tap away from another. */}
+        {profile ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Main cube")} accessibilityValue={profile.mainCube ? { text: profile.mainCube } : undefined} onPress={() => setCube(true)}
+          className="min-h-6 flex-row items-center gap-1.5 self-start">
+          <Text numberOfLines={1} className="min-w-0 shrink text-[13px] text-muted-foreground">{[method && said(method.name), profile.mainCube ?? tr("Main cube")].filter(Boolean).join(" · ")}</Text>
+          <Icon as={Pencil} size={12} className="text-muted-foreground" />
+        </Pressable> : method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
         <View className="flex-row items-baseline justify-between gap-2" accessibilityLabel={tr("{0} XP in all", { 0: xp.toLocaleString() })}>
           <Text className="text-[13px] font-bold">{tr("Level {0}", { 0: l.level })}</Text>
           <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} / {1} XP", { 0: l.into.toLocaleString(), 1: l.span.toLocaleString() })}</Numeric>
@@ -136,7 +146,34 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
         <Bar ratio={l.into / l.span} className="h-1.5" />
       </View>
     </View>
+    {profile && <MainCubeSheet key={String(cube)} open={cube} onClose={() => setCube(false)} profile={profile} />}
   </View>;
+}
+
+/** The 3×3 they main: the known cubes filtered as they type, a tap saving one; Save keeps any other name as typed. */
+function MainCubeSheet({ open, onClose, profile }: { open: boolean; onClose: () => void; profile: JourneyProfile }) {
+  const [query, setQuery] = useState(profile.mainCube ?? ""), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const q = query.trim().toLowerCase(), matches = CUBES_333.filter(name => name.toLowerCase().includes(q)).slice(0, 40);
+  const save = async (name: string) => {
+    if (busy) return;
+    const { mainCube: _, ...rest } = profile, chosen = name.trim().slice(0, 60);
+    setBusy(true); setError("");
+    try { await api.updateJourney({ [PROFILE_KEY]: chosen ? { ...rest, mainCube: chosen } : rest }); onClose(); }
+    catch (e) { setError(said((e as Error).message)); } finally { setBusy(false); }
+  };
+  return <Sheet open={open} onClose={onClose} title={tr("Main cube")} scroll contentClassName="gap-2">
+    <Input value={query} onChangeText={setQuery} accessibilityLabel={tr("Main cube")} placeholder="GAN 16 3x3 Max" maxLength={60} autoCapitalize="none" autoCorrect={false} onSubmitEditing={() => void save(query)} />
+    {error ? <Alert variant="destructive">{error}</Alert> : null}
+    <View className="flex-row justify-end gap-2">
+      {profile.mainCube ? <Button variant="ghost" disabled={busy} onPress={() => void save("")}><Text>{tr("Remove")}</Text></Button> : null}
+      <Button disabled={busy || !query.trim()} onPress={() => void save(query)}><Text>{tr("Save")}</Text></Button>
+    </View>
+    {matches.map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: name === profile.mainCube }} disabled={busy} onPress={() => void save(name)}
+      className="min-h-11 flex-row items-center justify-between gap-2 rounded-xl px-3 active:bg-muted">
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{name}</Text>
+      {name === profile.mainCube && <Icon as={Check} size={16} className="text-primary" />}
+    </Pressable>)}
+  </Sheet>;
 }
 
 /**

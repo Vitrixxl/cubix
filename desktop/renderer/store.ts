@@ -128,7 +128,10 @@ export class Store {
   xp: number | null = null;
   unlocked = { count: 0, total: 0 };
   xpOwner = "";
-  xpGain: { from: number; to: number; at: number } | null = null;
+  /** The last gain of XP, with the achievements unlocked that brought it: [title, XP]. */
+  xpGain: { from: number; to: number; at: number; because: [string, number][] } | null = null;
+  /** The achievements unlocked at the last snapshot, by id. */
+  earned = new Set<string>();
   caseHistory: any = null;
   /** The engine's tokens of the figures held: unchanged ones are not sent again. */
   known: Record<string, number> = {};
@@ -485,6 +488,12 @@ export class Store {
     this.overlay = "signin";
     this.emit();
   }
+  /** The account's new username (the settings, the introduction). Throws the server's message. */
+  async rename(name: string) {
+    const user = await call("setUsername", name.trim());
+    this.user = { ...this.user, ...user };
+    this.emit();
+  }
   /** Signs in with Google's credential (`google`) or a username on a dev server (`devLogin`), the account created the
    * first time; this device's times join it. Throws the API's message. */
   async authenticate(method: "google" | "devLogin", value: string) {
@@ -608,9 +617,11 @@ export class Store {
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
       if (v.progress) {
-        const { xp, unlocked, total } = v.progress;
+        const { xp, unlocked, total, earned } = v.progress as { xp: number; unlocked: number; total: number; earned: [string, string, number][] };
         // A gain of the same account only: signing in to another one is no gain.
-        if (this.xp !== null && this.xpOwner === String(this.user.id) && xp > this.xp) this.xpGain = { from: this.xp, to: xp, at: Date.now() };
+        if (this.xp !== null && this.xpOwner === String(this.user.id) && xp > this.xp)
+          this.xpGain = { from: this.xp, to: xp, at: Date.now(), because: earned.filter(([id]) => !this.earned.has(id)).map(([, title, gained]) => [title, gained]) };
+        this.earned = new Set(earned.map(([id]) => id));
         this.xp = xp;
         this.unlocked = { count: unlocked, total };
         this.xpOwner = String(this.user.id);
@@ -1315,16 +1326,20 @@ export class Store {
           setTimeout(() => URL.revokeObjectURL(url), 10_000);
           break;
         }
-        // The account was deleted (Settings): this device goes back to a guest, as after signing out, the sign-in dialog open.
+        // The account was deleted (Settings): this device goes back to a guest, as after signing out, the sign-in dialog open;
+        // `guest`, from the dialog of an ended session, signs out to the page in view.
         case "accountDeleted":
         case "logout":
-          if (kind === "logout") await call("logout");
+        case "guest":
+          // A page of an account would ask a guest for one again: leave it first.
+          if (kind === "guest" && ACCOUNT_PAGES.includes(this.page)) go("/timer", true);
+          if (kind !== "accountDeleted") await call("logout");
           this.user = { isGuest: true, username: msg("Guest") };
           this.expired = false;
           this.overlay = "";
           this.sessions.clear();
           this.profileMode = "overview";
-          go("/login", true);
+          if (kind !== "guest") go("/login", true);
           await this.refresh();
           break;
         case "profilePuzzle": {

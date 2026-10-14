@@ -119,7 +119,8 @@ function Methods() {
   };
   return (
     <div className={PAGE}>
-      <PageHead title={tr("Learn")} puzzle />
+      {/* A desktop has the section's head above the page (shell.tsx). */}
+      {phone && <PageHead title={tr("Learn")} puzzle />}
       <div className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-5">
         {(phone ? hero : chosen) && <HeroCourse puzzle={puzzle} row={(phone ? hero : chosen)!} />}
         <div

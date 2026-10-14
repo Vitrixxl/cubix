@@ -34,6 +34,7 @@ mock.module("../src/api", () => ({ api: { setLearned: async () => {} }, authToke
 } }));
 mock.module("expo-keep-awake", () => ({ useKeepAwake() {} }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: "CaseDiagram" }));
+mock.module("../src/components/AlgPlayer", () => ({ PlayerCube: "PlayerCube", useAlgPlayer: () => null }));
 mock.module("../src/components/CaseSelector", () => ({ CaseSelector: "CaseSelector" }));
 mock.module("../src/components/CrossPractice", () => ({ CrossPractice: "CrossPractice" }));
 mock.module("../src/components/SlideSwitch", () => ({ SlideSwitch: ({ children }: any) => createElement(Fragment, {}, children) }));

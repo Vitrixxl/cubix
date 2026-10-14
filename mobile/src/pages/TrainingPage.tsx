@@ -33,7 +33,8 @@ import {
 } from "../components/TrainingSetup";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
-import { executableAlg, maskForStage } from "../lib/caseState";
+import { executableAlg, hintsForStage, maskForStage } from "../lib/caseState";
+import { PlayerCube, useAlgPlayer } from "../components/AlgPlayer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import {
   casesAtom, crossTargetAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, solveModeAtom,
@@ -447,7 +448,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
       </View>
       : <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={next} className="min-h-0 flex-1 items-center justify-center gap-6 px-4">
         {c && (cube && !c.diagram
-          ? <CubePreview key={"cube" + state.done} alg={combineAuf(c.setup, state.auf)} cube={cube} size={size} mask={maskForStage(c.stage)} view={!back && viewForStage(c.stage) === "top" ? "iso" : viewForStage(c.stage)} />
+          ? <RecognitionCube key={"cube" + state.done} setup={combineAuf(c.setup, state.auf)} cube={cube} size={size} stage={c.stage} hints={back && hintsForStage(c.stage)} />
           : <CaseDiagram c={c} size={size} />)}
         <Countdown key={"bar" + state.done} seconds={seconds} onDone={next} width={tablet ? size : undefined} />
       </Pressable>}
@@ -455,6 +456,14 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
       <Chip icon={X} onPress={() => setState(s => ({ ...s, phase: "closed" }))} className={tablet ? "h-12 px-5" : undefined}>{tr("Close")}</Chip>
     </View>}
   </View>;
+}
+
+/** A case in 3D, as the web's recognition shows it, its last layer's hidden stickers floating behind it with `hints`;
+ * still, a tap going through to the run. */
+function RecognitionCube({ setup, cube, size, stage, hints }: { setup: string; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
+  const player = useAlgPlayer("", cube, maskForStage(stage), { setup, hints });
+  return player ? <View pointerEvents="none"><PlayerCube player={player} size={size} /></View>
+    : <CubePreview alg={setup} cube={cube} size={size} mask={maskForStage(stage)} view={viewForStage(stage)} />;
 }
 
 /** A bar running out over `seconds`, then `onDone`; `width` sets it under the case on a tablet. */

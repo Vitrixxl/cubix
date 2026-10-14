@@ -44,6 +44,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     learnedCases: () => request<string[]>("/learned"),
     /** The account and everything it holds, for good. */
     deleteAccount: () => request<{ ok: true }>("/account/delete", "POST", {}, undefined, true),
+    /** The account's new username: 3–24 letters, numbers or underscores, no other account's. */
+    setUsername: (username: string) => request<{ user: UserDto }>("/account/username", "POST", { username }),
     setLearned: (caseId: string, learned: boolean, algs?: string[]) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}) }),
     algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
     /** The app's socket (owned by src/client/live.ts): incremental account sync over it, durable uploads falling back

@@ -48,3 +48,10 @@ test("a puzzle stays locked until it can be solved, and a level is no longer req
   // Skipping the tutorial adds the puzzle without a method; an unknown method is ignored.
   expect(withKnownPuzzle(profile, "222", "nope")).toEqual({ ...profile, knownPuzzles: ["333", "222"] });
 });
+
+test("the main cube is any name of 1 to 60 characters", () => {
+  const profile = { kind: "profile", knownPuzzles: ["333"], priority: null, completedAt: AT };
+  expect(validJourneyEntry("profile", { ...profile, mainCube: "GAN 16 3x3 Max" })).toBe(true);
+  expect(validJourneyEntry("profile", { ...profile, mainCube: "  " })).toBe(false);
+  expect(validJourneyEntry("profile", { ...profile, mainCube: "x".repeat(61) })).toBe(false);
+});

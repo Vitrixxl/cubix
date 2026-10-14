@@ -4,11 +4,12 @@
  * histogram on the right with the player's bar raised. The same standing in a dialog after the solve.
  */
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, CalendarDays, History, Play, Undo2 } from "lucide-react";
+import { BadgeCheck, CalendarDays, History, Play, Trophy, Undo2 } from "lucide-react";
 import { store as s } from "./store";
 import { call } from "./bridge";
 import { Alg, Back, Button, Empty, Modal, NUMERIC, PAGE, PageHead, Segmented, Surface, Tip, isPhone, useViewport } from "./ui";
-import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, opens } from "./tournaments/format";
+import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, apart, opens } from "./tournaments/format";
+import { IconTile } from "./base";
 import { cn } from "@/lib/utils";
 import { VirtualList } from "./virtual";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +96,49 @@ function DailyChart({ board, place }: { board: DailyBoard; place: DailyPlace | n
         );
       })}
     </figure>
+  );
+}
+
+/**
+ * The Challenges' hub's Daily (duel.tsx): today's scramble, the field so far with the player's bar, then Solve, or the
+ * standing once done. The whole card opens the page.
+ */
+export function DailyCard() {
+  const current = s.event().id,
+    event: DailyEvent = isDailyEvent(current) ? current : "333",
+    day = dailyDay(),
+    local = s.dailyDone[`${day}:${event}`],
+    scramble = scrambles.get(`${day}:${event}`) ?? "",
+    board = boards.get(`${s.user.id}:${day}:${event}:${s.dailyVerified}`) ?? null,
+    loaded = board && board !== "offline" ? board : null,
+    place = loaded ? loaded.mine ?? loaded.placed : null,
+    done = !!local || !!loaded?.mine,
+    open = () => void s.action("nav:daily");
+  useEffect(() => void loadDaily(event, day), [event, day, local?.penalty, local?.timeMs]);
+  return (
+    <Surface {...opens(open, "link")} aria-label={tr("Daily")} data-hub="daily" className={cn(CARD_LINK, "min-h-0 flex-1 gap-3.5 p-5")}>
+      <div className="flex items-center gap-3">
+        <IconTile icon={CalendarDays} />
+        <PanelHead title={tr("Daily")} meta={dayLabel(day)} className="min-w-0 flex-1" />
+        {place && <span className={cn(NUMERIC, "text-sm font-bold text-success")}>{fmtSolve(place.timeMs, place.penalty)}</span>}
+      </div>
+      <div className="font-semibold">{scramble ? <Alg text={scramble} size={18} /> : <Skeleton className="h-6 w-full" />}</div>
+      {loaded && <span className={cn(KICKER, "normal-case tracking-normal")}>{place ? tr("{0} of {1}", { 0: place.rank, 1: loaded.total }) + " · " : ""}{tn(loaded.total, "{n} solver")}</span>}
+      {loaded ? <DailyChart board={loaded} place={place} /> : <div className="flex-1" />}
+      <div className="flex" {...apart}>
+        {done ? (
+          <UiButton variant="secondary" className="flex-1" onClick={open} data-action="daily:standing">
+            <Trophy />
+            {tr("Standing")}
+          </UiButton>
+        ) : (
+          <UiButton className="flex-1" data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)}>
+            <Play />
+            {tr("Solve")}
+          </UiButton>
+        )}
+      </div>
+    </Surface>
   );
 }
 

@@ -56,6 +56,8 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/skeleton", () => ({ Skeleton: "Skeleton" }));
+mock.module("../src/components/ui/alert", () => ({ Alert: "Alert" }));
+mock.module("../src/components/ui/input", () => ({ Input: "Input" }));
 mock.module("../src/components/ui/dropdown-menu", () => ({ DropdownMenu: "DropdownMenu", DropdownMenuContent: "DropdownMenuContent", DropdownMenuTrigger: "DropdownMenuTrigger" }));
 mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "HeadButton", "Numeric", "Segmented", "Surface"].map(name => [name, name])));
 mock.module("../src/theme", () => ({ useColors: () => ({ primary: "#f5609f", variables: {} }) }));

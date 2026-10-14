@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Qbix · Maquettes bureau : Défis et sous-sections</title>
+<style>
+@font-face { font-family: "Bricolage Grotesque"; src: url("../desktop/assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; font-stretch: 75% 100%; }
+/* Ember dark: themeTokens("ember", "dark") from src/client/lib/theme.ts */
+:root {
+  --bg: #231816; --card: #281e1c; --pop: #2f2422; --muted: #2f2422; --acc: #382c2b;
+  --fg: #f4ebe9; --mfg: #bcb0b0; --faint: #887a7b; --pri: #ff9d6b; --pri-fg: #1c1317;
+  --ok: #8fe0c2; --warn: #ffd98a; --lilac: #c9b4ff; --bad: #ff8f80; --border: rgba(244, 235, 233, .08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Bricolage Grotesque", system-ui, sans-serif; background: #140d0c; color: var(--fg); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+svg.lucide { width: 18px; height: 18px; stroke-width: 2; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* The document */
+.doc { padding: 48px 48px 120px; display: flex; flex-direction: column; gap: 72px; }
+.doc > header h1 { font-size: 44px; font-weight: 800; letter-spacing: -.04em; }
+.doc > header p { color: var(--mfg); max-width: 980px; line-height: 1.5; margin-top: 10px; font-size: 16px; }
+.series h2 { font-size: 32px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 8px; }
+.series > p { color: var(--mfg); max-width: 980px; line-height: 1.5; margin-bottom: 28px; }
+figure { display: flex; flex-direction: column; gap: 14px; margin-bottom: 56px; }
+figcaption { max-width: 1440px; display: flex; flex-direction: column; gap: 6px; }
+figcaption b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; display: flex; gap: 10px; align-items: center; }
+figcaption b i { font-style: normal; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--pri); color: var(--pri-fg); font-size: 16px; }
+figcaption span { color: var(--mfg); line-height: 1.5; font-size: 15px; }
+figcaption ul { color: var(--mfg); font-size: 14px; line-height: 1.5; padding-left: 20px; }
+
+/* A desktop window, 1440 × 900 */
+.win { width: 1440px; height: 900px; background: var(--bg); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); position: relative; }
+.top { height: 76px; flex: none; display: flex; align-items: center; gap: 36px; padding: 0 32px; }
+.brand { display: flex; align-items: center; gap: 9px; font-size: 25px; font-weight: 800; letter-spacing: -.04em; }
+.logo { display: grid; grid-template-columns: repeat(3, 8px); gap: 2.5px; }
+.logo span { width: 8px; height: 8px; border-radius: 2px; background: #d9cfcd; }
+.logo span:nth-child(3) { background: var(--pri); }
+.nav { display: flex; gap: 6px; }
+.nav a { position: relative; padding: 8px 12px; font-size: 16px; font-weight: 600; color: var(--mfg); text-decoration: none; }
+.nav a.on { color: var(--fg); }
+.nav a.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -4px; height: 3px; border-radius: 3px; background: var(--pri); }
+.nav a .dot { position: absolute; top: 6px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--pri); }
+.sp { flex: 1; }
+.chip { height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 12px; background: var(--muted); font-size: 14px; font-weight: 700; color: var(--fg); white-space: nowrap; }
+.chip.pri { background: color-mix(in srgb, var(--pri) 16%, var(--bg)); color: var(--pri); }
+.chip.ghost { background: transparent; color: var(--mfg); }
+.chip svg.lucide { width: 16px; height: 16px; }
+.avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--acc); color: var(--pri); font-weight: 800; font-size: 13px; flex: none; }
+.avatar.sm { width: 30px; height: 30px; border-radius: 10px; font-size: 11px; }
+.avatar.c1 { background: #4a3b2e; color: #ffd98a; } .avatar.c2 { background: #3d3249; color: #c9b4ff; } .avatar.c3 { background: #2b4038; color: #8fe0c2; } .avatar.c4 { background: #4a2f2c; color: #ff8f80; }
+.main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; padding: 6px 32px 28px; }
+.card { background: var(--card); border-radius: 26px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.card.pop { background: var(--pop); }
+.h { display: flex; align-items: center; gap: 10px; }
+.h h3 { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.h .cnt { color: var(--faint); font-weight: 700; font-size: 15px; }
+.tile { width: 40px; height: 40px; border-radius: 13px; background: var(--muted); display: grid; place-items: center; color: var(--pri); flex: none; }
+.tile.big { width: 52px; height: 52px; border-radius: 16px; }
+.tile.big svg.lucide { width: 24px; height: 24px; }
+.cap { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.mfg { color: var(--mfg); } .faint { color: var(--faint); } .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .pri { color: var(--pri); }
+.btn { height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; font-weight: 800; font-size: 15px; background: var(--muted); color: var(--fg); white-space: nowrap; }
+.btn.pri { background: var(--pri); color: var(--pri-fg); }
+.btn.sm { height: 34px; border-radius: 11px; font-size: 13px; padding: 0 12px; }
+.btn.ghost { background: transparent; color: var(--mfg); }
+.big { font-size: 64px; font-weight: 800; letter-spacing: -.05em; line-height: 1; }
+.mid { font-size: 34px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.row { display: flex; align-items: center; gap: 12px; }
+.list { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
+.li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--muted); font-size: 15px; }
+.li .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.li .t b { font-weight: 700; } .li .t small { color: var(--mfg); font-size: 13px; }
+.pill { font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 999px; background: var(--acc); color: var(--mfg); white-space: nowrap; }
+.pill.w { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.l { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.pill.p { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.pill.live { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.scramble { font-size: 20px; font-weight: 700; letter-spacing: .02em; line-height: 1.5; word-spacing: 4px; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+.bars span { flex: 1; border-radius: 4px 4px 2px 2px; background: var(--acc); }
+.bars span.me { background: var(--pri); }
+.spark { width: 100%; height: 64px; }
+.grid { display: grid; gap: 20px; min-height: 0; }
+.seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--muted); border-radius: 14px; }
+.seg a { height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 700; color: var(--mfg); text-decoration: none; }
+.seg a.on { background: var(--acc); color: var(--fg); }
+.seg a .n { font-size: 12px; color: var(--faint); font-weight: 700; }
+.ring { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--acc); flex: none; }
+.ring.half { border-color: var(--pri) var(--pri) var(--acc) var(--acc); transform: rotate(45deg); }
+.ring.full { border-color: var(--ok); }
+.progress { height: 8px; border-radius: 8px; background: var(--acc); overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--pri); border-radius: 8px; }
+.cube { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 72px; height: 72px; padding: 4px; border-radius: 12px; background: #120c0b; flex: none; }
+.cube span { border-radius: 3px; background: #ffd34d; }
+.cube span.g { background: #3a3030; }
+.title { font-size: 34px; font-weight: 800; letter-spacing: -.04em; }
+.side { width: 248px; flex: none; background: var(--card); border-radius: 26px; padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; }
+.side a { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 46px; border-radius: 14px; color: var(--mfg); font-weight: 700; font-size: 15px; text-decoration: none; }
+.side a.on { background: var(--acc); color: var(--fg); }
+.side a.on svg.lucide { color: var(--pri); }
+.side a .n { margin-left: auto; font-size: 12px; color: var(--faint); }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Qbix · maquettes bureau</h1>
+  <p>Deux séries de trois propositions, dans le thème orange sombre de l'app, à 1440 × 900 et sans défilement de la page.
+  D'abord la page Challenges (aujourd'hui trois grandes boîtes presque vides), puis l'emplacement des sous-sections
+  (Courses / Training, Duel / Tournaments / Daily…) qui quittent la barre du haut pour entrer dans la page.
+  Données du compte <b>dev</b> seedé.</p>
+</header>
+
+<!-- ===================================================================== Challenges -->
+<section class="series" id="challenges">
+<h2>1 · La page Challenges</h2>
+<p>Aujourd'hui : trois colonnes de 900 px de haut pour un chiffre et un bouton chacune. Les trois pistes gardent les
+trois mêmes portes (Duel, Tournaments, Daily) mais remplissent l'écran de ce qui sert : ce qui attend une action,
+l'historique récent, qui défier.</p>
+
+<!-- A · Arène -->
+<figure>
+<figcaption>
+  <b><i>A</i> L'arène : le duel en vedette, le reste en colonne</b>
+  <span>Le duel est le jeu principal : il prend les deux tiers, avec le niveau, sa courbe, les dernières courses et
+  les amis à défier en ligne. À droite, le Daily du jour (mélange, ton temps, ton rang) et les tournois en cours,
+  chacun avec son bouton. Tout ce qui attend une action porte un point orange.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a>Learn</a><a>Algs</a><a class="on">Challenges<span class="dot"></span></a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main">
+    <div class="grid" style="grid-template-columns: 1.75fr 1fr; flex: 1;">
+      <div class="card" style="gap: 20px;">
+        <div class="h"><span class="tile"><i data-lucide="swords"></i></span><h3>Duel</h3><div class="sp"></div>
+          <span class="btn sm ghost"><i data-lucide="history"></i>History</span><span class="btn sm ghost"><i data-lucide="user-plus"></i>Add a friend</span></div>
+        <div class="row" style="align-items: flex-end; gap: 36px;">
+          <div><div class="cap">Your 3×3 level</div><div class="big num" style="margin-top: 10px;">17.009</div>
+            <div class="mfg" style="margin-top: 8px; font-size: 14px;"><span class="ok">▲ 0.84 s</span> this month · 23 races · 61 % won</div></div>
+          <svg class="spark" viewBox="0 0 400 64" preserveAspectRatio="none" style="flex: 1; height: 90px;">
+            <polyline fill="none" stroke="#ff9d6b" stroke-width="3" stroke-linejoin="round" points="0,14 30,18 60,12 90,22 120,26 150,24 180,33 210,30 240,38 270,36 300,44 330,47 360,45 400,54"/>
+            <polyline fill="none" stroke="rgba(244,235,233,.08)" stroke-width="1" points="0,63 400,63"/>
+          </svg>
+        </div>
+        <div class="row" style="gap: 10px;">
+          <span class="btn pri" style="flex: 1; height: 54px; font-size: 17px;"><i data-lucide="swords"></i>Face off · random opponent</span>
+          <span class="btn" style="height: 54px;"><i data-lucide="send"></i>Challenge a friend</span>
+        </div>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; flex: 1;">
+          <div style="display: flex; flex-direction: column; gap: 10px; min-height: 0;">
+            <div class="cap">Latest races</div>
+            <div class="list">
+              <div class="li"><span class="avatar sm c1">LE</span><div class="t"><b>lena_speed</b><small>3 solves · 2 h ago</small></div><span class="num mfg">11.82 vs 12.40</span><span class="pill w">Won</span></div>
+              <div class="li"><span class="avatar sm c2">KE</span><div class="t"><b>kenji_cfop</b><small>3 solves · yesterday</small></div><span class="num mfg">13.10 vs 12.02</span><span class="pill l">Lost</span></div>
+              <div class="li"><span class="avatar sm c3">AL</span><div class="t"><b>alex_cubes</b><small>3 solves · yesterday</small></div><span class="num mfg">12.55 vs 14.91</span><span class="pill w">Won</span></div>
+              <div class="li"><span class="avatar sm c4">HU</span><div class="t"><b>hugo_sub10</b><small>3 solves · Oct 11</small></div><span class="num mfg">12.30 vs 9.87</span><span class="pill l">Lost</span></div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px; min-height: 0;">
+            <div class="cap">Friends online</div>
+            <div class="list">
+              <div class="li"><span class="avatar sm c1">LE</span><div class="t"><b>lena_speed</b><small>level 12.4 · on the timer</small></div><span class="btn sm">Challenge</span></div>
+              <div class="li"><span class="avatar sm c3">CH</span><div class="t"><b>chloe_f2l</b><small>level 15.2 · training F2L</small></div><span class="btn sm">Challenge</span></div>
+              <div class="li"><span class="avatar sm c2">BE</span><div class="t"><b>ben_tps</b><small>level 10.8 · idle</small></div><span class="btn sm">Challenge</span></div>
+              <div class="li" style="background: color-mix(in srgb, var(--pri) 12%, var(--muted));"><span class="avatar sm c4">TO</span><div class="t"><b>tom_onehand</b><small class="pri">challenges you · 3×3 OH</small></div><span class="btn sm pri">Accept</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px; min-height: 0;">
+        <div class="card" style="flex: 1.1;">
+          <div class="h"><span class="tile"><i data-lucide="calendar-days"></i></span><h3>Daily</h3><span class="cnt">Oct 14</span><div class="sp"></div><span class="pill p">Not tried</span></div>
+          <div class="scramble num">R2 D' F2 U L2 B2 D R2 U' F' L D2 R' B U2 F' R</div>
+          <div class="row mfg" style="font-size: 14px;"><i data-lucide="users"></i>142 cubers today · best <b class="ok num">7.81</b> by hugo_sub10</div>
+          <div class="bars"><span style="height: 12%"></span><span style="height: 30%"></span><span style="height: 62%"></span><span style="height: 92%"></span><span style="height: 100%"></span><span style="height: 76%"></span><span style="height: 48%"></span><span style="height: 30%"></span><span style="height: 18%"></span><span style="height: 9%"></span></div>
+          <div class="sp"></div>
+          <span class="btn pri"><i data-lucide="play"></i>Solve today's scramble</span>
+        </div>
+        <div class="card" style="flex: 1;">
+          <div class="h"><span class="tile"><i data-lucide="trophy"></i></span><h3>Tournaments</h3><span class="cnt">2 under way</span><div class="sp"></div><span class="btn sm ghost"><i data-lucide="history"></i>Past</span></div>
+          <div class="list">
+            <div class="li" style="background: color-mix(in srgb, var(--pri) 12%, var(--muted));"><span class="tile" style="width: 34px; height: 34px;"><i data-lucide="trophy"></i></span><div class="t"><b>Friday sprint</b><small class="pri">Your quarter-final vs lena_speed is ready</small></div><span class="btn sm pri">Play</span></div>
+            <div class="li"><span class="tile" style="width: 34px; height: 34px;"><i data-lucide="trophy"></i></span><div class="t"><b>Club cup</b><small>Semi-finals · waiting for kenji_cfop</small></div><span class="pill live">Live</span></div>
+          </div>
+          <div class="sp"></div>
+          <div class="row"><span class="btn" style="flex: 1;"><i data-lucide="plus"></i>Create</span><span class="btn" style="flex: 1;"><i data-lucide="search"></i>Join one</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</figure>
+
+<!-- B · À faire -->
+<figure>
+<figcaption>
+  <b><i>B</i> Le fil « à jouer » : ce qui t'attend d'abord</b>
+  <span>Une bande de trois chiffres en haut (niveau de duel, rang au Daily, tournois en cours), puis une seule liste de
+  ce qui attend une action, du plus pressé au moins pressé : un match prêt, un défi reçu, le Daily pas encore tenté.
+  À droite, lancer quelque chose de neuf. La page répond à « qu'est-ce que je fais maintenant ? ».</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a>Learn</a><a>Algs</a><a class="on">Challenges<span class="dot"></span></a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main">
+    <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="card row" style="flex-direction: row; gap: 18px; padding: 20px 24px;"><span class="tile big"><i data-lucide="swords"></i></span><div style="flex: 1;"><div class="cap">Duel level</div><div class="mid num" style="margin-top: 6px;">17.009</div></div><span class="ok num" style="font-weight: 800;">▲ 0.84</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="card row" style="flex-direction: row; gap: 18px; padding: 20px 24px;"><span class="tile big"><i data-lucide="calendar-days"></i></span><div style="flex: 1;"><div class="cap">Daily · Oct 14</div><div class="mid" style="margin-top: 6px;">Not tried</div></div><span class="mfg num" style="font-weight: 700;">142 today</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="card row" style="flex-direction: row; gap: 18px; padding: 20px 24px;"><span class="tile big"><i data-lucide="trophy"></i></span><div style="flex: 1;"><div class="cap">Tournaments</div><div class="mid num" style="margin-top: 6px;">2 under way</div></div><i data-lucide="chevron-right" class="faint"></i></div>
+    </div>
+    <div class="grid" style="grid-template-columns: 1.6fr 1fr; flex: 1;">
+      <div class="card">
+        <div class="h"><h3>Your move</h3><span class="cnt">4</span></div>
+        <div class="list" style="gap: 8px;">
+          <div class="li" style="padding: 16px; background: color-mix(in srgb, var(--pri) 12%, var(--muted));"><span class="tile"><i data-lucide="trophy"></i></span><div class="t"><b style="font-size: 17px;">Friday sprint · quarter-final</b><small>Against lena_speed, first to 2 solves · ready since 10 min</small></div><span class="btn pri">Play</span></div>
+          <div class="li" style="padding: 16px;"><span class="avatar c4">TO</span><div class="t"><b style="font-size: 17px;">tom_onehand challenges you</b><small>3×3 one-handed · 3 solves · expires in 2 h</small></div><span class="btn">Decline</span><span class="btn pri">Accept</span></div>
+          <div class="li" style="padding: 16px;"><span class="tile"><i data-lucide="calendar-days"></i></span><div class="t"><b style="font-size: 17px;">Today's Daily</b><small class="num">R2 D' F2 U L2 B2 D R2 U' F' L D2 R' B U2 F' R</small></div><span class="btn">Solve</span></div>
+          <div class="li" style="padding: 16px;"><span class="avatar c2">KE</span><div class="t"><b style="font-size: 17px;">kenji_cfop wants a rematch</b><small>You lost 13.10 vs 12.02 yesterday</small></div><span class="btn">Rematch</span></div>
+        </div>
+        <div class="sp"></div>
+        <div class="cap">Earlier</div>
+        <div class="list">
+          <div class="li"><span class="avatar sm c1">LE</span><div class="t"><b>Won against lena_speed</b></div><span class="num mfg">11.82 vs 12.40</span><span class="pill w">+0.21</span></div>
+          <div class="li"><span class="avatar sm c3">AL</span><div class="t"><b>Won against alex_cubes</b></div><span class="num mfg">12.55 vs 14.91</span><span class="pill w">+0.12</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Start something</h3></div>
+        <span class="btn pri" style="height: 64px; font-size: 17px; justify-content: flex-start; padding: 0 20px;"><i data-lucide="swords"></i>Face off<span class="sp"></span><small style="font-weight: 600; opacity: .7;">random, your level</small></span>
+        <span class="btn" style="height: 64px; font-size: 17px; justify-content: flex-start; padding: 0 20px;"><i data-lucide="send"></i>Challenge a friend<span class="sp"></span><i data-lucide="chevron-right"></i></span>
+        <span class="btn" style="height: 64px; font-size: 17px; justify-content: flex-start; padding: 0 20px;"><i data-lucide="trophy"></i>Create a tournament<span class="sp"></span><i data-lucide="chevron-right"></i></span>
+        <div class="cap" style="margin-top: 8px;">Friends online</div>
+        <div class="list">
+          <div class="li"><span class="avatar sm c1">LE</span><div class="t"><b>lena_speed</b><small>12.4</small></div><span class="btn sm">Challenge</span></div>
+          <div class="li"><span class="avatar sm c3">CH</span><div class="t"><b>chloe_f2l</b><small>15.2</small></div><span class="btn sm">Challenge</span></div>
+          <div class="li"><span class="avatar sm c2">BE</span><div class="t"><b>ben_tps</b><small>10.8</small></div><span class="btn sm">Challenge</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</figure>
+
+<!-- C · Trois cartes pleines -->
+<figure>
+<figcaption>
+  <b><i>C</i> Trois cartes, mais pleines</b>
+  <span>La disposition actuelle, gardée pour sa clarté : trois portes égales. Chacune montre enfin son contenu : le
+  duel sa courbe et ses trois dernières courses, les tournois le prochain match et le tableau en miniature, le Daily
+  le mélange, l'histogramme du jour et ta place. Le bouton reste en bas, à la même hauteur partout.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a>Learn</a><a>Algs</a><a class="on">Challenges<span class="dot"></span></a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main">
+    <div class="grid" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
+      <div class="card" style="gap: 16px;">
+        <div class="h"><span class="tile"><i data-lucide="swords"></i></span><h3>Duel</h3><div class="sp"></div><i data-lucide="user-plus" class="mfg"></i><i data-lucide="history" class="mfg"></i></div>
+        <div><div class="cap">Your 3×3 level</div><div class="big num" style="margin-top: 8px;">17.009</div><div class="ok num" style="font-size: 14px; font-weight: 700; margin-top: 6px;">▲ 0.84 s this month</div></div>
+        <svg class="spark" viewBox="0 0 400 64" preserveAspectRatio="none"><polyline fill="none" stroke="#ff9d6b" stroke-width="3" points="0,14 40,18 80,12 120,26 160,24 200,33 240,38 280,36 320,47 360,45 400,54"/></svg>
+        <div class="cap">Latest races</div>
+        <div class="list">
+          <div class="li"><span class="avatar sm c1">LE</span><div class="t"><b>lena_speed</b></div><span class="pill w">Won</span></div>
+          <div class="li"><span class="avatar sm c2">KE</span><div class="t"><b>kenji_cfop</b></div><span class="pill l">Lost</span></div>
+          <div class="li"><span class="avatar sm c3">AL</span><div class="t"><b>alex_cubes</b></div><span class="pill w">Won</span></div>
+        </div>
+        <div class="sp"></div>
+        <span class="btn pri" style="height: 52px;"><i data-lucide="swords"></i>Face off</span>
+        <span class="btn" style="margin-top: -6px;"><i data-lucide="send"></i>Challenge a friend</span>
+      </div>
+      <div class="card" style="gap: 16px;">
+        <div class="h"><span class="tile"><i data-lucide="trophy"></i></span><h3>Tournaments</h3><div class="sp"></div><i data-lucide="history" class="mfg"></i></div>
+        <div class="li" style="flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; background: color-mix(in srgb, var(--pri) 12%, var(--muted));">
+          <div class="row"><span class="pill p">Your match is ready</span><div class="sp"></div><span class="mfg" style="font-size: 13px;">Friday sprint</span></div>
+          <div class="row" style="justify-content: space-between;"><div class="row"><span class="avatar">DE</span><b>dev</b></div><span class="mfg" style="font-weight: 800;">vs</span><div class="row"><b>lena_speed</b><span class="avatar c1">LE</span></div></div>
+          <span class="btn pri sm">Play the quarter-final</span>
+        </div>
+        <div class="cap">Friday sprint · bracket</div>
+        <svg viewBox="0 0 360 150" style="width: 100%; height: 150px;">
+          <g fill="#2f2422"><rect x="0" y="4" width="100" height="24" rx="7"/><rect x="0" y="40" width="100" height="24" rx="7"/><rect x="0" y="84" width="100" height="24" rx="7"/><rect x="0" y="120" width="100" height="24" rx="7"/>
+          <rect x="130" y="22" width="100" height="24" rx="7"/><rect x="130" y="102" width="100" height="24" rx="7"/><rect x="260" y="62" width="100" height="24" rx="7"/></g>
+          <rect x="0" y="4" width="100" height="24" rx="7" fill="none" stroke="#ff9d6b" stroke-width="2"/>
+          <g fill="none" stroke="rgba(244,235,233,.15)" stroke-width="2"><path d="M100 16h15v18h15M100 52h15v-18M100 96h15v18h15M100 132h15v-18M230 34h15v40h15M230 114h15v-40"/></g>
+          <g font-size="11" font-weight="700" fill="#bcb0b0" font-family="Bricolage Grotesque"><text x="10" y="20" fill="#f4ebe9">dev</text><text x="10" y="56">lena_speed</text><text x="10" y="100">hugo_sub10</text><text x="10" y="136">kenji_cfop</text><text x="140" y="118">hugo_sub10</text></g>
+        </svg>
+        <div class="li"><span class="tile" style="width: 32px; height: 32px;"><i data-lucide="trophy"></i></span><div class="t"><b>Club cup</b><small>Semi-finals</small></div><span class="pill live">Live</span></div>
+        <div class="sp"></div>
+        <span class="btn" style="height: 52px;"><i data-lucide="plus"></i>Create or join</span>
+      </div>
+      <div class="card" style="gap: 16px;">
+        <div class="h"><span class="tile"><i data-lucide="calendar-days"></i></span><h3>Daily</h3><span class="cnt">Oct 14</span></div>
+        <div class="scramble num" style="font-size: 22px;">R2 D' F2 U L2 B2 D R2 U' F' L D2 R' B U2 F' R</div>
+        <div class="row" style="gap: 24px;">
+          <div><div class="cap">Best today</div><div class="mid num ok" style="margin-top: 6px;">7.81</div></div>
+          <div><div class="cap">Median</div><div class="mid num" style="margin-top: 6px;">15.40</div></div>
+          <div><div class="cap">Cubers</div><div class="mid num" style="margin-top: 6px;">142</div></div>
+        </div>
+        <div class="bars" style="height: 120px;"><span style="height: 12%"></span><span style="height: 30%"></span><span style="height: 62%"></span><span style="height: 92%"></span><span style="height: 100%"></span><span style="height: 76%"></span><span style="height: 48%"></span><span style="height: 30%"></span><span style="height: 18%"></span><span style="height: 9%"></span></div>
+        <div class="row mfg" style="font-size: 14px;"><i data-lucide="flame" class="warn"></i>6 days in a row · yesterday 12.88, 31st</div>
+        <div class="sp"></div>
+        <span class="btn pri" style="height: 52px;"><i data-lucide="play"></i>Solve</span>
+      </div>
+    </div>
+  </div>
+</div>
+</figure>
+</section>
+
+<!-- ===================================================================== Sub-sections -->
+<section class="series" id="subsections">
+<h2>2 · Les sous-sections dans la page</h2>
+<p>Aujourd'hui, les sous-pages (Courses, Training) s'affichent à droite de la barre principale, loin du contenu : on ne
+les voit pas. Les trois pistes les ramènent dans la page, sous la barre, là où l'œil arrive. Exemple sur Learn ; la
+même règle vaut pour Timer (Timer / Analysis), Challenges (Duel / Tournaments / Daily) et Me (Profile / Messages /
+Community / Coaching). La barre du haut ne garde que les cinq sections.</p>
+
+<!-- A · Titre et onglets -->
+<figure>
+<figcaption>
+  <b><i>A</i> Un titre de page et ses onglets dessous</b>
+  <span>Chaque page commence par son titre, et ses sous-pages en onglets juste dessous, soulignés comme ceux de la
+  barre. C'est la forme la plus classique, et elle coûte une ligne de hauteur. Les onglets suivent le titre, au même endroit sur chaque page.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main" style="gap: 16px;">
+    <div class="row" style="align-items: flex-end; gap: 28px; border-bottom: 1px solid var(--border); padding-bottom: 0;">
+      <div class="title" style="padding-bottom: 12px;">Learn</div>
+      <nav class="nav" style="gap: 2px;">
+        <a class="on" style="padding: 10px 14px 14px; font-size: 17px;"><span class="row" style="gap: 8px;"><i data-lucide="graduation-cap"></i>Courses</span></a>
+        <a style="padding: 10px 14px 14px; font-size: 17px;"><span class="row" style="gap: 8px;"><i data-lucide="target"></i>Training<span class="pill p" style="margin-left: 4px;">12 due</span></span></a>
+      </nav>
+    </div>
+    <div class="grid" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
+      <div class="card"><div class="h"><span class="ring half"></span><h3>CFOP</h3><div class="sp"></div><span class="mfg num">38 / 119</span></div><div class="progress"><span style="width: 32%"></span></div>
+        <div class="list"><div class="li"><span class="ring full"></span><div class="t"><b>Cross</b></div><span class="ok">Learned</span></div><div class="li"><span class="ring half"></span><div class="t"><b>F2L</b><small>38 / 41 cases</small></div><span class="btn sm pri">Continue</span></div><div class="li"><span class="ring"></span><div class="t"><b>OLL</b><small>2-look first</small></div></div><div class="li"><span class="ring"></span><div class="t"><b>PLL</b></div></div></div></div>
+      <div class="card"><div class="h"><span class="ring full"></span><h3>Beginner</h3><div class="sp"></div><span class="ok">Done</span></div><div class="progress"><span style="width: 100%; background: var(--ok);"></span></div>
+        <div class="list"><div class="li"><span class="ring full"></span><div class="t"><b>White cross</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>First layer</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>Second layer</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>Last layer</b></div></div></div></div>
+      <div class="card"><div class="h"><span class="ring"></span><h3>Roux</h3><div class="sp"></div><span class="mfg">New</span></div><div class="progress"><span style="width: 0"></span></div>
+        <div class="list"><div class="li"><span class="ring"></span><div class="t"><b>First block</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>Second block</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>CMLL</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>LSE</b></div></div></div><div class="sp"></div><span class="btn">Start Roux</span></div>
+    </div>
+  </div>
+</div>
+</figure>
+
+<!-- B · Rail latéral -->
+<figure>
+<figcaption>
+  <b><i>B</i> Un rail à gauche, propre à la section</b>
+  <span>Les sous-pages deviennent un menu vertical à gauche, avec leur icône et ce qui les attend (12 cas à revoir,
+  2 messages…). Il reste visible pendant qu'on travaille, comme la liste des sets dans Algs, et donne de la place
+  pour des sous-pages plus nombreuses (Me en a quatre). Le rail se replie en icônes sur une fenêtre étroite.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main" style="flex-direction: row;">
+    <nav class="side">
+      <div class="cap" style="padding: 4px 12px 10px;">Learn</div>
+      <a class="on"><i data-lucide="graduation-cap"></i>Courses<span class="n">3</span></a>
+      <a><i data-lucide="target"></i>Training<span class="pill p" style="margin-left: auto;">12</span></a>
+      <div class="sp"></div>
+      <a style="height: 40px; font-size: 14px;"><i data-lucide="circle-help"></i>How learning works</a>
+    </nav>
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <div class="row"><div class="title">Courses</div><div class="sp"></div><span class="seg"><a class="on">3×3</a><a>2×2</a><a>4×4</a></span></div>
+      <div class="grid" style="grid-template-columns: repeat(2, 1fr); flex: 1;">
+        <div class="card"><div class="h"><span class="ring half"></span><h3>CFOP</h3><div class="sp"></div><span class="mfg num">38 / 119</span></div><div class="progress"><span style="width: 32%"></span></div>
+          <div class="list"><div class="li"><span class="ring full"></span><div class="t"><b>Cross</b></div><span class="ok">Learned</span></div><div class="li"><span class="ring half"></span><div class="t"><b>F2L</b><small>38 / 41 cases</small></div><span class="btn sm pri">Continue</span></div><div class="li"><span class="ring"></span><div class="t"><b>OLL</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>PLL</b></div></div></div></div>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="card" style="flex: 1;"><div class="h"><span class="ring full"></span><h3>Beginner</h3><div class="sp"></div><span class="ok">Done</span></div><div class="progress"><span style="width: 100%; background: var(--ok);"></span></div><span class="btn">Review a step</span></div>
+          <div class="card" style="flex: 1;"><div class="h"><span class="ring"></span><h3>Roux</h3><div class="sp"></div><span class="mfg">New</span></div><div class="progress"><span style="width: 0"></span></div><span class="btn">Start Roux</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</figure>
+
+<!-- C · Sélecteur large -->
+<figure>
+<figcaption>
+  <b><i>C</i> Un grand sélecteur en tête de page</b>
+  <span>Les sous-pages deviennent deux (ou trois, ou quatre) grands boutons côte à côte en haut de la page, chacun avec
+  son icône, son nom et un mot de ce qu'il contient. Impossible à manquer, et la sous-page choisie se lit tout de
+  suite ; le prix est un peu plus de hauteur que la piste A. Sur Challenges, ce sélecteur à trois cases remplacerait les trois grandes boîtes.</span>
+</figcaption>
+<div class="win">
+  <div class="top">
+    <div class="brand"><div class="logo"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a class="on">Learn</a><a>Algs</a><a>Challenges</a><a>Me</a></nav>
+    <div class="sp"></div>
+    <span class="chip pri"><i data-lucide="coffee"></i>Coffee</span>
+    <span class="chip"><i data-lucide="grid-3x3"></i>3×3<i data-lucide="chevron-down"></i></span>
+    <span class="avatar">DE</span>
+  </div>
+  <div class="main">
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="card row" style="flex-direction: row; padding: 16px 20px; gap: 16px; background: var(--acc); box-shadow: inset 0 0 0 2px var(--pri);"><span class="tile big" style="background: var(--pri); color: var(--pri-fg);"><i data-lucide="graduation-cap"></i></span><div style="flex: 1;"><b style="font-size: 20px; letter-spacing: -.02em;">Courses</b><div class="mfg" style="font-size: 14px; margin-top: 2px;">3 methods · F2L under way</div></div></div>
+      <div class="card row" style="flex-direction: row; padding: 16px 20px; gap: 16px;"><span class="tile big"><i data-lucide="target"></i></span><div style="flex: 1;"><b style="font-size: 20px; letter-spacing: -.02em;">Training</b><div class="mfg" style="font-size: 14px; margin-top: 2px;">12 learned cases to review</div></div><span class="pill p">12</span></div>
+    </div>
+    <div class="grid" style="grid-template-columns: repeat(3, 1fr); flex: 1;">
+      <div class="card"><div class="h"><span class="ring half"></span><h3>CFOP</h3><div class="sp"></div><span class="mfg num">38 / 119</span></div><div class="progress"><span style="width: 32%"></span></div>
+        <div class="list"><div class="li"><span class="ring full"></span><div class="t"><b>Cross</b></div><span class="ok">Learned</span></div><div class="li"><span class="ring half"></span><div class="t"><b>F2L</b><small>38 / 41 cases</small></div><span class="btn sm pri">Continue</span></div><div class="li"><span class="ring"></span><div class="t"><b>OLL</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>PLL</b></div></div></div></div>
+      <div class="card"><div class="h"><span class="ring full"></span><h3>Beginner</h3><div class="sp"></div><span class="ok">Done</span></div><div class="progress"><span style="width: 100%; background: var(--ok);"></span></div>
+        <div class="list"><div class="li"><span class="ring full"></span><div class="t"><b>White cross</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>First layer</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>Second layer</b></div></div><div class="li"><span class="ring full"></span><div class="t"><b>Last layer</b></div></div></div></div>
+      <div class="card"><div class="h"><span class="ring"></span><h3>Roux</h3><div class="sp"></div><span class="mfg">New</span></div><div class="progress"><span style="width: 0"></span></div>
+        <div class="list"><div class="li"><span class="ring"></span><div class="t"><b>First block</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>Second block</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>CMLL</b></div></div><div class="li"><span class="ring"></span><div class="t"><b>LSE</b></div></div></div><div class="sp"></div><span class="btn">Start Roux</span></div>
+    </div>
+  </div>
+</div>
+</figure>
+</section>
+</div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>window.lucide?.createIcons();</script>
+</body>
+</html>

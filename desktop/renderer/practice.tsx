@@ -36,6 +36,7 @@ import {
   Eye,
   EyeOff,
   History,
+  Hourglass,
   LayoutList,
   ListChecks,
   ListOrdered,
@@ -97,7 +98,6 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 import { language, tr } from "../../src/client/i18n";
-import { msg } from "../../src/client/i18n/msg";
 import { Digits, fractionClass, isMinxScramble, keyed, said } from "./base";
 export { Digits };
 
@@ -720,7 +720,9 @@ export function Practice() {
           // The desktop's timer has no title: its controls stand at the top right, beside the scramble.
           <InHead.Provider value={true}>
             <div className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", FADE)} data-no-timer>
-              <TimerSettings inspection={!blind && !typing} />
+              {/* The WCA inspection on the page itself, its state in view: blindfolded and typed solves have none. */}
+              {!blind && !typing && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
+              <TimerSettings />
               <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
               {dailyButton}
               {connect}
@@ -1304,8 +1306,8 @@ function SessionMenu() {
   );
 }
 
-/** The desktop timer's settings in one menu: the scramble, how times are entered and, when there is one, the inspection. */
-function TimerSettings({ inspection }: { inspection: boolean }) {
+/** The desktop timer's settings in one menu: the scramble and how times are entered. */
+function TimerSettings() {
   return (
     <DropdownMenu>
       <Tip content={tr("Settings")}>
@@ -1317,12 +1319,6 @@ function TimerSettings({ inspection }: { inspection: boolean }) {
         <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
         <DropdownMenuSeparator />
         <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
-        {inspection && (
-          <>
-            <DropdownMenuSeparator />
-            <MenuChoice label={msg("Inspection")} action="inspection" value={s.inspection} options={INSPECTIONS} />
-          </>
-        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

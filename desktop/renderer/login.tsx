@@ -11,10 +11,10 @@ import { store as s } from "./store";
 import { call } from "./bridge";
 import { Modal } from "./ui";
 import { Brand } from "./logo";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { legalPath } from "./legal/paths";
@@ -33,7 +33,7 @@ let initialized = "";
 export function SignInDialog() {
   return (
     <Modal open={s.overlay === "signin" || s.expired} onOpenChange={(open) => !open && s.closeOverlay()} dismissible={!s.expired}
-      initialFocus={() => document.getElementById("login-username")}
+      initialFocus={() => document.getElementById("login-username") ?? document.querySelector<HTMLElement>(".login")}
       title={tr("Sign in")} hideHeader tall="full">
       <SignIn />
     </Modal>
@@ -45,7 +45,6 @@ function SignIn() {
     [pending, setPending] = useState(false),
     [error, setError] = useState(""),
     [username, setUsername] = useState("");
-  const button = useRef<HTMLDivElement>(null);
   const expired = s.expired;
 
   async function signIn(method: "google" | "devLogin", value: string) {
@@ -68,36 +67,20 @@ function SignIn() {
   useEffect(() => {
     authConfig().then(setSettings, (reason: Error) => setError(reason.message));
   }, []);
-  // Google draws its button in a frame, in the app's look and language, again when the look changes.
-  useEffect(() => {
-    const id = settings?.google;
-    if (!id) return;
-    let live = true;
-    loadGsi().then((google) => {
-      if (!live || !button.current) return;
-      if (initialized !== id) google.initialize({ client_id: id, callback: ({ credential }) => onCredential(credential) });
-      initialized = id;
-      google.renderButton(button.current, {
-        theme: s.light ? "outline" : "filled_black", size: "large", shape: "rectangular", "text": "continue_with",
-        width: Math.min(400, button.current.clientWidth), locale: language(),
-      });
-    }, (reason: Error) => live && setError(reason.message));
-    return () => { live = false; };
-  }, [settings, s.light]);
 
   return (
-    <div className="login flex flex-1 flex-col gap-6">
+    <div tabIndex={-1} className="login flex flex-1 flex-col gap-6 outline-none">
       <div className="flex flex-col items-start gap-2">
         <Brand size={30} className="mb-3 text-[24px]" />
         <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{tr("Welcome to Qbix")}</h2>
+        {expired && <p role="status" className="text-sm text-muted-foreground" data-slot="login-expired">{tr("Your session has ended. Sign in again.")}</p>}
       </div>
-      {expired && (
-        <Alert role="status" data-slot="login-expired">
-          <AlertDescription>{tr("Your session has ended. Sign in again.")}</AlertDescription>
-        </Alert>
-      )}
       <div className="flex flex-col gap-3">
-        {settings?.google && <div ref={button} className="flex h-10 w-full justify-center [color-scheme:light]" data-slot="login-google" aria-busy={pending || undefined} />}
+        {settings?.google && <GoogleButton id={settings.google} busy={pending} onError={setError} />}
+        {/* A guest uses the app on this device; after an ended session, that signs the account out here. */}
+        <Button type="button" variant="secondary" data-action="login:guest" onClick={() => (expired ? void s.action("guest") : s.closeOverlay())} className="w-full">
+          {tr("Without an account")}
+        </Button>
         {error && <FieldError>{said(error)}</FieldError>}
       </div>
       {settings?.dev && (
@@ -118,11 +101,6 @@ function SignIn() {
         </form>
       )}
       <div className="mt-auto flex flex-col gap-4">
-        {!expired && (
-          <Button type="button" variant="ghost" data-action="login:guest" onClick={s.closeOverlay} className="w-full text-muted-foreground">
-            {tr("No account")}
-          </Button>
-        )}
         {s.localData && (
           <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
             <HardDrive className="size-3.5" />
@@ -133,6 +111,44 @@ function SignIn() {
     </div>
   );
 }
+
+/**
+ * Continue with Google, in the app's look: Google draws its own button (light, blue or black), so ours is the app's
+ * button with Google's "G" on white, and Google's button lies over it, transparent, taking the click (as on the phone).
+ */
+function GoogleButton({ id, busy, onError }: { id: string; busy: boolean; onError: (message: string) => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let live = true;
+    loadGsi().then((google) => {
+      if (!live || !box.current) return;
+      if (initialized !== id) google.initialize({ client_id: id, callback: ({ credential }) => onCredential(credential) });
+      initialized = id;
+      google.renderButton(box.current, { size: "large", shape: "rectangular", "text": "continue_with", width: Math.min(400, box.current.clientWidth), locale: language() });
+    }, (reason: Error) => live && onError(reason.message));
+    return () => { live = false; };
+  }, [id]);
+  return (
+    <div className={cn("group relative w-full rounded-[12px] focus-within:ring-3 focus-within:ring-ring/50", busy && "pointer-events-none opacity-60")} data-slot="login-google" aria-busy={busy || undefined}>
+      <div aria-hidden className={cn(buttonVariants(), "w-full group-hover:bg-primary/85")}>
+        <span className="grid size-6 place-items-center rounded-full bg-white"><GoogleMark /></span>
+        {busy ? tr("Signing in…") : tr("Continue with Google")}
+      </div>
+      {/* Its frame is a light page, which a dark color-scheme would paint opaque white. */}
+      <div ref={box} className="absolute inset-0 flex items-center justify-center overflow-hidden opacity-0 [color-scheme:light]" />
+    </div>
+  );
+}
+
+/** Google's "G", in its four colours. */
+const GoogleMark = () => (
+  <svg width={16} height={16} viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+  </svg>
+);
 
 /** Signing in accepts the terms of use; the privacy policy says what is kept. One sentence, its links in place. */
 function Consent() {

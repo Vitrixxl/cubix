@@ -139,17 +139,19 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
         <Text className="text-base font-extrabold">{busy ? tr("Signing in…") : tr("Sign in")}</Text>
       </Button>
     </> : !google && <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
-    {!expired && <>
+    {/* Without an account, an ended session too: it signs the account out of this device. */}
+    <>
       <View className="flex-row items-center gap-3" importantForAccessibility="no-hide-descendants">
         <View className="h-px flex-1 bg-border" /><Text className="text-xs font-semibold text-muted-foreground">{tr("or")}</Text><View className="h-px flex-1 bg-border" />
       </View>
       <View className="items-center gap-1.5">
-        <Button variant="secondary" className="h-12 w-full rounded-full" accessibilityLabel={tr("Continue without an account")} disabled={busy} onPress={() => setGuest(true)}>
+        <Button variant="secondary" className="h-12 w-full rounded-full" accessibilityLabel={tr("Continue without an account")} disabled={busy}
+          onPress={() => expired ? void api.logout().finally(() => setGuest(true)) : setGuest(true)}>
           <Text className="text-[15px] font-bold">{tr("Without an account")}</Text>
         </Button>
-        <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>
+        {!expired && <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>}
       </View>
-    </>}
+    </>
     {google ? <Consent /> : null}
   </>;
   const scroll = { bottomOffset: 24, style: { flex: 1 }, keyboardShouldPersistTaps: "handled", showsVerticalScrollIndicator: false } as const;
