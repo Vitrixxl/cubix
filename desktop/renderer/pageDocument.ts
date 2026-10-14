@@ -8,6 +8,7 @@ import { escape } from "./landing/document";
 import { NAME, SITE } from "./landing/content";
 import { pageTitle, type PageSeo } from "./seo";
 import { PHONE_MAX_WIDTH } from "../../src/client/lib/viewport";
+import { englishOnly } from "../../src/client/lib/route";
 
 const ogLocale = (language: Language) => LANGUAGES.find((l) => l.id === language)!.locale.replace("-", "_");
 const json = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -27,8 +28,10 @@ export function pageDocument(template: string, { language, seo, body, theme, loc
     `<meta name="description" content="${description}" />`,
     `<meta name="robots" content="index, follow, max-image-preview:large" />`,
     `<link rel="canonical" href="${url}" />`,
-    ...LANGUAGES.map((l) => `<link rel="alternate" hreflang="${l.id}" href="${SITE}${localePath(l.id, seo.path)}" />`),
-    `<link rel="alternate" hreflang="x-default" href="${SITE}${seo.path}" />`,
+    ...(englishOnly(seo.path) ? [] : [
+      ...LANGUAGES.map((l) => `<link rel="alternate" hreflang="${l.id}" href="${SITE}${localePath(l.id, seo.path)}" />`),
+      `<link rel="alternate" hreflang="x-default" href="${SITE}${seo.path}" />`,
+    ]),
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${NAME}" />`,
     `<meta property="og:locale" content="${ogLocale(language)}" />`,

@@ -42,13 +42,18 @@ test("every page built ahead of time is found by the address the API is given", 
 
 test("a page's document says what it is in its language, and names the others", async () => {
   await setLanguage("fr", false);
-  const seo = seoOf("/algorithms/OLL%2021", "")!;
-  const html = pageDocument('<html lang="en"><head><title>Qbix</title>\n    <!-- shell -->\n    <meta name="robots" content="noindex" /></head><body><div id="root"></div></body></html>', { language: "fr", seo, body: "<main>$& body</main>", theme: { background: "#000" }, localePath });
+  const shell = '<html lang="en"><head><title>Qbix</title>\n    <!-- shell -->\n    <meta name="robots" content="noindex" /></head><body><div id="root"></div></body></html>';
+  const seo = seoOf("/timer", "")!;
+  const html = pageDocument(shell, { language: "fr", seo, body: "<main>$& body</main>", theme: { background: "#000" }, localePath });
   await setLanguage("en", false);
   expect(html).toContain('<html lang="fr" class="dark"');
-  expect(html).toContain('<link rel="canonical" href="https://cubix.vitrixxl.fr/fr/algorithms/OLL%2021?puzzle=333" />');
-  expect(html).toContain('hreflang="de" href="https://cubix.vitrixxl.fr/de/algorithms/OLL%2021?puzzle=333"');
-  expect(html).toContain('hreflang="x-default" href="https://cubix.vitrixxl.fr/algorithms/OLL%2021?puzzle=333"');
+  expect(html).toContain(`<link rel="canonical" href="https://cubix.vitrixxl.fr/fr${seo.path}" />`);
+  expect(html).toContain(`hreflang="de" href="https://cubix.vitrixxl.fr/de${seo.path}"`);
+  expect(html).toContain(`hreflang="x-default" href="https://cubix.vitrixxl.fr${seo.path}"`);
+  // A case is written in English alone, and names no other language.
+  const oll = pageDocument(shell, { language: "en", seo: seoOf("/algorithms/OLL%2021", "")!, body: "", theme: {}, localePath });
+  expect(oll).toContain('<link rel="canonical" href="https://cubix.vitrixxl.fr/algorithms/OLL%2021?puzzle=333" />');
+  expect(oll).not.toContain("hreflang");
   expect(html).not.toContain("noindex");
   expect(html).toContain('<div id="prerendered"><main>$& body</main></div><div id="root"></div>');
   expect(html).toContain('"@type":"BreadcrumbList"');

@@ -1,10 +1,10 @@
 /**
  * The web app's first launch on a device (src/client/lib/firstLaunch.ts): boot.ts hides the page and loads this script,
  * which draws the startup cube solving itself, standing, scrambling back and solving again while the app gets ready.
- * Once the app is ready (its data and its first scramble), the cube finishes its pass, stands, and the screen fades
- * over the app. It never stays longer than LIMIT: the app opens anyway.
+ * Once the app is ready (its data and its first scramble), the screen fades over it at once, the cube where it is: the
+ * app is never kept waiting for the animation. It never stays longer than LIMIT: the app opens anyway.
  */
-import { LAUNCHER_SETTLE, LAUNCHER_VIEWBOX, launcherCubeFrame, launcherFinishAt, launcherProgress } from "../../src/client/lib/launcherCube";
+import { LAUNCHER_VIEWBOX, launcherCubeFrame, launcherProgress } from "../../src/client/lib/launcherCube";
 import { FIRST_LAUNCH_TEXT, LAUNCHED_KEY } from "../../src/client/lib/firstLaunch";
 
 /** The text in each language but English (desktop/web.ts, from the dictionaries). */
@@ -27,7 +27,7 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const style = document.createElement("style");
 style.textContent =
   "#first-launch{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;" +
-  "background:var(--background,#0b0b0e);color:var(--foreground,#fafafa);font-family:Geist,system-ui,sans-serif;transition:opacity .32s ease}" +
+  "background:var(--background,#0b0b0e);color:var(--foreground,#fafafa);font-family:Geist,system-ui,sans-serif;transition:opacity .2s ease}" +
   "#first-launch.gone{opacity:0}#first-launch svg{width:min(46vw,28vh," + SIZE + "px);height:auto}" +
   "#first-launch .name{margin:0;font:500 1.5rem/1 'Bricolage Grotesque',Geist,system-ui,sans-serif;letter-spacing:-.025em}" +
   "#first-launch .name b{font-weight:800}" +
@@ -49,23 +49,21 @@ document.head.append(style);
 document.body.append(screen);
 
 const start = performance.now();
-let finishAt = Infinity;
-const finish = () => {
-  if (finishAt === Infinity) finishAt = reduced ? 0 : launcherFinishAt(performance.now() - start);
-};
+let done = false;
+const finish = () => { done = true; };
 if (root.hasAttribute("data-ready")) finish();
 else addEventListener("cubix:ready", finish, { once: true });
 setTimeout(finish, LIMIT);
 
 const tick = () => {
   const elapsed = performance.now() - start;
-  svg.innerHTML = launcherCubeFrame(reduced ? 1 : launcherProgress(elapsed, finishAt), elapsed)
+  svg.innerHTML = launcherCubeFrame(reduced ? 1 : launcherProgress(elapsed), elapsed)
     .map((p) => p.line
       ? `<polyline points="${p.points}" fill="none" stroke="${p.color}" stroke-width="${120 / SIZE}" opacity="${p.opacity}"/>`
       : `<polygon points="${p.points}" fill="${p.color}" opacity="${p.opacity}"/>`)
     .join("");
-  if (elapsed < finishAt + LAUNCHER_SETTLE) return void requestAnimationFrame(tick);
-  // The cube stands solved: the app shows under the screen, which fades away.
+  if (!done) return void requestAnimationFrame(tick);
+  // The app is ready: it shows under the screen, which fades away.
   try {
     localStorage.setItem(LAUNCHED_KEY, "1");
   } catch {}

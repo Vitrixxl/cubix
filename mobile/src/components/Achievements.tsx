@@ -57,7 +57,7 @@ export function useCategoryColour() {
  */
 export const AchievementBadge = memo(function AchievementBadge({ a, size = 44 }: { a: A; size?: number }) {
   const colors = useColors(), colour = useCategoryColour()(a);
-  const { value, unit } = achievementBadge(a), small = size < 36, r = 18, round = 2 * Math.PI * r;
+  const { value, unit } = achievementBadge(a, catalogSets), small = size < 36, r = 18, round = 2 * Math.PI * r;
   return <View importantForAccessibility="no-hide-descendants" className="items-center justify-center rounded-full"
     style={{ width: size, height: size, backgroundColor: a.unlocked ? colour : colors.muted }}>
     {!a.unlocked && <Svg width={size} height={size} viewBox="0 0 40 40" style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}>

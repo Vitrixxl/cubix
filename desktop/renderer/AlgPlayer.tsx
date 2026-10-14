@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { said, spaced } from "./base";
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
 export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string; puzzle?: PolyPuzzle } = {}) {
@@ -109,13 +109,13 @@ export function PlayerAlg({ player, text, size = 18, className }: { player?: Alg
   const words = useMemo(() => readAlg(text, player?.puzzle).words, [text, player]);
   return (
     <div className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)} style={{ fontSize: size }}>
-      {player ? <LitWords player={player} words={words} /> : words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{said(part.text)}</span>)}</span>)}
+      {player ? <LitWords player={player} words={words} /> : spaced(words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{said(part.text)}</span>)}</span>))}
     </div>
   );
 }
 function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<typeof readAlg>["words"] }) {
   const current = usePlayed(player, (p) => p.current());
-  return words.map((word, i) => (
+  return spaced(words.map((word, i) => (
     <span key={i} className="flex">
       {word.map((part, j) =>
         part.move === undefined ? (
@@ -136,7 +136,7 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
         ),
       )}
     </span>
-  ));
+  )));
 }
 
 /**

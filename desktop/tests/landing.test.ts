@@ -38,6 +38,9 @@ describe("the landing page", () => {
     expect(robots()).toContain("Disallow: /api/");
     expect(sitemap()).toContain(`<loc>${SITE}/</loc>`);
     expect(sitemap(["/timer?puzzle=333"])).not.toContain("lastmod");
+    // A case is listed once, in English, without alternates in languages it is not written in.
+    expect(sitemap(["/algorithms/OLL%2021?puzzle=333"])).toContain(`<url><loc>${SITE}/algorithms/OLL%2021?puzzle=333</loc></url>`);
+    expect(sitemap(["/algorithms/OLL%2021?puzzle=333"])).not.toContain("/fr/algorithms");
     expect(llms()).toMatch(/^# Qbix\n\n> /);
     expect(llms()).toContain(`(${SITE}/llms-full.txt)`);
     for (const feature of FEATURES) expect(llmsFull()).toContain(`## ${feature.title}`);

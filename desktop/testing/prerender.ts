@@ -25,7 +25,8 @@ try {
   assert.equal(await crawler.title(), "OLL 21 (H Shape) algorithm | Qbix");
   assert.match((await crawler.locator('meta[name="description"]').getAttribute("content"))!, /R U R' U R U' R' U R U2 R'/);
   assert.equal(await crawler.locator('meta[name="robots"]').getAttribute("content"), "index, follow, max-image-preview:large");
-  assert.equal(await crawler.locator('link[rel="alternate"][hreflang]').count(), 6);
+  // A case is written in English alone: it names no other language.
+  assert.equal(await crawler.locator('link[rel="alternate"][hreflang]').count(), 0);
   // Each move is an element of its own.
   assert.match((await crawler.locator("#prerendered").innerText()).replace(/\s+/g, " "), /OLL 21 H Shape .*Algorithms \d+ .*1 R U R' U R U' R' U R U2 R'/);
   assert.ok((await crawler.locator('#prerendered a[href="/algorithms/OLL%2022?puzzle=333"]').count()) > 0, "the other cases are links");
@@ -92,9 +93,10 @@ try {
   assert.equal(new URL(de.url()).pathname, "/de/timer");
   console.log("Each language under its prefix; a browser in another language moves under its own");
 
-  // The sitemap lists the pages in every language.
+  // The sitemap lists the pages in every language they are written in: the cases in English alone.
   const sitemap = await (await fetch(origin + "/sitemap.xml")).text();
-  assert.ok(sitemap.includes("/fr/algorithms/OLL%2021?puzzle=333</loc>") && sitemap.includes('hreflang="it"'));
+  assert.ok(sitemap.includes("/fr/timer?puzzle=333</loc>") && sitemap.includes('hreflang="it"'));
+  assert.ok(sitemap.includes("/algorithms/OLL%2021?puzzle=333</loc>") && !sitemap.includes("/fr/algorithms/OLL%2021"));
   assert.deepEqual(errors, []);
   console.log("Prerendered pages and the app without an account passed");
 } finally {

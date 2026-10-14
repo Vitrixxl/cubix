@@ -23,6 +23,11 @@ export function splitLanguage(pathname: string): { language?: "fr" | "es" | "it"
 }
 /** The app's address in `language`: English at the root, any other under its prefix. */
 export const localePath = (language: string, path: string) => (language === "en" ? path : "/" + language + path);
+/**
+ * The algorithms' cases (thousands of nearly identical pages, searched by their names in every language) are written in
+ * English only: in another language their address gets the app's page, which draws them itself (go-api/web.go).
+ */
+export const englishOnly = (path: string) => /^\/algorithms\/./.test(path);
 export function readRoute(pathname: string, search: string): AppRoute | null {
   const parts = splitLanguage(pathname).path.split("/").filter(Boolean);
   if (!parts.length) return null;

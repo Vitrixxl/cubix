@@ -189,6 +189,10 @@ export function Empty({ icon, title, children, className }: { icon?: LucideIcon;
 /** Moves in notation; brackets and parentheses muted. */
 /** A megaminx scramble (its R++ and D-- turns), shown in rows of eleven turns. */
 export const isMinxScramble = (text: string) => /\+\+|--/.test(text);
+/** A flex row's items with a space between them, which the layout ignores: read without styles (a search engine, a
+ * copy), the moves stay apart. */
+export const spaced = (items: React.ReactNode[]) => items.flatMap((item, i) => (i ? [" ", item] : [item]));
+
 export function Alg({ text, size = 18, className }: { text: string; size?: number; className?: string }) {
   // A megaminx scramble in its usual rows, each ended by its U turn, the turns lined up in columns.
   if (isMinxScramble(text))
@@ -197,9 +201,9 @@ export function Alg({ text, size = 18, className }: { text: string; size?: numbe
         className={cn("alg grid min-w-0 gap-x-[0.6em] gap-y-[0.25em] font-sans leading-snug font-medium tracking-tight tabular-nums", className)}
         style={{ fontSize: size, gridTemplateColumns: "repeat(11, max-content)" }}
       >
-        {text.trim().split(/\s+/).map((word, i) => (
+        {spaced(text.trim().split(/\s+/).map((word, i) => (
           <span key={i}>{word}</span>
-        ))}
+        )))}
       </div>
     );
   return (
@@ -207,11 +211,11 @@ export function Alg({ text, size = 18, className }: { text: string; size?: numbe
       className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)}
       style={{ fontSize: size }}
     >
-      {text?.split(/\s+/).map((word, i) => (
+      {spaced((text ?? "").split(/\s+/).map((word, i) => (
         <span key={i} className={cn(/[()\[\]]/.test(word) && "text-muted-foreground")}>
           {said(word)}
         </span>
-      ))}
+      )))}
     </div>
   );
 }
@@ -567,7 +571,7 @@ export function Segmented({
       }}
       className={cn("max-w-full flex-wrap rounded-[12px] bg-card p-1 inset-ring-1 inset-ring-edge", className)}
     >
-      {options.map((o) => {
+      {spaced(options.map((o) => {
         const item = (
           <ToggleGroupItem
             key={o.id}
@@ -576,6 +580,7 @@ export function Segmented({
             className="text-muted-foreground hover:bg-muted aria-pressed:bg-accent aria-pressed:text-foreground"
           >
             {said(o.label)}
+            {o.count != null && " "}
             {o.count != null && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{o.count.toLocaleString()}</span>}
           </ToggleGroupItem>
         );
@@ -586,7 +591,7 @@ export function Segmented({
         ) : (
           item
         );
-      })}
+      }))}
     </ToggleGroup>
   );
 }

@@ -2,6 +2,7 @@
 import { BookOpen, Flame, Gauge, Layers, Swords, Timer, type LucideIcon } from "lucide-react";
 import { Button, Empty, NUMERIC } from "../ui";
 import { achievementBadge } from "../../../src/client/lib/achievements";
+import { catalog } from "../store";
 import type { AchievementCategory, AchievementDto } from "../../../src/shared/types";
 import { RESULT_MARK, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,7 @@ export const categoryOf = (a: { category: string }) => CATEGORIES.find((c) => c.
  * the goal only.
  */
 export function AchievementBadge({ a, size = 44, className }: { a: AchievementDto; size?: number; className?: string }) {
-  const { value, unit } = achievementBadge(a),
+  const { value, unit } = achievementBadge(a, catalog.sets),
     colour = categoryOf(a).colour,
     small = size < 36;
   return (

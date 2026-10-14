@@ -8,10 +8,14 @@ declare const CUBIX_PRECACHE: string[];
 declare const CUBIX_DICTIONARIES: Record<string, string>;
 /** Named after the case diagrams' content (desktop/web.ts). */
 declare const CUBIX_CASES: string;
+/** Named after the phone app's files (desktop/web.ts). */
+declare const CUBIX_PHONE: string;
 const SHELL = `cubix-shell-${CUBIX_VERSION}`;
 const RUNTIME = "cubix-runtime-v1";
 /** The case diagrams keep their names from one build to the next: kept as they are until one of them changes. */
 const CASES = `cubix-cases-${CUBIX_CASES}`;
+/** The phone app's files, named after their content, kept once fetched until the phone app changes. */
+const PHONE = `cubix-phone-${CUBIX_PHONE}`;
 const DICTIONARIES = Object.values(CUBIX_DICTIONARIES);
 
 worker.addEventListener("install", (event) => {
@@ -30,10 +34,10 @@ worker.addEventListener("activate", (event) => {
     const keys = await caches.keys();
     const shells = keys.filter((key) => key.startsWith("cubix-shell-") && key !== SHELL);
     for (const key of shells.slice(0, -1)) await caches.delete(key);
-    for (const key of keys) if (key.startsWith("cubix-cases-") && key !== CASES) await caches.delete(key);
+    for (const key of keys) if (key.startsWith("cubix-cases-") && key !== CASES || key.startsWith("cubix-phone-") && key !== PHONE) await caches.delete(key);
     // Earlier versions kept bundles and case diagrams here too, again at every load.
     const runtime = await caches.open(RUNTIME);
-    for (const request of await runtime.keys()) if (/^\/(build|vendor|assets\/cases)\//.test(new URL(request.url).pathname)) await runtime.delete(request);
+    for (const request of await runtime.keys()) if (/^\/(build|vendor|assets\/cases|phone)\//.test(new URL(request.url).pathname)) await runtime.delete(request);
     await worker.clients.claim();
   })());
 });
@@ -69,6 +73,7 @@ async function asset(request: Request, url: URL) {
   // Built bundles and vendor modules carry their version in their path; the shell has them, but a dictionary.
   if (/^\/(build|vendor)\//.test(url.pathname)) return lasting(request, caches, DICTIONARIES.includes(url.pathname) ? SHELL : undefined);
   if (url.pathname.startsWith("/assets/cases/")) return lasting(request, await caches.open(CASES), CASES);
+  if (/^\/phone\/(_expo\/static|assets)\//.test(url.pathname)) return lasting(request, await caches.open(PHONE), PHONE);
   // Other files refresh in the background.
   const cached = await caches.match(request, { ignoreSearch: true });
   const refresh = fetch(request).then(async (response) => {

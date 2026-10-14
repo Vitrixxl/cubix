@@ -43,6 +43,7 @@ type trafficClient struct {
 	recorded bool
 	last     int64
 	http     trafficBucket
+	files    trafficBucket
 	auth     trafficBucket
 	admin    trafficBucket
 	ws       trafficBucket
@@ -123,6 +124,9 @@ func (t *Traffic) ip(peer netip.Addr, header http.Header) netip.Addr {
 	return current
 }
 
+// trafficFilesFactor: how many times the API's limit a client may fetch of the site's files a minute.
+const trafficFilesFactor = 10
+
 // trafficKey: whom the limits count. An IPv6 client usually holds a whole /64, so the /64 is one client.
 func trafficKey(ip netip.Addr) netip.Addr {
 	if ip.Is6() {
@@ -154,12 +158,16 @@ func (t *Traffic) allow(ip netip.Addr, path string, websocket bool) bool {
 	}
 	c, ok := t.ips[ip]
 	if !ok {
-		c = &trafficClient{last: accountsNow(), http: newTrafficBucket(float64(t.limit)), auth: newTrafficBucket(20), admin: newTrafficBucket(5), ws: newTrafficBucket(120)}
+		c = &trafficClient{last: accountsNow(), http: newTrafficBucket(float64(t.limit)), files: newTrafficBucket(float64(t.limit * trafficFilesFactor)), auth: newTrafficBucket(20), admin: newTrafficBucket(5), ws: newTrafficBucket(120)}
 		t.ips[ip] = c
 	}
 	c.last = accountsNow()
 	if websocket {
 		return c.ws.allow(120, 60)
+	}
+	// The site's files and pages count apart, with more room: an app's first load is a few hundred of them.
+	if !strings.HasPrefix(path, "/api/") {
+		return c.files.allow(float64(t.limit*trafficFilesFactor), 60)
 	}
 	general := c.http.allow(float64(t.limit), 60)
 	special := true

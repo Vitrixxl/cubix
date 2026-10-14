@@ -78,7 +78,7 @@ const groupId = (set: string, group: string) => `group-${set}-${group}`.replace(
  */
 function Catalog({ mobile }: { mobile: boolean }) {
   const { sections, section } = currentSet();
-  const learned = sections.reduce((sum, v) => sum + v.variants.reduce((n: number, set: any) => n + learnedOf(s.setCases(set.id)), 0), 0);
+  const learned = sections.reduce((sum, v) => sum + v.variants.reduce((n: number, set: any) => n + s.learnedIn(set.id), 0), 0);
   const total = s.cases().length;
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const [small, setSmall] = useState(() => s.prefs["cubix.algs.tileSize"] === "small");
@@ -106,7 +106,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
             variant="secondary"
             align="start"
             value={set.id}
-            options={sections.flatMap((v) => v.variants.map((x: any) => ({ id: x.id, label: `${said(x.label)} · ${learnedOf(s.setCases(x.id))} / ${x.count}` })))}
+            options={sections.flatMap((v) => v.variants.map((x: any) => ({ id: x.id, label: `${said(x.label)} · ${s.learnedIn(x.id)} / ${x.count}` })))}
           />
           <FilterChoice section={section} />
         </div>
@@ -187,7 +187,7 @@ function SetTree({ sections, active }: { sections: { stage: string; variants: an
           <p className={cn(LABEL, "px-2.5 pt-2 pb-1 font-semibold tracking-wider uppercase")}>{said(section.stage)}</p>
           {section.variants.map((set: any) => {
             const cases = s.setCases(set.id),
-              learned = learnedOf(cases),
+              learned = s.learnedIn(set.id),
               on = set.id === active,
               groups = on ? [...new Set(cases.map((c: any) => c.group))] : [],
               foldable = groups.length > 1,

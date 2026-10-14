@@ -11,17 +11,18 @@ const root = document.documentElement;
 // The theme chosen on this device, never the default one first.
 const { themeName, light } = cachedAppearance();
 paintTheme(themeName, light);
-root.setAttribute("data-js", "");
 try {
   if (localStorage.getItem("cubix.signedIn") === "1") root.setAttribute("data-account", "");
 } catch {}
 /**
  * A person's browser: the app draws its own page at once (its skeleton holds the scramble shown last, store.ts), and
- * the page written ahead of time, made without the app's data, stays for search engines and automated browsers (the
- * tests), which read it.
+ * the page written ahead of time, made without the app's data, stays for automated browsers (the tests) until the app
+ * draws it. A search engine gets that page alone, styled, without the app: the same content, never a welcome wall.
  */
-const person = !navigator.webdriver && !/bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent);
+const crawler = /bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent);
+const person = !navigator.webdriver && !crawler;
 if (person) root.setAttribute("data-direct", "");
+if (!crawler) root.setAttribute("data-js", "");
 
 /**
  * Which app this window loads: on a phone (its screen's short side), a tablet or a small window (viewport.ts), the
@@ -47,7 +48,15 @@ try {
   }
 } catch {}
 // No phone app in a development build where mobile/ did not build (web.ts).
-const started = !!CUBIX_PHONE_HEAD && phone();
-document.write(started ? CUBIX_PHONE_HEAD : admin ? CUBIX_DESKTOP_HEAD.replace(/<link rel="modulepreload"[^>]*>\n?/g, "") : CUBIX_DESKTOP_HEAD);
+const started = !crawler && !!CUBIX_PHONE_HEAD && phone();
+const preloads = /<link rel="modulepreload"[^>]*>\n?/g;
+document.write(crawler ? CUBIX_DESKTOP_HEAD.replace(preloads, "").replace(/<script[^>]*><\/script>/g, "") : started ? CUBIX_PHONE_HEAD : admin ? CUBIX_DESKTOP_HEAD.replace(preloads, "") : CUBIX_DESKTOP_HEAD);
+/**
+ * The offline shell (sw.ts), for either app, installs once the page has loaded and gone quiet: it downloads every
+ * bundle, never before the first screen's.
+ */
+if (!crawler && "serviceWorker" in navigator) {
+  addEventListener("load", () => (window.requestIdleCallback ?? setTimeout)(() => void navigator.serviceWorker.register("/sw.js").catch(() => {})), { once: true });
+}
 // A window resized across the line loads the other app.
-if (CUBIX_PHONE_HEAD) addEventListener("resize", () => { if (phone() !== started) location.reload(); });
+if (CUBIX_PHONE_HEAD && !crawler) addEventListener("resize", () => { if (phone() !== started) location.reload(); });

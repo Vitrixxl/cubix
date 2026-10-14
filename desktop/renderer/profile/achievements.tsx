@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { BookOpen, Eye, Share2, Target, Timer, Trophy, type LucideIcon } from "lucide-react";
-import { store as s } from "../store";
+import { catalog, store as s } from "../store";
 import { goPage } from "../navigation";
 import { Back, Bar, Choice, Empty, FOCUS, Modal, NUMERIC, PageHead, SelectMenu, Surface, Tip, plural } from "../ui";
 import { Button as UiButton } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { achievementKind, achievementSeries, isTimeGoal } from "../../../src/client/lib/achievements";
 import { fmtTime } from "../../../src/client/lib/format";
 import { eventOf, type PuzzleId } from "../../../src/shared/puzzles";
-import { sets } from "../../../src/client/local/catalog";
 import type { AchievementDto } from "../../../src/shared/types";
 import { locale, tr } from "../../../src/client/i18n";
 import { said } from "../base";
@@ -51,7 +50,7 @@ function next(a: A): { label: string; icon: LucideIcon; action: string; go: () =
   const kind = achievementKind(a),
     puzzle = a.puzzle as PuzzleId | undefined;
   if (kind === "sets") {
-    const set = sets.find((v) => `learn:${v.id}` === a.id);
+    const set = catalog.sets.find((v: { id: string }) => `learn:${v.id}` === a.id);
     return {
       label: tr("Learn {0}", { 0: said(set?.label ?? a.group) }),
       icon: BookOpen,

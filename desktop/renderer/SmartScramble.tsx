@@ -7,7 +7,7 @@ import { smartCube } from "../../src/client/lib/smartCube";
 import { ScrambleTracker, trackable, type ScrambleProgress, type TurnProgress } from "../../src/client/lib/scrambleTracker";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { said, spaced } from "./base";
 
 /** Where the connected cube stands in `scramble`, turn by turn; null when it cannot be followed. */
 export function useScrambleProgress(scramble: string, active: boolean): ScrambleProgress | null {
@@ -41,11 +41,11 @@ export function SmartScramble({ text, progress, size }: { text: string; progress
   const turns = text.trim().split(/\s+/);
   return (
     <div className="alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight" style={{ fontSize: size }}>
-      {turns.map((turn, i) => (
+      {spaced(turns.map((turn, i) => (
         <span key={i} className={cn("transition-colors duration-150", progress.lost ? "text-muted-foreground" : TONE[progress.turns[i] ?? "todo"])}>
           {said(turn)}
         </span>
-      ))}
+      )))}
     </div>
   );
 }

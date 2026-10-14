@@ -6,6 +6,7 @@
 import { DESCRIPTION, FAQ, FEATURES, IMPORTS, NAME, PUZZLES, SITE, SOURCE, TAGLINE, TITLE } from "./content";
 import { LEGAL_DOCUMENTS } from "../legal/paths";
 import { LANGUAGES, t, type Language } from "../../../src/client/i18n";
+import { englishOnly, localePath } from "../../../src/client/lib/route";
 
 /** Each language's landing page: English at the root, the others under their code (`/fr/`). */
 export const landingPath = (language: Language) => (language === "en" ? "/" : `/${language}/`);
@@ -115,11 +116,12 @@ Disallow: /admin
 Sitemap: ${SITE}/sitemap.xml
 `;
 
-/** The app's public pages (desktop/prerender.tsx) in every language, each naming the others (hreflang). */
+/** The app's public pages (desktop/prerender.tsx) in every language they are written in, each naming the others (hreflang). */
 const appPages = (pages: string[]) =>
   pages
     .flatMap((path) => {
-      const at = (language: Language) => SITE + (language === "en" ? path : `/${language}${path}`).replace(/&/g, "&amp;");
+      const at = (language: Language) => SITE + localePath(language, path).replace(/&/g, "&amp;");
+      if (englishOnly(path)) return [`  <url><loc>${at("en")}</loc></url>\n`];
       const alternates = LANGUAGES.map(({ id }) => `<xhtml:link rel="alternate" hreflang="${id}" href="${at(id)}"/>`).join("");
       return LANGUAGES.map(({ id }) => `  <url><loc>${at(id)}</loc>${alternates}</url>\n`);
     })

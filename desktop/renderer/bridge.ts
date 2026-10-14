@@ -122,13 +122,6 @@ const worker = (async () => {
   void navigator.storage?.persist?.().catch(() => false);
   return started;
 })();
-// The offline shell installs once the page has loaded and gone quiet: it downloads every bundle, never before the
-// first screen's.
-if ("serviceWorker" in navigator) {
-  const register = () => (window.requestIdleCallback ?? setTimeout)(() => void navigator.serviceWorker.register("/sw.js").catch(() => {}));
-  if (document.readyState === "complete") register();
-  else addEventListener("load", register, { once: true });
-}
 
 export const call = async (method: string, ...args: any[]): Promise<any> => {
   const engine = await worker;

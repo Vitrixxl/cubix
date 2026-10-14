@@ -1,7 +1,6 @@
 import { PUZZLES, puzzleOf, scrambleTypeOf, solveModeOf, type PuzzleId } from "../../shared/puzzles";
-import type { AchievementDto, AchievementSummaryDto, SolveDto } from "../../shared/types";
+import type { AchievementDto, AchievementSummaryDto, CaseDto, SetDto, SolveDto } from "../../shared/types";
 import { effective, fmtTime, rollingAverages } from "./format";
-import { cases, sets } from "../local/catalog";
 import { msg } from "../i18n/msg";
 
 /** Single-time goals in seconds, per puzzle, from casual to expert. */
@@ -56,7 +55,8 @@ function timeGoal(id: string, title: string, description: string, category: Achi
 }
 
 /** Every achievement with its progress. Learning goals come from marks, the rest from solves. */
-export function achievements(rows: SolveDto[], learned: readonly string[]): AchievementSummaryDto {
+/** `catalog`: the side's own (the engine's, the phone's), which this module never loads itself: the desktop app has its own. */
+export function achievements(rows: SolveDto[], learned: readonly string[], { cases, sets }: { cases: readonly Pick<CaseDto, "id" | "set">[]; sets: readonly SetDto[] }): AchievementSummaryDto {
   const solves = [...rows].sort(chronological);
   const learnedSet = new Set(learned);
   const out: AchievementDto[] = [];
@@ -154,7 +154,7 @@ function setShort(label: string) {
   return label.split(/\s+/).find(w => /^[A-Z0-9]{2,}$/.test(w)) ?? label.split(/\s+/).filter(w => /^\w/.test(w)).map(w => w[0]!.toUpperCase()).join("");
 }
 /** What an achievement's badge reads: the goal itself (10, 1:00, 1k, OLL…) over its unit (sec, ao5, solves…). */
-export function achievementBadge(a: Pick<AchievementDto, "id" | "group" | "target">): { value: string; unit: string } {
+export function achievementBadge(a: Pick<AchievementDto, "id" | "group" | "target">, sets: readonly Pick<SetDto, "id" | "label">[]): { value: string; unit: string } {
   const kind = achievementKind(a), goal = a.id.slice(a.id.lastIndexOf(":") + 1);
   if (kind === "sets") return { value: setShort(sets.find(set => `learn:${set.id}` === a.id)?.label ?? goal), unit: String(a.target) };
   if (goal === "first") return { value: "1", unit: "BLD" };

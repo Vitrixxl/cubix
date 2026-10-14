@@ -5,7 +5,7 @@ import { readSolution, SOLUTION_MAX } from "../lib/solution";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
 import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
-import { cases } from "./catalog";
+import { cases, sets } from "./catalog";
 import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
 import { sessionSummaries } from "../lib/sessions";
@@ -454,7 +454,7 @@ export function createLocalClient(options: {
       const workspace = data(), own = Object.values(workspace.sessions).filter(s => s.mode === "playground" && matchesPractice(s,cubeSize,filter));
       return sessionSummaries(ordered().filter(s => !s.case_id && matchesPractice(s,cubeSize,filter)), workspace.sessions, own.map(s => s.id)).reverse();
     }),
-    achievements: () => derived("achievements", () => achievements(ordered(),learnedIds())),
+    achievements: () => derived("achievements", () => achievements(ordered(), learnedIds(), { cases, sets })),
     /** A solve of any session, by its id. */
     solve: (id: number) => { const solve = data().solves[id]; return solve && !solve.deleted ? solve : null; },
   };

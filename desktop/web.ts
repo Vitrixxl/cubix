@@ -154,7 +154,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // The case diagrams keep their names from one build to the next: they are kept until one of them changes.
   const cases = new Bun.CryptoHasher("sha256");
   for (const name of (await readdir(join(out, "assets/cases"))).sort()) cases.update(name).update(await readFile(join(out, "assets/cases", name)));
-  const define = { CUBIX_VERSION: JSON.stringify(version), CUBIX_PRECACHE: JSON.stringify(precache), CUBIX_DICTIONARIES: JSON.stringify(dictionaries), CUBIX_CASES: JSON.stringify(cases.digest("hex").slice(0, 16)) };
+  const define = { CUBIX_VERSION: JSON.stringify(version), CUBIX_PRECACHE: JSON.stringify(precache), CUBIX_DICTIONARIES: JSON.stringify(dictionaries), CUBIX_CASES: JSON.stringify(cases.digest("hex").slice(0, 16)), CUBIX_PHONE: JSON.stringify(new Bun.CryptoHasher("sha256").update(phoneHead).digest("hex").slice(0, 16)) };
   const sw = await Bun.build({ entrypoints: ["desktop/renderer/sw.ts"], target: "browser", minify: true, define });
   if (!sw.success) throw new AggregateError(sw.logs, "Build failed: service worker");
   await writeFile(join(out, "sw.js"), await sw.outputs[0].text());
@@ -227,15 +227,20 @@ async function legal(out: string, bundle: (entry: string) => Promise<Bundle>) {
  */
 async function exportPhone(out: string): Promise<string> {
   const exported = Bun.spawn(["bunx", "expo", "export", "--platform", "web", "--output-dir", out], {
-    cwd: "mobile", env: { ...process.env, CUBIX_WEB_BASE: "/phone" }, stdout: "ignore", stderr: "pipe",
+    // Metro keeps every module imported otherwise: the whole of lucide-react-native's icons, 2 MB, for the few in use.
+    cwd: "mobile", env: { ...process.env, CUBIX_WEB_BASE: "/phone", EXPO_UNSTABLE_TREE_SHAKING: "1", EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH: "1" }, stdout: "ignore", stderr: "pipe",
   });
   if (await exported.exited) throw new Error(`Phone app export failed:\n${await new Response(exported.stderr).text()}`);
   const page = await readFile(join(out, "index.html"), "utf8");
   await rm(join(out, "index.html"));
   await rm(join(out, "metadata.json"), { force: true });
   // React Native for the web's reset (the page's height, no scrolling of the body), its stylesheet and its bundle.
-  const tags = page.match(/<style id="expo-reset">[\s\S]*?<\/style>|<link rel="stylesheet"[^>]*>|<script src="[^"]*"[^>]*><\/script>/g) ?? [];
+  const tags: string[] = page.match(/<style id="expo-reset">[\s\S]*?<\/style>|<link rel="stylesheet"[^>]*>|<script src="[^"]*"[^>]*><\/script>/g) ?? [];
   if (!tags.some((tag) => tag.startsWith("<script"))) throw new Error("The phone app's index.html has no script");
+  // The app's own chunk, which index loads only once it runs: fetched with the others instead.
+  const scripts = join(out, "_expo/static/js/web");
+  const app = (await readdir(scripts)).find((file) => /^App-\w+\.js$/.test(file));
+  if (app) tags.unshift(`<link rel="preload" href="/phone/_expo/static/js/web/${app}" as="script" />`);
   // A page written ahead of time is never shown under the phone app, at any width (pageDocument.ts hides it, and shows the
   // app it covers, only up to a phone's width): the app is in view at once, over pageDocument.ts's more specific rule.
   // Like a native app, no text is selected by a long press or a drag, `selectable` texts included; only fields keep it.

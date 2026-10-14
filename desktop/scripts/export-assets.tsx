@@ -5,9 +5,11 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { cases, sets } from '../../src/client/local/catalog';
 import { CaseDiagram } from '../../src/client/diagrams/CaseDiagram';
 import shared from '../../data/catalog.json';
+import { optimize } from 'svgo';
 const puzzles=shared.puzzles;
 await mkdir('desktop/assets/cases',{recursive:true});
-const svgDocument=(s:string)=>s.includes('xmlns=')?s:s.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+// Each diagram is an image of its own, read and laid out apart: a set's dozens of them, at a tenth of a unit, one path a colour.
+const svgDocument=(s:string)=>optimize(s.includes('xmlns=')?s:s.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"'),{multipass:true,floatPrecision:1}).data;
 const catalog=[];
 for(const [index,c] of cases.entries()){
  const file=`cases/${index}.svg`;

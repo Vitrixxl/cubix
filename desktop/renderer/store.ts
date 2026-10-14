@@ -292,6 +292,14 @@ export class Store {
     }
     return this.statsIndex.byId.get(id);
   };
+  /** How many of a set's cases are learned: counted once for each `learned`, which is replaced, never changed. */
+  private learnedIndex: { of: Set<string>; bySet: Map<string, number> } | null = null;
+  learnedIn = (set: string) => {
+    if (this.learnedIndex?.of !== this.learned) this.learnedIndex = { of: this.learned, bySet: new Map() };
+    let n = this.learnedIndex.bySet.get(set);
+    if (n === undefined) this.learnedIndex.bySet.set(set, (n = this.setCases(set).filter((c: any) => this.learned.has(c.id)).length));
+    return n;
+  };
   allSets = (p = this.puzzle) =>
     catalog.sets.filter((c: any) => puzzleOf(c) === p);
   find = (id: string) => caseById.get(id);
@@ -363,7 +371,7 @@ export class Store {
   get trainingMode(): TrainingMode { return TRAINING_MODES.includes(this.prefs["cubix.training.mode"]) ? this.prefs["cubix.training.mode"] : "learned"; }
   /** The set the recognition goes through, per puzzle, and the seconds each case is shown without a connected cube. */
   get recognitionSet(): string {
-    const learned = (set: string) => this.setCases(set).some((c: any) => this.learned.has(c.id)),
+    const learned = (set: string) => this.learnedIn(set) > 0,
       chosen = this.prefs["cubix.training.recognitionByCube"]?.[this.puzzle];
     return chosen && learned(chosen) ? chosen : (this.allSets().find((set: any) => learned(set.id))?.id ?? "");
   }
@@ -403,7 +411,7 @@ export class Store {
     return [
       ...(picks ? [tr("{0} recommended", { 0: picks })] : []),
       ...this.allSets().flatMap((set: any) => {
-        const n = this.trainSets.includes(set.id) ? this.setCases(set.id).filter((c: any) => this.learned.has(c.id)).length : 0;
+        const n = this.trainSets.includes(set.id) ? this.learnedIn(set.id) : 0;
         return n ? [tr("{0} · {1} learned", { 0: tr(set.label), 1: n })] : [];
       }),
       ...(hand ? [tr("{0} by hand", { 0: hand })] : []),
@@ -1064,6 +1072,7 @@ export class Store {
         }
         case "learn": {
           const learned = !this.learned.has(arg);
+          this.learned = new Set(this.learned);
           learned ? this.learned.add(arg) : this.learned.delete(arg);
           await call("setLearned", arg, learned);
           await this.refresh();
@@ -1078,6 +1087,7 @@ export class Store {
           const had = this.learned.has(id) ? (this.learnedAlgs[id] ?? []) : [],
             algs = had.includes(alg) ? had.filter((a) => a !== alg) : [...had, alg],
             learned = algs.length > 0;
+          this.learned = new Set(this.learned);
           learned ? this.learned.add(id) : this.learned.delete(id);
           this.learnedAlgs = { ...this.learnedAlgs, [id]: algs };
           await call("setLearned", id, learned, algs);

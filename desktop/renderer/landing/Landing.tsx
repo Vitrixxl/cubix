@@ -130,7 +130,7 @@ export function Landing() {
         <section className="mx-auto grid w-full max-w-7xl items-center gap-x-12 gap-y-10 px-5 pt-8 pb-16 md:px-8 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-8">
           <div className="flex flex-col items-start gap-5">
             <h1 className="landing-in flex flex-col gap-4">
-              <span className="text-sm font-bold text-primary md:text-base">{tr("The free speedcubing app")}</span>
+              <span className="text-sm font-bold text-primary md:text-base">{tr("The free speedcubing app")}</span>{" "}
               <span className="text-[clamp(2.9rem,5.6vw,4.75rem)] leading-[0.9] font-extrabold tracking-[-0.05em] text-balance">
                 {tr("From your first solve")}{" "}<span className="text-primary">{tr("to your next PB.")}</span>
               </span>

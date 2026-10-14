@@ -50,3 +50,20 @@ func TestTrafficJoinsForwardedLines(t *testing.T) {
 		t.Errorf("%s", got)
 	}
 }
+
+func TestTrafficCountsFilesApart(t *testing.T) {
+	traffic := newTraffic(nil)
+	traffic.limit = 2
+	ip := netip.MustParseAddr("192.0.2.7")
+	for i := 0; i < 2*trafficFilesFactor; i++ {
+		if !traffic.allow(ip, "/build/main.js", false) {
+			t.Fatalf("file %d refused", i)
+		}
+	}
+	if traffic.allow(ip, "/build/main.js", false) {
+		t.Fatal("files are never limited")
+	}
+	if !traffic.allow(ip, "/api/me", false) || !traffic.allow(ip, "/api/me", false) || traffic.allow(ip, "/api/me", false) {
+		t.Fatal("the API's limit is not its own")
+	}
+}

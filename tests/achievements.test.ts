@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { achievementBadge, achievementSeries, achievements, isTimeGoal, level } from "../src/client/lib/achievements";
+import * as catalog from "../src/client/local/catalog";
 import { cases } from "../src/client/local/catalog";
 import type { SolveDto } from "../src/shared/types";
 
@@ -9,7 +10,7 @@ const at = (day: number, index = 0) => new Date(Date.UTC(2026, 0, day, 10, index
 const byId = (list: ReturnType<typeof achievements>["achievements"], id: string) => list.find(a => a.id === id)!;
 
 test("an empty history unlocks nothing and lists every puzzle, learning set and general goal", () => {
-  const summary = achievements([], []);
+  const summary = achievements([], [], catalog);
   expect(summary.unlocked).toBe(0);
   expect(summary.total).toBe(summary.achievements.length);
   expect(summary.achievements.filter(a => a.unlocked)).toEqual([]);
@@ -25,10 +26,10 @@ test("an empty history unlocks nothing and lists every puzzle, learning set and 
 
 test("learning every case of a set unlocks its mastery goal and counts towards the totals", () => {
   const pll = cases.filter(c => c.set === "pll").map(c => c.id);
-  const partial = achievements([], pll.slice(0, 12));
+  const partial = achievements([], pll.slice(0, 12), catalog);
   expect(byId(partial.achievements, "learn:pll")).toMatchObject({ progress: 12, unlocked: false, detail: "12 / 21 cases" });
   expect(byId(partial.achievements, "learn:total:10")).toMatchObject({ unlocked: true });
-  const full = achievements([], pll);
+  const full = achievements([], pll, catalog);
   expect(byId(full.achievements, "learn:pll")).toMatchObject({ progress: 21, ratio: 1, unlocked: true });
   expect(byId(full.achievements, "learn:oll").unlocked).toBe(false);
 });
@@ -42,7 +43,7 @@ test("time goals use full scrambles only, honour penalties and remember when the
     solve({ time_ms: 19500, created_at: at(5) }),
     solve({ time_ms: 18000, created_at: at(6) }),
   ];
-  const list = achievements(rows, []).achievements;
+  const list = achievements(rows, [], catalog).achievements;
   expect(byId(list, "333:single:30")).toMatchObject({ unlocked: true, unlockedAt: at(1) });
   expect(byId(list, "333:single:20")).toMatchObject({ unlocked: true, unlockedAt: at(5), progress: 18000, detail: "Best 18.000 · goal 20.000" });
   expect(byId(list, "333:single:15").unlocked).toBe(false);
@@ -59,7 +60,7 @@ test("averages, one-handed and blindfolded goals each read their own history", (
     solve({ time_ms: 100000, solve_mode: "blindfolded", penalty: "dnf", created_at: at(4) }),
     solve({ time_ms: 100000, solve_mode: "blindfolded", created_at: at(5) }),
   ];
-  const list = achievements(rows, []).achievements;
+  const list = achievements(rows, [], catalog).achievements;
   expect(byId(list, "333:ao5:25")).toMatchObject({ unlocked: true, unlockedAt: at(1, 4) });
   expect(byId(list, "333:ao5:20")).toMatchObject({ unlocked: true, unlockedAt: at(2, 3) });
   expect(byId(list, "333:ao5:15").unlocked).toBe(false);
@@ -75,7 +76,7 @@ test("volume, active days and streaks count every puzzle and mode", () => {
     ...Array.from({ length: 12 }, (_, i) => solve({ puzzle_id: "pyram", cube_size: null, scramble_type: "normal", time_ms: 5000, created_at: at(1 + i) })),
     ...Array.from({ length: 4 }, (_, i) => solve({ case_id: "PLL Aa", scramble_type: "case", time_ms: 1500, created_at: at(20 + i * 2) })),
   ];
-  const list = achievements(rows, []).achievements;
+  const list = achievements(rows, [], catalog).achievements;
   expect(byId(list, "pyram:solves:10")).toMatchObject({ unlocked: true, unlockedAt: at(10) });
   expect(byId(list, "pyram:single:6")).toMatchObject({ unlocked: true, unlockedAt: at(1) });
   expect(byId(list, "333:solves:1").unlocked).toBe(false);
@@ -89,14 +90,14 @@ test("volume, active days and streaks count every puzzle and mode", () => {
 
 test("each achievement reads as a badge and belongs to a series, and the solve that unlocked it is kept", () => {
   const rows = [solve({ time_ms: 9000, created_at: at(1) })];
-  const list = achievements(rows, []).achievements;
-  expect(achievementBadge(byId(list, "333:single:10"))).toEqual({ value: "10", unit: "sec" });
-  expect(achievementBadge(byId(list, "333:single:60"))).toEqual({ value: "1:00", unit: "sec" });
-  expect(achievementBadge(byId(list, "333:ao5:30"))).toEqual({ value: "30", unit: "ao5" });
-  expect(achievementBadge(byId(list, "total:1000"))).toEqual({ value: "1k", unit: "times" });
-  expect(achievementBadge(byId(list, "learn:2look-oll"))).toEqual({ value: "2-OLL", unit: "10" });
-  expect(achievementBadge(byId(list, "learn:4x4-edges")).value).toBe("EP");
-  expect(achievementBadge(byId(list, "learn:2x2-pbl")).value).toBe("PBL");
+  const list = achievements(rows, [], catalog).achievements;
+  expect(achievementBadge(byId(list, "333:single:10"), catalog.sets)).toEqual({ value: "10", unit: "sec" });
+  expect(achievementBadge(byId(list, "333:single:60"), catalog.sets)).toEqual({ value: "1:00", unit: "sec" });
+  expect(achievementBadge(byId(list, "333:ao5:30"), catalog.sets)).toEqual({ value: "30", unit: "ao5" });
+  expect(achievementBadge(byId(list, "total:1000"), catalog.sets)).toEqual({ value: "1k", unit: "times" });
+  expect(achievementBadge(byId(list, "learn:2look-oll"), catalog.sets)).toEqual({ value: "2-OLL", unit: "10" });
+  expect(achievementBadge(byId(list, "learn:4x4-edges"), catalog.sets).value).toBe("EP");
+  expect(achievementBadge(byId(list, "learn:2x2-pbl"), catalog.sets).value).toBe("PBL");
   expect(achievementSeries(byId(list, "333:single:10"))).toBe("333:single");
   expect(achievementSeries(byId(list, "learn:oll"))).toBe("learn:3×3");
   expect(isTimeGoal(byId(list, "333:bld:60"))).toBe(true);
@@ -107,13 +108,13 @@ test("each achievement reads as a badge and belongs to a series, and the solve t
 });
 
 test("each harder step of a series gives more XP, the unlocked ones add up to a level", () => {
-  const empty = achievements([], []);
+  const empty = achievements([], [], catalog);
   expect(empty.xp).toBe(0);
   expect(byId(empty.achievements, "333:single:60").xp).toBe(25);
   expect(byId(empty.achievements, "333:single:45").xp).toBe(50);
   expect(byId(empty.achievements, "learn:pll").xp).toBe(25);
   expect(byId(empty.achievements, "learn:oll").xp).toBe(57);
-  const list = achievements([solve({ time_ms: 40000, created_at: at(1) })], []);
+  const list = achievements([solve({ time_ms: 40000, created_at: at(1) })], [], catalog);
   // Sub-60, Sub-45 and the first 3×3 solve.
   expect(list.xp).toBe(25 + 50 + 25);
   expect(level(0)).toEqual({ level: 1, into: 0, span: 100 });

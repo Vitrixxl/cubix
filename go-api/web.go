@@ -7,6 +7,9 @@ package main
 // page (`landing.html`): the app lives under its own paths, `/timer` first.
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -113,9 +116,8 @@ func webAppPath(path string) (string, string, bool) {
 }
 
 // webPage: the app's address `path`: its page in its language (`pages/<language>/<path>[@<puzzle>[~<step>]].html`,
-// stored compressed with Brotli only, which every current browser and search engine accepts), trying without the step,
-// then without the puzzle; else, or for a client without Brotli, the app's `index.html`. Any other address is a file of
-// the build.
+// stored compressed with Brotli and gzip), trying without the step, then without the puzzle; else the app's
+// `index.html`. Any other address is a file of the build.
 func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 	language, path, ok := webAppPath(r.URL.EscapedPath())
 	if !ok {
@@ -148,20 +150,36 @@ func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 		names = append(names, path+"@"+puzzle)
 	}
 	names = append(names, path)
-	if webAccepted(r) == "br" {
-		for _, name := range names {
-			if bytes, err := os.ReadFile(filepath.Join(dir, "pages", language, name+".html.br")); err == nil {
-				h := w.Header()
-				h.Set("Content-Type", "text/html; charset=utf-8")
-				h.Set("Content-Encoding", "br")
-				h.Set("Vary", "accept-encoding")
-				w.WriteHeader(200)
-				if r.Method != "HEAD" {
-					_, _ = w.Write(bytes)
-				}
-				return
-			}
+	// Brotli, else gzip, else gzip unpacked here: a link preview or a crawler without either reads the page too.
+	accepted := webAccepted(r)
+	extension := ".gz"
+	if accepted == "br" {
+		extension = ".br"
+	}
+	for _, name := range names {
+		page, err := os.ReadFile(filepath.Join(dir, "pages", language, name+".html"+extension))
+		if err != nil {
+			continue
 		}
+		h := w.Header()
+		h.Set("Content-Type", "text/html; charset=utf-8")
+		h.Set("Vary", "accept-encoding")
+		if accepted == "" {
+			unpacked, err := gzip.NewReader(bytes.NewReader(page))
+			if err != nil {
+				break
+			}
+			if page, err = io.ReadAll(unpacked); err != nil {
+				break
+			}
+		} else {
+			h.Set("Content-Encoding", accepted)
+		}
+		w.WriteHeader(200)
+		if r.Method != "HEAD" {
+			_, _ = w.Write(page)
+		}
+		return
 	}
 	webServeFile(w, r, filepath.Join(dir, "index.html"))
 }
@@ -257,16 +275,20 @@ func webServeFile(w http.ResponseWriter, r *http.Request, path string) {
 	}
 	h := w.Header()
 	h.Set("Content-Type", kind)
+	h.Set("Vary", "accept-encoding")
 	if encoding != "" {
 		h.Set("Content-Encoding", encoding)
 	}
 	http.ServeContent(w, r, "", info.ModTime(), file)
 }
 
-// webCache: bundles carry a content hash and vendor modules their version in the path.
+// webCache: bundles and the phone app's files carry a content hash, vendor modules their version in the path.
 func webCache(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
-	immutable := strings.HasPrefix(path, "/build/") || strings.HasPrefix(path, "/vendor/")
+	immutable := false
+	for _, prefix := range []string{"/build/", "/vendor/", "/phone/_expo/static/", "/phone/assets/"} {
+		immutable = immutable || strings.HasPrefix(path, prefix)
+	}
 	onHeader(w, func(h http.Header, status int) {
 		if status >= 200 && status < 300 || status == http.StatusNotModified {
 			if immutable {

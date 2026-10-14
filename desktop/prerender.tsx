@@ -11,7 +11,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
-import { brotliCompressSync, constants } from "node:zlib";
+import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 
 /** What the app reads of a browser while it is drawn, before any of its modules is loaded. */
 function browser() {
@@ -58,7 +58,7 @@ async function renderShare(out: string, template: string, index: number, count: 
   const { StaticRouter } = await import("react-router");
   const { Root } = await import("./renderer/app");
   const { store: s } = await import("./renderer/store");
-  const { readRoute, localePath } = await import("../src/client/lib/route");
+  const { readRoute, localePath, englishOnly } = await import("../src/client/lib/route");
   const { pageDocument } = await import("./renderer/pageDocument");
   const { prerenderedPages, seoOf } = await import("./renderer/seo");
   const { LANGUAGES, setLanguage } = await import("../src/client/i18n");
@@ -70,10 +70,8 @@ async function renderShare(out: string, template: string, index: number, count: 
     await setLanguage(language, false);
     for (const { url, files } of pages) {
       const { pathname, search } = new URL(url, "https://localhost");
-      // The algorithms' cases (thousands of nearly identical pages, searched by their names in every language) are
-      // written in English only: in another language their address gets the app's page, which draws them itself
-      // (go-api/web.go). The fewer pages a language is searched in (courses, timer, training) stay in every one.
-      if (language !== "en" && /^\/algorithms\/./.test(pathname)) continue;
+      // The fewer pages a language is searched in (courses, timer, training) are in every one, the cases in English.
+      if (language !== "en" && englishOnly(pathname)) continue;
       const route = readRoute(pathname, search)!;
       Object.assign(s, initial, { prefs: {}, ready: true, introductionReady: true, user: { id: "local-guest", username: "Guest", isGuest: true } });
       s.loadContext();
@@ -89,13 +87,14 @@ async function renderShare(out: string, template: string, index: number, count: 
       const seo = seoOf(pathname, search)!;
       // Only compressed: thousands of pages would take a gigabyte as they are.
       const html = pageDocument(template, { language, seo, body, theme, localePath });
-      // Brotli alone: a second, gzip copy of every page doubled the files to write and to copy into the image, for
-      // clients that do not exist any more (go-api/web.go serves the app's index.html to one without Brotli).
+      // Brotli for browsers; gzip for link previews and crawlers without it, which go-api/web.go also unpacks for a
+      // client that takes neither.
       const br = brotliCompressSync(html, { params: { [constants.BROTLI_PARAM_QUALITY]: QUALITY, [constants.BROTLI_PARAM_SIZE_HINT]: html.length } });
+      const gz = gzipSync(html, { level: 9 });
       for (const file of files) {
         const path = join(out, "pages", language, file);
         await mkdir(dirname(path), { recursive: true });
-        await writeFile(path + ".br", br);
+        await Promise.all([writeFile(path + ".br", br), writeFile(path + ".gz", gz)]);
       }
     }
   }
