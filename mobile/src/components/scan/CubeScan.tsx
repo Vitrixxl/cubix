@@ -5,7 +5,7 @@ import Svg, { G, Path, Polygon } from "react-native-svg";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { FACES, slotsFor, type Face, type Vec3 } from "../../../../src/shared/cube";
 import { GREY, hexOf, HELD_HEX } from "../../../../src/shared/cubeAppearance";
-import { cubeSamples, readCube, resolve, scanColours, scanProblem, scanStickers, type Rgb } from "../../../../src/client/lib/cubeScan";
+import { cubeSamples, readCube, resolve, SCAN_CENTRES, scanProblem, type Rgb } from "../../../../src/client/lib/cubeScan";
 import { COLOUR_NAMES } from "../../../../src/client/lib/solveAnalysis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,8 +62,8 @@ const stickerAt = (n: Vec3, u: Vec3, v: Vec3, i: number, j: number) => {
 };
 
 /**
- * A cube drawn as it should be held: `front` to the camera, `top` on top, in the colours read so far (see
- * `scanStickers`), grey where not read yet; an arrow for the quarter turn that gets there.
+ * A cube drawn as it should be held: `front` to the camera, `top` on top, its centres alone (`SCAN_CENTRES`); an arrow
+ * for the quarter turn that gets there.
  */
 function HoldCube({ front, top, turn, size, stickers }: { front: Face; top: Face; turn?: "right" | "back"; size: number; stickers: (Face | null)[] }) {
   const colors = useColors();
@@ -91,13 +91,13 @@ function HoldCube({ front, top, turn, size, stickers }: { front: Face; top: Face
   </Svg>;
 }
 
-/** A face read so far, small: its nine colours, or its centre's colour while it waits; a tap reads a read one again. */
-function MiniFace({ step, colours, current, onPress }: { step: (typeof ORDER)[number]; colours?: Face[]; current: boolean; onPress?: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={colours ? tr("{0}: read this face again", { 0: tr(step.title) }) : tr(step.title)} accessibilityState={{ disabled: !onPress, selected: current }}
+/** A face, small: its centre's colour alone, read or not (the colours show once the cube is read); a tap reads a read one again. */
+function MiniFace({ step, read, current, onPress }: { step: (typeof ORDER)[number]; read: boolean; current: boolean; onPress?: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={read ? tr("{0}: read this face again", { 0: tr(step.title) }) : tr(step.title)} accessibilityState={{ disabled: !onPress, selected: current }}
     disabled={!onPress} onPress={onPress}
-    className={cn("size-11 flex-row flex-wrap content-center justify-center gap-px rounded-lg border p-[3px]", current ? "border-2 border-primary p-[2px]" : colours ? "border-success/60" : "border-border")}>
-    {Array.from({ length: 9 }, (_, k) => <View key={k} className={cn("size-[10px] rounded-[2px]", !colours && k !== 4 && "bg-muted")}
-      style={colours ? { backgroundColor: hex(colours[k]!) } : k === 4 ? { backgroundColor: hex(step.face) } : undefined} />)}
+    className={cn("size-11 flex-row flex-wrap content-center justify-center gap-px rounded-lg border p-[3px]", current ? "border-2 border-primary p-[2px]" : read ? "border-success/60" : "border-border")}>
+    {Array.from({ length: 9 }, (_, k) => <View key={k} className={cn("size-[10px] rounded-[2px]", k !== 4 && "bg-muted")}
+      style={k === 4 ? { backgroundColor: hex(step.face) } : undefined} />)}
   </Pressable>;
 }
 
@@ -133,16 +133,13 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     [side, setSide] = useState(0);
   const current = redo ?? faces.findIndex(f => !f),
     step = ORDER[current] ?? ORDER[0]!,
-    // The face read again is left out: the camera's page reads the one held against the others.
-    others = faces.map((f, i) => (i === current ? null : f)),
-    colours = scanColours(others),
     last = faces.findLastIndex(Boolean),
     // Kept current for the messages of the page.
     latest = useRef({ faces, current });
   latest.current = { faces, current };
   const send = (message: object) => web.current?.injectJavaScript(`window.__scan&&window.__scan(${JSON.stringify(message)});true;`);
-  // The page learns the faces read and the face asked for.
-  const state = () => send({ type: "state", faces: others, want: current >= 0 ? step.face : null });
+  // The page learns the face asked for.
+  const state = () => send({ type: "state", want: current >= 0 ? step.face : null });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(state, [faces, current]);
 
@@ -208,14 +205,14 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
       </Button>}
     </View>
     <View className="flex-row items-center gap-3" accessibilityLiveRegion="polite">
-      <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={scanStickers(colours.faces)} />
+      <HoldCube front={step.face} top={step.top} turn={turn} size={52} stickers={SCAN_CENTRES} />
       <Text className="min-w-0 flex-1 text-lg font-extrabold tracking-[-0.02em]">{tr(step.title)}</Text>
     </View>
     <View className="gap-2 rounded-2xl bg-card px-3 py-2.5">
       <Label className="font-bold tracking-widest uppercase">{tr("Faces read")} · {done} / {ORDER.length}</Label>
       <View className="flex-row justify-between">
         {ORDER.map((o, i) => <View key={o.face} className="items-center gap-0.5">
-          <MiniFace step={o} colours={colours.faces[i] ?? undefined} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />
+          <MiniFace step={o} read={!!faces[i]} current={i === current} onPress={faces[i] ? () => setRedo(i) : undefined} />
           <Text className={cn("text-xs font-bold", i === current ? "text-foreground" : "text-muted-foreground")}>{i === current ? tr("Now") : capitalised(tr(COLOUR_NAMES[o.face]!))}</Text>
         </View>)}
       </View>

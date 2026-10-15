@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { FACES, type Face } from "../../src/shared/cube";
 import { cubeOrientation, cubeScene } from "../../src/shared/cubeScene";
 import { heldColors, hexOf, HELD_HEX } from "../../src/shared/cubeAppearance";
-import { cubeSamples, readCube, resolve, scanColours, scanProblem, scanStickers, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
+import { cubeSamples, readCube, resolve, SCAN_CENTRES, scanProblem, VIEW, type Rgb } from "../../src/client/lib/cubeScan";
 import { faceWatcher, latticeShapes } from "../../src/client/lib/faceFinder";
 import { COLOUR_NAMES } from "../../src/client/lib/solveAnalysis";
 import { tr } from "../../src/client/i18n";
@@ -56,7 +56,7 @@ const DOUBT = 0.8;
 /** Seen nearly face on: the face to the camera stands out from the one on its right. */
 const FACING = cubeOrientation(0.4, 0.5);
 /**
- * The cube as it should be held for a step, as the app draws it, in the colours read so far (see `scanStickers`);
+ * The cube as it should be held for a step, as the app draws it, its centres alone (`SCAN_CENTRES`);
  * turned before the eyes when it comes by a quarter turn.
  */
 function HoldCube({ index, animated, stickers, size = 112 }: { index: number; animated: boolean; stickers: (Face | null)[]; size?: number }) {
@@ -150,9 +150,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     side = useSquare(box);
   const current = redo ?? faces.findIndex((f) => !f),
     step = ORDER[current] ?? ORDER[0]!,
-    last = faces.findLastIndex(Boolean),
-    // The face read again is left out while it is held.
-    colours = scanColours(faces.map((f, i) => (i === current ? null : f)), live && current >= 0 ? { colours: live, face: step.face } : undefined);
+    last = faces.findLastIndex(Boolean);
 
   const readNow = () => {
     if (!live || current < 0) return;
@@ -227,9 +225,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     return () => removeEventListener("keydown", key, true);
   });
 
-  // The face asked for's centre is its colour while it is held.
-  const seen = colours.held,
-    dark = !!live && live.reduce((s, [r, g, b]) => s + 0.3 * r + 0.59 * g + 0.11 * b, 0) / 9 < 45,
+  const dark = !!live && live.reduce((s, [r, g, b]) => s + 0.3 * r + 0.59 * g + 0.11 * b, 0) / 9 < 45,
     done = faces.filter(Boolean).length,
     shapes = face && latticeShapes(face.centre, face.u, face.v),
     chip = "flex items-center gap-2 rounded-xl bg-background/85 px-3 py-2 text-sm font-bold backdrop-blur";
@@ -259,9 +255,6 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
                     {/* Where the centre is read, around its logo. */}
                     {shapes.patches.map((points, k) => (
                       <polygon key={k} points={points} stroke="white" strokeOpacity={0.8} strokeWidth={1} />
-                    ))}
-                    {seen?.map((c, k) => (
-                      <circle key={k} cx={shapes.dots[k]![0]} cy={shapes.dots[k]![1]} r={shapes.r} fill={hex(c)} stroke="black" strokeOpacity={0.6} strokeWidth={1.5} />
                     ))}
                   </g>
                 )}
@@ -304,10 +297,10 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
             <h2 className="text-xl leading-tight font-extrabold tracking-[-0.03em] text-balance max-md:order-2 md:text-[28px]">{said(step.title)}</h2>
             <div className="flex items-center gap-4 max-md:order-1">
               <span className="md:hidden">
-                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(colours.faces)} size={56} />
+                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={SCAN_CENTRES} size={56} />
               </span>
               <span className="max-md:hidden">
-                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={scanStickers(colours.faces)} size={110} />
+                <HoldCube index={current < 0 ? 0 : current} animated={!!step.turn && redo === null} stickers={SCAN_CENTRES} size={110} />
               </span>
             </div>
           </div>
@@ -318,7 +311,8 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
           </span>
           <div className="flex justify-between gap-1.5">
             {ORDER.map((o, i) => {
-              const read = colours.faces[i] ?? undefined,
+              // Its centre alone, read or not: the colours show once the cube is read.
+              const read = !!faces[i],
                 tile = (
                   <button
                     type="button"
@@ -327,14 +321,14 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
                     onClick={() => setRedo(i)}
                     aria-current={i === current ? "step" : undefined}
                     aria-label={said(o.title)}
-                    className={cn("flex flex-col items-center gap-1 rounded-xl p-0.5 text-[11px] font-bold text-muted-foreground first-letter:uppercase enabled:hover:text-foreground", FOCUS)}
+                    className={cn("flex flex-col items-center gap-1 rounded-xl p-0.5 text-[11px] font-bold text-muted-foreground first-letter:uppercase enabled:hover:text-foreground", !read && i !== current && "opacity-45", FOCUS)}
                   >
                     <span className={cn("rounded-[9px]", i === current && "outline-2 outline-offset-2 outline-primary")}>
                       <span className="md:hidden">
-                        <FlatFace face={o.face} colours={read} size={40} />
+                        <FlatFace face={o.face} size={40} />
                       </span>
                       <span className="max-md:hidden">
-                        <FlatFace face={o.face} colours={read} size={54} />
+                        <FlatFace face={o.face} size={54} />
                       </span>
                     </span>
                     <span className="first-letter:uppercase max-md:hidden">{i === current ? tr("Now") : said(COLOUR_NAMES[o.face])}</span>

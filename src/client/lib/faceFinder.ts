@@ -331,14 +331,12 @@ export function faceWatcher() {
   };
 }
 
-/** A lattice drawn (SVG points): its nine cells, where the centre is read, each cell's middle and a disc's radius. */
+/** A lattice drawn (SVG points): its nine cells and where the centre is read. */
 export function latticeShapes(centre: Point, u: Point, v: Point) {
   const square = (i: number, j: number, s: number, t: number, e: number) =>
     [[-e, -e], [e, -e], [e, e], [-e, e]].map(([a, b]) => cellAt(centre, u, v, i, j, s + a!, t + b!).map((n) => n.toFixed(1)).join()).join(" ");
   return {
     cells: [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => square(i, j, 0, 0, 0.5))),
     patches: cellSquares(true).map(([s, t, e]) => square(0, 0, s, t, e)),
-    dots: [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => cellAt(centre, u, v, i, j))),
-    r: 0.18 * Math.min(Math.hypot(...u), Math.hypot(...v)),
   };
 }

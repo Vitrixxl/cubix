@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, FACES, slotsFor, solved, type Face } from "../src/shared/cube";
 import { REAL_HELD_HEX as HELD_HEX } from "../src/shared/cubeAppearance";
-import { cubeSamples, readCube, readFace, resolve, SCAN_FACES, scanColours, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
+import { cubeSamples, readCube, readFace, resolve, SCAN_FACES, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
 import { colours } from "../src/client/lib/solveAnalysis";
 
 /** A seeded generator, 0 to 1. */
@@ -62,20 +62,14 @@ describe("cube read", () => {
 const bgr = ([b, g, r]: Rgb): Rgb => [r, g, b];
 
 describe("face by face, as the lab reads", () => {
-  /** The stickers of each face, held as the scan asks, as a camera shows them; the colours read live face by face. */
-  function scanLive(truth: Face[], look: (face: Face, k: number) => Rgb) {
-    const faces: (Rgb[] | null)[] = SCAN_FACES.map(() => null);
-    let wrong = 0;
-    SCAN_FACES.forEach((face, i) => {
-      const at = FACES.indexOf(face) * 9,
-        held = truth.slice(at, at + 9).map((c, k) => look(c, at + k));
-      wrong += scanColours(faces, { colours: held, face }).held!.filter((c, k) => c !== truth[at + k]).length;
-      faces[i] = held;
+  /** The stickers of each face, held as the scan asks, as a camera shows them. */
+  const scanFaces = (truth: Face[], look: (face: Face, k: number) => Rgb) =>
+    SCAN_FACES.map((face) => {
+      const at = FACES.indexOf(face) * 9;
+      return truth.slice(at, at + 9).map((c, k) => look(c, at + k));
     });
-    return { wrong, faces: faces as Rgb[][] };
-  }
 
-  test("live, face by face, under a warm light, a washed-out webcam and an even one: nearly every sticker right, then the whole cube", () => {
+  test("face by face, under a warm light, a washed-out webcam and an even one: the whole cube", () => {
     const linear = (v: number) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4),
       srgb = (v: number) => Math.round(255 * Math.min(1, v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
     // ~/dev/lab/scan/live.ts's cameras: a warm one turns white beige, a washed-out one greys every colour.
@@ -84,16 +78,11 @@ describe("face by face, as the lab reads", () => {
       "washed out": (c) => c.map((v) => Math.round(srgb(v * 0.9) * 0.55 + 200 * 0.45)) as unknown as Rgb,
       warm: (c) => c.map((v, k) => srgb(v * [0.95, 0.62, 0.22][k]!)) as unknown as Rgb,
     };
-    for (const [name, camera] of Object.entries(cameras)) {
-      let wrong = 0;
+    for (const [name, camera] of Object.entries(cameras))
       for (let seed = 1; seed <= 10; seed++) {
-        const truth = scrambled(seed),
-          read = scanLive(truth, (c) => camera(hex(c).map(linear)));
-        wrong += read.wrong;
-        expect(readCube(cubeSamples(read.faces)).colours, `${name} seed ${seed}`).toEqual(truth);
+        const truth = scrambled(seed);
+        expect(readCube(cubeSamples(scanFaces(truth, (c) => camera(hex(c).map(linear))))).colours, `${name} seed ${seed}`).toEqual(truth);
       }
-      expect(wrong / 10, name).toBeLessThan(2.5);
-    }
   });
 
   test("the resolve of a warm camera, an edge flipped: exactly the cube", () => {
@@ -125,18 +114,9 @@ describe("face by face, as the lab reads", () => {
     return rgba;
   }
 
-  test("a phone that saturates: red, orange and yellow told apart by their hue, live and read whole", () => {
+  test("a phone that saturates: red, orange and yellow told apart by their hue, read whole", () => {
     // DroidCam on a phone (~/dev/lab/scan): channels at 255 or 0.
     const look: Record<Face, Rgb[]> = { U: [[255, 255, 0], [255, 254, 32]], R: [[255, 212, 0], [255, 157, 9], [255, 176, 0]], L: [[255, 50, 33], [255, 71, 25]], D: [[255, 255, 255], [255, 255, 254]], B: [[0, 125, 255], [29, 111, 216]], F: [[0, 225, 57], [0, 214, 46]] };
-    // Live, its darkest orange (20°) sometimes nearer red (2°) than the orange read so far (40°): the cube read whole
-    // puts it right.
-    let wrong = 0;
-    for (let seed = 1; seed <= 10; seed++) {
-      const truth = scrambled(seed),
-        r = random(seed);
-      wrong += scanLive(truth, (c) => look[c][Math.floor(r() * look[c].length)]!).wrong;
-    }
-    expect(wrong).toBeLessThanOrEqual(5);
     for (let seed = 1; seed <= 10; seed++) {
       const truth = scrambled(seed),
         r = random(seed);
