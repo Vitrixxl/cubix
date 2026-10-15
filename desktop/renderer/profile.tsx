@@ -17,7 +17,7 @@ import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { ProfileSkeleton } from "./skeletons";
 
-const SECTIONS: Record<string, string> = { playground: "Timer", training: "Training", achievements: "Achievements", duels: "Battles", analysis: "Analysis" };
+const SECTIONS: Record<string, string> = { playground: "Timer", training: "Training", achievements: "Awards", duels: "Battles", analysis: "Analysis" };
 
 /** The reading column: the page's padding, centred and capped like GitHub's. */
 const COLUMN = cn(PAGE, "mx-auto w-full max-w-7xl");
@@ -85,7 +85,8 @@ export function Profile() {
       <Overview />
     </section>
   ) : (
-    <section className={cn(COLUMN, "profile-main")} aria-label={said(SECTIONS[mode])}>
+    // The statistics, a dashboard, take the window's width as the overview does; the other sections keep the column.
+    <section className={cn(mode === "playground" ? PAGE : COLUMN, "profile-main")} aria-label={said(SECTIONS[mode])}>
       <SubPage mode={mode} phone={false} />
     </section>
   );

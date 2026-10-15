@@ -78,11 +78,13 @@ const texts = () => renderer.root.findAll((n: any) => n.type === "Text" || n.typ
 const chip = (label: string) => renderer.root.findAll((n: any) => n.type === "Chip" && (n.props.accessibilityLabel === label || n.props.children === label))[0];
 const pressable = (label: string) => renderer.root.findAll((n: any) => n.props.accessibilityLabel === label && typeof n.props.onPress === "function")[0];
 
-test("the five ways of training; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
+test("the five ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
   const store = await mount();
   expect(texts()).toEqual(expect.arrayContaining(["Cross", "Recognition", "Learned", "Whole sets", "Free practice"]));
-  // The slowest learned case against its set's usual is recommended, and picked until the player picks.
-  expect(texts()).toContain("1 recommended · 0 picked by hand");
+  // No bar under the ways: each starts from its own card, without a line of settings.
+  expect(pressable("Train")).toBeUndefined();
+  expect(texts().some(t => t.includes("picked by hand") || t.includes(" s · "))).toBe(false);
+  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(5);
   // The whole sets are chosen in their drawer.
   expect(chip("OLL, 3 learned")).toBeUndefined();
   await act(() => pressable("Whole sets")!.props.onPress());
@@ -104,11 +106,21 @@ test("a way's settings are in its drawer, and its Start runs it with them", asyn
   await act(() => pressable("Recognition")!.props.onPress());
   const seconds = renderer.root.findAll((n: any) => n.type === "Segmented" && n.props.label === "Seconds per case")[0]!;
   await act(() => seconds.props.onChange("5"));
-  expect(texts()).toContain("OLL · 3 of 3 · 5 s · AUF");
+  expect(texts()).not.toContain("OLL · 3 of 3 · 5 s · AUF");
   await act(() => pressable("Start")!.props.onPress());
   expect(store.get(recognitionSecondsAtom)).toBe(5);
   expect(store.get(trainingRunAtom)).toBe("recognition");
   expect(store.get(trainingStepAtom)).toBe("practice");
+});
+
+test("nothing recommended nor picked: Learned drills every learned case", async () => {
+  const store = await mount(s => s.set(trainPicksAtom, []));
+  expect(pressable("Learned, 3 cases")).toBeDefined();
+  await act(() => pressable("Learned, 3 cases")!.props.onPress());
+  expect(texts()).toContain("All learned cases");
+  await act(() => pressable("Train")!.props.onPress());
+  expect(store.get(trainingRunAtom)).toBe("cases");
+  expect(renderer.root.findByType("PushedBar" as any).props.sub).toBe("3 cases");
 });
 
 test("Learned opens its screen; a selection from elsewhere drills its learned cases alone", async () => {
@@ -155,5 +167,5 @@ test("a recognition run left for another page goes on where it was when the page
   await act(() => { renderer = create(<Provider store={store}><TrainingPage /></Provider>); });
   // No countdown again: the same case, the count kept.
   expect(renderer.root.findAllByType("CubePreview" as any)[0]!.props.alg).toBe(shown);
-  expect(renderer.root.findByType("PushedBar" as any).props.sub).toContain("1 case");
+  expect(renderer.root.findByType("PushedBar" as any).props.sub).toBe("OLL · 3 cases");
 });

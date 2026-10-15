@@ -1,12 +1,12 @@
 /**
- * Solve statistics. The page (stats/1.html, "the period"): a period picked on the curve or its ruler; the curve, the
+ * Solve statistics. The page (stats/1.html, "the period"): a period picked on the curve, its presets or its months; the curve, the
  * table of figures (period, latest, record), the solves or sessions of the period and the beaten records follow it.
  * Inside a case dialog (`TimerStats`): the figures, then the chart or the table.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownUp, ChartLine, List, MessageSquare, Plus, Rotate3d, Timer } from "lucide-react";
 import { store as s } from "./store";
-import { HistoryChart, fitRange, type ChartRange } from "./HistoryChart";
+import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
 import { periodFigures, singleRecords, solveTone, timerFigures, type PeriodFigure } from "../../src/client/lib/practiceSummary";
@@ -286,8 +286,7 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
 }
 
 /**
- * Under the curve: the quick periods, then a ruler of the months with the period shown framed on it (a click or a drag
- * moves it), then the period in words.
+ * Under the curve: the quick periods, then a month to pick in a menu (once there are two), then the period in words.
  */
 function PeriodBar({ items, range, onRange, lastSession, phone, count, sessionsShown }: { items: any[]; range: ChartRange; onRange: (r: ChartRange) => void; lastSession: number | null; phone: boolean; count: number; sessionsShown: number | null }) {
   const end = items.length - 1;
@@ -298,36 +297,18 @@ function PeriodBar({ items, range, onRange, lastSession, phone, count, sessionsS
     return { all: [0, end], "90": fit(since(90)), "30": fit(since(30)), last: fit(lastSession ?? end) } as Record<Preset, ChartRange>;
   }, [items, end, lastSession]);
   const preset = (["all", "90", "30", "last"] as Preset[]).find((k) => presets[k][0] === range[0] && presets[k][1] === range[1]) ?? "";
-  const ruler = useRef<HTMLDivElement>(null),
-    [width, setWidth] = useState(300);
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => setWidth(entry!.contentRect.width));
-    if (ruler.current) observer.observe(ruler.current);
-    return () => observer.disconnect();
-  }, []);
-  const moveTo = (clientX: number) => {
-    const r = ruler.current!.getBoundingClientRect(),
-      width = range[1] - range[0],
-      centre = Math.round(((clientX - r.left) / r.width) * end);
-    onRange(fitRange(centre - width / 2, width, end));
-  };
-  // The first solve of each month, its name written where there is room (the year with January).
+  // Each month with solves, newest first, as the solves (or sessions) it spans.
   const months = useMemo(() => {
-    const out: { at: number; text: string }[] = [];
-    let prev = "", lastLeft = -1;
+    const out = new Map<string, { label: string; range: ChartRange }>();
     items.forEach((v, i) => {
-      const d = new Date(v.at), key = `${d.getFullYear()}-${d.getMonth()}`;
-      if (key === prev) return;
-      prev = key;
-      const left = (i / Math.max(1, end)) * 100;
-      const text = d.getMonth() === 0 || !out.length ? joinedDate(v.at) : d.toLocaleDateString([], { month: "short" });
-      // About 7 px a letter, on the ruler's width: written where the last one written ends.
-      const px = (left / 100) * width, fits = px > lastLeft && left < 94;
-      out.push({ at: left, text: fits ? text : "" });
-      if (fits) lastLeft = px + text.length * 7 + 8;
+      const d = new Date(v.at), key = `${d.getFullYear()}-${d.getMonth()}`, seen = out.get(key);
+      if (seen) seen.range[1] = i;
+      else out.set(key, { label: joinedDate(v.at), range: [i, i] });
     });
-    return out;
-  }, [items, end, width]);
+    // A month of one solve shows the one before it too: a period holds two at least.
+    return [...out].reverse().map(([id, m]) => ({ id, label: m.label, range: [Math.min(m.range[0], Math.max(0, m.range[1] - 1)), m.range[1]] as ChartRange }));
+  }, [items]);
+  const month = months.find((m) => m.range[0] === range[0] && m.range[1] === range[1])?.id ?? "Month";
   const from = items[range[0]]?.at, to = items[range[1]]?.lastAt ?? items[range[1]]?.at;
   return (
     <div className="flex shrink-0 items-center gap-3 max-md:flex-wrap max-md:gap-2">
@@ -343,38 +324,10 @@ function PeriodBar({ items, range, onRange, lastSession, phone, count, sessionsS
         ]}
         className="shrink-0 bg-muted/60 max-md:w-full max-md:*:flex-1"
       />
-      {!phone && (
-        <div
-          ref={ruler}
-          role="slider"
-          tabIndex={0}
-          aria-label={tr("Period shown: click or drag to move it")}
-          aria-valuemin={0}
-          aria-valuemax={end}
-          aria-valuenow={range[0]}
-          className="relative h-11 min-w-24 flex-1 cursor-pointer touch-none overflow-hidden rounded-[10px] bg-background outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            moveTo(e.clientX);
-          }}
-          onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && moveTo(e.clientX)}
-          onKeyDown={(e) => {
-            const step = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
-            if (!step) return;
-            e.preventDefault();
-            const width = range[1] - range[0];
-            onRange(fitRange(range[0] + step * Math.max(1, Math.round(width / 2)), width, end));
-          }}
-        >
-          {months.map((m, i) => (
-            <span key={i} aria-hidden="true" className="pointer-events-none absolute inset-y-0 flex items-end bg-[linear-gradient(var(--border),var(--border))] bg-[length:1px_100%] bg-no-repeat pb-1.5 pl-1 text-[11px] font-semibold whitespace-nowrap text-muted-foreground" style={{ left: m.at + "%" }}>
-              {m.text}
-            </span>
-          ))}
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 rounded-[9px] border-2 border-muted-foreground" style={{ left: (range[0] / Math.max(1, end)) * 100 + "%", width: `max(4px, ${((range[1] - range[0]) / Math.max(1, end)) * 100}%)` }} />
-        </div>
+      {!phone && months.length > 1 && (
+        <SelectMenu action="statsMonth" label="Month" align="start" variant="ghost" value={month} onChange={(id) => onRange(months.find((m) => m.id === id)!.range)} options={months} />
       )}
-      <span data-count={count} className={cn(NUMERIC, "shrink-0 text-[13px] font-semibold whitespace-nowrap text-muted-foreground")}>
+      <span data-count={count} className={cn(NUMERIC, "ml-auto shrink-0 text-[13px] font-semibold whitespace-nowrap text-muted-foreground")}>
         {from && (
           <b className="text-foreground">
             {shortDate(from)} → {shortDate(to)}

@@ -20,7 +20,7 @@ describe("reading other timers' exports", () => {
       ["333oh", 95321, "none", 1696600000000],
     ]);
     expect(r.solves[1]).toMatchObject({ comment: "pop", scramble: "D2 B", session: "main" });
-    expect(r.skipped).toEqual({ "events Cubix does not practise": 1 });
+    expect(r.skipped).toEqual({ "events Qbix does not practise": 1 });
   });
 
   test("CubeTime's csTimer file: its 3BLD name and session names", () => {
@@ -45,7 +45,7 @@ describe("reading other timers' exports", () => {
     expect(r.app).toBe("Twisty Timer");
     expect(pick(r)).toEqual([["333", 12345, "none", 1696500000000], ["333", 12340, "+2", 1696500060000], ["pyram", 5320, "dnf", 1696500120000]]);
     expect(r.solves[2]).toMatchObject({ comment: null, session: "OH" });
-    expect(r.skipped).toEqual({ "events Cubix does not practise": 1 });
+    expect(r.skipped).toEqual({ "events Qbix does not practise": 1 });
   });
 
   test("Cubic Timer's backup: quoted header, backslashed quotes, packed penalties", () => {
@@ -78,7 +78,7 @@ describe("reading other timers' exports", () => {
     expect(r.app).toBe("CubeDesk");
     expect(pick(r)).toEqual([["333", 10340, "+2", 1696500000000], ["333bf", 30500, "dnf", 1696500060000]]);
     expect(r.solves[0]!.session).toBe("Main");
-    expect(r.skipped).toEqual({ "events Cubix does not practise": 1 });
+    expect(r.skipped).toEqual({ "events Qbix does not practise": 1 });
   });
 
   test("Cubeast and acubemy: 3×3 smart cube solves in milliseconds", () => {

@@ -29,7 +29,7 @@ if (person) root.setAttribute("data-direct", "");
 if (!crawler) root.setAttribute("data-js", "");
 
 /**
- * Which app this window loads: on a phone (its screen's short side), a tablet or a small window (viewport.ts), the
+ * Which app this window loads: on a phone (its screen's short side), a touch tablet or a small window (viewport.ts), the
  * phone app (mobile/ for the web, exported by web.ts under /phone), laid out for its width; else the desktop app;
  * always the desktop app in the administration. `cubix.phoneApp` = "off" in localStorage keeps the desktop app (its
  * own phone layout, which the tests check).
@@ -38,7 +38,7 @@ declare const CUBIX_DESKTOP_HEAD: string, CUBIX_PHONE_HEAD: string;
 const admin = /^\/admin(\/|$)/.test(location.pathname);
 const phone = () => {
   try { if (localStorage.getItem("cubix.phoneApp") === "off") return false; } catch {}
-  return !admin && (isPhone(innerWidth) || isPhone(Math.min(screen.width, screen.height)) || isCompact(innerWidth, innerHeight));
+  return !admin && (isPhone(innerWidth) || isPhone(Math.min(screen.width, screen.height)) || isCompact(innerWidth, innerHeight, matchMedia("(pointer: fine)").matches));
 };
 /**
  * The device's first launch (src/client/lib/firstLaunch.ts): the page stays hidden while the app gets ready, behind the

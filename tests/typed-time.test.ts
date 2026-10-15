@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseTypedTime } from "../src/client/lib/format";
+import { parseTypedSolve, parseTypedTime, typedSolveChars } from "../src/client/lib/format";
 
 test("bare digits read from the right, like csTimer", () => {
   expect(parseTypedTime("1234")).toBe(12340);
@@ -20,4 +20,16 @@ test("punctuated times keep their units", () => {
 
 test("empty, zero, malformed and absurd entries are refused", () => {
   for (const text of ["", "0", "0.00", ".", "1:", ":5", "12.3.4", "abc", "-5", "99999999999"]) expect(parseTypedTime(text)).toBeNull();
+});
+
+test("a typed solve takes a +2 or a DNF as csTimer does; the bare time stays without one", () => {
+  expect(parseTypedSolve("12.34")).toEqual({ ms: 12340, penalty: "none" });
+  expect(parseTypedSolve("1234+")).toEqual({ ms: 12340, penalty: "+2" });
+  expect(parseTypedSolve(" 12.34+ ")).toEqual({ ms: 12340, penalty: "+2" });
+  expect(parseTypedSolve("DNF")).toEqual({ ms: 0, penalty: "dnf" });
+  expect(parseTypedSolve("dnf(12.34)")).toEqual({ ms: 12340, penalty: "dnf" });
+  for (const text of ["+", "12+3", "12++", "DNF(", "DNF()", "DN", "DNF12"]) expect(parseTypedSolve(text)).toBeNull();
+  // A best declared in the introduction is a time, never a penalty.
+  for (const text of ["DNF", "12.34+"]) expect(parseTypedTime(text)).toBeNull();
+  expect(typedSolveChars("Dnf(1a2.3)+x")).toBe("Dnf(12.3)+");
 });

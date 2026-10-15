@@ -443,7 +443,7 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
   const c = cases.find(x => x.id === state.current);
   const { setup, algorithm } = c ? caseWithAuf(c, state.auf, !!cube) : { setup: "", algorithm: "" };
   const size = Math.round(Math.max(160, Math.min(height * 0.45, width - 48, tablet ? 440 : 420)));
-  const sub = set ? `${tr(set.label)} · ${plural(state.done, "case")}` : undefined;
+  const sub = set ? `${tr(set.label)} · ${plural(state.ids.length, "case")}` : undefined;
   return <View className="flex-1">
     <PushedBar title={tr("Recognition")} sub={sub} onBack={onBack} />
     {!state.ids.length ? <Empty title={tr("Nothing learned yet")} />

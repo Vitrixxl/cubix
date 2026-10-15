@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { createLocalClient } from "../src/client/local/client";
 import { createApiClient } from "../src/client/api-client";
-import { resumes, sessionSummaries } from "../src/client/lib/sessions";
+import { resumedSession, resumes, sessionSummaries } from "../src/client/lib/sessions";
 import { startApi, openDb } from "./backend";
 import type { SolveDto } from "../src/shared/types";
 
@@ -30,6 +30,15 @@ test("the timer resumes a named session, or one used today", () => {
   expect(resumes({ lastAt: new Date("2026-10-10T07:00:00").toISOString() }, now)).toBe(true);
   expect(resumes({ lastAt: new Date("2026-10-09T23:00:00").toISOString() }, now)).toBe(false);
   expect(resumes({ name: "Comp prep", lastAt: "2025-01-01T00:00:00.000Z" }, now)).toBe(true);
+});
+
+test("without a session kept for today, the timer opens on the latest one used today", () => {
+  const now = new Date("2026-10-10T18:00:00"), at = (h: number, d = 10) => new Date(`2026-10-${String(d).padStart(2, "0")}T${String(h).padStart(2, "0")}:00:00`).toISOString();
+  const list = [{ id: 3, lastAt: at(9) }, { id: 2, lastAt: at(11) }, { id: null, lastAt: at(12) }, { id: 1, lastAt: at(20, 9) }];
+  expect(resumedSession(list, 3, now)?.id).toBe(3);
+  expect(resumedSession(list, 1, now)?.id).toBe(2);
+  expect(resumedSession(list, undefined, now)?.id).toBe(2);
+  expect(resumedSession(list.slice(3), undefined, now)).toBeUndefined();
 });
 
 class Storage {

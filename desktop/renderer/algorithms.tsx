@@ -69,6 +69,8 @@ const methodSections = (method: SolvingMethod) =>
     return variants.length ? [{ stage: step.title, variants }] : [];
   });
 
+/** The algorithm a case is shown with: the one it was learned with, else its first (the phone's list, the case dialog). */
+const mainAlg = (c: any) => s.learnedAlgs[c.id]?.[0] ?? (c.algorithms?.[0] ? displayAlg(c.algorithms[0]) : "");
 const learnedOf = (cases: any[]) => cases.filter((c: any) => s.learned.has(c.id)).length;
 const groupId = (set: string, group: string) => `group-${set}-${group}`.replace(/\W+/g, "-");
 
@@ -319,7 +321,7 @@ function Shelves({ set, section, wide, small, picked, pick, select }: { set: any
   const grid = (cases: any[], className?: string) => (
     <div className={cn(tiles, className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {cases.map((c: any) => (
-        <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} onPick={() => select(c.id)} />
+        <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} alg={wide && fluid ? mainAlg(c) : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} onPick={() => select(c.id)} />
       ))}
     </div>
   );
@@ -338,7 +340,7 @@ function Shelves({ set, section, wide, small, picked, pick, select }: { set: any
         handle={list}
         estimate={(i) => {
           const v = shelves[i],
-            row = small ? 66 : fluid ? side + 56 : 108;
+            row = small ? 66 : fluid ? side + (wide ? 72 : 56) : 108;
           return v.n ? row + 8 : (wide ? Math.max(150, headRows * row) : 40 + row) + 24;
         }}
         rowKey={(v: any) => v.group + ":" + v.n}
@@ -437,6 +439,7 @@ export function CaseTile({
   size = small ? 40 : 62,
   onPress,
   onPick,
+  alg,
 }: {
   c: any;
   touch?: boolean;
@@ -452,6 +455,8 @@ export function CaseTile({
   onPress?: () => void;
   /** A right click: the case picked among several. */
   onPick?: () => void;
+  /** Its algorithm, on a line of its own under its time. */
+  alg?: string;
 }) {
   const st = s.stat(c.id),
     learned = s.learned.has(c.id),
@@ -496,9 +501,11 @@ export function CaseTile({
             <LearnedMark id={c.id} learned={learned} touch={false} />
           </span>
         )}
-        <span className={cn("min-w-0 truncate font-bold", small ? "text-[11px]" : "text-[13px]")}>{plain ? c.id : said(shortId(c))}</span>
+        {/* The search's results show the whole id, on two lines if need be: "CMLL Sune Left". */}
+        <span className={cn("min-w-0 font-bold", plain ? "line-clamp-2 text-center leading-tight break-words" : "truncate", small ? "text-[11px]" : "text-[13px]")}>{plain ? c.id : said(shortId(c))}</span>
       </span>
       {!small && <span className={cn(NUMERIC, "text-[11.5px] leading-none font-semibold", st ? "text-success" : "text-faint")}>{st ? fmtTime(st.best) : "–"}</span>}
+      {alg && !small && <span className="max-w-full truncate px-1 text-[11.5px] leading-none text-muted-foreground">{alg}</span>}
       {marks && play && !small && (
         <Tip content={tr("Play in 3D")}>
           <UiButton

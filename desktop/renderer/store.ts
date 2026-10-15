@@ -2,7 +2,7 @@ import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } 
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
-import { resumes, type SessionSummary } from "../../src/client/lib/sessions";
+import { resumedSession, type SessionSummary } from "../../src/client/lib/sessions";
 import { exportFile } from "../../src/client/lib/exportData";
 import { matches, toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigures, sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
@@ -405,15 +405,15 @@ export class Store {
     if (this.trainingKind === "free") return new Set(this.freePicks.filter((id) => this.find(id)));
     return this.casesPool;
   }
-  /** What a training drills, in short: its recommended cases, its whole sets (their learned cases) and its cases picked by hand. */
+  /** What a training drills, in short: its recommended cases, its whole sets (their learned cases) and its cases picked by hand, else every learned case. */
   trainingParts(kind = this.trainingKind) {
     const run = this.recognition;
-    if (kind === "recognition") return run ? [tr(this.allSets().find((set: any) => set.id === run.set)?.label ?? ""), tn(run.done, "{n} case")] : [];
+    if (kind === "recognition") return run ? [tr(this.allSets().find((set: any) => set.id === run.set)?.label ?? ""), tn(run.ids.length, "{n} case")] : [];
     if (kind === "free") return [tr("Free practice")];
     const learned = (ids: Iterable<string>) => [...ids].filter((id) => this.learned.has(id)).length,
       picks = learned(this.trainPicks),
       hand = learned(this.selected);
-    return [
+    const parts = [
       ...(picks ? [tr("{0} recommended", { 0: picks })] : []),
       ...this.allSets().flatMap((set: any) => {
         const n = this.trainSets.includes(set.id) ? this.learnedIn(set.id) : 0;
@@ -421,6 +421,7 @@ export class Store {
       }),
       ...(hand ? [tr("{0} by hand", { 0: hand })] : []),
     ];
+    return parts.length || !this.casesPool.size ? parts : [tr("All learned cases")];
   }
   /** A training whose case left its cases (no longer learned, or unpicked) moves on to another. */
   async refreshLearning(quiet = false) {
@@ -634,11 +635,12 @@ export class Store {
       });
       if (request !== this.request) return;
       this.sessionList = v.sessions ?? [];
-      // The timer opens on the session it showed last, if it resumes (named, or used today): read again with it.
+      // The timer opens on the session it showed last, if it resumes (named, or used today), else on the account's
+      // latest of today (another device's or app's): read again with it.
       if (query.page === "playground" && this.page === "playground" && this.sessions.get(key) === undefined && !this.resumed.has(this.user.id + key)) {
         this.resumed.add(this.user.id + key);
-        const last = this.sessionList.find((x) => x.id === this.prefs["cubix.timer.session"]?.[this.user.id + key]);
-        if (resumes(last)) {
+        const last = resumedSession(this.sessionList, this.prefs["cubix.timer.session"]?.[this.user.id + key]);
+        if (last) {
           this.sessions.set(key, last!.id!);
           return this.load(this.snapshotQuery());
         }
@@ -1210,7 +1212,7 @@ export class Store {
             void smartCube.connect(virtualSmartCube).then(() => {
               if (smartCube.snapshot.error) toast.error(smartCube.snapshot.error);
             });
-          } else toast(tr("Cubix cannot connect a Bluetooth cube yet."));
+          } else toast(tr("Qbix cannot connect a Bluetooth cube yet."));
           break;
         case "solution":
           // A case's solution is its dialog (every algorithm, the 3D player, the times); the cross's is shown in place.

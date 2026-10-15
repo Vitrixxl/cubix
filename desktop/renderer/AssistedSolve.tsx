@@ -204,10 +204,10 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
     <Page phase={0} back={() => void s.action("assisted:off")}>
       <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-3 md:gap-5">
         <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("How does Qbix see your cube?")}</h2>
-        <div className={cn("grid min-h-0 gap-2.5 max-md:auto-rows-min md:gap-4", ways.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2")}>
+        <div className={cn("grid min-h-0 gap-2.5 max-md:auto-rows-min md:w-full md:content-center md:justify-self-center md:gap-4", ways.length === 3 ? "md:max-w-5xl md:grid-cols-3" : "md:max-w-3xl md:grid-cols-2")}>
           {ways.map((way) => (
             <button key={way.id} type="button" data-action={way.action} disabled={"disabled" in way && way.disabled} onClick={way.onClick} className={cn(TILE, "group flex min-h-0 flex-col gap-3 p-3.5 md:gap-4 md:rounded-[26px] md:p-4")}>
-              <span className="relative flex min-h-0 flex-1 items-center justify-center rounded-[18px] bg-background transition-colors group-hover:bg-card max-md:hidden">{way.picture}</span>
+              <span className="relative flex h-52 shrink-0 items-center justify-center rounded-[18px] bg-background transition-colors group-hover:bg-card max-md:hidden">{way.picture}</span>
               <span className="px-1 text-lg font-extrabold tracking-[-0.03em] md:text-[22px]">{way.title}</span>
               <span className="flex items-center justify-between gap-2 px-1 text-[13px] font-bold">
                 <span className="truncate text-muted-foreground">{way.meta}</span>

@@ -12,8 +12,9 @@ import { timerRunningAtom, userAtom } from "../state";
 import { Numeric } from "./layout";
 
 /**
- * The gain of XP, at the bottom for a few seconds, as the web's (desktop/renderer/xp.tsx): the level's bar appears where
- * it was and grows to where it is; a new level fills it from empty under its name. Only a gain of the same account shows.
+ * The gain of XP, at the top for a few seconds where the notifications show (Toast.tsx), never over the last solve's
+ * actions, as the web's (desktop/renderer/xp.tsx): the level's bar appears where it was and grows to where it is; a new
+ * level fills it from empty under its name. Only a gain of the same account shows.
  */
 export function XpGain() {
   const insets = useSafeAreaInsets();
@@ -40,9 +41,9 @@ export function XpGain() {
   }, [xp, owner, shown, width]);
   if (!gain || running) return null;
   const before = level(gain.from), after = level(gain.to), up = after.level > before.level;
-  return <View pointerEvents="none" className="absolute z-50 flex-row justify-center" style={{ bottom: insets.bottom + 84, left: insets.left + 14, right: insets.right + 14 }}>
+  return <View pointerEvents="none" className="absolute z-50 flex-row justify-center" style={{ top: insets.top + 10, left: insets.left + 14, right: insets.right + 14 }}>
     <Animated.View accessibilityLiveRegion="polite" className="w-full max-w-[340px] gap-2 rounded-2xl border border-border bg-popover px-4 py-3 shadow-lg"
-      style={{ opacity: shown, transform: [{ translateY: shown.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
+      style={{ opacity: shown, transform: [{ translateY: shown.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }}>
       <View className="flex-row items-baseline justify-between gap-3">
         <View className="flex-row items-center gap-1.5">
           {up && <Icon as={Sparkles} size={16} className="text-primary" />}

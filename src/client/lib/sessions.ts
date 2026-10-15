@@ -42,3 +42,15 @@ export const sessionName = (session: { name?: string | null; at?: string } | nul
  */
 export const resumes = (session: { name?: string | null; lastAt: string } | undefined, now = new Date()) =>
   !!session && (!!session.name || new Date(session.lastAt).toDateString() === now.toDateString());
+
+/**
+ * The session the timer opens on: the one it showed last on this device (`kept`), if it resumes; else the account's
+ * latest one used today, from any device or app.
+ */
+export function resumedSession<T extends { id: number | null; name?: string | null; lastAt: string }>(list: readonly T[], kept: number | null | undefined, now = new Date()): T | undefined {
+  const last = kept == null ? undefined : list.find((x) => x.id === kept);
+  if (resumes(last, now)) return last;
+  let latest: T | undefined;
+  for (const x of list) if (x.id != null && resumes({ lastAt: x.lastAt }, now) && (!latest || x.lastAt > latest.lastAt)) latest = x;
+  return latest;
+}

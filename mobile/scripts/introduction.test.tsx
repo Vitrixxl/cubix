@@ -1,7 +1,7 @@
 import { expect, mock, test } from "bun:test";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { atom, createStore, Provider } from "jotai";
-import { TOUR_STEPS, journeyProfile, type Journey } from "../../src/client/lib/journey";
+import { TOUR_STEPS, journeyProfile, tourSteps, type Journey } from "../../src/client/lib/journey";
 import { mockLucide } from "../tests/lucide-mock";
 
 const account = { id: "native-user", username: "native_user", isGuest: false };
@@ -45,7 +45,7 @@ const button = (text: string) => nodes("Button").find(n => n.props.accessibility
 const choice = (text: string) => nodes("Pressable").find(n => label(n).includes(text))!;
 const header = () => nodes("Text").find(n => n.props.accessibilityRole === "header")!.props.children;
 
-test("native onboarding: welcome, the puzzles and methods the player can solve (the times of another timer in a sheet), then the tour", async () => {
+test("native onboarding, as the web's: welcome, the puzzles and methods the player can solve, the times of another timer, then the tour; a beginner lands on the 3×3 course", async () => {
   try {
     await act(async () => { renderer = create(<Provider store={store}><Introduction /></Provider>); });
     expect(store.get(introductionAtom)).toBe("setup");
@@ -69,29 +69,28 @@ test("native onboarding: welcome, the puzzles and methods the player can solve (
     await act(() => choice("Ortega").props.onPress());
     expect(choice("Ortega").props.accessibilityState.checked).toBe(true);
     expect(choice("None yet").props.accessibilityState.checked).toBe(false);
-    // The times of another timer open in a sheet from the same step.
-    const importSheet = () => nodes("Sheet").find(n => n.props.title === "Import times")!;
-    expect(importSheet().props.open).toBe(false);
-    await act(() => button("Choose files").props.onPress());
-    expect(importSheet().props.open).toBe(true);
+    // The times of another timer come next, on their own step; no subtitle under the titles.
+    expect(nodes("ImportTimes")).toHaveLength(0);
+    await act(() => button("Continue").props.onPress());
+    expect(header()).toBe("Bring your times");
     expect(nodes("ImportTimes")).toHaveLength(1);
-    await act(() => importSheet().props.onClose());
+    expect(nodes("Text").some(n => /A few seconds|you already solve|Then a tour/.test([n.props.children].flat().join("")))).toBe(false);
     // Back returns to the welcome, and on again.
+    await act(() => button("Back").props.onPress());
     await act(() => button("Back").props.onPress());
     expect(header()).toBe("Welcome to Qbix");
     await act(() => button("Get started").props.onPress());
-    expect(button("Skip the tour")).toBeDefined();
-    await act(async () => button("Start the tour").props.onPress());
+    await act(() => button("Continue").props.onPress());
+    expect(button("Skip")).toBeDefined();
+    await act(async () => button("Start").props.onPress());
     expect(journeyProfile(saved)).toEqual({ kind: "profile", knownPuzzles: ["222"], knownMethods: { "222": ["ortega"] }, priority: null, completedAt: expect.any(String) });
     // The 3×3 cannot be solved yet: the app switches to the 2×2, which can.
     expect(store.get(eventAtom)).toBe("222");
     expect(store.get(introductionAtom)).toBe("tour");
 
-    // The tour opens each step's page in the order of the bottom bar's sections, with step dots and "n / N".
-    const order = ["playground", "learn", "training", "algorithms", "duel", "profile"];
-    const steps = [...TOUR_STEPS].sort((a, b) => order.indexOf(a.page) - order.indexOf(b.page));
-    expect(steps.map(step => step.page)).toEqual(["playground", "playground", "playground", "learn", "training", "algorithms", "duel", "profile"]);
-    for (const [i, step] of steps.entries()) {
+    // The tour opens each step's page in the web's order, with step dots and "n / N".
+    expect(TOUR_STEPS.map(step => step.page)).toEqual(["playground", "playground", "playground", "learn", "training", "algorithms", "duel", "profile"]);
+    for (const [i, step] of TOUR_STEPS.entries()) {
       expect(store.get(replaceRouteAtom).page).toBe(step.page);
       expect(nodes("Text").some(n => [n.props.children].flat().join("") === `${i + 1} / ${TOUR_STEPS.length}`)).toBe(true);
       await act(() => button(i === TOUR_STEPS.length - 1 ? "Done" : "Next").props.onPress());
@@ -109,12 +108,33 @@ test("native onboarding: welcome, the puzzles and methods the player can solve (
     expect(header()).toBe("What can you solve?");
     expect(choice("2×2").props.accessibilityState.checked).toBe(true);
     await act(() => choice("3×3").props.onPress());
-    expect(button("Start the tour")).toBeUndefined();
     expect(button("Back")).toBeUndefined();
+    await act(() => button("Continue").props.onPress());
+    expect(button("Start")).toBeUndefined();
+    expect(button("Skip")).toBeUndefined();
     await act(async () => button("Save").props.onPress());
     expect(journeyProfile(saved)).toMatchObject({ knownPuzzles: ["222", "333"], knownMethods: { "222": ["ortega"] } });
     expect(store.get(introductionAtom)).toBeNull();
     expect(store.get(replaceRouteAtom).page).toBe("playground");
+
+    // Solving nothing yet ("None yet") lands on the 3×3 Beginner course.
+    await act(() => store.set(introductionAtom, "setup"));
+    await act(() => choice("None yet").props.onPress());
+    await act(() => button("Continue").props.onPress());
+    await act(async () => button("Save").props.onPress());
+    expect(journeyProfile(saved)?.knownPuzzles).toEqual([]);
+    expect<unknown>(store.get(replaceRouteAtom)).toEqual({ page: "learn", method: "beginner" });
+    // A beginner's tour leaves out the timer, starts on Learn and ends back on the course.
+    await act(() => store.set(introductionAtom, "tour"));
+    const beginner = tourSteps(journeyProfile(saved));
+    expect(beginner.map(step => step.page)).toEqual(["learn", "training", "algorithms", "duel", "profile"]);
+    for (const [i, step] of beginner.entries()) {
+      expect(store.get(replaceRouteAtom).page).toBe(step.page);
+      expect(nodes("Text").some(n => [n.props.children].flat().join("") === `${i + 1} / ${beginner.length}`)).toBe(true);
+      await act(() => button(i === beginner.length - 1 ? "Done" : "Next").props.onPress());
+    }
+    expect(store.get(introductionAtom)).toBeNull();
+    expect<unknown>(store.get(replaceRouteAtom)).toEqual({ page: "learn", method: "beginner" });
   } finally { await act(() => renderer.unmount()); }
 });
 

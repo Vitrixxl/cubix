@@ -84,8 +84,8 @@ export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
   ],
   algorithms: [{ id: "algorithms", label: "Algorithms", route: { page: "algorithms" }, has: r => r.page === "algorithms" }],
   social: [
-    { id: "messages", group: "Chat", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
-    { id: "people", group: "Chat", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
+    { id: "messages", group: "Messages", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
+    { id: "people", group: "Messages", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
     { id: "coaching", label: "Coaching", route: { page: "coaching" }, has: r => r.page === "coaching" },
     { id: "duel", group: "Challenges", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
     { id: "tournaments", group: "Challenges", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },

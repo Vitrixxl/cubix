@@ -226,7 +226,7 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
 function Shortcuts({ learned, unlocked, battlesCount, show, layout }: { learned: number; unlocked: number | null; battlesCount: number; show: (route: ProfileMode | "analysis") => void; layout?: "row" | "grid" }) {
   const items: [ProfileMode | "analysis", LucideIcon, string, number | null][] = [
     ...(layout ? [["playground", ChartLine, tr("Statistics"), null] as [ProfileMode, LucideIcon, string, null]] : []),
-    ["analysis", Gauge, tr("Analysis"), null], ["training", BookOpen, tr("Cases"), learned], ["achievements", Trophy, layout ? tr("Achievements") : tr("Awards"), unlocked], ["duels", Swords, tr("Battles"), battlesCount],
+    ["analysis", Gauge, tr("Analysis"), null], ["training", BookOpen, tr("Cases"), learned], ["achievements", Trophy, tr("Awards"), unlocked], ["duels", Swords, tr("Battles"), battlesCount],
   ];
   if (layout) return <View className={cn("flex-row gap-2", layout === "grid" && "flex-wrap")}>
     {items.map(([id, icon, label, count]) => <Pressable key={id} accessibilityRole="button" accessibilityLabel={count != null ? `${label} ${count}` : label} onPress={() => show(id)}

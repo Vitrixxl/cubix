@@ -154,11 +154,12 @@ function Methods() {
 }
 
 /**
- * A course as a panel: where it stands, its steps as bars, then Continue (or Start) under the thumb. `detailed` shows its
- * line and figures on phones too (in its sheet).
+ * A course as a panel: where it stands, its steps (a list on a desktop, bars on a phone), then Continue (or Start) under
+ * the thumb. `detailed` shows its line and figures on phones too (in its sheet).
  */
 function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: PuzzleId; row: MethodRow; detailed?: boolean; className?: string }) {
-  const brief = usePhone() && !detailed,
+  const phone = usePhone(),
+    brief = phone && !detailed,
     { method, progress } = row,
     cases = s.cases(puzzle),
     entry = courseEntry(s.course, puzzle, method.id),
@@ -174,6 +175,26 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
         <h2 className="text-[34px] leading-none font-extrabold tracking-[-0.04em] md:text-[56px]">{said(method.name)}</h2>
         {!brief && <p className="max-w-md text-base leading-relaxed text-muted-foreground">{said(method.summary)}</p>}
       </div>
+      {/* A desktop: every step as a row, how far its algorithms are learned, the step to carry on tinted. */}
+      {!phone && (
+        <ol className="-mx-3 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto" aria-label={tr("Steps")}>
+          {method.steps.map((st, i) => {
+            const learned = stepLearned(st, cases, s.learned, entry),
+              done = stepDone(st, cases, s.learned, entry, learned),
+              here = i === progress.step;
+            return (
+              <li key={st.title} aria-current={here ? "step" : undefined} className={cn("flex shrink-0 items-center gap-3 rounded-xl px-3 py-2", here && "bg-muted")}>
+                <span className={cn(NUMERIC, "w-4 shrink-0 text-center text-sm font-bold", here ? "text-primary" : "text-faint")}>{i + 1}</span>
+                <span className={cn("min-w-0 flex-1 truncate text-sm font-semibold", !here && !done && "text-muted-foreground")}>{said(st.title)}</span>
+                {learned.total > 0 && <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{learned.learned} / {learned.total}</span>}
+                <span aria-label={said(done ? "Done" : here ? "Current step" : !learned.total ? "Intuitive" : "To do")} role="img">
+                  <ProgressRing done={done} share={learned.total ? learned.learned / learned.total : 0} current={here} neutral={!learned.total} />
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
       <div className="flex flex-col gap-4">
         {!brief && (
         <div className="grid grid-cols-3 gap-3">
@@ -182,7 +203,8 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
           <StatCard size="sm" className="bg-muted" label={tr("Known")} value={`${Math.round(knownShare(row) * 100)}%`} dot={DOT.lilac} />
         </div>
         )}
-        {/* Every step as a bar, filled as far as its algorithms are learned; the step to carry on named on the button. */}
+        {/* A phone: every step as a bar, filled as far as its algorithms are learned; the step to carry on named on the button. */}
+        {phone && (
         <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${method.steps.length}, minmax(0, 1fr))` }} aria-label={tr("Steps")}>
           {method.steps.map((st, i) => {
             const learned = stepLearned(st, cases, s.learned, entry),
@@ -194,6 +216,7 @@ function HeroCourse({ puzzle, row, detailed = false, className }: { puzzle: Puzz
             );
           })}
         </ol>
+        )}
         <Link
           to={pageUrl("learn", { puzzle, learnMethod: method.id })}
           data-action={action}
@@ -225,7 +248,7 @@ function MethodTile({ row, checked, onPick }: { row: MethodRow; checked: boolean
       tabIndex={phone || checked ? 0 : -1}
       data-method={row.method.id}
       onClick={onPick}
-      className={cn(TILE, "group/card flex shrink-0 flex-col gap-3 p-4 md:flex-1 md:justify-center md:p-5")}
+      className={cn(TILE, "group/card flex shrink-0 flex-col gap-3 p-4 md:p-5")}
     >
       <span className="flex items-center gap-3 md:gap-4">
         <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-muted text-muted-foreground transition-colors group-hover/card:bg-accent", (row.recommended || row.progress.started) && "text-primary")}>
@@ -380,8 +403,8 @@ function StepCube({ puzzle, picture, side, size }: { puzzle: PuzzleId; picture: 
 
 /**
  * The workbench's state: the piece on it, the algorithm shown of its own (the one used first) and whether that
- * algorithm shows. Each piece comes with its algorithm hidden; Space shows or hides it, the up and down arrows change
- * the piece.
+ * algorithm shows. A piece to learn shows it; a learned one comes with it hidden, to revise, Space showing or hiding it;
+ * the up and down arrows change the piece.
  */
 function useBench(pieces: StepPieces) {
   const { all } = pieces,
@@ -390,14 +413,15 @@ function useBench(pieces: StepPieces) {
     [choice, setChoice] = useState(0),
     piece = all.find((p) => p.key === pick) ?? all.find((p) => !p.learned) ?? all[0],
     index = piece ? all.indexOf(piece) : -1,
-    alg = piece ? (piece.algs[choice] ?? piece.algs[0] ?? "") : "";
+    alg = piece ? (piece.algs[choice] ?? piece.algs[0] ?? "") : "",
+    learning = !!piece && !piece.learned;
   const select = (key: string | undefined) => (setPick(key), setShown(false), setChoice(0));
   // The first case has nothing before it, the last nothing after it: two cases never lead to the same one both ways.
   const go = (step: number) => { const to = all[index + step]; if (to) select(to.key); };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (!piece || e.altKey || e.ctrlKey || e.metaKey || s.overlay || s.caseDialog || s.assisted || (e.target as HTMLElement).closest?.("input,textarea,[role=dialog]")) return;
-      if (e.code === "Space") setShown(!shown);
+      if (e.code === "Space" && !learning) setShown(!shown);
       else if (e.key === "ArrowDown" || e.key === "ArrowUp") go(e.key === "ArrowDown" ? 1 : -1);
       else return;
       e.preventDefault();
@@ -407,7 +431,8 @@ function useBench(pieces: StepPieces) {
   });
   return {
     piece,
-    open: shown,
+    open: learning || shown,
+    learning,
     alg,
     choice,
     previous: index > 0 ? all[index - 1] : undefined,
@@ -524,7 +549,7 @@ function AlgChoice({ piece, bench, touch = false }: { piece: Piece; bench: Bench
   );
 }
 
-/** The algorithm, hidden until asked for (Space); on touch screens the cases either side after it. */
+/** The algorithm: shown while the piece is to learn, then hidden until asked for (Space); on touch screens the cases either side after it. */
 function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
   return (
     <div className={cn("flex shrink-0 items-center rounded-[20px] bg-background", touch ? "gap-2 p-3" : "min-h-20 gap-4 p-4")}>
@@ -537,11 +562,13 @@ function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
           <HiddenAlg alg={bench.alg} />
         )}
       </div>
-      <UiButton variant="secondary" data-action="benchShow" aria-pressed={bench.open} aria-label={tr(bench.open ? "Hide the algorithm" : "Show the algorithm")} onClick={bench.show}>
-        {bench.open ? <EyeOff /> : <Eye />}
-        {tr(bench.open ? "Hide" : "Show")}
-        {!touch && <Kbd>{tr("Space")}</Kbd>}
-      </UiButton>
+      {!bench.learning && (
+        <UiButton variant="secondary" data-action="benchShow" aria-pressed={bench.open} aria-label={tr(bench.open ? "Hide the algorithm" : "Show the algorithm")} onClick={bench.show}>
+          {bench.open ? <EyeOff /> : <Eye />}
+          {tr(bench.open ? "Hide" : "Show")}
+          {!touch && <Kbd>{tr("Space")}</Kbd>}
+        </UiButton>
+      )}
       {touch && (bench.previous || bench.next) && (
         <>
           <UiButton variant="ghost" size="icon" data-action="benchStep:previous" disabled={!bench.previous} onClick={() => bench.go(-1)} aria-label={bench.previous ? `${tr("Previous case")} · ${said(bench.previous.name)}` : tr("Previous case")}>
@@ -845,7 +872,7 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
 
 /**
  * The step's sheet: its title, what it changes on the cube (before and after), its explanation and tips, then
- * training it and the timer.
+ * training it.
  */
 function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
   const step = method.steps[entry.step]!,
@@ -893,9 +920,7 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
               {tr("Train")}
             </Button>
           )}
-          <Button action="nav:playground" icon={Timer} variant="secondary" tip={tr("Practise with the timer")}>
-            {tr("Timer")}
-          </Button>
+          {/* No timer here: its scrambles are a whole solve's, not this step's; Train is the step's practice. */}
           <StepNav method={method} entry={entry} touch />
         </div>
       )}

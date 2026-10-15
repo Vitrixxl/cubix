@@ -1,6 +1,6 @@
 /**
  * What the training drills: only learned cases. A session gathers the recommended cases picked, whole sets (their
- * learned cases only) and cases picked by hand; the recommendations are the learned cases slower than the player's
+ * learned cases only) and cases picked by hand, or every learned case when none of them is; the recommendations are the learned cases slower than the player's
  * usual time on their set, in training and in the smart cube solves.
  */
 import { tr } from "../i18n";
@@ -41,11 +41,13 @@ export interface Recommendation {
 /** Attempts a case needs before its mean says anything. */
 export const MIN_ATTEMPTS = 3;
 
-/** The ids of the cases a session drills: learned ones only, in catalogue order. */
+/** The ids of the cases a session drills: learned ones only, in catalogue order; nothing learned chosen, every learned case. */
 export function trainingPool(cases: readonly PoolCase[], learned: ReadonlySet<string>, { picks = [], sets = [], hand = [] }: { picks?: readonly string[]; sets?: readonly string[]; hand?: readonly string[] }): string[] {
   const chosen = new Set([...picks, ...hand]),
-    whole = new Set(sets);
-  return cases.filter((c) => learned.has(c.id) && (chosen.has(c.id) || whole.has(c.set))).map((c) => c.id);
+    whole = new Set(sets),
+    known = cases.filter((c) => learned.has(c.id)),
+    pool = known.filter((c) => chosen.has(c.id) || whole.has(c.set));
+  return (pool.length ? pool : known).map((c) => c.id);
 }
 
 /** The cases a recognition run draws from: the learned cases of a set. */

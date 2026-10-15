@@ -231,7 +231,7 @@ func run() int {
 				return err
 			}
 			if user == nil {
-				return apiErr(404, "Account does not exist. Create it in Cubix first.")
+				return apiErr(404, "Account does not exist. Create it in Qbix first.")
 			}
 			id := str(user["id"])
 			tx, err := db.Begin()

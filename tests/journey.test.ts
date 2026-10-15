@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { introducedProfile, learningPlan, puzzleLocked, validJourneyEntry, withKnownPuzzle } from "../src/client/lib/journey";
+import { BEGINNER_COURSE, TOUR_STEPS, introducedProfile, learningPlan, puzzleLocked, tourSteps, validJourneyEntry, withKnownPuzzle } from "../src/client/lib/journey";
 import { METHODS } from "../src/shared/methods";
 import methodIds from "../data/method-ids.json";
 
@@ -60,4 +60,13 @@ test("the introduction saved again keeps the main cube and drops the old learnin
   const after = introducedProfile(before as never, ["333", "222"], { "333": ["cfop"] }, {});
   expect(after).toEqual({ kind: "profile", level: "beginner", knownPuzzles: ["333", "222"], knownMethods: { "333": ["cfop"] }, priority: null, mainCube: "GAN 15", completedAt: AT });
   expect(validJourneyEntry("profile", after)).toBe(true);
+});
+
+test("one tour order for web and phone; a beginner's leaves out the timer for the 3×3 Beginner course", () => {
+  expect(TOUR_STEPS.map(st => st.page)).toEqual(["playground", "playground", "playground", "learn", "training", "algorithms", "duel", "profile"]);
+  const profile = { kind: "profile" as const, knownPuzzles: [], priority: null, completedAt: AT };
+  expect(tourSteps(undefined)).toBe(TOUR_STEPS);
+  expect(tourSteps({ ...profile, knownPuzzles: ["222"] })).toBe(TOUR_STEPS);
+  expect(tourSteps(profile).map(st => st.page)).toEqual(["learn", "training", "algorithms", "duel", "profile"]);
+  expect(METHODS[BEGINNER_COURSE.puzzle].some(m => m.id === BEGINNER_COURSE.method)).toBe(true);
 });

@@ -1,4 +1,4 @@
-/** The account's level: its bar wherever it shows, and the one that rises from the bottom and fills when XP is earned. */
+/** The account's level: its bar wherever it shows, and the one that drops from the top and fills when XP is earned. */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Sparkles, Trophy } from "lucide-react";
 import { said } from "./base";
@@ -35,7 +35,7 @@ export function LevelBar({ xp, className }: { xp: number; className?: string }) 
 }
 
 /**
- * The gain of XP, at the bottom of the window for a few seconds: the bar of the level appears where it was and grows to
+ * The gain of XP, at the top of the window for a few seconds: the bar of the level appears where it was and grows to
  * where it is; a new level fills it from empty under its name.
  */
 export function XpGain() {
@@ -64,11 +64,12 @@ export function XpGain() {
     <div
       role="status"
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 transition-all duration-300 motion-reduce:transition-none",
-        shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+        // At the top right, where the notifications show (Toasts.tsx): never over the last solve's +2, DNF and Delete.
+        "pointer-events-none fixed inset-x-3 top-3 z-50 flex justify-center transition-all duration-300 motion-reduce:transition-none sm:inset-x-4 sm:top-4 sm:justify-end",
+        shown ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0",
       )}
     >
-      <div className="flex w-80 flex-col gap-2 rounded-2xl bg-popover px-4 py-3 shadow-lg ring-1 ring-foreground/10">
+      <div className="flex w-80 max-w-full flex-col gap-2 rounded-2xl bg-popover px-4 py-3 shadow-lg ring-1 ring-foreground/10">
         <div className="flex items-baseline justify-between gap-3">
           <b className="flex items-center gap-1.5 text-sm font-extrabold">
             {up && <Sparkles className="size-4 text-primary" aria-hidden="true" />}

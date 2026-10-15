@@ -273,7 +273,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
     },
     {
       id: "cfop", name: "CFOP", level: "intermediate",
-      summary: "The most popular speed method: Cross, F2L, OLL and PLL. Most Cubix sets for the 3×3 follow it.",
+      summary: "The most popular speed method: Cross, F2L, OLL and PLL. Most Qbix sets for the 3×3 follow it.",
       steps: [
         {
           title: "Cross", text: "Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.", train: "cross",
@@ -453,8 +453,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       steps: [
         { title: "Cube shape", text: "Solve the shape efficiently during inspection; advanced solvers also track parity here.", sets: ["sq1-shape"] },
         { title: "CO/EO", text: "Orient corners, then edges, each in one algorithm.", sets: ["sq1-co", "sq1-eo"] },
-        { title: "CP", text: "Permute the corners of both layers in one algorithm.", sets: ["sq1-cp"], missing: "Cubix holds the beginner corner cases; the full one-look CP set is not in it yet." },
-        { title: "EP", text: "Permute the edges of both layers, recognising parity cases in the same step.", sets: ["sq1-ep", "sq1-parity"], missing: "The full EP set is not in Cubix yet." },
+        { title: "CP", text: "Permute the corners of both layers in one algorithm.", sets: ["sq1-cp"], missing: "Qbix holds the beginner corner cases; the full one-look CP set is not in it yet." },
+        { title: "EP", text: "Permute the edges of both layers, recognising parity cases in the same step.", sets: ["sq1-ep", "sq1-parity"], missing: "The full EP set is not in Qbix yet." },
       ],
     },
   ],
@@ -487,7 +487,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           title: "V", text: "Solve three centres and two edges around one corner, forming a V shape.",
           tips: ["Plan the whole V during inspection: it takes four or five moves."],
         },
-        { title: "Last four edges", text: "Place the last four edges with one algorithm chosen from their position and orientation.", missing: "The L4E algorithms are not in Cubix yet." },
+        { title: "Last four edges", text: "Place the last four edges with one algorithm chosen from their position and orientation.", missing: "The L4E algorithms are not in Qbix yet." },
       ],
     },
   ],
@@ -512,8 +512,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           title: "First layer", text: "Solve one face and its four corners, usually planned during inspection.",
           tips: ["Plan the whole layer during inspection: it takes four or five moves."],
         },
-        { title: "Top corners", text: "Solve the four remaining corners in one algorithm chosen by their orientation.", sets: ["skewb-corners"], missing: "Cubix holds the basic corner cases; the full intermediate set is not in it yet." },
-        { title: "Last five centres", text: "Place the remaining centres with a single algorithm (L5C).", sets: ["skewb-centers"], missing: "Cubix holds the two centre cycles; the other L5C cases are not in it yet." },
+        { title: "Top corners", text: "Solve the four remaining corners in one algorithm chosen by their orientation.", sets: ["skewb-corners"], missing: "Qbix holds the basic corner cases; the full intermediate set is not in it yet." },
+        { title: "Last five centres", text: "Place the remaining centres with a single algorithm (L5C).", sets: ["skewb-centers"], missing: "Qbix holds the two centre cycles; the other L5C cases are not in it yet." },
       ],
     },
   ],

@@ -87,6 +87,7 @@ function Play({ onChallenge }: { onChallenge: () => void }) {
     waited = searching ? Date.now() - duel.searchSince : 0,
     range = matchRange(duel.level, waited),
     seconds = (ms: number) => (ms / 1000).toFixed(1),
+    level = duel.level === null ? tr("New") : fmtTime(duel.level),
     looking = range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: label });
   // The search widens to anyone after ANYONE_AFTER: its share as a thin bar.
   const widening = <View className="h-1 w-12 overflow-hidden rounded-full bg-background"><View className="h-full rounded-full bg-primary" style={{ width: `${Math.min(1, waited / ANYONE_AFTER) * 100}%` }} /></View>;
@@ -100,7 +101,9 @@ function Play({ onChallenge }: { onChallenge: () => void }) {
     </View>;
   const figures = <View className="flex-row gap-2">
       {duel.level === undefined ? <View className="flex-1 gap-1"><Text className="text-xs font-medium text-muted-foreground">{tr("Your level")}</Text><Skeleton className="h-6 w-14" /></View>
-        : <Figure className="flex-1" label={tr("Your level")} value={duel.level === null ? tr("New") : fmtTime(duel.level)} />}
+        : <View accessible accessibilityLabel={`${tr("Your level")}: ${level}`} accessibilityHint={tr("Mean of your last 12 timer solves")} className="min-w-0 flex-1">
+          <Figure label={tr("Your level")} value={level} />
+        </View>}
       <Figure className="flex-1" label={tr("Matching")} value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} />
       <Figure className="flex-1" label={tr("Searching")} tone={searching && duel.searching ? "good" : ""} value={searching ? String(duel.searching) : "–"} />
     </View>;

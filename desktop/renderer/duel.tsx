@@ -145,7 +145,18 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
     s.signedIn && tool(UserPlus, "Add", "Add a friend", "duel:add-friend", () => setAdding(true), phone || hubbed),
     tool(History, "History", "Races played", "duel:history", () => setOpen("history"), phone || hubbed),
   ];
-  const level = duel.level === undefined ? <Skeleton className="h-8 w-20" /> : duel.level === null ? tr("New") : fmtTime(duel.level);
+  // The level, "New" before five timer solves count; what it is in a tooltip, and to a screen reader.
+  const level =
+    duel.level === undefined ? (
+      <Skeleton className="h-8 w-20" />
+    ) : (
+      <Tip content={tr("Mean of your last 12 timer solves")}>
+        <span>
+          {duel.level === null ? tr("New") : fmtTime(duel.level)}
+          <span className="sr-only">{tr("Mean of your last 12 timer solves")}</span>
+        </span>
+      </Tip>
+    );
   // The races played on this device, newest first, for the hub's record and list.
   const played: DuelRecord[] = s.prefs[DUELS_KEY] ?? [],
     count = (r: DuelRecord["result"]) => played.filter((b) => b.result === r).length;
@@ -284,7 +295,7 @@ function TournamentsCard() {
           ))}
         </div>
       ) : (
-        <Empty icon={Trophy} title={tr("Under way")} />
+        <Empty icon={Trophy} title={tr("No tournament yet")} />
       )}
       <div className="flex" {...apart}>
         <UiButton variant="secondary" className="flex-1" data-action="tournaments:open" onClick={open}>

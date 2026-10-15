@@ -1,10 +1,11 @@
 /**
- * Native setup and tour. The setup walks through a welcome and the puzzles the player can solve (methods inline under
- * each chosen one, the times of another timer in a sheet), then the tour; any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
+ * Native setup and tour, as the web's: a welcome, the puzzles the player can solve (methods inline under each chosen
+ * one), the times of another timer, then the tour; any other puzzle opens on its course, and someone who solves none
+ * yet starts on the 3×3 Beginner course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
  * dims everything but the step's tab and the view it points at inside the page (`useTourTarget`).
  */
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { ArrowLeft, ArrowRight, Ban, Check, GraduationCap, Plus, Shapes, Timer, Upload, X } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Ban, Check, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -16,21 +17,19 @@ import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { fmtTime, parseTypedTime } from "../../../src/client/lib/format";
-import { PROFILE_KEY, TOUR_STEPS, introducedProfile, journeyProfile, type Journey } from "../../../src/client/lib/journey";
-import { IMPORT_APPS } from "../../../src/client/lib/timerImport";
+import { BEGINNER_COURSE, PROFILE_KEY, introducedProfile, isBeginner, journeyProfile, tourSteps, type Journey } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { introductionAtom, journeyAtom } from "../journey";
-import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom, type Page } from "../state";
+import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom } from "../state";
 import { alpha, useColors } from "../theme";
 import { ImportTimes } from "./ImportTimes";
 import { Label } from "./layout";
 import { Logo } from "./Logo";
 import { PuzzleIcon } from "./PuzzlePicker";
-import { Sheet } from "./Sheet";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -60,26 +59,13 @@ function Tile({ label, checked, glyph, onPress, className }: { label: string; ch
 
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
-/** The times of another timer, brought in a sheet: under the puzzles, or in the side panel on a wide screen. */
-function ImportCard({ onImport, className }: { onImport: () => void; className?: string }) {
-  return <View className={cn("flex-row items-center gap-3 rounded-2xl bg-card p-3", className)}>
-    <View className="size-10 items-center justify-center rounded-full bg-primary/15"><Icon as={Upload} size={18} className="text-primary" /></View>
-    <View className="min-w-0 flex-1">
-      <Text className="text-[15px] font-bold">{tr("Bring your times")}</Text>
-      <Text numberOfLines={2} className="text-xs text-muted-foreground">{tr("From {0}, {1}, {2} and {3} more timers", { 0: IMPORT_APPS[0], 1: tr(IMPORT_APPS[1]!), 2: IMPORT_APPS[4], 3: IMPORT_APPS.length - 3 })}</Text>
-    </View>
-    <Button size="sm" variant="secondary" className="h-10 rounded-xl" onPress={onImport}><Text className="text-[13px] font-bold">{tr("Choose files")}</Text></Button>
-  </View>;
-}
-
 /**
- * Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked; then the
- * times of another timer, brought in a sheet. A tablet gives the tiles more room and each chosen puzzle a card, two
- * by two; a wide screen lays six tiles a row and moves the times to the side panel.
+ * Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked. A tablet
+ * gives the tiles more room and each chosen puzzle a card, two by two; a wide screen lays six tiles a row.
  */
-function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest, onImport }: {
+function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest }: {
   value: PuzzleId[]; methods: MethodMap; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onNone: () => void;
-  onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void; onImport: () => void;
+  onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void;
 }) {
   const colors = useColors();
   const { tablet, wide } = useLayout();
@@ -115,7 +101,6 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest,
       {value.length ? tablet ? <View className="flex-row flex-wrap gap-3">{rows}</View> : rows
         : <Text className="py-2 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
     </View>
-    {!wide && <ImportCard onImport={onImport} />}
   </View>;
 }
 
@@ -126,25 +111,25 @@ function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; o
     aria-invalid={invalid} className={cn("h-10 w-28 rounded-xl border-0 bg-muted text-right tabular-nums", invalid && "border border-destructive")} />;
 }
 
-/** The wizard's steps; the third one is the tour itself. */
+/** The wizard's steps, as the web's; the tour follows. */
 const STEPS = [
-  { label: "Welcome", title: "Welcome to Qbix", sub: "A few seconds to set the app up for you" },
-  { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
+  { label: "Welcome", title: "Welcome to Qbix" },
+  { label: "Puzzles", title: "What can you solve?" },
+  { label: "Times", title: "Bring your times" },
 ] as const;
-const STEP_LABELS = [...STEPS.map(s => s.label), "Tour"];
 const LAST = STEPS.length - 1;
 const WELCOME = [
   { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
   { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
-  { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
+  { icon: Timer, title: "Time and train", text: "On every puzzle, from day one" },
 ];
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
 const withoutKey = <T,>(record: Partial<Record<PuzzleId, T>>, key: PuzzleId) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== key)) as Partial<Record<PuzzleId, T>>;
 
 /** The numbered steps: the ones done ticked, the current one filled. */
 function Stepper({ step }: { step: number }) {
-  return <View className="flex-row items-center gap-1" accessibilityLabel={tr("Step {0} of {1}", { 0: step + 1, 1: STEP_LABELS.length })}>
-    {STEP_LABELS.map((label, i) => {
+  return <View className="flex-row items-center gap-1" accessibilityLabel={tr("Step {0} of {1}", { 0: step + 1, 1: STEPS.length })}>
+    {STEPS.map(({ label }, i) => {
       const done = i < step, here = i === step;
       return <View key={label} className={cn("h-8 flex-row items-center gap-1.5 rounded-full pr-2.5 pl-1", here && "bg-primary/15")}>
         <View className={cn("size-6 items-center justify-center rounded-full", here ? "bg-primary" : done ? "bg-primary/25" : "bg-muted")}>
@@ -158,10 +143,10 @@ function Stepper({ step }: { step: number }) {
 }
 
 /**
- * The setup as a wizard of numbered steps (direction A): Welcome, then the puzzles (methods and best single inline
- * under each chosen one, the times of another timer in a sheet), then the tour, started or skipped at the bottom.
- * Opened again on a saved profile, it starts on the puzzles and can be cancelled. A tablet uses its width; a wide
- * screen keeps the times, the tour and the buttons in a panel docked at the right.
+ * The setup as a wizard of numbered steps, as the web's: Welcome, the puzzles (methods and best single inline under
+ * each chosen one), then the times of another timer, and the tour started or skipped at the bottom. Opened again on a
+ * saved profile, it starts on the puzzles and can be cancelled. A tablet uses its width; a wide screen keeps the
+ * buttons in a panel docked at the right.
  */
 function Editor() {
   const insets = useSafeAreaInsets();
@@ -174,7 +159,7 @@ function Editor() {
   const [step, setStep] = useState(first), [direction, setDirection] = useState(1);
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
   const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
-  const [busy, setBusy] = useState(false), [error, setError] = useState(""), [importing, setImporting] = useState(false);
+  const [busy, setBusy] = useState(false), [error, setError] = useState("");
   // The username Google's name gave the account, kept or changed on the welcome.
   const user = useAtomValue(userAtom), [name, setName] = useState(user?.username ?? "");
   const go = (next: number) => { if (next < 0 || next > LAST) return; setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
@@ -186,10 +171,10 @@ function Editor() {
       await api.updateJourney(changes);
       if (local.current().id !== owner) return;
       Keyboard.dismiss();
-      // A puzzle the player can solve opens on the timer; with none, the current one opens on its course.
-      const puzzle = known.includes(current) ? current : known[0] ?? current;
+      // A puzzle the player can solve opens on the timer; with none, the 3×3 Beginner course.
+      const puzzle = known.includes(current) ? current : known[0] ?? BEGINNER_COURSE.puzzle;
       if (puzzle !== current) { setEvent(puzzle); setScramble("normal"); }
-      replace(known.includes(puzzle) ? { page: "playground" } : { page: "learn" });
+      replace(known.length ? { page: "playground" } : { page: "learn", method: BEGINNER_COURSE.method });
       setIntro(tour ? "tour" : null);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
@@ -207,23 +192,17 @@ function Editor() {
     setBusy(true); setError("");
     try { await api.setUsername(name.trim()); go(1); } catch (e) { setError(said((e as Error).message)); } finally { setBusy(false); }
   };
-  const { title, sub } = STEPS[step]!;
+  const { title } = STEPS[step]!;
   const tourNext = step === LAST && !existing;
   const actions = <>
-    {tourNext && <View className="flex-row items-center gap-3">
-      <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
-        {TOUR.map((_, i) => <View key={i} className={cn("h-1.5 rounded-full", i ? "w-1.5 bg-muted" : "w-4 bg-primary")} />)}
-      </View>
-      <Text numberOfLines={2} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("Then a tour in {0} steps, from the scramble to your profile", { 0: TOUR.length })}</Text>
-    </View>}
     <View className="flex-row items-center gap-2">
       {step > first ? <Button variant="ghost" size="icon" className="size-11" accessibilityLabel={tr("Back")} disabled={busy} onPress={() => go(step - 1)}>
         <Icon as={ArrowLeft} size={18} />
       </Button> : null}
       <View className="flex-1" />
-      {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip the tour")}</Text></Button>}
+      {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip")}</Text></Button>}
       <Button className="h-11" disabled={busy} onPress={() => step === 0 ? void welcome() : step < LAST ? go(step + 1) : finish(!existing)}>
-        <Text>{busy ? tr("Saving…") : step < LAST ? tr("Get started") : existing ? tr("Save") : tr("Start the tour")}</Text>
+        <Text>{busy ? tr("Saving…") : step === 0 ? tr("Get started") : step < LAST ? tr("Continue") : existing ? tr("Save") : tr("Start")}</Text>
         {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
       </Button>
     </View>
@@ -240,10 +219,7 @@ function Editor() {
           <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName={cn("gap-3 px-4 pt-1 pb-4", tablet && "px-7")} contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
             <StepTransition identity={step} direction={direction}>
               <View className="gap-3">
-                <View className="gap-0.5">
-                  <Text accessibilityRole="header" className={cn("text-[28px] leading-tight font-extrabold tracking-[-0.04em]", tablet && "text-[40px]")}>{tr(title)}</Text>
-                  <Text className="text-sm text-muted-foreground">{tr(sub)}</Text>
-                </View>
+                <Text accessibilityRole="header" className={cn("text-[28px] leading-tight font-extrabold tracking-[-0.04em]", tablet && "text-[40px]")}>{tr(title)}</Text>
                 {/* On a tablet the three promises stand side by side. */}
                 {step === 0 && <View className={cn("gap-2", tablet && "flex-row gap-3")}>
                   {WELCOME.map((r, i) => <View key={r.title} className={cn("flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3", tablet && "min-w-0 flex-1 flex-col items-start rounded-3xl p-4")}>
@@ -258,29 +234,26 @@ function Editor() {
                   <Text className="text-sm font-semibold text-muted-foreground">{tr("Username")}</Text>
                   <Input value={name} onChangeText={setName} accessibilityLabel={tr("Username")} maxLength={24} autoCapitalize="none" autoCorrect={false} onSubmitEditing={() => void welcome()} />
                 </View>}
-                {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests} onImport={() => setImporting(true)}
+                {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests}
                   onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}
                   onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
                   onToggle={p => { setKnown(v => toggle(v, p)); setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); }}
                   onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
+                {/* Imported puzzles are solved ones: they join the known puzzles. */}
+                {step === 2 && <ImportTimes onImported={puzzles => setKnown(v => [...v, ...puzzles.filter(p => !v.includes(p))])} />}
               </View>
             </StepTransition>
             {!!error && <Alert variant="destructive">{error}</Alert>}
           </ScrollView>
           {!wide && <View className={cn("gap-2 border-t border-border px-4 pt-3 pb-3", tablet && "px-7")}>{actions}</View>}
         </View>
-        {/* On a wide screen: the times, the tour and the buttons docked at the right. */}
+        {/* On a wide screen: the buttons docked at the right. */}
         {wide && <View className="m-3 w-[380px] gap-3 rounded-3xl bg-card p-4">
-          {step === 1 && <ImportCard onImport={() => setImporting(true)} className="bg-muted" />}
           <View className="flex-1" />
           {actions}
         </View>}
       </View>
     </KeyboardAvoidingView>
-    <Sheet open={importing} onClose={() => setImporting(false)} title={tr("Import times")} scroll>
-      {/* Imported puzzles are solved ones: they join the known puzzles. */}
-      <ImportTimes onImported={puzzles => setKnown(v => [...v, ...puzzles.filter(p => !v.includes(p))])} />
-    </Sheet>
   </View>;
 }
 
@@ -326,16 +299,15 @@ function useGlidingRect(target: Rect | null, reduced: boolean) {
   return shown;
 }
 
-/** The shared steps in the order of the bottom bar's sections: Timer, Learn (courses, training), Algs, Challenges, Me. */
-const PAGE_ORDER: Page[] = ["playground", "learn", "training", "algorithms", "duel", "profile"];
-const TOUR = [...TOUR_STEPS].sort((a, b) => PAGE_ORDER.indexOf(a.page) - PAGE_ORDER.indexOf(b.page));
-
 function Tour() {
   const colors = useColors(), insets = useSafeAreaInsets(), reduced = useReducedMotion();
   const [step, setStep] = useState(0), [direction, setDirection] = useState(1);
   const replace = useSetAtom(replaceRouteAtom), setIntro = useSetAtom(introductionAtom);
   const settled = useAtomValue(settledPageAtom), version = useAtomValue(tourTargetsVersionAtom);
-  const current = TOUR[step]!, last = step === TOUR.length - 1;
+  // The shared steps, in the web's order; a beginner's leave out the timer and end on the course they start with.
+  const [profile] = useState(journeyProfile(useAtomValue(journeyAtom))), steps = tourSteps(profile), beginner = isBeginner(profile);
+  const setEvent = useSetAtom(eventAtom), puzzle = useAtomValue(puzzleAtom);
+  const current = steps[step]!, last = step === steps.length - 1;
   const resetTraining = useSetAtom(trainingStepAtom), resetSetup = useSetAtom(trainingSetupModeAtom);
   const overlay = useRef<View>(null);
   const [frame, setFrame] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
@@ -357,7 +329,13 @@ function Tour() {
     return () => { live = false; clearTimeout(timer); };
   }, [settled, step, version, current]);
   const go = (next: number) => { setDirection(next > step ? 1 : -1); setStep(next); };
-  const end = () => setIntro(null);
+  const end = () => {
+    if (beginner) {
+      if (puzzle !== BEGINNER_COURSE.puzzle) setEvent(BEGINNER_COURSE.puzzle);
+      replace({ page: "learn", method: BEGINNER_COURSE.method });
+    }
+    setIntro(null);
+  };
 
   const relative = (r: Rect | null) => r && { x: r.x - frame.x, y: r.y - frame.y, width: r.width, height: r.height };
   const fresh = measured?.step === step ? measured : null;
@@ -382,9 +360,9 @@ function Tour() {
     <View style={{ position: "absolute", left: 12, right: 12, ...(side === "top" ? { top: top + 12 } : { bottom: Math.max(0, height - bottom) + 12 }), padding: 16, gap: 12, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <View style={{ flexDirection: "row", gap: 5, flex: 1 }} importantForAccessibility="no-hide-descendants">
-          {TOUR.map((_, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i === step ? colors.primary : i < step ? alpha(colors.primary, 45) : colors.muted }} />)}
+          {steps.map((_, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i === step ? colors.primary : i < step ? alpha(colors.primary, 45) : colors.muted }} />)}
         </View>
-        <Text className="text-xs text-muted-foreground">{step + 1} / {TOUR.length}</Text>
+        <Text className="text-xs text-muted-foreground">{step + 1} / {steps.length}</Text>
         <Button variant="ghost" size="icon" className="-mr-2 size-9" onPress={end} accessibilityLabel={tr("End tour")}><Icon as={X} size={17} /></Button>
       </View>
       <StepTransition identity={step} direction={direction}>

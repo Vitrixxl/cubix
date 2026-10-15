@@ -61,10 +61,35 @@ function wordsOf(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group"
   caseWords.set(c, words);
   return words;
 }
+type Searched = Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup"> & { algorithms?: readonly { alg: string }[] };
 /** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
-export function matches(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup">, q: string) {
+export function nameMatches(c: Searched, q: string) {
   if (wordsLanguage !== language()) (caseWords = new WeakMap(), (wordsLanguage = language()));
   const words = caseWords.get(c) ?? wordsOf(c);
   if (q !== lastQuery) queryWords = plain(lastQuery = q).split(/\s+/);
   return queryWords.every(word => words.some(w => w.startsWith(word)));
+}
+
+/** Moves as one spaced line: ’ and ′ as ', brackets dropped, "Rw" as "r", "R2'" as "R2"; " R U R' U' ". */
+export const movesText = (alg: string) =>
+  ` ${alg.replace(/[’′`]/g, "'").replace(/[()[\]]/g, " ").replace(/\b([RLUDFB])w/g, (_, f: string) => f.toLowerCase()).replace(/2'/g, "2").trim().split(/\s+/).join(" ")} `;
+const MOVE = /^[RLUDFBMESrludfbxyz]w?[2']*$/;
+let caseMoves = new WeakMap<object, string>();
+/** Whether the moves typed (two or more, "R U R' U'") run in one of the case's algorithms; in lower case, whatever the case. */
+export function movesMatch(c: Searched, q: string) {
+  const typed = movesText(q);
+  if (!c.algorithms?.length || typed.trim().split(" ").length < 2 || !typed.trim().split(" ").every(m => MOVE.test(m))) return false;
+  let algs = caseMoves.get(c);
+  if (algs === undefined) caseMoves.set(c, algs = c.algorithms.map(a => movesText(a.alg)).join("|"));
+  return typed === typed.toLowerCase() ? algs.toLowerCase().includes(typed) : algs.includes(typed);
+}
+
+/** A case the search finds: by its name or by its moves. */
+export const matches = (c: Searched, q: string) => nameMatches(c, q) || movesMatch(c, q);
+
+/** The cases a search finds, those found by their name first, then those by their moves. */
+export function searchCases<C extends Searched>(cases: readonly C[], q: string): C[] {
+  const byName: C[] = [], byMoves: C[] = [];
+  for (const c of cases) if (nameMatches(c, q)) byName.push(c); else if (movesMatch(c, q)) byMoves.push(c);
+  return byName.concat(byMoves);
 }

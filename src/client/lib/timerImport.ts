@@ -111,7 +111,7 @@ function cstimer(data: any): TimerImport {
       name = meta.name == null ? msg("Session {0}", { 0: m[1] }) : String(meta.name);
     for (const solve of parse(data[key]) ?? []) {
       if (!event) {
-        skip(skipped, "events Cubix does not practise");
+        skip(skipped, "events Qbix does not practise");
         continue;
       }
       const [result, scramble, comment, at] = solve as [number[], string, string, number];
@@ -179,7 +179,7 @@ function twisty(rows: string[][], app: string): TimerImport {
     // Penalty 10 marks the placeholders that keep an empty category alive.
     if (penalty === 10) continue;
     if (!event) {
-      skip(skipped, "events Cubix does not practise");
+      skip(skipped, "events Qbix does not practise");
       continue;
     }
     const ms = Number(time),
@@ -230,7 +230,7 @@ function qbix(data: any): TimerImport {
     const event = eventOf(solve.puzzle_id ?? "333", solve.solve_mode ?? "standard")?.id,
       at = Date.parse(solve.created_at);
     if (!event) {
-      skip(skipped, "events Cubix does not practise");
+      skip(skipped, "events Qbix does not practise");
       continue;
     }
     if (!Number.isFinite(solve.time_ms) || !Number.isFinite(at)) {
@@ -251,7 +251,7 @@ function cubedesk(data: any, app: string): TimerImport {
     const type = String(solve.cube_type ?? ""),
       event = CUBEDESK[type] ?? (isEvent(type) ? type : undefined);
     if (!event) {
-      skip(skipped, "events Cubix does not practise");
+      skip(skipped, "events Qbix does not practise");
       continue;
     }
     const raw = Number(solve.raw_time ?? solve.time),
@@ -313,7 +313,7 @@ function stif(source: string): TimerImport {
     }
     const event = String(attempt.event?.id ?? "");
     if (!isEvent(event)) {
-      skip(skipped, "events Cubix does not practise");
+      skip(skipped, "events Qbix does not practise");
       continue;
     }
     const time = Number(attempt.timerStop) - Number(attempt.timerStart),
@@ -365,5 +365,5 @@ export function readTimerExport(source: string, fallback: EventId = "333"): Time
   if (/^Time,Comment,Scramble,Date/.test(first)) return cubeTimeCsv(body, fallback);
   if (/^id,date,dnf,time,/.test(first)) return smartCsv(parseDelimited(body, ","), "Cubeast");
   if (/^solve_id,date,total_time,/.test(first)) return smartCsv(parseDelimited(body, ","), "acubemy");
-  throw new Error(msg("This file is not an export Cubix knows. Export from {0}.", { 0: IMPORT_APPS.join(", ") }));
+  throw new Error(msg("This file is not an export Qbix knows. Export from {0}.", { 0: IMPORT_APPS.join(", ") }));
 }

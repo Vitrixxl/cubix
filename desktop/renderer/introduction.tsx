@@ -16,7 +16,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Input } from "@/components/ui/input";
 import { fmtTime, parseTypedTime } from "../../src/client/lib/format";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
-import { PROFILE_KEY, TOUR_STEPS, introducedProfile, journeyProfile } from "../../src/client/lib/journey";
+import { BEGINNER_COURSE, PROFILE_KEY, TOUR_STEPS, introducedProfile, isBeginner, journeyProfile, tourSteps } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
 import { go, goPage, pageUrl, splitLanguage } from "./navigation";
 import { ImportTimes } from "./ImportTimes";
@@ -58,7 +58,7 @@ function Welcome({ name, onName }: { name: string | null; onName: (name: string)
   const rows = [
     { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
     { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
-    { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
+    { icon: Timer, title: "Time and train", text: "On every puzzle, from day one" },
   ];
   return (
     <>
@@ -242,7 +242,8 @@ export function Onboarding() {
       // Only what can be solved is asked; any other puzzle opens on its course until it is learnt or skipped.
       await s.updateJourney({ [PROFILE_KEY]: introducedProfile(existing, known, knownMethods, Object.fromEntries(typed) as Partial<Record<PuzzleId, number>>) });
       if (s.user.id !== owner) return;
-      const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? (s.puzzle as PuzzleId);
+      // Someone who solves nothing yet starts on the 3×3 Beginner course.
+      const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? BEGINNER_COURSE.puzzle;
       if (puzzle !== s.puzzle) { s.pref("cubix.puzzle", puzzle); s.puzzle = puzzle; s.loadContext(); }
       s.overlay = "";
       // An address opened before the introduction (a friend's link) comes next, without the tour.
@@ -251,7 +252,8 @@ export function Onboarding() {
         go(next, true);
         return s.emit();
       }
-      goPage(known.includes(puzzle) ? "playground" : "learn", { puzzle }, true);
+      if (known.length) goPage("playground", { puzzle }, true);
+      else goPage("learn", { puzzle, learnMethod: BEGINNER_COURSE.method }, true);
       s.overlay = tour ? "tour" : ""; s.emit();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
@@ -422,8 +424,8 @@ function reveal(element: HTMLElement) {
     return;
   }
 }
-function read(step: number): Spot {
-  const st = TOUR_STEPS[step]!, vw = innerWidth, vh = innerHeight;
+function read(step: number, st: (typeof TOUR_STEPS)[number]): Spot {
+  const vw = innerWidth, vh = innerHeight;
   const nav = [...document.querySelectorAll<HTMLElement>(`[data-action="nav:${st.target}"]`)].find(shown);
   const inner = [...document.querySelectorAll<HTMLElement>(`[data-tour="${st.inner}"]`)].filter(shown);
   if (inner[0]) reveal(inner[0]);
@@ -459,10 +461,16 @@ function place(spot: Spot, card: { width: number; height: number }, phone: boole
 function Tour() {
   const [step, setStep] = useState(0), [spot, setSpot] = useState<Spot | null>(null);
   const [card, setCard] = useState({ width: 360, height: 220 });
-  const end = () => { s.overlay = ""; s.emit(); };
+  const [profile] = useState(() => journeyProfile(s.journey)), steps = tourSteps(profile), beginner = isBeginner(profile);
+  // A beginner's tour ends on the course they start with.
+  const end = () => {
+    s.overlay = "";
+    if (beginner) goPage("learn", { puzzle: BEGINNER_COURSE.puzzle, learnMethod: BEGINNER_COURSE.method }, true);
+    s.emit();
+  };
   const ref = useDialog(end), cardRef = useRef<HTMLDivElement>(null);
   const phone = usePhone(), reduced = useReducedMotion(), mask = useId();
-  const last = TOUR_STEPS.length - 1;
+  const last = steps.length - 1;
   const next = () => (step === last ? end() : setStep(step + 1));
   const back = () => (step ? setStep(step - 1) : end());
   const keys = useRef({ next, back });
@@ -479,12 +487,12 @@ function Tour() {
   // Open the step's page, wait for its transition to settle (no leaving page, rects still for a frame), then measure;
   // any later resize, scroll or change of the page measures again the same way.
   useEffect(() => {
-    const st = TOUR_STEPS[step]!;
+    const st = steps[step]!;
     if (splitLanguage(location.pathname).path !== pageUrl(st.page)) goPage(st.page, { puzzle: s.puzzle as PuzzleId }, true);
     let frame = 0, previous = "", since = performance.now();
     const tick = () => {
       frame = 0;
-      const now = read(step), key = round(now);
+      const now = read(step, st), key = round(now);
       const moving = splitLanguage(location.pathname).path !== pageUrl(st.page) || s.page !== st.page;
       if ((!moving && key === previous) || performance.now() - since > 2500) {
         setSpot((old) => (old && round(old) === key ? old : now));
@@ -519,7 +527,7 @@ function Tour() {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const shownStep = spot?.step ?? step, current = TOUR_STEPS[shownStep]!;
+  const shownStep = spot?.step ?? step, current = steps[shownStep]!;
   const spring = reduced ? { duration: 0 } : { type: "spring" as const, stiffness: 380, damping: 36 };
   const holes = spot ? [...(spot.nav ? [{ key: "nav", box: spot.nav }] : []), ...spot.inner.map((box, i) => ({ key: "inner-" + i, box }))] : [];
   const at = spot ? place(spot, card, phone) : { x: 12, y: 12 };
@@ -558,12 +566,12 @@ function Tour() {
       >
         <header className="flex items-center gap-3">
           <span className="flex items-center gap-1" aria-hidden="true">
-            {TOUR_STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <span key={i} className={cn("h-1.5 rounded-full transition-all motion-reduce:transition-none", i === shownStep ? "w-5 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
             ))}
           </span>
-          <span className={cn(NUMERIC, "text-xs text-muted-foreground")} aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: TOUR_STEPS.length })}>
-            {shownStep + 1} / {TOUR_STEPS.length}
+          <span className={cn(NUMERIC, "text-xs text-muted-foreground")} aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: steps.length })}>
+            {shownStep + 1} / {steps.length}
           </span>
           <Button size="icon" variant="ghost" aria-label={tr("End tour")} className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>
             <X />

@@ -426,7 +426,7 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
           options={[
             { id: "all", label: tr("All") },
             { id: "records", label: tr("Records") },
-            { id: "achievements", label: tr("Achievements") },
+            { id: "achievements", label: tr("Awards") },
             { id: "battles", label: tr("Battles") },
           ]}
         />
@@ -844,7 +844,7 @@ export function WeeksCard({ d }: { d: ProfileData }) {
           icon={Trophy}
           variant="outline"
         >
-          {tr("Achievements")}{" "}
+          {tr("Awards")}{" "}
           <span className={cn(NUMERIC, "text-muted-foreground")}>
             {d.unlocked}
           </span>

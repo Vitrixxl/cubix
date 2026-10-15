@@ -89,7 +89,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
     };
   const head = (
     <PageHead
-      title={tr("Achievements")}
+      title={tr("Awards")}
       lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
     >
       {!phone && <Filters groups={groups} unlocked={unlocked} locked={inGroup.length - unlocked} />}

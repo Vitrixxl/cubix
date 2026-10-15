@@ -80,15 +80,22 @@ export function validJourneyEntry(key: string, value: unknown): value is Journey
 /**
  * Shared copy and destinations; platform-specific tours only handle placement, focus and transitions. Each step opens
  * `page`, highlights its tab (`target`) and, inside the page, the element tagged `inner` (web: `data-tour="<inner>"`,
- * native: the view registered under that key), so the tour shows a part of every tab rather than only its button.
+ * native: the view registered under that key), so the tour shows a part of every tab rather than only its button. Web
+ * and phone follow this order: the timer, then Learn, Training, Algs, Duel and Me.
  */
 export const TOUR_STEPS = [
   { page: "playground", target: "playground", inner: "scramble", title: "Scramble your cube", body: "Turn your cube with these moves. A new scramble is ready after every solve." },
   { page: "playground", target: "playground", inner: "timer", title: "Time your solve", body: "Hold to arm the timer, release to start, then press again when the cube is solved. Times are saved on this device first, then synced." },
   { page: "playground", target: "playground", inner: "session", title: "Follow your session", body: "Your best single, averages and every time of the session update after each solve." },
-  { page: "algorithms", target: "algorithms", inner: "algorithms", title: "Find the right algorithm", body: "Browse the cases of every set, play their moves and mark the ones you know." },
-  { page: "training", target: "training", inner: "training", title: "Practise with a purpose", body: "Drill the cases you learned, the slowest first, or plan the cross." },
-  { page: "duel", target: "duel", inner: "duel", title: "Race when you are ready", body: "Challenge another cuber over five scrambles. Your battles stay on your profile." },
   { page: "learn", target: "learn", inner: "learn", title: "Learn a new puzzle", body: "Pick a method and follow it step by step, with every algorithm of each step." },
+  { page: "training", target: "training", inner: "training", title: "Practise with a purpose", body: "Drill the cases you learned, the slowest first, or plan the cross." },
+  { page: "algorithms", target: "algorithms", inner: "algorithms", title: "Find the right algorithm", body: "Browse the cases of every set, play their moves and mark the ones you know." },
+  { page: "duel", target: "duel", inner: "duel", title: "Race when you are ready", body: "Challenge another cuber over five scrambles. Your battles stay on your profile." },
   { page: "profile", target: "profile", inner: "profile-overview", title: "Watch your progress", body: "Your times, practice and results live here. You can replay this tour from the guides." },
 ] as const;
+
+/** Someone who solves no puzzle yet: the course they start on, the 3×3 Beginner method. */
+export const BEGINNER_COURSE = { puzzle: "333", method: "beginner" } as const satisfies { puzzle: PuzzleId; method: string };
+export const isBeginner = (profile: JourneyProfile | undefined) => !!profile && !profile.knownPuzzles.length;
+/** The tour for this profile: a beginner, who cannot time a solve yet, skips the timer's steps (and lands on the course after). */
+export const tourSteps = (profile: JourneyProfile | undefined) => isBeginner(profile) ? TOUR_STEPS.filter(st => st.page !== "playground") : TOUR_STEPS;

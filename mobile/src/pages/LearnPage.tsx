@@ -408,13 +408,11 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
           side={wide ? <>
             <View className="gap-1.5">
               {chosen && <SideAction icon={Dumbbell} label={tr("Train")} accessibilityLabel={tr("Train {0}", { 0: tr(chosen.label) })} disabled={!learnedInSet} onPress={train} />}
-              <SideAction icon={Timer} label={tr("Timer")} accessibilityLabel={tr("Practise with the timer")} onPress={() => setRoute({ page: "playground" })} />
             </View>
             <View className="flex-row items-center gap-1.5">{stepNav}</View>
           </> : undefined} />
         {!wide && <View className={cn("flex-row items-center gap-1.5 px-4 pt-1 pb-2", tablet && "px-7")}>
           {chosen && <HeadButton icon={Dumbbell} label={tr("Train {0}", { 0: tr(chosen.label) })} disabled={!learnedInSet} onPress={train} />}
-          <HeadButton icon={Timer} label={tr("Practise with the timer")} onPress={() => setRoute({ page: "playground" })} />
           {stepNav}
         </View>}
       </>
@@ -728,7 +726,8 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const count = stepLearned(step, cases, learned, entry);
   // The workbench: the piece on it, the algorithm shown and whether it shows.
   const [pick, setPick] = useState<string>();
-  const [open, setOpen] = useState(false);
+  // A case to learn shows its algorithm; a learned one hides it, to revise, until Show.
+  const [revealed, setOpen] = useState(false);
   const [choice, setChoice] = useState(0);
   const [filtering, setFiltering] = useState(false);
   const [caseOpen, setCaseOpen] = useState<string | null>(null);
@@ -737,6 +736,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const piece = all.find(p => p.key === pick) ?? all.find(p => !p.learned) ?? all[0];
   const index = piece ? all.indexOf(piece) : -1;
   const alg = piece ? piece.algs[choice] ?? piece.algs[0] ?? "" : "";
+  const learning = !!piece && !piece.learned, open = learning || revealed;
   const select = (key: string | undefined) => { setPick(key); setOpen(false); setChoice(0); };
   // The first case has nothing before it, the last nothing after it: two cases never lead to the same one both ways.
   const go = (by: number) => { const to = all[index + by]; if (to) select(to.key); };
@@ -798,7 +798,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
           {Array.from({ length: moveCount(alg) }, (_, i) => <View key={i} className="h-4 w-5 rounded-[4px] bg-foreground/10" />)}
         </View>}
       </View>
-      <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
+      {!learning && <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>}
     </View>;
     // A tablet: the case and its diagram large on the left, its note, algorithms and the cases either side on the right.
     if (tablet) {

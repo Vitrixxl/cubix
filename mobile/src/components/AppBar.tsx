@@ -58,7 +58,7 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
 
 /**
  * The pages of the current section as one row of underlined tabs, with what waits on each; none for a single page.
- * Pages of one group share a tab (Chat, Challenges), the group's own pages switching in a row under it.
+ * Pages of one group share a tab (Messages, Challenges), the group's own pages switching in a row under it.
  */
 export function SectionTabs() {
   const route = useAtomValue(routeAtom), replace = useSetAtom(replaceRouteAtom);

@@ -8,7 +8,7 @@ import { fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/form
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, sessionFigures } from "../../../src/client/lib/practiceSummary";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
-import { contextKey, eventOf, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -29,6 +29,7 @@ import { AppBar, SectionTabs } from "../components/AppBar";
 import { Caption, inspectionAtom, Pill, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
 import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar, PillAction } from "../components/SolveMenus";
+import { ScrambleCube } from "../components/ScrambleCube";
 import { Sheet, SheetInput } from "../components/Sheet";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
@@ -49,6 +50,8 @@ const dotOf = (id: string) => id === "best" || id.endsWith(":best") ? "bg-succes
 
 function TimerSession({ context }: { context: PracticeContext }) {
   const { height, tablet, wide } = useLayout();
+  // A tablet held upright (820×1180) lists the session's times under the timer; a wide screen docks them beside it.
+  const listed = tablet && !wide && height >= 1100;
   const info = puzzleInfo(context.puzzle);
   const entry = useAtomValue(timeEntryAtom);
   const [inspection, setInspection] = useAtom(inspectionAtom);
@@ -92,8 +95,8 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError, inspection: inspected, memo: blind });
   useTimerChrome(timer);
   // A typed time is saved like a timed one; a failed save keeps the time for a retry.
-  const [typedError, setTypedError] = useState<{ message: string; ms: number } | null>(null);
-  const submitTyped = (ms: number) => { setTypedError(null); onStop(ms).catch(error => setTypedError({ message: (error as Error).message, ms })); };
+  const [typedError, setTypedError] = useState<{ message: string; ms: number; penalty: Penalty } | null>(null);
+  const submitTyped = (ms: number, penalty: Penalty) => { setTypedError(null); onStop(ms, penalty).catch(error => setTypedError({ message: (error as Error).message, ms, penalty })); };
 
   const shown = useShownSolves(solves);
   const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
@@ -122,7 +125,11 @@ function TimerSession({ context }: { context: PracticeContext }) {
       : <Alg text={scramble} size={promptFont} />}
   </View>;
   const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;
+  // The scrambled puzzle over the scramble's buttons, as small as a short phone needs.
+  const cubeSide = Math.round(Math.min(tablet ? 150 : 96, height * 0.13));
   const visual = <View className="items-center gap-1">
+    {scramble && !loading && !generationError ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={heldScramble(context.scrambleType)} size={cubeSide}
+      still={timer.phase !== "idle" && timer.phase !== "stopped"} /> : null}
     <View className="flex-row">
       <IconButton icon={Shuffle} label={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
       <IconButton icon={Copy} label={tr("Copy the scramble")} disabled={!scramble || loading} onPress={copyScramble} />
@@ -166,7 +173,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
             readout={area => <View {...timerTarget} className="w-full items-center">
               {typing
                 ? <TypedTime size={digitsSize(area, 6, digitsMax)} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message}
-                  onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
+                  onRetry={() => typedError && submitTyped(typedError.ms, typedError.penalty)} onSubmit={submitTyped} />
                 : <>
                   {inspecting ? <InspectionDigits timer={timer} area={area} max={digitsMax} show={inspection === "display" || inspection === "both"} speak={inspection === "voice" || inspection === "both"} />
                     : <TimerDigits timer={timer} area={area} max={digitsMax} />}
@@ -184,7 +191,14 @@ function TimerSession({ context }: { context: PracticeContext }) {
                   extra={tablet ? <PillAction primary icon={Shuffle} label={tr("Next")} accessibilityLabel={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} /> : undefined} />
               </Fade>
             </View>} />
-          {!wide && <Fade hidden={running} className="pt-2.5">
+          {/* A tall tablet has room for the session's times under the timer, its calendar in the sheet. */}
+          {listed && <Fade hidden={running} className="pt-2.5">
+            <View {...sessionTarget} className="overflow-hidden" style={{ height: Math.round(height * 0.28) }}>
+              <TimesPanel solves={shown} title={event} context={context} calendar={false} onCalendar={open => { if (open) setTimes("calendar"); }}
+                figures={<View className="mx-4 flex-row items-start rounded-2xl bg-card p-3">{figureGrid(columns)}{editFigures}</View>} />
+            </View>
+          </Fade>}
+          {!wide && !listed && <Fade hidden={running} className="pt-2.5">
             <View {...sessionTarget}>
               {/* The figures alone; a tap opens the session: its name to edit, every figure, its times. */}
               <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times")} onPress={() => setTimes("list")} className="rounded-2xl bg-card p-3 active:bg-card/80">

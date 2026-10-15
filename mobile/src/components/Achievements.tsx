@@ -124,7 +124,7 @@ export function AchievementsScreen({ group: initialGroup }: { group?: string }) 
   const xp = summary?.xp ?? 0;
   // A tablet shows the level with its XP over the journal instead.
   const { tablet } = useLayout();
-  const head = <PushedBar title={tr("Achievements")}>
+  const head = <PushedBar title={tr("Awards")}>
     {!tablet && <View className="h-8 justify-center rounded-full bg-primary/15 px-3"><Text className="text-[13px] font-bold text-primary">{tr("Level {0}", { 0: level(xp).level })}</Text></View>}
   </PushedBar>;
   return summary ? <Journal summary={summary} initialGroup={initialGroup} head={head} /> : <View className="flex-1">

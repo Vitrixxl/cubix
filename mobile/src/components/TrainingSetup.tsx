@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Check, ChevronRight, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, SlidersHorizontal, Target, Timer, type LucideIcon } from "lucide-react-native";
+import { Check, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
@@ -67,12 +67,14 @@ export function useTrainingData() {
   const pool = useMemo(() => trainingPool(cases, learned, { picks, sets: trainSets, hand }), [cases, learned, picks, trainSets, hand]);
   const known = (ids: string[]) => ids.filter(id => learned.has(id)).length;
   const learnedPool = useMemo(() => trainingPool(cases, learned, { picks, hand }).length, [cases, learned, picks, hand]);
-  const whole = useMemo(() => trainingPool(cases, learned, { sets: trainSets }).length, [cases, learned, trainSets]);
-  const parts = [
+  const whole = setRows.reduce((n, x) => n + (trainSets.includes(x.set.id) ? x.learned : 0), 0);
+  const chosen = [
     ...(known(picks) ? [tr("{0} recommended", { 0: known(picks) })] : []),
     ...setRows.flatMap(x => trainSets.includes(x.set.id) && x.learned ? [tr("{0} · {1} learned", { 0: tr(x.set.label), 1: x.learned })] : []),
     ...(known(hand) ? [tr("{0} by hand", { 0: known(hand) })] : []),
   ];
+  // Nothing chosen: the training drills every learned case (`trainingPool`).
+  const parts = chosen.length || !pool.length ? chosen : [tr("All learned cases")];
   const recognition = setRows.find(x => x.set.id === choice && x.learned) ?? setRows.find(x => x.learned);
   return { puzzle, cases, learned, recommended, picks, hand, trainSets, setRows, pool, learnedPool, whole, parts, recognition, totalLearned: setRows.reduce((n, x) => n + x.learned, 0) };
 }
@@ -80,11 +82,11 @@ export type TrainingData = ReturnType<typeof useTrainingData>;
 
 
 /**
- * A way of training as a card: its icon and name, its number large with what it counts, then its settings in
- * one quiet line and its action (Start, or Choose). A tap anywhere else opens its settings.
+ * A way of training as a card: its icon and name, its number large with what it counts, then its one action (Start,
+ * or Pick…). A tap anywhere else opens its settings.
  */
-function ModeCard({ icon, title, count, unit, lit = false, setting, action, onPress, children, accessibilityLabel }: {
-  icon: LucideIcon; title: string; count?: number; unit?: string; lit?: boolean; setting: string; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
+function ModeCard({ icon, title, count, unit, lit = false, action, onPress, children, accessibilityLabel }: {
+  icon: LucideIcon; title: string; count?: number; unit?: string; lit?: boolean; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} onPress={onPress}
     className={cn("gap-2.5 rounded-2xl p-3 active:opacity-80", lit ? "border border-primary bg-primary/10" : "bg-card")}>
@@ -95,25 +97,15 @@ function ModeCard({ icon, title, count, unit, lit = false, setting, action, onPr
         <Numeric className={cn("text-2xl leading-7 font-extrabold tracking-tight", !count && "text-muted-foreground/50")}>{count}</Numeric>
         {unit ? <Text numberOfLines={1} className="max-w-24 text-xs text-muted-foreground">{unit}</Text> : null}
       </View>}
-    </View>
-    {children}
-    <View className="h-10 flex-row items-center gap-2">
-      <Icon as={SlidersHorizontal} size={14} className="text-muted-foreground" />
-      <Text numberOfLines={1} className="min-w-0 flex-1 text-[13px] font-semibold text-muted-foreground">{setting}</Text>
       {action}
     </View>
+    {children}
   </Pressable>;
 }
 
 /** The start of a card's training, as a pill. */
 const StartChip = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
   <Chip icon={Play} onPress={onPress} disabled={disabled}>{tr("Start")}</Chip>;
-
-/** A card's action that opens its own settings (the tap on the card does it). */
-const ChooseLink = () => <View className="flex-row items-center gap-0.5">
-  <Text className="text-sm font-bold text-primary">{tr("Choose")}</Text>
-  <Icon as={ChevronRight} size={16} className="text-primary" />
-</View>;
 
 /** The start of a way of training at the bottom of its settings' drawer. */
 const StartButton = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
@@ -129,10 +121,10 @@ const Field = ({ label, children }: { label: string; children: ReactNode }) => <
 </View>;
 
 /**
- * The Training tab: the five ways of training, each a card with its settings in one quiet line and Start; a tap opens
- * its settings in a drawer (the cross's goal and moves, the recognition's set, seconds and AUF, the whole sets, the free
- * practice's cases), Start at the bottom; Learned opens its own screen; the bottom bar counts the
- * cases the training drills, with Random AUF and Train. A tablet shows Learned on the page and the ways in a sheet.
+ * The Training tab: the five ways of training, each a card with its count and Start; a tap opens its settings in a
+ * drawer (the cross's goal and moves, the recognition's set, seconds and AUF, the whole sets with Random AUF and Train,
+ * the free practice's cases), Start at the bottom; Learned opens its own screen, with Random AUF and Train. A tablet
+ * shows Learned on the page and the ways in a sheet.
  */
 export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void; onStart: (run: TrainingRun) => void }) {
   const data = useTrainingData();
@@ -157,28 +149,25 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const cube = !!puzzleInfo(data.puzzle).cubeSize;
   const free = freePicks.filter(id => data.cases.some(c => c.id === id)).length;
   const chosen = data.recognition;
-  const handPicked = data.hand.filter(id => data.learned.has(id)).length, recommendedPicked = data.picks.filter(id => data.learned.has(id)).length;
+  const handPicked = data.hand.filter(id => data.learned.has(id)).length;
   const tour = useTourTarget("training");
   // The hidden stickers of the recognition's cube, for the sets read on them (the last layer's sides, an F2L pair's back).
   const hidden = cube && !!chosen && hintsForStage(chosen.set.stage);
   const toggleSet = (id: string) => setTrainSets(trainSets.includes(id) ? trainSets.filter(x => x !== id) : [...trainSets, id]);
   const ofSet = (x: TrainingData["setRows"][number]) => tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length });
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
-        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} count={moves} unit={tr("moves")}
-          setting={`${tr(CROSS_TARGET_LABELS[target])} · ${tr("{0} moves", { 0: moves })}`} onPress={() => setSettings("cross")} action={<StartChip onPress={() => start("cross")} />} />}
+        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} count={moves} unit={tr(CROSS_TARGET_LABELS[target])}
+          onPress={() => setSettings("cross")} action={<StartChip onPress={() => start("cross")} />} />}
         <ModeCard icon={Eye} title={tr("Recognition")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}
-          setting={[chosen ? ofSet(chosen) : tr("Nothing learned yet"), tr("{0} s", { 0: seconds }), ...(cube && auf ? [tr("AUF")] : [])].join(" · ")}
           onPress={() => setSettings("recognition")} action={<StartChip onPress={() => start("recognition")} disabled={!chosen} />}>
           {chosen && <Bar ratio={chosen.learned / chosen.all.length} />}
         </ModeCard>
         <ModeCard icon={GraduationCap} title={tr("Learned")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
           lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
-          setting={tr("{0} recommended · {1} picked by hand", { 0: recommendedPicked, 1: handPicked })} action={<ChooseLink />} />
+          action={<StartChip onPress={() => start("cases")} disabled={!data.pool.length} />} />
         <ModeCard icon={Layers} title={tr("Whole sets")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}
-          setting={data.setRows.filter(x => x.learned && trainSets.includes(x.set.id)).map(x => tr(x.set.label)).join(" · ") || tr("Nothing picked yet")}
-          onPress={() => setSettings("sets")} action={<ChooseLink />} />
-        <ModeCard icon={Dices} title={tr("Free practice")} count={free || undefined} unit={free ? tr(free === 1 ? "case" : "cases") : undefined}
-          setting={free ? tr("{0} picked", { 0: free }) : tr("Nothing picked yet")} onPress={() => setPicking(true)}
+          onPress={() => setSettings("sets")} action={<StartChip onPress={() => start("cases")} disabled={!data.whole} />} />
+        <ModeCard icon={Dices} title={tr("Free practice")} count={free} unit={tr(free === 1 ? "case" : "cases")} onPress={() => setPicking(true)}
           action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>} />
       </View>;
   // Each way's settings in a drawer over the page, Start at the bottom; free practice's are its cases to pick.
@@ -301,7 +290,6 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2 px-4 pt-3 pb-3" showsVerticalScrollIndicator={false}>
       {ways}
     </ScrollView>
-    <CasesBar data={data} onTrain={() => onStart("cases")} />
     {sheets}
   </View>;
 }
@@ -380,7 +368,7 @@ function Recommended({ data, grid = false }: { data: TrainingData; grid?: boolea
     <Text className={cn("text-xl font-extrabold tracking-tight", grid && "text-[26px]")}>{tr("Recommended")}</Text>
     {!data.totalLearned ? <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="flex-none py-6">
       <Chip icon={GraduationCap} on accessibilityLabel={tr("Open the courses")} onPress={() => setRoute({ page: "learn" })}>{tr("Courses")}</Chip>
-    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6" /> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
+    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr(data.trainSets.length || data.hand.some(id => data.learned.has(id)) ? "No recommendation yet" : "No recommendation: training all learned")} className="flex-none py-6" /> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
       {rows.slice(i * 2, i * 2 + 2).map(row => <View key={row.key} className="min-w-0 flex-1">{row}</View>)}
       {i * 2 + 1 >= rows.length && <View className="flex-1" />}
     </View>) : rows}

@@ -2,7 +2,8 @@
 import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
 import { Check, Compass, Download, GraduationCap, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { store as s, matches } from "./store";
+import { store as s } from "./store";
+import { searchCases } from "../../src/client/lib/practiceCatalog";
 import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
 import { accents } from "./theme";
@@ -222,7 +223,7 @@ function GuidesDialog() {
     <Modal
       id="guides"
       title={tr("Guides")}
-      description={tr("How Cubix works")}
+      description={tr("How Qbix works")}
       hideHeader
       tall
       className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl"
@@ -340,7 +341,7 @@ function SearchDialog() {
 function SearchCases() {
   const [query, setQuery] = useState(""),
     typed = useDeferredValue(query),
-    results = useMemo(() => s.cases().filter((c: any) => matches(c, typed)).slice(0, 48), [typed, s.puzzle]);
+    results = useMemo(() => searchCases(s.cases(), typed).slice(0, 48), [typed, s.puzzle]);
   return (
     <Command shouldFilter={false}>
       <CommandInput autoFocus placeholder={tr("Search a case: oll fish, pll t, f2l 6…")} value={query} onValueChange={setQuery} />

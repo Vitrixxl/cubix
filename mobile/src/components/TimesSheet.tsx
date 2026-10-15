@@ -5,7 +5,7 @@ import { FlatList, Pressable, TextInput, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { effective, fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { practiceSummary, sessionExtremes, solveTone } from "../../../src/client/lib/practiceSummary";
-import { resumes, sessionName, type SessionSummary } from "../../../src/client/lib/sessions";
+import { resumedSession, sessionName, type SessionSummary } from "../../../src/client/lib/sessions";
 import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { contextKey, eventOf, type PracticeContext } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
@@ -39,14 +39,13 @@ export function rememberTimerSession(context: PracticeContext, id: number) {
   if (all[key] !== id) try { storage.setItem(LAST_KEY, JSON.stringify({ ...all, [key]: id })); } catch { /* Best effort. */ }
 }
 const resumeTried = new Set<string>();
-/** The timer's first look at a context in this launch: back to the session it showed last, if it resumes (named, or used today). */
+/** The timer's first look at a context in this launch: back to the session it showed last, if it resumes (named, or used today), else to the latest of today. */
 export function resumeTimerSession(context: PracticeContext) {
   const key = lastKey(context);
   if (resumeTried.has(key) || launchSessionId("playground", context) !== null) return;
   resumeTried.add(key);
-  const id = lastSessions()[key];
-  const last = id == null ? undefined : local.read.sessions(context.puzzle, context).find(x => x.id === id);
-  if (last && resumes(last)) setLaunchSession("playground", context, id!);
+  const last = resumedSession(local.read.sessions(context.puzzle, context), lastSessions()[key]);
+  if (last) setLaunchSession("playground", context, last.id!);
 }
 
 /** The timer sessions of a context, newest first, with their figures, and the current one; kept up to date. */
@@ -71,8 +70,8 @@ async function chooseSession(context: PracticeContext, target: number | "new", n
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 const dayKey = (iso: string) => new Date(iso).toDateString();
 const hour = (iso: string) => new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
-/** A session as its pill says it: its name, "Today", or its day. */
-const pillName = (x: SessionSummary) => x.name || (sameDay(new Date(x.at), new Date()) ? tr("Today") : shortDate(x.at));
+/** A session as its pill says it, with its count, as the desktop's menu does: its name, its start today ("10:23 · 6"), or its day. */
+const pillName = (x: SessionSummary) => `${x.name || (sameDay(new Date(x.at), new Date()) ? hour(x.at) : shortDate(x.at))} ·`;
 
 /* ------------------------------------------------------------------ The sheet */
 

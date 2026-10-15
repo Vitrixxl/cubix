@@ -57,9 +57,10 @@ import {
 import { store as s, timesAlwaysShown } from "./store";
 import { sessionName } from "../../src/client/lib/sessions";
 import { Button as UiButton } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Cube } from "./Cube";
-import { fmtTime, fmtSolve, parseTypedTime, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
+import { fmtTime, fmtSolve, parseTypedSolve, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
 import {
   ActionToggle,
   Alg,
@@ -79,7 +80,6 @@ import {
   MenuAction,
   MenuChoice,
   PageHead,
-  PenaltyToggles,
   ROW,
   Segmented,
   StateMark,
@@ -377,7 +377,8 @@ export function Practice() {
     timer = useTimer(enabled, !(live && (!training || liveCase)), { inspection: !training && !blind && !typing && s.inspection !== "off", memo: blind }),
     stackmatLink = useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot.link, () => stackmat.snapshot.link),
     inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
-  const [typed, setTyped] = useState("");
+  const [typed, setTyped] = useState(""),
+    typedSolve = typed ? parseTypedSolve(typed) : null;
   const typedRef = useRef<HTMLInputElement>(null);
   // While a solve runs everything else fades out and the digits glide to the middle of the screen, then back.
   const digitsRef = useRef<HTMLDivElement>(null),
@@ -444,6 +445,22 @@ export function Practice() {
           keyboard: !mobile,
         });
   const last = s.solves.find((v) => v.id === s.lastSolve);
+  // csTimer's keys on the last solve: Ctrl+1 no penalty, Ctrl+2 a +2, Ctrl+3 a DNF, Ctrl+Z deletes it (asked first).
+  // Never in a field, but the typed time's while it is empty.
+  useEffect(() => {
+    if (!last || mobile) return;
+    const key = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || s.overlay || s.caseDialog) return;
+      if (typingInto(e) && !(e.target === typedRef.current && !typedRef.current?.value)) return;
+      const penalty = ({ Digit1: "none", Digit2: "+2", Digit3: "dnf" } as Record<string, string>)[e.code];
+      if (!penalty && e.code !== "KeyZ") return;
+      e.preventDefault();
+      if (!penalty) void s.action("delete:" + last.id);
+      else if (penalty !== (last.penalty ?? "none")) void s.action(`penalty:${last.id}:${penalty}`);
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [last?.id, last?.penalty, mobile]);
   const visual = previewSize > 0 && ready && (
     hasCube ? (
       <Cube
@@ -641,11 +658,16 @@ export function Practice() {
   // The last solve's actions, once there is one.
   const lastSolve = last && (
     <div className="flex min-w-0 flex-1 gap-2" role="group" aria-label={tr("Last solve")}>
-      <PenaltyToggles penalty={last.penalty} prefix={"penalty:" + last.id + ":"} disabled={s.saving} className={LAST_SOLVE} />
+      <ActionToggle action={"penalty:" + last.id + ":+2"} pressed={last.penalty === "+2"} disabled={s.saving} variant="outline" tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-warning")}>
+        +2
+      </ActionToggle>
+      <ActionToggle action={"penalty:" + last.id + ":dnf"} pressed={last.penalty === "dnf"} disabled={s.saving} variant="outline" tip={<>{tr("Did not finish")}<Kbd>Ctrl+3</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-destructive")}>
+        {tr("DNF")}
+      </ActionToggle>
       <Button action={"comment:" + last.id} disabled={s.saving} variant="outline" label={last.comment ? tr("Edit comment") : tr("Add comment")} className={cn(LAST_SOLVE, last.comment && "text-primary")}>
         {tr("Note")}
       </Button>
-      <Button action={"delete:" + last.id} disabled={s.saving} variant="outline" label={tr("Delete solve")} className={cn(LAST_SOLVE, "hover:text-destructive")}>
+      <Button action={"delete:" + last.id} disabled={s.saving} variant="outline" label={tr("Delete solve")} tip={<>{tr("Delete solve")}<Kbd>Ctrl+Z</Kbd></>} className={cn(LAST_SOLVE, "hover:text-destructive")}>
         {tr("Delete")}
       </Button>
     </div>
@@ -851,13 +873,13 @@ export function Practice() {
                     placeholder="0.000"
                     inputMode="decimal"
                     value={typed}
-                    onChange={(e) => setTyped(e.target.value.replace(/[^\d.,:]/g, ""))}
+                    onChange={(e) => setTyped(typedSolveChars(e.target.value))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        const ms = parseTypedTime(typed);
-                        if (ms && enabled) {
+                        const solve = parseTypedSolve(typed);
+                        if (solve && enabled) {
                           setTyped("");
-                          void s.save(ms);
+                          void s.save(solve.ms, solve.penalty);
                         }
                       }
                     }}
@@ -890,8 +912,8 @@ export function Practice() {
                     </>
                   ) : typing
                     ? typed
-                      ? parseTypedTime(typed)
-                        ? tr("{0} · Enter to save", { 0: fmtTime(parseTypedTime(typed)) })
+                      ? typedSolve
+                        ? tr("{0} · Enter to save", { 0: fmtSolve(typedSolve.ms, typedSolve.penalty) })
                         : tr("Not a time")
                       : tr("Type your time, then Enter: 1234 is 12.34")
                     : keyed(said(hint))}
@@ -1312,7 +1334,8 @@ function SessionMenu() {
   );
 }
 
-/** The desktop timer's settings in one menu: the scramble and how times are entered. */
+/** The desktop timer's settings in one menu: the scramble and, beside it, how times are entered (side by side, the
+ * 3×3's many scrambles fit a 800 px high window without scrolling). */
 function TimerSettings() {
   return (
     <DropdownMenu>
@@ -1321,9 +1344,9 @@ function TimerSettings() {
           <SlidersHorizontal />
         </DropdownMenuTrigger>
       </Tip>
-      <DropdownMenuContent align="end" className="max-h-[min(36rem,var(--available-height))] w-auto min-w-52">
+      <DropdownMenuContent align="end" className="flex w-auto items-start">
         <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
         <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1450,7 +1473,10 @@ const TimeRow = memo(
             className="flex min-w-0 flex-1 items-center gap-3 self-stretch text-left outline-none"
           >
             <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-sm text-faint")}>{number}</span>
-            <span className={cn(NUMERIC, "font-semibold", touch ? "text-base" : "text-[15px]", TONE_TEXT[tone])}>{fmtSolve(v.time_ms, v.penalty)}</span>
+            <span className={cn(NUMERIC, "font-semibold", touch ? "text-base" : "text-[15px]", TONE_TEXT[tone])}>
+              {/* The penalty always in view, a DNF with the time it stopped at, as csTimer prints it. */}
+              {v.penalty === "dnf" && v.time_ms ? `DNF(${fmtTime(v.time_ms)})` : fmtSolve(v.time_ms, v.penalty)}
+            </span>
             {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
             {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
             {caption && <span className="ml-auto truncate text-xs font-semibold text-faint">{caption}</span>}

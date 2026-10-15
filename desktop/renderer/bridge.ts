@@ -28,8 +28,8 @@ async function exclusive() {
 let terminate: (() => void) | undefined;
 function elsewhere() {
   terminate?.();
-  stop(new Error("Cubix is open in another tab."));
-  toast(tr("Cubix is open in another tab"), { id: "other-tab", duration: Infinity, action: { label: tr("Use here"), onClick: () => location.reload() } });
+  stop(new Error("Qbix is open in another tab."));
+  toast(tr("Qbix is open in another tab"), { id: "other-tab", duration: Infinity, action: { label: tr("Use here"), onClick: () => location.reload() } });
 }
 /** The engine is gone (replaced, taken by another tab, crashed): every request in flight fails with `error`. */
 function stop(error: Error) {
@@ -42,7 +42,7 @@ function stop(error: Error) {
  * see `replaced` in app.tsx). Before the page has drawn anything there is nothing to keep: reload at once.
  */
 function replaced(started: boolean) {
-  stop(new Error("Cubix was updated. Reloading…"));
+  stop(new Error("Qbix was updated. Reloading…"));
   if (!started) return location.reload();
   for (const listener of listeners) listener({ event: "replaced" });
 }
@@ -100,7 +100,7 @@ const worker = (async () => {
     else for (const listener of listeners) listener(data);
   };
   const stopped = (event: Event) => {
-    stop(new Error("The data engine stopped. Reload Cubix."));
+    stop(new Error("The data engine stopped. Reload Qbix."));
     reject(failure);
     for (const listener of listeners) listener({ event: "error", value: failure!.message });
     event.preventDefault();

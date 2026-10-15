@@ -4,13 +4,13 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
-import { effective, fmtSolve, fmtTime, parseTypedTime, plural } from "../../../src/client/lib/format";
+import { effective, fmtSolve, fmtTime, parseTypedSolve, plural, typedSolveChars } from "../../../src/client/lib/format";
 import type { Metric } from "../../../src/client/lib/practiceSummary";
 import { timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
 import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
-import type { SessionMode, SolveDto } from "../../../src/shared/types";
+import type { Penalty, SessionMode, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -127,9 +127,11 @@ export function useBackTo(onBack: () => void, enabled = true) {
   }, [enabled, running]);
 }
 
-/** A brief line of praise (a new personal best) shown in place of the hint for a few seconds at each new `at`. */
+/** A brief line of praise (a new personal best) shown in place of the hint for a few seconds at each new `at`, until the next solve starts. */
 export function useNotice() {
   const [notice, setNotice] = useState<{ at: number; message: string; icon: LucideIcon } | null>(null);
+  const running = useAtomValue(timerRunningAtom);
+  useEffect(() => { if (running) setNotice(null); }, [running]);
   useEffect(() => {
     if (!notice) return;
     const hide = setTimeout(() => setNotice(null), 4500);
@@ -224,17 +226,17 @@ export function TimerDigits({ timer, area, max }: { timer: TimerApi; area: { wid
  * Typing entry: the digits become a field for a time measured on an external timer, in their place, with the same
  * hint line, so switching entry never moves the page.
  */
-export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: number; disabled?: boolean; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
+export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: number; disabled?: boolean; error?: string; onRetry?: () => void; onSubmit: (ms: number, penalty: Penalty) => void }) {
   const colors = useColors();
   const [text, setText] = useState("");
-  const ms = parseTypedTime(text);
-  const submit = () => { if (ms === null || disabled) return; setText(""); onSubmit(ms); };
-  const hint = !text ? tr("Type your time, then Enter: 1234 is 12.34") : ms === null ? tr("Not a time") : tr("{0} · Enter to save", { 0: fmtTime(ms) });
+  const solve = parseTypedSolve(text);
+  const submit = () => { if (solve === null || disabled) return; setText(""); onSubmit(solve.ms, solve.penalty); };
+  const hint = !text ? tr("Type your time, then Enter: 1234 is 12.34") : solve === null ? tr("Not a time") : tr("{0} · Enter to save", { 0: fmtSolve(solve.ms, solve.penalty) });
   return <View className="w-full items-center">
-    <TextInput value={text} onChangeText={value => setText(value.replace(/[^\d.,:]/g, ""))} onSubmitEditing={submit} submitBehavior="submit"
+    <TextInput value={text} onChangeText={value => setText(typedSolveChars(value))} onSubmitEditing={submit} submitBehavior="submit"
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.000" placeholderTextColor={colors.mutedForeground + "66"}
       cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel={tr("Time")} editable={!disabled}
-      className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && ms === null ? "text-destructive" : "text-timer")}
+      className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && solve === null ? "text-destructive" : "text-timer")}
       style={{ fontSize: size * 0.8, includeFontPadding: false }} />
     {error ? <Alert variant="destructive" className="mt-3 max-w-md" action={<Button size="sm" variant="outline" onPress={onRetry}><Text>{tr("Retry")}</Text></Button>}>{error}</Alert>
       : <Hint>{hint}</Hint>}

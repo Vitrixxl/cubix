@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { live, startServer, signIn, desktopContext } from "./app";
-import { TOUR_STEPS } from "../../src/client/lib/journey";
+import { TOUR_STEPS, tourSteps } from "../../src/client/lib/journey";
 
 const SHOTS = "artifacts/onboarding";
 const dir = await mkdtemp(join(tmpdir(), "cubix-introduction-"));
@@ -45,8 +45,8 @@ const fits = async (sizes: [number, number][], name?: string) => {
 const SIZES: [number, number][] = [[1280, 800], [1600, 900], [2048, 1280], [360, 640], [320, 568]];
 
 /** Every tour step: the page opens, its tab and its inner part are cut out, the card stays inside and beside them. */
-async function tour(name: string, { desktop }: { desktop: boolean }) {
-  for (const [i, st] of TOUR_STEPS.entries()) {
+async function tour(name: string, { desktop, steps = TOUR_STEPS }: { desktop: boolean; steps?: readonly (typeof TOUR_STEPS)[number][] }) {
+  for (const [i, st] of steps.entries()) {
     await heading(st.title);
     // Settled: every visible inner element lies inside a cut-out (no inner element: the tab alone).
     await page.waitForFunction(inner => {
@@ -77,7 +77,8 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
       assert.ok(covered < 0.12, `step ${i + 1} (${st.inner}): the card covers ${Math.round(covered * 100)}% of the highlighted part`);
     }
     await page.waitForTimeout(300); await shot(`tour-${name}-${i + 1}-${st.inner}`);
-    await page.getByRole("button", { name: i === TOUR_STEPS.length - 1 ? "Done" : "Next", exact: true }).click();
+    assert.equal(await page.locator(".journey-tour-card").getByText(`${i + 1} / ${steps.length}`, { exact: true }).count(), 1, `step ${i + 1} of ${steps.length}`);
+    await page.getByRole("button", { name: i === steps.length - 1 ? "Done" : "Next", exact: true }).click();
   }
   await page.locator(".journey-tour").waitFor({ state: "detached" });
   assert.equal(await page.locator("[data-app-shell]").evaluate((n: HTMLElement) => n.inert), false);
@@ -223,13 +224,30 @@ try {
   await page.waitForSelector('[data-action="profileMode:overview"]');
   assert.equal(new URL(page.url()).pathname, "/profile/playground");
 
+  // A beginner (none yet) lands on the 3×3 Beginner course; the tour leaves out the timer and comes back to the course.
+  await page.locator('[data-action="menu:account"]').click();
+  await page.locator('[data-action="help"]').first().click();
+  await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
+  await checkbox("None yet").click();
+  assert.equal(await checked("3×3"), false);
+  await page.getByRole("button", { name: "Continue", exact: true }).click(); await heading("Bring your times");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/learn/beginner" && url.searchParams.get("puzzle") === "333");
+  await page.locator('[data-action="menu:account"]').click();
+  await page.locator('[data-action="help"]').first().click();
+  await page.getByRole("button", { name: "Replay tour", exact: true }).click();
+  const beginnerSteps = tourSteps({ kind: "profile", knownPuzzles: [], priority: null, completedAt: "" });
+  assert.equal(beginnerSteps[0].page, "learn", "a beginner's tour starts on Learn");
+  await tour("beginner", { desktop: true, steps: beginnerSteps });
+  await page.waitForURL(url => url.pathname === "/learn/beginner" && url.searchParams.get("puzzle") === "333");
+
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.locator('[data-action="menu:account"]').click();
   await page.locator('[data-action="logout"]').first().click();
   // Signing out opens the sign-in dialog over the app (login.tsx), the app staying under it.
   await page.getByRole("button", { name: "Sign in", exact: true }).waitFor();
   assert.deepEqual(errors, []);
-  console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, no goals on the profile, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");
+  console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, no goals on the profile, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, a beginner's tour without the timer ending on the 3×3 course, replay and redo from the guides, edit/cancel, routing and logout passed.");
 } catch (error) {
   await mkdir(SHOTS, { recursive: true });
   await page.screenshot({ path: `${SHOTS}/failure.png` });

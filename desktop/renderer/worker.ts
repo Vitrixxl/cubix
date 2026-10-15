@@ -77,7 +77,7 @@ function connect(port: Port) {
     if ("socket" in data) engine?.send(data.socket);
     else if ("id" in data) {
       const id = ++sequence;
-      if (retired) return port.postMessage({ id: data.id, error: "Cubix was updated. Reloading…" });
+      if (retired) return port.postMessage({ id: data.id, error: "Qbix was updated. Reloading…" });
       owners.set(id, { port, id: data.id, method: data.method });
       engine?.request({ ...data, id });
     } else if (data.type === "close") ports.delete(port);

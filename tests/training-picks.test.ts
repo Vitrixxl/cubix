@@ -23,6 +23,15 @@ test("a session drills learned cases only: recommended, whole sets and hand-pick
   expect(trainingPool(cases, new Set(), { sets: ["oll", "pll"] })).toEqual([]);
 });
 
+test("nothing recommended nor picked by hand: a session drills every learned case", () => {
+  const learned = new Set(["T", "Y", "Ga"]);
+  expect(trainingPool(cases, learned, {})).toEqual(["T", "Y", "Ga"]);
+  // Picks and hand-picked cases not learned count as nothing picked.
+  expect(trainingPool(cases, learned, { picks: ["OLL 1"], hand: ["OLL 2"] })).toEqual(["T", "Y", "Ga"]);
+  // A learned case picked by hand drills alone.
+  expect(trainingPool(cases, learned, { hand: ["Y"] })).toEqual(["Y"]);
+});
+
 const stat = (caseId: string, mean: number | null, count = 5) => ({ caseId, mean, count, lastAt: "2026-10-01T10:00:00Z" });
 
 test("the learned cases slower than their set's usual, the slowest against it first", () => {

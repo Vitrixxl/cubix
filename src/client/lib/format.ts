@@ -51,6 +51,25 @@ export function parseTypedTime(text: string): number | null {
   return ms > 0 && ms < MAX_TYPED_MS ? ms : null;
 }
 
+/**
+ * A solve typed by hand, as csTimer takes it: a time (`parseTypedTime`), "12.34+" for 12.34 with a +2, "DNF" or
+ * "DNF(12.34)". Returns null when invalid.
+ */
+export function parseTypedSolve(text: string): { ms: number; penalty: Penalty } | null {
+  const value = text.trim(),
+    dnf = /^dnf(?:\((.*)\))?$/i.exec(value);
+  if (dnf) {
+    const ms = dnf[1] === undefined ? 0 : parseTypedTime(dnf[1]);
+    return ms === null ? null : { ms, penalty: "dnf" };
+  }
+  const plus = value.endsWith("+"),
+    ms = parseTypedTime(plus ? value.slice(0, -1) : value);
+  return ms === null ? null : { ms, penalty: plus ? "+2" : "none" };
+}
+
+/** What a typed entry keeps of a keystroke: digits, separators, "+" and the letters of "DNF". */
+export const typedSolveChars = (text: string) => text.replace(/[^\d.,:+()dnf]/gi, "");
+
 export function fmtSolve(timeMs: number, penalty: Penalty): string {
   if (penalty === "dnf") return "DNF";
   if (penalty === "+2") return `${fmtTime(timeMs + 2000)}+`;

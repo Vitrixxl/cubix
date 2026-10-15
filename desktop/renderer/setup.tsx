@@ -1,7 +1,7 @@
 /**
  * The training's page, before the timer: the ways of training as a list on the left (arrows move, Enter starts), the
  * one chosen large on the right: the cross, a recognition run through a set, the learned cases (the recommended ones,
- * the slowest against the player's usual, and those picked by hand), whole sets, or free practice on any case. Phones
+ * the slowest against the player's usual, and those picked by hand, else all of them), whole sets, or free practice on any case. Phones
  * open the chosen one in a sheet. Learning new cases is the courses' work: a set with none learned leads to its course.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -71,7 +71,7 @@ function modeRows(sets: Sets): ModeRow[] {
   const cases = s.cases(),
     pool = s.casesPool,
     learned = trainingPool(cases, s.learned, { picks: s.trainPicks, hand: [...s.selected] }).length,
-    whole = trainingPool(cases, s.learned, { sets: s.trainSets }).length,
+    whole = sets.reduce((n, x) => n + (s.trainSets.includes(x.set.id) ? x.learned : 0), 0),
     known = sets.reduce((n, x) => n + x.learned, 0),
     total = sets.reduce((n, x) => n + x.all.length, 0),
     chosen = recognitionSet(sets),
@@ -558,7 +558,7 @@ function Recommended({ learned, phone = false }: { learned: number; phone?: bool
           <Button action="nav:learn" variant="default" tip={tr("Open the courses")}>{tr("Courses")}</Button>
         </Empty>
       ) : !shown.length ? (
-        <Empty icon={Timer} title={tr("No recommendation yet")} className="my-auto py-8" />
+        <Empty icon={Timer} title={tr(s.trainSets.length || [...s.selected].some((id) => s.learned.has(id)) ? "No recommendation yet" : "No recommendation: training all learned")} className="my-auto py-8" />
       ) : (
         <ul className={cn("flex flex-col gap-2", !phone && "min-h-0 overflow-y-auto")}>
           {shown.map((r) => (

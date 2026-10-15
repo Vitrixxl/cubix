@@ -6,7 +6,7 @@ import {
 } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { BackHandler, FlatList, Linking, PanResponder, Pressable, ScrollView, View } from "react-native";
-import { caseContext, groupBySet, groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
+import { caseContext, groupBySet, groupCases, searchCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import { moveCount } from "../../../src/client/lib/caseState";
 import { algScene, polyAlgScene } from "../../../src/client/lib/algPlayer";
 import { fmtTime } from "../../../src/client/lib/format";
@@ -349,7 +349,7 @@ function SearchScreen() {
     return map;
   };
   const q = query.trim();
-  const found = useMemo(() => q ? (scope === "all" ? everything : cases).filter(c => matches(c, q)) : [], [q, scope, everything, cases]);
+  const found = useMemo(() => q ? searchCases(scope === "all" ? everything : cases, q) : [], [q, scope, everything, cases]);
   const shown = found.slice(0, 120);
   const open = (c: CaseDto) => {
     if (puzzleOf(c) !== puzzle) setPuzzle(puzzleOf(c));
@@ -380,7 +380,7 @@ function SearchScreen() {
           className="min-h-16 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2 active:bg-muted">
           <CaseDiagram c={c} size={44} />
           <View className="min-w-0 flex-1 gap-0.5">
-            <Text numberOfLines={1} className="text-base font-bold">{c.id}{name ? <Text className="font-medium text-muted-foreground"> {name}</Text> : null}</Text>
+            <Text numberOfLines={2} className="text-base font-bold">{c.id}{name ? <Text className="font-medium text-muted-foreground"> {name}</Text> : null}</Text>
             <Text numberOfLines={1} className="text-xs text-muted-foreground">{caseContext(c)}</Text>
           </View>
           <View className="items-end gap-0.5">
@@ -399,6 +399,8 @@ function SearchScreen() {
 
 /** The tiles' smallest width and the gap between them (the web's `TILES`: 5.5rem columns, gap-1.5). */
 const TILE_MIN = 88, TILE_GAP = 6;
+/** The floating Train's height, its margin and a gap above it: the room a phone's set leaves under its cases. */
+const TRAIN_ROOM = 56 + 16 + 24;
 /** How many tiles a line of `width` holds, and how wide each is then. */
 export function tileGrid(width: number, least = TILE_MIN) {
   const columns = Math.max(1, Math.floor((width + TILE_GAP) / (least + TILE_GAP)));
@@ -531,7 +533,9 @@ function SetScreen({ setId, embedded = false }: { setId: string; embedded?: bool
   ];
   const tilePills = <Pills label={tr("Tile size")} value={view} onChange={setTiles} options={tileOptions} />;
   const listView = <View className={cn("-mx-4 min-h-0 flex-1", tablet && "-mx-7")} onLayout={tablet ? e => setListWidth(e.nativeEvent.layout.width - 56) : undefined}>
-    <FlatList key={`${columns}`} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4 pb-24", tablet && "px-7 pb-4")}
+    <FlatList key={`${columns}`} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4", tablet && "px-7 pb-4")}
+      // Room under the last cases for the floating Train (h-14 at bottom-4) on a phone, so it never covers them.
+      ListFooterComponent={tablet ? null : <View style={{ height: TRAIN_ROOM }} />}
       initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />
   </View>;
   const selectionBar = <View className="flex-row gap-2 border-t border-border px-4 py-2.5">
