@@ -7,7 +7,7 @@ import { effective, fmtSolve, fmtTime, plural } from "../../../src/client/lib/fo
 import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { practiceSummary, trainingSessionRows } from "../../../src/client/lib/practiceSummary";
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
-import { nextRecognition, recognitionCases, recommendedWhy } from "../../../src/client/lib/trainingPicks";
+import { nextRecognition, recognitionCases, recognitionTurn, recommendedWhy } from "../../../src/client/lib/trainingPicks";
 import { randomAuf } from "../../../src/shared/cube";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
@@ -409,10 +409,10 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
   const back = useAtomValue(recognitionBackAtom);
   const useAuf = useAtomValue(randomAufAtom);
   const set = data.recognition?.set;
-  // The run: its cases, fixed at its start, the one shown with its AUF, how many were done, and where it stands.
+  // The run: its cases, fixed at its start, the one shown with its AUF and how it is held, how many were done, and where it stands.
   // `paused`: the seconds the case was seen before a tap paused it to show its algorithm; `since`: when it showed.
-  const [state, setState] = useState(() => ({ ids: set ? recognitionCases(cases, data.learned, set.id) : [], current: "", auf: "", paused: null as number | null, since: 0, done: 0, phase: "countdown" as "countdown" | "running" | "closed", left: 3 }));
-  const draw = (last?: string) => ({ current: nextRecognition(state.ids, last) ?? "", auf: useAuf && cube ? randomAuf() : "", paused: null as number | null, since: Date.now() });
+  const [state, setState] = useState(() => ({ ids: set ? recognitionCases(cases, data.learned, set.id) : [], current: "", auf: "", turn: 0, paused: null as number | null, since: 0, done: 0, phase: "countdown" as "countdown" | "running" | "closed", left: 3 }));
+  const draw = (last?: string) => ({ current: nextRecognition(state.ids, last) ?? "", auf: useAuf && cube ? randomAuf() : "", turn: recognitionTurn(), paused: null as number | null, since: Date.now() });
   const startOver = () => setState(s => ({ ...s, done: 0, phase: "countdown", left: 3 }));
   useEffect(() => {
     if (state.phase !== "countdown") return;
@@ -458,13 +458,13 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
           <Text className="text-lg font-extrabold">{c.id}</Text>
           <Text numberOfLines={1} className="shrink text-muted-foreground">{tr(caseDetail(c) ?? c.group)}</Text>
         </View>
-        {cube && !c.diagram ? <RecognitionSolution key={"play" + state.done} algorithm={algorithm} setup={setup} cube={cube} size={Math.round(size * 0.85)} stage={c.stage} hints={back && hintsForStage(c.stage)} />
+        {cube && !c.diagram ? <RecognitionSolution key={"play" + state.done} algorithm={algorithm} setup={setup} turn={state.turn} cube={cube} size={Math.round(size * 0.85)} stage={c.stage} hints={back && hintsForStage(c.stage)} />
           : <Alg text={algorithm} size={22} />}
         <Chip icon={SkipForward} on onPress={press}>{tr("Next")}</Chip>
       </View>
       : <Pressable accessibilityRole="button" accessibilityLabel={tr("Show the algorithm")} onPress={press} className="min-h-0 flex-1 items-center justify-center gap-6 px-4">
         {c && (cube && !c.diagram
-          ? <RecognitionCube key={"cube" + state.done} setup={setup} cube={cube} size={size} stage={c.stage} hints={back && hintsForStage(c.stage)} />
+          ? <RecognitionCube key={"cube" + state.done} setup={setup} turn={state.turn} cube={cube} size={size} stage={c.stage} hints={back && hintsForStage(c.stage)} />
           : <CaseDiagram c={c} size={size} />)}
         <Countdown key={"bar" + state.done} seconds={seconds} onDone={next} width={tablet ? size : undefined} />
       </Pressable>}
@@ -476,15 +476,15 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
 
 /** A case in 3D, as the web's recognition shows it, its last layer's hidden stickers floating behind it with `hints`;
  * still, a tap going through to the run. */
-function RecognitionCube({ setup, cube, size, stage, hints }: { setup: string; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
-  const player = useAlgPlayer("", cube, maskForStage(stage), { setup, hints });
+function RecognitionCube({ setup, turn, cube, size, stage, hints }: { setup: string; turn: number; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
+  const player = useAlgPlayer("", cube, maskForStage(stage), { setup, turn, hints });
   return player ? <View pointerEvents="none"><PlayerCube player={player} size={size} /></View>
     : <CubePreview alg={setup} cube={cube} size={size} mask={maskForStage(stage)} view={viewForStage(stage)} />;
 }
 
 /** The paused case on a cube to turn, its algorithm under it, played only when asked with the controls under it. */
-function RecognitionSolution({ algorithm, setup, cube, size, stage, hints }: { algorithm: string; setup: string; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
-  const player = useAlgPlayer(algorithm, cube, maskForStage(stage), { setup, hints });
+function RecognitionSolution({ algorithm, setup, turn, cube, size, stage, hints }: { algorithm: string; setup: string; turn: number; cube: number; size: number; stage: CaseDto["stage"]; hints: boolean }) {
+  const player = useAlgPlayer(algorithm, cube, maskForStage(stage), { setup, turn, hints });
   if (!player) return <Alg text={algorithm} size={22} />;
   return <>
     <PlayerCube player={player} size={size} />

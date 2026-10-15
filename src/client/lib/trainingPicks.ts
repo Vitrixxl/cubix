@@ -58,6 +58,9 @@ export function nextRecognition(ids: readonly string[], last: string | undefined
   return pool[Math.floor(random() * pool.length)];
 }
 
+/** How a recognition's case is held, drawn with it: quarter turns about y (`recognitionColours`), so no side colour gives it away. */
+export const recognitionTurn = (random = Math.random) => Math.floor(random() * 4);
+
 /** Of each set, its learned cases timed enough that are slower than the set's usual (the mean of them all). */
 function slower(rows: { id: string; set: string; time: number; count: number }[]) {
   const bySet = new Map<string, typeof rows>();

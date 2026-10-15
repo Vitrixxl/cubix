@@ -1,6 +1,6 @@
 import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../../src/client/lib/appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
-import { nextRecognition, recognitionCases, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
+import { nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { resumes, type SessionSummary } from "../../src/client/lib/sessions";
 import { exportFile } from "../../src/client/lib/exportData";
@@ -226,7 +226,7 @@ export class Store {
   trainingKind: "cases" | "cross" | "recognition" | "free" = "cases";
   /** The recognition run under way: the learned cases of a set it draws from at random, the one shown, how many were
    * shown, and whether it was closed (its count then shows). */
-  recognition: { set: string; ids: string[]; current?: string; done: number; closed: boolean } | null = null;
+  recognition: { set: string; ids: string[]; current?: string; turn: number; done: number; closed: boolean } | null = null;
   crossTarget: CrossTarget = "cross";
   crossMoves = 5;
   /** Optimal cross solutions of the shown scramble, computed by the engine when revealed. */
@@ -742,6 +742,7 @@ export class Store {
     if (direction === "next" && this.trainingKind === "recognition" && run && !run.closed && this.training?.id === run.current) {
       run.done++;
       run.current = nextRecognition(run.ids, run.current);
+      run.turn = recognitionTurn();
     }
     const puzzle = this.puzzle,
       selected = [...this.practiceSelected];
@@ -1018,7 +1019,7 @@ export class Store {
           this.pref("cubix.training.kind", this.trainingKind);
           if (this.trainingKind === "recognition") {
             const ids = recognitionCases(this.cases(), this.learned, this.recognitionSet);
-            this.recognition = { set: this.recognitionSet, ids, current: nextRecognition(ids, undefined), done: 0, closed: false };
+            this.recognition = { set: this.recognitionSet, ids, current: nextRecognition(ids, undefined), turn: recognitionTurn(), done: 0, closed: false };
             this.training = null;
           }
           // The recommended cases picked stay those of this start, whatever is recommended later.

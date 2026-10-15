@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { nextRecognition, recognitionCases, recommend, trainingPool } from "../src/client/lib/trainingPicks";
+import { nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool } from "../src/client/lib/trainingPicks";
+import { algScene } from "../src/client/lib/algPlayer";
+import { caseWithAuf } from "../src/client/lib/caseState";
+import { AUFS, applyAlg, invertAlg, solved } from "../src/shared/cube";
+import { GREY } from "../src/shared/cubeAppearance";
 
 const cases = [
   { id: "OLL 1", set: "oll" },
@@ -57,4 +61,32 @@ test("a recognition run draws the learned cases of its set at random, never the 
   expect(nextRecognition(ids, "Ga", () => 0.99)).toBe("Y");
   expect(nextRecognition(["T"], "T")).toBe("T");
   expect(nextRecognition(recognitionCases(cases, new Set(), "oll"), undefined)).toBeUndefined();
+});
+
+test("a recognition's case shows other colours with each AUF and way it is held, its algorithm still solving it", () => {
+  const alg = "R U R' U' R' F R2 U' R' U' R U R' F'",
+    t = { setup: invertAlg(alg), algorithms: [{ alg }] },
+    seen = new Set<string>(),
+    fronts = new Set<number>();
+  for (const auf of AUFS)
+    for (let turn = 0; turn < 4; turn++) {
+      const { setup, algorithm } = caseWithAuf(t, auf, true),
+        scene = algScene(algorithm, 3, "full", setup, turn)!,
+        shown = (state: number[]) => state.map((origin) => scene.colors[origin]!);
+      seen.add(shown(scene.states[0]!).join());
+      fronts.add(shown(scene.states[0]!)[22]!); // the front centre
+      // Played from where it is shown, the algorithm solves it: every face one colour.
+      const end = shown(scene.states.at(-1)!);
+      for (let face = 0; face < 6; face++) expect(new Set(end.slice(face * 9, face * 9 + 9)).size).toBe(1);
+      expect(Array.from(applyAlg(solved(), setup + " " + algorithm))).toEqual(Array.from(solved()));
+    }
+  expect(seen.size).toBe(16);
+  expect(fronts.size).toBe(4);
+  // Its centres show on a last layer's mask too, in the colours it is held with.
+  expect(new Set([0, 1, 2, 3].map((turn) => { const scene = algScene("", 3, "PLL", t.setup, turn)!; return scene.colors[scene.states[0]![22]!]; }))).toEqual(fronts);
+  // A mask greys the same stickers however the cube is held.
+  const grey = (turn: number) => algScene("", 3, "F2L", t.setup, turn)!.colors.map((c) => c === GREY).join();
+  expect(grey(1)).toBe(grey(0));
+  // Each way of holding it comes up.
+  expect(new Set([0, 0.3, 0.6, 0.9].map((n) => recognitionTurn(() => n)))).toEqual(new Set([0, 1, 2, 3]));
 });

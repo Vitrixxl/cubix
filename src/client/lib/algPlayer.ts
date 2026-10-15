@@ -5,7 +5,7 @@
  * `algShapes` at the clock's position and keeps the clock running.
  */
 import { applyMove, invertToken, parseMove, solved, type Move } from "../../shared/cube";
-import { stickerColors, type CubeMask } from "../../shared/cubeAppearance";
+import { recognitionColours, stickerColors, type CubeMask } from "../../shared/cubeAppearance";
 import { cubeFace, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeOrientation, type CubeScene } from "../../shared/cubeScene";
 import { polyOrientation, polyScene, polySceneDuration, polyShapes, polyTurns, type PolyPuzzle, type PolyScene } from "../../shared/puzzleScene";
 
@@ -151,9 +151,9 @@ export type AlgScene = CubeAlgScene | PolyAlgScene;
 const isPoly = (scene: AlgScene): scene is PolyAlgScene => "puzzle" in scene;
 /**
  * The scene of `alg` on a cube of `size`: from `setup` (moves from a solved cube; "" the solved cube) or, by default,
- * from the case it solves (the algorithm undone), then each of its moves.
+ * from the case it solves (the algorithm undone), then each of its moves. `turn`: a recognition's cube, held turned about y (`recognitionColours`).
  */
-export function algScene(alg: string, size: number, mask: CubeMask = "full", setup?: string): CubeAlgScene | null {
+export function algScene(alg: string, size: number, mask: CubeMask = "full", setup?: string, turn?: number): CubeAlgScene | null {
   if (!Number.isInteger(size) || size < 2 || size > 7) return null;
   const moves = playableMoves(alg, size),
     from = setup === undefined ? null : playableMoves(setup, size);
@@ -170,7 +170,7 @@ export function algScene(alg: string, size: number, mask: CubeMask = "full", set
   }
   // Colours are given where the cube starts, centres in place, as the case's diagram shows it: a slice or a rotation
   // in the algorithm (a leading y') then turns the centres away from there. A stage's mask greys what it should there.
-  return { size, colors: stickerColors(start, mask), states, moves, sources: moves.map((m) => m.source) };
+  return { size, colors: turn === undefined ? stickerColors(start, mask) : recognitionColours(start, mask, turn), states, moves, sources: moves.map((m) => m.source) };
 }
 
 /** The scene of `alg` on another puzzle, from the case it solves; null when a move does not exist there. */

@@ -32,6 +32,9 @@ export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, hexOf(FACE_HEX[
 export const GREY = 0x6e6e78;
 const DIM = 0x4c4c56;
 
+/** The side colours one `y` brings to the front (F shows R's, R shows B's...), the top and bottom kept. */
+const Y_TURN: Record<number, number> = { [FACE_HEX.F]: FACE_HEX.R, [FACE_HEX.R]: FACE_HEX.B, [FACE_HEX.B]: FACE_HEX.L, [FACE_HEX.L]: FACE_HEX.F };
+
 /** A held cube's colours by sticker (Cubix's order, as in a solved `CubeScene`), `null` for a sticker not known: grey. */
 export const heldColors = (stickers: readonly (Face | null)[]) => stickers.map(f => (f ? HELD_HEX[f] : GREY));
 
@@ -79,4 +82,15 @@ export function stickerColors(final: CubeState, mask: CubeMask, held = false): n
       : palette[face];
   }
   return colors;
+}
+
+/**
+ * A recognition's colours: `mask`'s, its centres coloured whatever the mask, on the cube held `turn` quarter turns
+ * about y (y, y2, y'): the same case, other side colours.
+ */
+export function recognitionColours(final: CubeState, mask: CubeMask, turn: number): number[] {
+  const size = cubeSize(final), slots = slotsFor(size), h = (size - 1) / 2, full = stickerColors(final, 'full');
+  let out = stickerColors(final, mask).map((c, o) => (slots[o].p.filter(v => Math.abs(v) === h).length === 1 ? full[o] : c));
+  for (let i = 0; i < ((turn % 4) + 4) % 4; i++) out = out.map(c => Y_TURN[c] ?? c);
+  return out;
 }

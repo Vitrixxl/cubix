@@ -14,6 +14,7 @@ import { smartCube } from "../../src/client/lib/smartCube";
 import { caseDetail, hintsForStage, maskForStage } from "../../src/client/lib/caseState";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
+import { algScene } from "../../src/client/lib/algPlayer";
 import { Button as UiButton } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { store as s, matches, type TrainingMode } from "./store";
@@ -423,7 +424,9 @@ function RecognitionCase({ c }: { c: any }) {
     size = Math.round(Math.max(160, Math.min(h * 0.55, w * 0.8, 480))),
     next = () => void s.action("next"),
     // Every cube's case in 3D, its hidden stickers shown unless turned off; other puzzles their diagram.
-    cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize;
+    cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize,
+    // The case held as drawn for it (`recognitionTurn`): other side colours, the same pattern.
+    scene = useMemo(() => (cubeSize ? algScene("", cubeSize, maskForStage(c.stage), s.training.setup, s.recognition!.turn) ?? undefined : undefined), [cubeSize, s.training.setup, s.recognition!.turn]);
   useEffect(() => {
     const running = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
     animation.current = running;
@@ -477,7 +480,7 @@ function RecognitionCase({ c }: { c: any }) {
   return (
     <button type="button" onClick={press} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-[26px]", FOCUS)} aria-label={tr("Show the algorithm")}>
       {cubeSize ? (
-        <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={s.recognitionBack && hintsForStage(c.stage)} />
+        <Cube scene={scene} setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={s.recognitionBack && hintsForStage(c.stage)} />
       ) : s.training?.svg ? (
         <div style={{ width: size, height: size }} className="[&_svg]:block [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: s.training.svg }} />
       ) : (
@@ -490,7 +493,7 @@ function RecognitionCase({ c }: { c: any }) {
 
 /** The paused case on a cube to turn, its algorithm under it, played or stepped (the arrows) only when asked. */
 function RecognitionSolution({ c, cubeSize, size }: { c: any; cubeSize: number; size: number }) {
-  const player = useAlgPlayer(s.training.algorithm, cubeSize, maskForStage(c.stage), { setup: s.training.setup, hints: s.recognitionBack && hintsForStage(c.stage) });
+  const player = useAlgPlayer(s.training.algorithm, cubeSize, maskForStage(c.stage), { setup: s.training.setup, turn: s.recognition!.turn, hints: s.recognitionBack && hintsForStage(c.stage) });
   useEffect(() => {
     if (!player) return;
     const key = (e: KeyboardEvent) => {
