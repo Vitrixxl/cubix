@@ -155,7 +155,7 @@ func TestUsernameChange(t *testing.T) {
 		if err != nil || got.(M)["user"].(M)["username"] != "sam_cubes" {
 			t.Fatalf("renamed %v %v", got, err)
 		}
-		for _, bad := range []string{"LENA", "no spaces", "ab"} {
+		for _, bad := range []string{"LENA", "no spaces", "ab", " ab "} {
 			if _, err := rename(bad); err == nil {
 				t.Fatalf("%q was accepted", bad)
 			}

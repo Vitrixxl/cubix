@@ -16,7 +16,7 @@ import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { fmtTime, parseTypedTime } from "../../../src/client/lib/format";
-import { PROFILE_KEY, TOUR_STEPS, journeyProfile, type Journey } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, TOUR_STEPS, introducedProfile, journeyProfile, type Journey } from "../../../src/client/lib/journey";
 import { IMPORT_APPS } from "../../../src/client/lib/timerImport";
 import { METHODS } from "../../../src/shared/methods";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
@@ -198,7 +198,7 @@ function Editor() {
     const wrong = typed.find(([, ms]) => ms === null);
     if (wrong) return setError(tr("{0}: type your best like 12.34 or 1:05.21, or leave it empty.", { 0: tr(puzzleInfo(wrong[0]).label) }));
     void save({
-      [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
+      [PROFILE_KEY]: introducedProfile(existing, known, knownMethods, Object.fromEntries(typed) as Partial<Record<PuzzleId, number>>),
     }, tour);
   };
   const welcome = async () => {

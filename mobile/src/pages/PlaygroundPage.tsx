@@ -2,7 +2,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
@@ -52,6 +52,9 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const info = puzzleInfo(context.puzzle);
   const entry = useAtomValue(timeEntryAtom);
   const [inspection, setInspection] = useAtom(inspectionAtom);
+  // The hourglass switches back on the last way chosen (spoken, on screen or both).
+  const lastInspection = useRef<typeof inspection>("both");
+  if (inspection !== "off") lastInspection.current = inspection;
   const figureIds = useAtomValue(timerFiguresAtom);
   const openSheet = useSetAtom(sessionSheetAtom), openGuide = useSetAtom(guidesAtom);
   const [saving, setSaving] = useState(false);
@@ -152,7 +155,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
             {tablet ? <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
               : <HeadButton icon={SlidersHorizontal} label={tr("Puzzle and scramble")} onPress={() => openSheet("timer")} />}
             {/* The WCA inspection on the timer itself, on or off (spoken and on screen); its other ways in the sheet. */}
-            {!tablet && !blind && !typing && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? "both" : "off")} />}
+            {!tablet && !blind && !typing && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? lastInspection.current : "off")} />}
             <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
           </AppBar>
           <SectionTabs />

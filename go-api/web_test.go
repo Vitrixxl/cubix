@@ -50,3 +50,33 @@ func TestWebPageWithoutBrotli(t *testing.T) {
 		}
 	}
 }
+
+func TestWebLocalizedCaseNotIndexed(t *testing.T) {
+	dir := t.TempDir()
+	for _, sub := range []string{"pages/en/algorithms", "pages/fr"} {
+		if err := os.MkdirAll(filepath.Join(dir, sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = os.WriteFile(filepath.Join(dir, "index.html"), []byte("app"), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "pages", "en", "algorithms", "OLL 21.html.gz"), []byte("case"), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "pages", "fr", "timer.html.gz"), []byte("chrono"), 0o644)
+	router := webRouter(dir)
+	for path, want := range map[string]string{
+		"/fr/algorithms/OLL%2021":            "noindex",
+		"/de/algorithms/OLL%2021?puzzle=333": "noindex",
+		"/algorithms/OLL%2021":               "",
+		"/fr/timer":                          "",
+		"/fr/training":                       "",
+	} {
+		for _, method := range []string{"GET", "HEAD"} {
+			r := httptest.NewRequest(method, path, nil)
+			r.Header.Set("Accept-Encoding", "gzip")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, r)
+			if got := w.Header().Get("X-Robots-Tag"); w.Code != 200 || got != want {
+				t.Errorf("%s %s: %d %q, want %q", method, path, w.Code, got, want)
+			}
+		}
+	}
+}

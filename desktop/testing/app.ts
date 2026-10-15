@@ -39,6 +39,8 @@ export async function launchApp({ dir, origin, width = 1280, height = 800, stora
     executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium",
     headless: true,
     viewport: { width, height },
+    // The checks read English labels, whatever the machine's language.
+    locale: "en-US",
   });
   await keepDesktopApp(app);
   const page = app.pages()[0] ?? (await app.newPage());
@@ -166,7 +168,7 @@ export async function signIn(page: Page, username: string, onboarding = false) {
  * phone app (boot.ts), while these tests check the desktop app and its own phone layout.
  */
 export async function desktopContext(browser: Browser, options?: BrowserContextOptions) {
-  return keepDesktopApp(await browser.newContext(options));
+  return keepDesktopApp(await browser.newContext({ locale: "en-US", ...options }));
 }
 async function keepDesktopApp(context: BrowserContext) {
   await context.addInitScript(() => localStorage.setItem("cubix.phoneApp", "off"));

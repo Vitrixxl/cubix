@@ -51,6 +51,12 @@ export function withKnownPuzzle(profile: JourneyProfile, puzzle: PuzzleId, metho
     ...(known.length ? { knownMethods: { ...profile.knownMethods, [puzzle]: known } } : {}),
   };
 }
+/** The profile the introduction saves: its puzzles, methods and bests over the saved one, whose other fields (the main
+ *  cube, an old level) stay; the old learning plan goes with the priority it hangs on. */
+export function introducedProfile(existing: JourneyProfile | undefined, knownPuzzles: PuzzleId[], knownMethods: JourneyProfile["knownMethods"], bests: JourneyProfile["bests"]): JourneyProfile {
+  const { learningPuzzles: _p, learningMethods: _m, priorityMethod: _pm, bests: _b, ...rest } = existing ?? {};
+  return { ...rest, kind: "profile", knownPuzzles, knownMethods, priority: null, ...(bests && Object.keys(bests).length ? { bests } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() };
+}
 /** Read existing single-priority profiles without rewriting an account's saved choices. */
 export function learningPlan(profile?: JourneyProfile) {
   return {

@@ -161,8 +161,8 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
     setRedo(null);
     setFlash(true);
     setTimeout(() => setFlash(false), 450);
-    // The first face read, the camera keeps its exposure and white balance where it can: the faces then differ only
-    // by their light.
+    // The first face read (yellow), the camera keeps its exposure and white balance where it can: the faces then
+    // differ only by their light.
     const camera = track.current,
       can = camera?.getCapabilities?.() as { exposureMode?: string[]; whiteBalanceMode?: string[] } | undefined,
       hold = { ...(can?.exposureMode?.includes("manual") && { exposureMode: "manual" }), ...(can?.whiteBalanceMode?.includes("manual") && { whiteBalanceMode: "manual" }) };

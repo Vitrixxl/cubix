@@ -19,7 +19,8 @@ try {
  * the page written ahead of time, made without the app's data, stays for automated browsers (the tests) until the app
  * draws it. A search engine gets that page alone, styled, without the app: the same content, never a welcome wall.
  */
-const crawler = /bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent);
+// A crawler's own name, never a phone's (Cubot) nor an audit's (Lighthouse), which measure the app a person gets.
+const crawler = /\b(?!cubot)\w*bot\b|crawl|spider|slurp|facebookexternalhit/i.test(navigator.userAgent);
 const person = !navigator.webdriver && !crawler;
 if (person) root.setAttribute("data-direct", "");
 if (!crawler) root.setAttribute("data-js", "");
@@ -52,11 +53,11 @@ const started = !crawler && !!CUBIX_PHONE_HEAD && phone();
 const preloads = /<link rel="modulepreload"[^>]*>\n?/g;
 document.write(crawler ? CUBIX_DESKTOP_HEAD.replace(preloads, "").replace(/<script[^>]*><\/script>/g, "") : started ? CUBIX_PHONE_HEAD : admin ? CUBIX_DESKTOP_HEAD.replace(preloads, "") : CUBIX_DESKTOP_HEAD);
 /**
- * The offline shell (sw.ts), for either app, installs once the page has loaded and gone quiet: it downloads every
- * bundle, never before the first screen's.
+ * The offline shell (sw.ts), for either app, installs once the page has loaded and gone quiet: it downloads the
+ * bundles of the app this window runs, never before the first screen's.
  */
 if (!crawler && "serviceWorker" in navigator) {
-  addEventListener("load", () => (window.requestIdleCallback ?? setTimeout)(() => void navigator.serviceWorker.register("/sw.js").catch(() => {})), { once: true });
+  addEventListener("load", () => (window.requestIdleCallback ?? setTimeout)(() => void navigator.serviceWorker.register(started ? "/sw.js?app=phone" : "/sw.js").catch(() => {})), { once: true });
 }
 // A window resized across the line loads the other app.
 if (CUBIX_PHONE_HEAD && !crawler) addEventListener("resize", () => { if (phone() !== started) location.reload(); });

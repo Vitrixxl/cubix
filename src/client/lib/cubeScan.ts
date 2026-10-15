@@ -54,6 +54,8 @@ const hueOf = (f: V3) => ((Math.atan2(f[2], f[1]) * 180) / Math.PI + 360) % 360;
 export const REFS: Readonly<Record<Face, Rgb>> = { D: [235, 235, 235], U: [255, 240, 0], R: [255, 188, 0], L: [255, 40, 30], B: [0, 110, 255], F: [0, 220, 60] };
 /** Stickers seen that count as much as a neutral guess of the light (`lightOf`). */
 const TRUST = 18;
+/** A gain kept within eight times either way: a channel a camera saturates to nothing gives no measure of the light. */
+const bounded = (gain: number) => Math.min(8, Math.max(1 / 8, gain));
 
 /**
  * The light on the stickers, as each channel's gain that undoes it: white's own look once read (`balanceOf`); before,
@@ -64,7 +66,7 @@ function lightOf(seen: readonly Rgb[], white?: Rgb): V3 {
   const sum = [0, 1, 2].map((k) => seen.reduce((s, c) => s + linear(c[k]!), 0)),
     mean = (sum[0]! + sum[1]! + sum[2]!) / 3,
     weight = seen.length / (seen.length + TRUST);
-  return sum.map((v) => (v > 0 ? (mean / v) ** weight : 1)) as V3;
+  return sum.map((v) => (v > 0 ? bounded((mean / v) ** weight) : 1)) as V3;
 }
 
 /**
@@ -410,7 +412,7 @@ export function readCube(samples: readonly Rgb[]): CubeRead {
     guesses: V3[][] = [
       FACES.map(() => [1, 1, 1]),
       FACES.map((_, f) => [0, 1, 2].map((k) => (all[k]! / (x.slice(f * 9, f * 9 + 9).reduce((s, c) => s + c[k]!, 0) / 9)) ** 0.7) as V3),
-      FACES.map((_, f) => [0, 1, 2].map((k) => Math.min(8, Math.max(1 / 8, (USUAL_RGB[f]![k]! + 0.02) / (x[f * 9 + 4]![k]! + 0.02)))) as V3),
+      FACES.map((_, f) => [0, 1, 2].map((k) => bounded((USUAL_RGB[f]![k]! + 0.02) / (x[f * 9 + 4]![k]! + 0.02))) as V3),
     ];
   let best: (CubeRead & { cost: number }) | null = null;
   for (const guess of guesses) {

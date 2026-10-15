@@ -117,7 +117,7 @@ func webAppPath(path string) (string, string, bool) {
 
 // webPage: the app's address `path`: its page in its language (`pages/<language>/<path>[@<puzzle>[~<step>]].html`,
 // stored compressed with Brotli and gzip), trying without the step, then without the puzzle; else the app's
-// `index.html`. Any other address is a file of the build.
+// `index.html`, kept out of the index when only English has the page. Any other address is a file of the build.
 func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 	language, path, ok := webAppPath(r.URL.EscapedPath())
 	if !ok {
@@ -180,6 +180,13 @@ func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(page)
 		}
 		return
+	}
+	// A language's address with no page but an English one (a case, written in English alone): the app for a person,
+	// never indexed in the English page's place.
+	if language != "en" && slices.ContainsFunc(names, func(name string) bool {
+		return isFile(filepath.Join(dir, "pages", "en", name+".html"+extension))
+	}) {
+		w.Header().Set("X-Robots-Tag", "noindex")
 	}
 	webServeFile(w, r, filepath.Join(dir, "index.html"))
 }

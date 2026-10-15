@@ -145,11 +145,16 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
   // The administration is never used offline.
   const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
-  // The app's own page, without any page written in it: the one every address opens offline (sw.ts).
-  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, firstLaunch, ...shell, ...fonts.values(), ...icons, scrambler];
+  // The app's own page, without any page written in it: the one every address opens offline (sw.ts). Either app's
+  // files: the desktop one's bundles, or the phone one's, those its page loads and its workers (mobile/public).
+  const precache = {
+    shared: ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", boot, firstLaunch],
+    desktop: [worker, ...shell, ...fonts.values(), ...icons, scrambler],
+    phone: phoneHead ? [...new Set([...phoneHead.matchAll(/(?:href|src)="(\/phone\/[^"]+)"/g)].map((match) => match[1]!)), "/phone/scrambler.js", "/phone/scan.js"] : [],
+  };
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
-  for (const url of [...precache, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url)));
+  for (const url of [...precache.shared, ...precache.desktop, ...precache.phone, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url)));
   const version = hasher.digest("hex").slice(0, 16);
   // The case diagrams keep their names from one build to the next: they are kept until one of them changes.
   const cases = new Bun.CryptoHasher("sha256");

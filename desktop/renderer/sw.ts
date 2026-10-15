@@ -3,7 +3,8 @@
  * for the page first, so it always opens the latest deployed version without any update step. */
 const worker = self as unknown as ServiceWorkerGlobalScope;
 declare const CUBIX_VERSION: string;
-declare const CUBIX_PRECACHE: string[];
+/** The files either app opens offline with, and each app's own (desktop/web.ts). */
+declare const CUBIX_PRECACHE: { shared: string[]; desktop: string[]; phone: string[] };
 /** Each language's dictionary bundle (src/client/i18n), by language. */
 declare const CUBIX_DICTIONARIES: Record<string, string>;
 /** Named after the case diagrams' content (desktop/web.ts). */
@@ -17,14 +18,26 @@ const CASES = `cubix-cases-${CUBIX_CASES}`;
 /** The phone app's files, named after their content, kept once fetched until the phone app changes. */
 const PHONE = `cubix-phone-${CUBIX_PHONE}`;
 const DICTIONARIES = Object.values(CUBIX_DICTIONARIES);
+/** The phone app's files named after their content, kept in PHONE. */
+const PHONE_FILE = /^\/phone\/(_expo\/static|assets)\//;
+/** Registered by the phone app (boot.ts): its shell, never the desktop app's bundles. */
+const PHONE_APP = new URLSearchParams(worker.location.search).get("app") === "phone";
+const fresh = (urls: string[]) => urls.map((url) => new Request(url, { cache: "no-cache" }));
 
 worker.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL);
-    // The dictionaries of the device's languages; another one joins the shell once used (see `asset`).
-    const spoken = new Set(navigator.languages.map((tag) => tag.toLowerCase().split("-")[0]));
-    const dictionaries = Object.entries(CUBIX_DICTIONARIES).filter(([language]) => spoken.has(language)).map(([, url]) => url);
-    await cache.addAll([...CUBIX_PRECACHE, ...dictionaries].map((url) => new Request(url, { cache: "no-cache" })));
+    if (PHONE_APP) {
+      // Its bundles where `asset` looks for them; its other files (scrambler.js, scan.js) refresh in the background.
+      await cache.addAll(fresh(CUBIX_PRECACHE.shared));
+      await (await caches.open(PHONE)).addAll(fresh(CUBIX_PRECACHE.phone.filter((url) => PHONE_FILE.test(url))));
+      await (await caches.open(RUNTIME)).addAll(fresh(CUBIX_PRECACHE.phone.filter((url) => !PHONE_FILE.test(url))));
+    } else {
+      // The dictionaries of the device's languages; another one joins the shell once used (see `asset`).
+      const spoken = new Set(navigator.languages.map((tag) => tag.toLowerCase().split("-")[0]));
+      const dictionaries = Object.entries(CUBIX_DICTIONARIES).filter(([language]) => spoken.has(language)).map(([, url]) => url);
+      await cache.addAll(fresh([...CUBIX_PRECACHE.shared, ...CUBIX_PRECACHE.desktop, ...dictionaries]));
+    }
     await worker.skipWaiting();
   })());
 });
@@ -35,9 +48,12 @@ worker.addEventListener("activate", (event) => {
     const shells = keys.filter((key) => key.startsWith("cubix-shell-") && key !== SHELL);
     for (const key of shells.slice(0, -1)) await caches.delete(key);
     for (const key of keys) if (key.startsWith("cubix-cases-") && key !== CASES || key.startsWith("cubix-phone-") && key !== PHONE) await caches.delete(key);
-    // Earlier versions kept bundles and case diagrams here too, again at every load.
+    // Earlier versions kept bundles, case diagrams and the phone app's bundles here too, again at every load.
     const runtime = await caches.open(RUNTIME);
-    for (const request of await runtime.keys()) if (/^\/(build|vendor|assets\/cases|phone)\//.test(new URL(request.url).pathname)) await runtime.delete(request);
+    for (const request of await runtime.keys()) {
+      const { pathname } = new URL(request.url);
+      if (/^\/(build|vendor|assets\/cases)\//.test(pathname) || PHONE_FILE.test(pathname)) await runtime.delete(request);
+    }
     await worker.clients.claim();
   })());
 });
@@ -73,7 +89,7 @@ async function asset(request: Request, url: URL) {
   // Built bundles and vendor modules carry their version in their path; the shell has them, but a dictionary.
   if (/^\/(build|vendor)\//.test(url.pathname)) return lasting(request, caches, DICTIONARIES.includes(url.pathname) ? SHELL : undefined);
   if (url.pathname.startsWith("/assets/cases/")) return lasting(request, await caches.open(CASES), CASES);
-  if (/^\/phone\/(_expo\/static|assets)\//.test(url.pathname)) return lasting(request, await caches.open(PHONE), PHONE);
+  if (PHONE_FILE.test(url.pathname)) return lasting(request, await caches.open(PHONE), PHONE);
   // Other files refresh in the background.
   const cached = await caches.match(request, { ignoreSearch: true });
   const refresh = fetch(request).then(async (response) => {

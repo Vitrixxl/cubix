@@ -12,6 +12,8 @@ import { algScene, polyAlgScene } from "../../../src/client/lib/algPlayer";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
 import { PUZZLES, puzzleInfo, puzzleOf, type PuzzleId } from "../../../src/shared/puzzles";
+import { METHODS } from "../../../src/shared/methods";
+import { stepSets } from "../../../src/client/lib/course";
 import type { AlgEntry, CaseDto, CaseStatsDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -33,7 +35,7 @@ import { useTourTarget } from "../tour";
 import { casePlayItem, displayAlg, maskForStage, shortId } from "../lib/caseState";
 import { storage } from "../platform/storage";
 import {
-  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
+  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
   solveModeAtom, statsAtom, statsVersionAtom, type Route,
 } from "../state";
 import { said, tr } from "../../../src/client/i18n";
@@ -51,6 +53,8 @@ type OwnAlgs = { algs: string[]; used: string[] };
 const ownAlgsAtom = atomWithStorage<Record<string, OwnAlgs>>("cubix.algs.own", {}, json, { getOnInit: true });
 /** The case's tab, kept from one case to the next. */
 const caseTabAtom = atom<"algorithms" | "times">("algorithms");
+/** The method whose steps list the catalogue's sets, by puzzle ("all": every set by its stage), the web's `algsMethod`. */
+const algsMethodAtom = perPuzzleAtom<string>("cubix.algs.methodByCube", "all");
 /** The search, kept while a result is open. */
 const searchQueryAtom = atom("");
 const searchScopeAtom = atom<"all" | "puzzle">("all");
@@ -129,7 +133,11 @@ function Catalogue() {
   const learned = useLearned();
   const setRoute = useSetAtom(routeAtom), openGuides = useSetAtom(guidesAtom), setPuzzle = useSetAtom(puzzleAtom);
   const train = useTrain();
-  const [methods, setMethods] = useState(false);
+  const [methods, setMethods] = useState(false), [picking, setPicking] = useState(false);
+  // The puzzle's methods that teach sets of the catalogue, and the one chosen (none: every set under its stage).
+  const [methodId, setMethodId] = useAtom(algsMethodAtom);
+  const methodChoices = useMemo(() => METHODS[puzzle].filter(m => m.steps.some(step => stepSets(step, sets, puzzle).length)), [puzzle, sets]);
+  const method = methodChoices.find(m => m.id === methodId);
   // The set opened beside the list on a wide screen.
   const [chosen, setChosen] = useState<string | null>(null);
   const listTarget = useTourTarget("algorithms");
@@ -138,12 +146,16 @@ function Catalogue() {
   const rows = useMemo(() => {
     const bySet = groupBySet(cases);
     const out: CatalogueRow[] = [];
-    for (const stage of new Set(sets.map(s => s.stage))) {
+    // A method's steps with the sets each teaches (a set taught by two steps under both), else every set under its stage.
+    const sections: [string, SetDto[]][] = method
+      ? method.steps.map(step => [step.title, stepSets(step, sets, puzzle)] as [string, SetDto[]]).filter(([, list]) => list.length)
+      : [...new Set(sets.map(s => s.stage))].map(stage => [stage, sets.filter(s => s.stage === stage)]);
+    for (const [stage, stageSets] of sections) {
       out.push({ kind: "stage", key: `stage:${stage}`, label: said(stage) });
-      for (const set of sets.filter(s => s.stage === stage)) {
+      for (const set of stageSets) {
         const list = bySet.get(set.id) ?? [];
         out.push({
-          kind: "set", key: set.id, set, list, total: list.length,
+          kind: "set", key: `${stage}:${set.id}`, set, list, total: list.length,
           learned: list.filter(c => learned.has(c.id)).length, trained: list.filter(c => !learned.has(c.id) && stats.has(c.id)).length,
         });
       }
@@ -153,7 +165,7 @@ function Catalogue() {
     if (others.length) out.push({ kind: "stage", key: "others", label: tr("Other puzzles") });
     for (const { p, list } of others) out.push({ kind: "puzzle", key: `puzzle:${p.id}`, puzzle: p.id, total: list.length, learned: list.filter(c => learned.has(c.id)).length });
     return out;
-  }, [cases, sets, stats, learned, puzzle]);
+  }, [cases, sets, stats, learned, puzzle, method]);
   // The set worked on: the first started and not finished, else the first.
   const current = useMemo(() => {
     const all = rows.filter((row): row is CatalogueSet => row.kind === "set");
@@ -173,8 +185,8 @@ function Catalogue() {
     }
     return out.filter((row, i) => row.kind !== "stage" || out[i + 1]?.kind === "pair");
   }, [rows, featured, tablet, wide]);
-  const open = chosen && sets.some(s => s.id === chosen) ? chosen : current?.set.id;
-  const scroll = usePreservedList<CatalogueLine>(`algorithms:${puzzle}${wide ? ":wide" : tablet ? ":tablet" : ""}`);
+  const open = chosen && rows.some(row => row.kind === "set" && row.set.id === chosen) ? chosen : current?.set.id;
+  const scroll = usePreservedList<CatalogueLine>(`algorithms:${puzzle}:${method?.id ?? "all"}${wide ? ":wide" : tablet ? ":tablet" : ""}`);
   // A phone lists lines; a portrait tablet draws cards; a wide screen's side list keeps short lines, the set open lit.
   const line = wide ? "min-h-11 flex-row items-center gap-2.5 rounded-xl px-2.5 active:bg-muted/50"
     : tablet ? "min-h-[72px] flex-row items-center gap-3 rounded-2xl bg-card px-3.5 py-3 active:bg-muted"
@@ -212,8 +224,22 @@ function Catalogue() {
   const list = <FlatList {...scroll} data={lines} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4 pb-4", tablet && !wide && "px-7", wide && "px-0")}
     initialNumToRender={16} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />;
   const bar = <AppBar title={tr("Algorithms")}>
+    {methodChoices.length > 0 && <HeadButton icon={SlidersHorizontal} label={tr("Method")} badge={method ? 1 : undefined} onPress={() => setPicking(true)} />}
     <HeadButton icon={CircleHelp} label={tr("Algorithms guide")} onPress={() => openGuides("algorithms")} />
   </AppBar>;
+  const sheets = <>
+    <MethodsSheet open={methods} onClose={() => setMethods(false)} />
+    <Sheet open={picking} onClose={() => setPicking(false)} title={tr("Method")} contentClassName="gap-0.5 px-3">
+      {[{ id: "all", label: tr("All") }, ...methodChoices.map(m => ({ id: m.id, label: said(m.name) }))].map(({ id, label }) => {
+        const on = id === (method?.id ?? "all");
+        return <Pressable key={id} onPress={() => { setMethodId(id); setPicking(false); }} accessibilityRole="radio" accessibilityState={{ checked: on }}
+          className={cn("min-h-12 flex-row items-center gap-3 rounded-2xl px-3 active:bg-muted/60", on && "bg-muted")}>
+          <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-bold">{label}</Text>
+          {on && <Icon as={Check} size={18} className="text-primary" />}
+        </Pressable>;
+      })}
+    </Sheet>
+  </>;
   if (wide) return <View className="flex-1">
     {bar}
     <View className="min-h-0 flex-1 flex-row">
@@ -233,7 +259,7 @@ function Catalogue() {
         {open ? <SetScreen key={open} setId={open} embedded /> : <Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>}
       </View>
     </View>
-    <MethodsSheet open={methods} onClose={() => setMethods(false)} />
+    {sheets}
   </View>;
   return <View className="flex-1">
     {bar}
@@ -255,7 +281,7 @@ function Catalogue() {
       {featured ? <CurrentSet row={featured} learned={learned} onOpen={() => setRoute({ page: "algorithms", set: featured.set.id })} onTrain={() => train(featured.list.map(c => c.id))} /> : null}
       <View {...listTarget} className={cn("-mx-4 min-h-0 flex-1", tablet && "-mx-7")}>{list}</View>
     </View>
-    <MethodsSheet open={methods} onClose={() => setMethods(false)} />
+    {sheets}
   </View>;
 }
 

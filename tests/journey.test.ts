@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { learningPlan, puzzleLocked, validJourneyEntry, withKnownPuzzle } from "../src/client/lib/journey";
+import { introducedProfile, learningPlan, puzzleLocked, validJourneyEntry, withKnownPuzzle } from "../src/client/lib/journey";
 import { METHODS } from "../src/shared/methods";
 import methodIds from "../data/method-ids.json";
 
@@ -54,4 +54,10 @@ test("the main cube is any name of 1 to 60 characters", () => {
   expect(validJourneyEntry("profile", { ...profile, mainCube: "GAN 16 3x3 Max" })).toBe(true);
   expect(validJourneyEntry("profile", { ...profile, mainCube: "  " })).toBe(false);
   expect(validJourneyEntry("profile", { ...profile, mainCube: "x".repeat(61) })).toBe(false);
+});
+test("the introduction saved again keeps the main cube and drops the old learning plan", () => {
+  const before = { kind: "profile", level: "beginner", knownPuzzles: ["333"], priority: "222", learningPuzzles: ["222"], priorityMethod: "ortega", bests: { "333": 9000 }, mainCube: "GAN 15", completedAt: AT } as const;
+  const after = introducedProfile(before as never, ["333", "222"], { "333": ["cfop"] }, {});
+  expect(after).toEqual({ kind: "profile", level: "beginner", knownPuzzles: ["333", "222"], knownMethods: { "333": ["cfop"] }, priority: null, mainCube: "GAN 15", completedAt: AT });
+  expect(validJourneyEntry("profile", after)).toBe(true);
 });

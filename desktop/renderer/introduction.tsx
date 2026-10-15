@@ -16,7 +16,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Input } from "@/components/ui/input";
 import { fmtTime, parseTypedTime } from "../../src/client/lib/format";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
-import { PROFILE_KEY, TOUR_STEPS, journeyProfile } from "../../src/client/lib/journey";
+import { PROFILE_KEY, TOUR_STEPS, introducedProfile, journeyProfile } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
 import { go, goPage, pageUrl, splitLanguage } from "./navigation";
 import { ImportTimes } from "./ImportTimes";
@@ -54,7 +54,7 @@ function StepHead({ title }: { title: string }) {
 }
 
 /** The welcome: what the app does, and the username Google's name gave the account, to keep or change. */
-function Welcome({ name, onName }: { name: string; onName: (name: string) => void }) {
+function Welcome({ name, onName }: { name: string | null; onName: (name: string) => void }) {
   const rows = [
     { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
     { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
@@ -76,10 +76,12 @@ function Welcome({ name, onName }: { name: string; onName: (name: string) => voi
         </Surface>
       ))}
     </ol>
-    <label className="flex max-w-sm flex-col gap-1.5">
-      <span className="text-sm font-semibold text-muted-foreground">{tr("Username")}</span>
-      <Input value={name} onChange={(e) => onName(e.target.value)} data-slot="journey-username" maxLength={24} autoComplete="off" autoCapitalize="none" spellCheck={false} />
-    </label>
+    {name !== null && (
+      <label className="flex max-w-sm flex-col gap-1.5">
+        <span className="text-sm font-semibold text-muted-foreground">{tr("Username")}</span>
+        <Input value={name} onChange={(e) => onName(e.target.value)} data-slot="journey-username" maxLength={24} autoComplete="off" autoCapitalize="none" spellCheck={false} />
+      </label>
+    )}
     </>
   );
 }
@@ -238,7 +240,7 @@ export function Onboarding() {
     setSaving(true); setError("");
     try {
       // Only what can be solved is asked; any other puzzle opens on its course until it is learnt or skipped.
-      await s.updateJourney({ [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() } });
+      await s.updateJourney({ [PROFILE_KEY]: introducedProfile(existing, known, knownMethods, Object.fromEntries(typed) as Partial<Record<PuzzleId, number>>) });
       if (s.user.id !== owner) return;
       const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? (s.puzzle as PuzzleId);
       if (puzzle !== s.puzzle) { s.pref("cubix.puzzle", puzzle); s.puzzle = puzzle; s.loadContext(); }
@@ -255,7 +257,7 @@ export function Onboarding() {
   };
   // The welcome keeps the username, or takes the new one before going on.
   const rename = async () => {
-    if (name.trim() === s.user.username) return goTo(1);
+    if (s.user.isGuest || name.trim() === s.user.username) return goTo(1);
     setSaving(true); setError("");
     try { await s.rename(name); goTo(1); } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
@@ -276,7 +278,7 @@ export function Onboarding() {
   };
   const methods = (p: PuzzleId, next: string[]) => setKnownMethods((v) => ({ ...v, [p]: next }));
   const content = [
-    <Welcome name={name} onName={setName} />,
+    <Welcome name={s.user.isGuest ? null : name} onName={setName} />,
     <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethods={methods} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
     // Imported puzzles are solved ones: they join the known puzzles.
     <ImportTimes onImported={(puzzles) => setKnown((v) => [...v, ...puzzles.filter((p) => !v.includes(p))])} />,

@@ -298,6 +298,9 @@ func apiUsername(body any) (string, error) {
 		return "", err
 	}
 	username = strings.ToLower(strings.TrimSpace(username))
+	if len(username) < 3 {
+		return "", apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
+	}
 	for i := 0; i < len(username); i++ {
 		if !isUsernameByte(username[i]) {
 			return "", apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
