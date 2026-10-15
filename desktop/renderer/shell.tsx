@@ -1,6 +1,6 @@
 /** The frame around the pages: the header with the five sections on a desktop, the tab bar on phones. */
 import { memo, useSyncExternalStore } from "react";
-import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, CalendarDays, ChevronDown, Coffee, Gauge, GraduationCap, LogIn, LogOut, MessageSquare, Presentation, Settings, Swords, Target, Timer, Trophy, Upload, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, CalendarDays, ChevronDown, Coffee, Download, Gauge, GraduationCap, LogIn, LogOut, MessageSquare, Presentation, Settings, Swords, Target, Timer, Trophy, Upload, UserRound, Users, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -17,6 +17,7 @@ import { said } from "./base";
 import { LevelBar } from "./xp";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { stackmat } from "../../src/client/lib/stackmat";
+import { canInstall, install, onInstallChange } from "../../src/client/lib/pwaInstall";
 /** How long the pointer rests on something before its tooltip shows: the same in every part of the app. */
 export const TIP_DELAY = 400;
 
@@ -265,6 +266,19 @@ function CubeState() {
   );
 }
 
+/** Installing Qbix as an app, while the browser offers it (pwaInstall.ts). */
+function InstallApp() {
+  if (!useSyncExternalStore(onInstallChange, canInstall, () => false)) return null;
+  return (
+    <Tip content={tr("Install Qbix as an app")}>
+      <UiButton variant="outline" data-action="install" aria-label={tr("Install Qbix as an app")} onClick={install}>
+        <Download />
+        <span className="max-lg:hidden">{tr("Install")}</span>
+      </UiButton>
+    </Tip>
+  );
+}
+
 /** A guest's way in, beside the account: the sign-in dialog, over this page. */
 function SignIn() {
   return (
@@ -327,6 +341,7 @@ export const Header = memo(function Header() {
             <span className="max-lg:hidden">{tr("Coffee")}</span>
           </a>
         </Tip>
+        <InstallApp />
         <CubeState />
         <PuzzlePill />
         {isGuest() && <SignIn />}

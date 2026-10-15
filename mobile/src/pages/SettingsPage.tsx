@@ -1,8 +1,9 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Languages, LogIn, LogOut, Monitor, Moon, Pencil, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { LEGAL_DOCUMENTS } from "../../../src/client/lib/legal";
+import { canInstall, install, onInstallChange } from "../../../src/client/lib/pwaInstall";
 import { THEMES } from "../../../src/client/lib/theme";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -243,10 +244,13 @@ function DeleteAccount({ open, onClose, onDeleted }: { open: boolean; onClose: (
 
 function Help() {
   const openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
+  // On the web only, while the browser offers to install the app (pwaInstall.ts).
+  const installable = useSyncExternalStore(onInstallChange, canInstall, () => false) && Platform.OS === "web";
   return <Group title={tr("Help")}>
     <ListRow first iconNode={glyph(BookOpen)} title={tr("Guides")} onPress={() => openGuides("about")} />
     <ListRow iconNode={glyph(BookA)} title={tr("Notation")} onPress={() => openNotation(true)} />
     <ListRow iconNode={glyph(Coffee)} title={tr("Buy me a coffee")} onPress={() => void Linking.openURL(COFFEE)} />
+    {installable && <ListRow iconNode={glyph(Download)} title={tr("Install")} accessibilityLabel={tr("Install Qbix as an app")} onPress={install} />}
   </Group>;
 }
 

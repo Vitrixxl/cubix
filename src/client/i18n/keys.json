@@ -1307,6 +1307,7 @@
  "Inspection · hold to start",
  "Inspection gives you 15 seconds to look at the scramble before the solve, as in competition. Choose it in the Inspection menu beside the entry, or in Settings → Timer: Spoken calls 8 seconds and 12 seconds aloud as a judge does, in the language of the app; On screen counts down from 15 in place of the time; Spoken and on screen does both. Press Space (or tap) to begin the inspection, then hold and release to start as usual; Escape gives it up. Starting between 15 and 17 seconds adds a +2 to the solve, later than 17 seconds makes it a DNF, and the penalty is saved with it. Blindfolded events have no inspection: memorisation is part of their time.",
  "Install",
+ "Install Qbix as an app",
  "Installed version",
  "Intermediate",
  "Internal server error",

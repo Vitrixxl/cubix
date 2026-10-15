@@ -6,7 +6,10 @@
 import { cachedAppearance, paintTheme } from "../../src/client/lib/appearance";
 import { isCompact, isPhone } from "../../src/client/lib/viewport";
 import { LAUNCHED_KEY } from "../../src/client/lib/firstLaunch";
+import { captureInstall } from "../../src/client/lib/pwaInstall";
 
+// The browser's offer to install the app, which can come before either app mounts (pwaInstall.ts).
+captureInstall();
 const root = document.documentElement;
 // The theme chosen on this device, never the default one first.
 const { themeName, light } = cachedAppearance();

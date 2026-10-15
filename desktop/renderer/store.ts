@@ -82,6 +82,9 @@ export const timesAlwaysShown = (width: number, training: boolean) => !isPhone(w
 const KNOWN_SETS = new Set<string>(catalog.sets.map((set: any) => set.id));
 /** The catalogue sets a method's steps teach, in order, once each; none for "all" or a method without any. */
 export const methodSets = (puzzle: PuzzleId, method: string) => methodSetIds(methodOf(puzzle, method)).filter((id) => KNOWN_SETS.has(id));
+/** Set once a guest has closed the first visit's sign-in offer. */
+const WELCOMED = "cubix.welcomed";
+
 export class Store {
   listeners = new Set<() => void>();
   version = 0;
@@ -351,6 +354,8 @@ export class Store {
   }
   /** Closes the dialog or sheet open over the app. */
   closeOverlay = () => {
+    // The first visit's offer closed without an account: not offered again on this device.
+    if (this.overlay === "signin" && this.user.isGuest && !this.prefs[WELCOMED]) this.pref(WELCOMED, true);
     this.overlay = "";
     this.emit();
   };
@@ -467,6 +472,8 @@ export class Store {
       if (route) this.applyRoute(route);
       // The account's setup is in `init` already: the app shows without waiting for its first snapshot.
       this.checkIntroduction();
+      // A person's first visit without an account offers to sign in, as the phone app's welcome does (never to the tests).
+      if (this.user.isGuest && !this.prefs[WELCOMED] && !this.overlay && document.documentElement.hasAttribute("data-direct")) this.overlay = "signin";
       this.ready = true;
       this.emit();
       // The scramble is asked with the first snapshot, not after it; once shown, one ahead for every event and type.
