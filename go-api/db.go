@@ -176,11 +176,6 @@ func dbMigrate(db *Conn) error {
 		func() error { return addColumnIfMissing(db, "solves", "solution", "TEXT") },
 		// Blindfolded solves keep their memorisation time, within the solve's.
 		func() error { return addColumnIfMissing(db, "solves", "memo_ms", "INTEGER") },
-		// A solve shared by a link carries the link's token.
-		func() error { return addColumnIfMissing(db, "solves", "share_token", "TEXT") },
-		func() error {
-			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_solves_share ON solves(share_token) WHERE share_token IS NOT NULL")
-		},
 		// One day's extra hours or hours taken back arrived after the weekly hours.
 		func() error { return addColumnIfMissing(db, "coaches", "overrides", "TEXT NOT NULL DEFAULT '[]'") },
 		// Coaches may keep to the students they have; accounts may show a picture.
@@ -263,6 +258,20 @@ func dbMigrate(db *Conn) error {
 			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users(google_sub) WHERE google_sub IS NOT NULL")
 		},
 		func() error { return adminDataPurgeLegacy(db) },
+		// A shared solve was once its solve's token, read live: each becomes a copy (shared_solves), its link kept.
+		func() error {
+			has, err := hasColumn(db, "solves", "share_token")
+			if err != nil || !has {
+				return err
+			}
+			return db.ExecBatch(`INSERT OR IGNORE INTO shared_solves(id,user_id,solve_id,solve)
+				SELECT s.share_token,s.user_id,s.id,json_object('comment',s.comment,'created_at',s.created_at,'cube_size',s.cube_size,
+					'memo_ms',s.memo_ms,'penalty',s.penalty,'puzzle_id',s.puzzle_id,'scramble',s.scramble,'scramble_type',s.scramble_type,
+					'solution',s.solution,'solve_mode',s.solve_mode,'time_ms',s.time_ms,'username',u.username)
+				FROM solves s JOIN users u ON u.id=s.user_id WHERE s.share_token IS NOT NULL;
+				DROP INDEX IF EXISTS idx_solves_share;
+				ALTER TABLE solves DROP COLUMN share_token;`)
+		},
 	}
 	for _, step := range steps {
 		if err := step(); err != nil {

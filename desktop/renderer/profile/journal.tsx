@@ -63,6 +63,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { battles, type ProfileData } from "./data";
+import { WcaButton } from "./wca";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
@@ -125,15 +126,19 @@ export function IdentityCard() {
     <Surface className="shrink-0 gap-4 p-5" aria-label={tr("Account")}>
       <div className="flex min-w-0 items-center gap-3.5">
         <Avatar name={user?.username} size={56} className="rounded-[18px]" />
-        <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h1 className="truncate text-2xl font-extrabold tracking-[-0.03em]">
             {user?.username}
           </h1>
-          {line && (
-            <p className="truncate text-sm font-semibold text-muted-foreground">
-              {line}
-            </p>
-          )}
+          {/* The WCA ID under the name, which keeps the card's width. */}
+          <div className="flex min-w-0 items-center gap-2">
+            {line && (
+              <p className="truncate text-sm font-semibold text-muted-foreground">
+                {line}
+              </p>
+            )}
+            <WcaButton />
+          </div>
         </div>
       </div>
       <MainCube />

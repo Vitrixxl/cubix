@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CANCELLATION_NOTICE, CANCELLATION_TERMS, cancellationOpen } from "./policy";
 import { tr, localFormat, locale } from "../../../src/client/i18n";
 import { said } from "../base";
+import { WcaLink } from "../profile/wca";
 
 const WEEK = 7 * 86_400_000;
 const SORTS = [
@@ -228,7 +229,10 @@ function CoachHead({ c, more, full = false }: { c: Coach; more?: React.ReactNode
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-baseline gap-3">
             <h2 className="truncate text-2xl font-extrabold tracking-[-0.02em]">{c.username}</h2>
-            <span className="ml-auto shrink-0">{more}</span>
+            <span className="ml-auto flex shrink-0 items-center gap-1">
+              {c.wcaId && <WcaLink id={c.wcaId} />}
+              {more}
+            </span>
           </span>
           <span className="line-clamp-1 text-[13px] text-muted-foreground">{c.headline || tr("Speedcubing coach")}</span>
           <span className={cn(NUMERIC, "line-clamp-1 text-[13px] text-muted-foreground")}>{line.join(" · ")}</span>

@@ -116,21 +116,33 @@ export function SolveStrip({ analysis }: { analysis: SolveAnalysis }) {
   );
 }
 
-/** A recorded solution's analysis, opened in its dialog: on wide screens, for a timed 3×3 solve. */
-export function SolveAnalysisButton({ solve, turns }: { solve: { scramble?: string | null }; turns: SolutionTurn[] }) {
+/** A recorded solution's analysis, worked out again: on wide screens, for a timed 3×3 solve; null otherwise. */
+function useAnalysis(scramble: string | null | undefined, turns: SolutionTurn[]) {
   const phone = usePhone(),
-    [analysis, setAnalysis] = useState<SolveAnalysis | null>(null),
-    [open, setOpen] = useState<PhaseId | null>(null);
+    [analysis, setAnalysis] = useState<SolveAnalysis | null>(null);
   useEffect(() => {
     setAnalysis(null);
-    const recording = !phone && recordedSolve(solve.scramble, turns);
+    const recording = !phone && recordedSolve(scramble, turns);
     if (!recording) return;
     let current = true;
     call("analyseSolve", recording)
       .then((analysis) => current && setAnalysis(analysis as SolveAnalysis | null))
       .catch(() => {});
     return () => void (current = false);
-  }, [turns, solve.scramble, phone]);
+  }, [turns, scramble, phone]);
+  return analysis;
+}
+
+/** A recorded solution's steps, as the bar under the timer shows them: a shared solve's. */
+export function SolveSteps({ scramble, turns }: { scramble?: string | null; turns: SolutionTurn[] }) {
+  const analysis = useAnalysis(scramble, turns);
+  return analysis && <SolveStrip analysis={analysis} />;
+}
+
+/** A recorded solution's analysis, opened in its dialog. */
+export function SolveAnalysisButton({ solve, turns }: { solve: { scramble?: string | null }; turns: SolutionTurn[] }) {
+  const analysis = useAnalysis(solve.scramble, turns),
+    [open, setOpen] = useState<PhaseId | null>(null);
   if (!analysis) return null;
   return (
     <>

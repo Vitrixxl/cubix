@@ -4,12 +4,13 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import { fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
+import { effective, fmtSolve, fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
+import { attemptTexts, roundAttempts, roundResult, versusRecord } from "../../../src/client/lib/compSim";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, sessionFigures } from "../../../src/client/lib/practiceSummary";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
 import { contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
-import type { Penalty } from "../../../src/shared/types";
+import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +21,10 @@ import { api } from "../api";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { guidesAtom, playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
-import { Alg, Fade, HeadButton } from "../components/layout";
+import { Alg, Fade, Figure, HeadButton, Numeric } from "../components/layout";
+import { ask } from "../components/Confirm";
+import { toastAtom } from "../components/Toast";
+import { compSimAtom, endCompSim, roundOf, startCompSim, type Round } from "../lib/compSim";
 import {
   AverageWindow, Digits, digitsSize, Hint, SaveError, Stage, StopSurface, TimerDigits, TypedTime, timerHint,
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome,
@@ -39,7 +43,104 @@ import { said, tr } from "../../../src/client/i18n";
 export function PlaygroundPage() {
   const context = useAtomValue(practiceContextAtom);
   resumeTimerSession(context);
-  return <TimerSession key={contextKey(context)} context={context} />;
+  // A competition simulation takes the timer while its session is the timer's.
+  const round = roundOf(useAtomValue(compSimAtom), context);
+  return round ? <CompSimRound key={round.session} context={context} round={round} /> : <TimerSession key={contextKey(context)} context={context} />;
+}
+
+/**
+ * A competition simulation's round: the attempt, its scramble and the timer alone, the WCA inspection always (but
+ * blindfolded); each attempt signed by its judge (as timed, +2 or DNF) before the next scramble; then its result.
+ */
+function CompSimRound({ context, round }: { context: PracticeContext; round: Round }) {
+  const setRound = useSetAtom(compSimAtom), toast = useSetAtom(toastAtom);
+  const inspection = useAtomValue(inspectionAtom);
+  const { height, tablet } = useLayout();
+  const [solves, setSolves] = useSessionSolves("playground", context);
+  const [scramble, setScramble] = useState("");
+  const [saving, setSaving] = useState(false);
+  const { generating, error: generationError, generate } = useScrambleGeneration(context, setScramble);
+  useEffect(() => { void generate(); }, []);
+  const attempts = roundAttempts(round.format), over = solves.length >= attempts, pending = round.pending;
+  const blind = context.solveMode === "blindfolded";
+  const onStop = useCallback((ms: number, penalty?: Penalty, memo?: number) => setRound(r => r && { ...r, pending: { ms, penalty: penalty ?? "none", memo } }), [setRound]);
+  const timer = useTimer({ onStop, canStart: !pending && !over && !saving && !generating && !!scramble && !generationError, inspection: !blind, memo: blind });
+  useTimerChrome(timer);
+  const { running } = usePracticeLock(timer, saving);
+  const judge = async (penalty: Penalty) => {
+    if (!pending || saving) return;
+    setSaving(true);
+    try {
+      const solve = await api.addSolve({ sessionId: round.session, caseId: null, timeMs: pending.ms, scramble, ...context, ...(penalty !== "none" ? { penalty } : {}), ...(pending.memo !== undefined ? { memoMs: pending.memo } : {}) });
+      setSolves(list => [...list.filter(item => item.id !== solve.id), solve]);
+      setRound(r => r && { ...r, pending: null });
+      timer.reset();
+      if (solves.length + 1 < attempts) void generate();
+    } catch (error) {
+      toast({ title: (error as Error).message });
+    } finally { setSaving(false); }
+  };
+  const leave = async () => {
+    if (over || await ask({ title: tr("Leave the round?"), text: tr("Its attempts stay in its session."), action: tr("Leave"), destructive: false })) await endCompSim(context, round);
+  };
+  const promptFont = Math.round((/\+\+|--/.test(scramble) ? 13 : scramble.length > 90 ? 16 : 20) * (tablet ? 1.3 : 1));
+  const inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
+  const hint = blind && timer.phase === "running"
+    ? timer.memo === undefined ? tr("Tap when memorised") : tr("Memo {0} · {1}", { 0: fmtTime(timer.memo), 1: tr("Tap to stop") })
+    : timerHint(timer, { disabled: !scramble || generating ? tr("One moment…") : false });
+  return <View className="flex-1">
+    <Fade hidden={running}>
+      <AppBar title={over ? tr("Comp sim") : tr("Attempt {0} of {1}", { 0: solves.length + 1, 1: attempts })}>
+        <HeadButton icon={X} label={over ? tr("Done") : tr("Leave the round")} onPress={() => void leave()} />
+      </AppBar>
+    </Fade>
+    <View className={cn("min-h-0 flex-1 px-4 pt-2 pb-3", tablet && "px-7 pt-4")}>
+      {over ? <RoundResult round={round} solves={solves} onAgain={() => startCompSim(context).catch(error => toast({ title: (error as Error).message }))} onDone={() => void leave()} />
+        : <Stage timer={timer} disabled={!!pending} running={running}
+          prompt={<View className="overflow-hidden" style={{ maxHeight: Math.round(height * 0.3) }}>
+            {!scramble || generating
+              ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
+              : generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generate()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
+              : <Alg text={scramble} size={promptFont} />}
+          </View>}
+          readout={area => <View className="w-full items-center">
+            {pending ? <Digits text={fmtSolve(pending.ms, pending.penalty)} phase="idle" size={digitsSize(area, 6)} />
+              : inspecting ? <InspectionDigits timer={timer} area={area} show speak={inspection === "voice" || inspection === "both"} />
+              : <TimerDigits timer={timer} area={area} />}
+            {!pending && <Hint hidden={running && !blind}>{hint}</Hint>}
+          </View>}
+          bar={<Fade hidden={!pending}>
+            {/* The judge's signature: as timed (with the inspection's penalty), +2 or DNF. */}
+            <View className="flex-row gap-2" accessibilityRole="toolbar" accessibilityLabel={tr("Sign the attempt")}>
+              <Button className="h-12 flex-1 rounded-full" disabled={saving} accessibilityLabel={tr("As timed")} onPress={() => pending && void judge(pending.penalty)}><Text>{tr("OK")}</Text></Button>
+              {/* A penalty the inspection already gave leaves nothing to add. */}
+              <Button variant="secondary" className="h-12 flex-1 rounded-full" disabled={saving || pending?.penalty !== "none"} accessibilityLabel={tr("+2 penalty")} onPress={() => void judge("+2")}><Text>+2</Text></Button>
+              <Button variant="secondary" className="h-12 flex-1 rounded-full" disabled={saving || pending?.penalty === "dnf"} accessibilityLabel={tr("Did not finish")} onPress={() => void judge("dnf")}><Text>{tr("DNF")}</Text></Button>
+            </View>
+          </Fade>} />}
+    </View>
+    <StopSurface timer={timer} />
+  </View>;
+}
+
+/** The round's result as WCA lists it: what it ranks by, its attempts (an average of 5's best and worst in parentheses), its best single and the record before it. */
+function RoundResult({ round, solves, onAgain, onDone }: { round: Round; solves: SolveDto[]; onAgain: () => void; onDone: () => void }) {
+  const times = solves.map(v => effective(v.time_ms, v.penalty)), r = roundResult(round.format, times), bo3 = round.format === "bo3";
+  const versus = versusRecord(r.result, round.record);
+  return <View className="flex-1 items-center justify-center gap-6">
+    <Figure label={bo3 ? tr("Best") : round.format === "ao5" ? "Ao5" : "Mo3"} value={fmtTime(r.result, { blank: tr("DNF") })} size="xl" className="items-center" />
+    <View className="flex-row flex-wrap justify-center gap-x-4">
+      {attemptTexts(times, r.dropped).map((text, i) => <Numeric key={i} className="text-lg text-muted-foreground">{text}</Numeric>)}
+    </View>
+    <View className="flex-row gap-10">
+      <Figure label={bo3 ? "Mo3" : tr("Best")} value={fmtTime(bo3 ? r.average : r.best, { blank: tr("DNF") })} />
+      {round.record !== null && <Figure label="PB" value={<>{fmtTime(round.record)}{versus && <Numeric className={cn("text-sm", versus.faster ? "text-success" : "text-destructive")}> {versus.text}</Numeric>}</>} />}
+    </View>
+    <View className="flex-row gap-2">
+      <Button variant="secondary" className="rounded-full" accessibilityLabel={tr("Another round")} onPress={onAgain}><Text>{tr("Again")}</Text></Button>
+      <Button className="rounded-full" onPress={onDone}><Text>{tr("Done")}</Text></Button>
+    </View>
+  </View>;
 }
 
 /** Figures of the session card, as many to a row as fit: up to four, six in two rows of three (up to six on a tablet). */

@@ -274,6 +274,25 @@ export function applyAlg(state: CubeState, alg: string | Move[]): CubeState {
   return cur;
 }
 
+/** A 3×3's centres, U D F B R L. */
+const CENTRE_SLOTS = [4, 13, 22, 31, 40, 49];
+const centresKey = (state: CubeState) => CENTRE_SLOTS.map(i => state[i]).join(",");
+let uprights: Map<string, string> | undefined;
+/** The whole-cube rotation ("x y2"…) bringing a 3×3's centres home, "" when they are; undefined for no such rotation. */
+export function uprightRotation(state: CubeState): string | undefined {
+  if (!uprights) {
+    uprights = new Map();
+    const queue = [{ state: solved(), alg: "" }];
+    for (const { state: next, alg } of queue) {
+      const key = centresKey(next);
+      if (uprights.has(key)) continue;
+      uprights.set(key, invertAlg(alg));
+      for (const rotation of ["x", "y", "z"]) queue.push({ state: applyAlg(next, rotation), alg: `${alg} ${rotation}`.trim() });
+    }
+  }
+  return uprights.get(centresKey(state));
+}
+
 // ---------------------------------------------------------------------------
 // Helpers for training
 // ---------------------------------------------------------------------------

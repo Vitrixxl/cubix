@@ -18,6 +18,9 @@ export const SOLVE_MODES = registry.solveModes as { id: SolveMode; label: string
 export type EventId = PuzzleId | "333oh" | "333bf" | "444bf" | "555bf";
 /** What the app offers to practise: one entry per WCA event, one-handed and blindfolded being events of their own. */
 export const EVENTS = registry.events as { id: EventId; label: string; puzzle: PuzzleId; solveMode: SolveMode }[];
+/** How a WCA round of an event is ranked: a mean of 3 on the 6×6 and the 7×7, a best of 3 blindfolded, an average of 5 otherwise. */
+export type RoundFormat = "ao5" | "mo3" | "bo3";
+export const roundFormat = (event: string): RoundFormat => (event === "666" || event === "777" ? "mo3" : event.endsWith("bf") ? "bo3" : "ao5");
 export const SCRAMBLE_TYPES = [...registry.scrambles, { id: "case", label: "Algorithm case" }] as { id: ScrambleType; label: string }[];
 export const puzzleId = (value: PuzzleInput): PuzzleId => (typeof value === "number" ? String(value).repeat(3) : value) as PuzzleId;
 export const puzzleOf = (value: StoredContext): PuzzleId => value.puzzle_id ?? puzzleId(value.cube_size ?? 3);

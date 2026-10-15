@@ -51,6 +51,15 @@
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE(user_id, key)
     );
+    -- A solve shared by a public link: a copy of it (JSON) as it was when shared, kept if the solve changes or goes.
+    CREATE TABLE IF NOT EXISTS shared_solves (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      solve_id INTEGER NOT NULL,
+      solve TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_shared_solves_solve ON shared_solves(solve_id);
     CREATE TABLE IF NOT EXISTS auth_tokens (
       token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       expires_at INTEGER NOT NULL

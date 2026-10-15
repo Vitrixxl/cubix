@@ -1075,6 +1075,12 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 		if value["history"], err = coachingHistory(db, id); err != nil {
 			return nil, err
 		}
+		// The WCA ID the coach gave on their profile, linked to their WCA page.
+		wca, err := dbOne(db, "SELECT json_extract(value,'$.wcaId') id FROM personal_entries WHERE user_id=? AND key='profile'", id)
+		if err != nil {
+			return nil, err
+		}
+		value["wcaId"] = idx(wca, "id")
 		return value, nil
 
 	case is("GET", "coaches", "*", "slots"):

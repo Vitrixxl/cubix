@@ -4,6 +4,7 @@ import { heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type Metric } from "../../src/client/lib/practiceSummary";
 import { INSPECTION_DNF_MS, INSPECTION_MS, PracticeTimer, timerHint, worsePenalty, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
+import type { Penalty } from "../../src/shared/types";
 import { stackmat } from "../../src/client/lib/stackmat";
 import { dailyDay, isDailyEvent } from "../../src/client/lib/daily";
 import { TONE_TEXT } from "../../src/client/lib/tone";
@@ -56,6 +57,7 @@ import {
 } from "lucide-react";
 import { store as s, timesAlwaysShown } from "./store";
 import { sessionName } from "../../src/client/lib/sessions";
+import { attemptTexts, roundAttempts, roundResult, versusRecord } from "../../src/client/lib/compSim";
 import { Button as UiButton } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -148,7 +150,7 @@ function useTimer(enabled: boolean, manual = true, { inspection = false, memo = 
         stop(e.timeStamp);
         return;
       }
-      if (typingInto(e) || s.overlay || s.caseDialog || !manualRef.current || (s.entry === "typing" && s.page === "playground")) return;
+      if (typingInto(e) || s.overlay || s.caseDialog || !manualRef.current || (s.entry === "typing" && s.page === "playground" && !s.compRound())) return;
       // Escape gives up an inspection.
       if (e.key === "Escape" && timer.snapshot.inspectedAt !== undefined) return timer.reset();
       if (e.code === "Space" && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -366,15 +368,23 @@ export function Practice() {
     liveCase = live && training && !!goal,
     // The training's cases, worked out by the store at each reading: read once.
     pool = training ? s.practiceSelected : null;
+  // A competition simulation: its attempt waiting for the judge, then its result once its attempts are in.
+  const round = s.compRound(),
+    judging = round?.pending,
+    attempts = round ? roundAttempts(round.format) : 0,
+    roundOver = !!round && s.solves.length >= attempts;
   const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
+      !judging &&
+      !roundOver &&
       (!pool || (!!pool.size && pool.has(s.training?.id))),
-    typing = s.page === "playground" && s.entry === "typing",
+    typing = s.page === "playground" && s.entry === "typing" && !round,
     // Blindfolded solves have no inspection (it is part of the time) but split the memorisation from the execution.
     blind = !training && s.solveMode === "blindfolded",
-    timer = useTimer(enabled, !(live && (!training || liveCase)), { inspection: !training && !blind && !typing && s.inspection !== "off", memo: blind }),
+    // A round's attempts always have the WCA inspection, on screen.
+    timer = useTimer(enabled, !(live && (!training || liveCase)), { inspection: !training && !blind && !typing && (!!round || s.inspection !== "off"), memo: blind }),
     stackmatLink = useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot.link, () => stackmat.snapshot.link),
     inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
   const [typed, setTyped] = useState(""),
@@ -450,7 +460,8 @@ export function Practice() {
   useEffect(() => {
     if (!last || mobile) return;
     const key = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || s.overlay || s.caseDialog) return;
+      // A round's attempts are final once signed: the keys sign the one waiting instead (below).
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || s.overlay || s.caseDialog || s.compRound()) return;
       if (typingInto(e) && !(e.target === typedRef.current && !typedRef.current?.value)) return;
       const penalty = ({ Digit1: "none", Digit2: "+2", Digit3: "dnf" } as Record<string, string>)[e.code];
       if (!penalty && e.code !== "KeyZ") return;
@@ -461,6 +472,20 @@ export function Practice() {
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   }, [last?.id, last?.penalty, mobile]);
+  // Enter or Ctrl+1 signs a round's attempt as timed, Ctrl+2 a +2, Ctrl+3 a DNF.
+  useEffect(() => {
+    if (!judging) return;
+    const key = (e: KeyboardEvent) => {
+      if (typingInto(e) || s.overlay || e.altKey || e.shiftKey) return;
+      const ctrl = e.ctrlKey || e.metaKey,
+        sign = !ctrl && e.key === "Enter" ? judging.penalty : ctrl ? ({ Digit1: judging.penalty, Digit2: worsePenalty(judging.penalty, "+2"), Digit3: "dnf" } as Record<string, Penalty>)[e.code] : undefined;
+      if (!sign) return;
+      e.preventDefault();
+      void s.action("compSim:" + sign);
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [judging]);
   const visual = previewSize > 0 && ready && (
     hasCube ? (
       <Cube
@@ -547,6 +572,14 @@ export function Practice() {
       <Button action="daily:off" icon={X} size="icon" variant="ghost" tip={tr("Back to random scrambles")} />
     </div>
   );
+  // A round's attempt over its scramble, with the way out of the round.
+  const roundShown = round && !roundOver && (
+    <div className="flex min-w-0 items-center gap-2 text-sm font-semibold" data-no-timer>
+      <Trophy className="size-4 shrink-0 text-primary" />
+      <span className="truncate text-primary">{tr("Attempt {0} of {1}", { 0: s.solves.length + 1, 1: attempts })}</span>
+      <Button action="compSim:end" icon={X} size="icon" variant="ghost" tip={tr("Leave the round")} />
+    </div>
+  );
   const prompt = (
     // A short phone scrolls the prompt inside the stage rather than squeezing the timer under it.
     <section className={cn("flex items-start gap-6", mobile ? "min-h-14 shrink overflow-y-auto" : "shrink-0", FADE)}>
@@ -589,7 +622,8 @@ export function Practice() {
         ) : (
           <>
             {dailyShown}
-            <div className="flex items-start gap-3">
+            {roundShown}
+            {!roundOver && <div className="flex items-start gap-3">
               <div className="scramble max-h-[30vh] min-w-0 flex-1 overflow-y-auto" data-tour="scramble">
                 {s.generating && !s.scramble ? (
                   <span className="flex flex-col gap-2" aria-label={tr("Generating a scramble")}>
@@ -603,7 +637,7 @@ export function Practice() {
                 )}
               </div>
               {showCube && <span data-no-timer>{showCube}</span>}
-            </div>
+            </div>}
             {cross && <CrossSolution font={Math.max(15, promptFont - 5)} toggle={solutionToggle} />}
           </>
         )}
@@ -655,8 +689,8 @@ export function Practice() {
         ? s.figuresShown()
         : s.metrics().filter(([label]) => !(label === "Solves" && timesColumn));
   const columns = balancedColumns(metrics.length, bandWidth);
-  // The last solve's actions, once there is one.
-  const lastSolve = last && (
+  // The last solve's actions, once there is one; a round's attempts are judged as they end instead.
+  const lastSolve = last && !round && (
     <div className="flex min-w-0 flex-1 gap-2" role="group" aria-label={tr("Last solve")}>
       <ActionToggle action={"penalty:" + last.id + ":+2"} pressed={last.penalty === "+2"} disabled={s.saving} variant="outline" tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-warning")}>
         +2
@@ -739,16 +773,25 @@ export function Practice() {
         </PageHead>
       ) : (
         mobile ? (
-          <PageHead title={tr("Timer")} puzzle="scramble">{dailyButton}</PageHead>
+          // A round keeps its event and scramble: no sheet to change them meanwhile.
+          <PageHead title={tr("Timer")} puzzle={!round && "scramble"} more={!round && <MenuAction action="compSim" icon={Trophy}>{tr("Comp sim")}</MenuAction>}>
+            {!round && dailyButton}
+          </PageHead>
         ) : (
           // The desktop's timer has no title: its controls stand at the top right, beside the scramble.
           <InHead.Provider value={true}>
             <div className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", FADE)} data-no-timer>
               {/* The WCA inspection on the page itself, its state in view: blindfolded and typed solves have none. */}
-              {!blind && !typing && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
-              <TimerSettings />
-              <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
-              {dailyButton}
+              {/* A round keeps its inspection, scrambles and event: only the way out over its scramble. */}
+              {!round && (
+                <>
+                  {!blind && !typing && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
+                  <TimerSettings />
+                  <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
+                  <Button action="compSim" icon={Trophy} tip={tr("Comp sim · one WCA round of this event")} />
+                  {dailyButton}
+                </>
+              )}
               {connect}
               {stackmatButton}
               {timesToggle}
@@ -864,7 +907,9 @@ export function Practice() {
                     {liveSide > 0 && <LiveCube cube={smartCube} size={Math.min(liveSide, 520)} />}
                   </div>
                 )}
-                {typing ? (
+                {round && roundOver ? (
+                  <RoundResult round={round} />
+                ) : typing ? (
                   <input
                     ref={typedRef}
                     className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
@@ -889,7 +934,7 @@ export function Practice() {
                     data-tour="timer"
                     digitsRef={digitsRef}
                     since={timer.inspectedAt!}
-                    show={s.inspection === "display" || s.inspection === "both"}
+                    show={!!round || s.inspection === "display" || s.inspection === "both"}
                     speak={s.inspection === "voice" || s.inspection === "both"}
                     phase={timer.phase}
                     className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
@@ -899,12 +944,20 @@ export function Practice() {
                     data-tour="timer"
                     digitsRef={digitsRef}
                     startedAt={timer.startedAt}
-                    text={timer.phase === "holding" || timer.phase === "ready" ? "0.000" : fmtTime(timer.elapsed)}
+                    text={judging ? fmtSolve(judging.ms, judging.penalty) : timer.phase === "holding" || timer.phase === "ready" ? "0.000" : fmtTime(timer.elapsed)}
                     phase={timer.phase}
                     className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : live ? "text-[clamp(40px,min(calc(90cqw/var(--chars)),13cqh),104px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
                   />
                 )}
-                <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-5 md:text-[15px]", s.notice && "font-medium text-success", mobile && h < 560 && !s.notice && "hidden", !(blind && running) && FADE)}>
+                {judging ? (
+                  // The judge signs the attempt: as timed (Enter), +2 or DNF; the next scramble then.
+                  <div role="group" aria-label={tr("Sign the attempt")} className="mt-3 flex gap-2 md:mt-5" data-no-timer>
+                    <Button action={"compSim:" + judging.penalty} variant="default" tip={<>{tr("As timed")}<Kbd>Enter</Kbd></>} className="min-w-20">{tr("OK")}</Button>
+                    {/* A penalty the inspection already gave leaves nothing to add. */}
+                    <Button action="compSim:+2" variant="outline" disabled={judging.penalty !== "none"} tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className="min-w-20">+2</Button>
+                    <Button action="compSim:dnf" variant="outline" disabled={judging.penalty === "dnf"} tip={<>{tr("Did not finish")}<Kbd>Ctrl+3</Kbd></>} className="min-w-20">{tr("DNF")}</Button>
+                  </div>
+                ) : !roundOver && <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-5 md:text-[15px]", s.notice && "font-medium text-success", mobile && h < 560 && !s.notice && "hidden", !(blind && running) && FADE)}>
                   {s.notice ? (
                     <>
                       {training ? <Check className="size-4" /> : <Trophy className="size-4" />}
@@ -917,13 +970,13 @@ export function Practice() {
                         : tr("Not a time")
                       : tr("Type your time, then Enter: 1234 is 12.34")
                     : keyed(said(hint))}
-                </div>
-                {s.practicePage() === "playground" && <AverageWindow mobile={mobile} />}
+                </div>}
+                {s.practicePage() === "playground" && !round && <AverageWindow mobile={mobile} />}
                 {training && !mobile && last && <Verdict solve={last} />}
               </section>
             </div>
             {/* Phones: the last solve's actions and the next scramble as large targets at the thumb, under the stage. */}
-            {mobile && (
+            {mobile && !round && (
               <TouchBar className={cn("shrink-0 px-2 pt-1 pb-2", FADE)}>
                 {last && (
                   <>
@@ -987,6 +1040,36 @@ export function Practice() {
         </PhoneSheet>
       )}
     </div>
+  );
+}
+
+/**
+ * A round's result once its attempts are in, as WCA lists it: what it ranks by, its attempts (an average of 5's best
+ * and worst in parentheses), its best single (a best of 3's mean) and how it stands against the record before it.
+ */
+function RoundResult({ round }: { round: NonNullable<ReturnType<typeof s.compRound>> }) {
+  const times = s.solves.map((v) => effective(v.time_ms, v.penalty)),
+    r = roundResult(round.format, times),
+    bo3 = round.format === "bo3",
+    versus = versusRecord(r.result, round.record);
+  return (
+    <section aria-label={tr("Round result")} className="flex max-w-full flex-col items-center gap-5 text-center" data-no-timer>
+      <span className={LABEL}>{bo3 ? tr("Best") : round.format === "ao5" ? "Ao5" : "Mo3"}</span>
+      <span className={cn(NUMERIC, "-mt-3 text-[clamp(48px,18cqh,120px)] leading-none font-bold tracking-tight")}>{fmtTime(r.result, { blank: tr("DNF") })}</span>
+      <p className={cn(NUMERIC, "flex flex-wrap justify-center gap-x-4 text-lg text-muted-foreground")}>
+        {attemptTexts(times, r.dropped).map((text, i) => <span key={i}>{text}</span>)}
+      </p>
+      <div className="flex gap-10">
+        <Figure label={bo3 ? "Mo3" : tr("Best")} value={fmtTime(bo3 ? r.average : r.best, { blank: tr("DNF") })} size="xl" />
+        {round.record !== null && (
+          <Figure label="PB" value={fmtTime(round.record)} size="xl" aside={versus && <span className={cn(NUMERIC, "text-sm font-semibold", versus.faster ? "text-success" : "text-destructive")}>{versus.text}</span>} />
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button action="compSim" variant="outline" icon={RotateCcw} tip={tr("Another round")}>{tr("Again")}</Button>
+        <Button action="compSim:done" variant="default" icon={Check}>{tr("Done")}</Button>
+      </div>
+    </section>
   );
 }
 

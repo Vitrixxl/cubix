@@ -1,6 +1,7 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
 import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto, LearningGroupOrderDto } from "../shared/types";
 import type { JourneyEntryDto } from "./lib/journey";
+import type { WcaCompetitions, WcaPerson } from "./lib/wca";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -111,6 +112,10 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     setComment: (id: number, comment: string | null) => request<SolveDto>(`/solves/${id}`, "PATCH", { comment }),
     /** The turns of a solve, as written by hand (see `lib/solution`); null clears them. */
     setSolution: (id: number, solution: string | null) => request<SolveDto>(`/solves/${id}`, "PATCH", { solution }),
+    /** A WCA ID's person and official records, from the WCA through the API (12 hours old at most). */
+    wcaPerson: (id: string) => request<WcaPerson>(`/wca/persons/${id}`),
+    /** The competitions coming up that a WCA ID takes part in; none: those of their country. */
+    wcaCompetitions: (id: string) => request<WcaCompetitions>(`/wca/competitions/${id}`),
     /** The token of the link that shares a solve, made on the first call. */
     shareSolve: (id: number) => request<{ token: string }>(`/solves/${id}/share`, "POST"),
   };

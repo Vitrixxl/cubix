@@ -931,12 +931,13 @@ function StepSheet({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId;
 /**
  * The course's steps as a track across the whole width: each step a button with a ring filled as far as its algorithms
  * are learned (full and green once done; an intuitive step's full once mastered), the one shown on the accent, joined by
- * lines that stretch between them, green once the step they lead to is done. Each is a link to its step.
+ * lines that stretch between them, green once the step they lead to is done. Each is a link to its step; on a narrow
+ * window the steps wrap to another row rather than cut their names.
  */
 function StepTrack({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
   const cases = s.cases();
   return (
-    <nav aria-label={tr("Steps")} className="flex min-w-0 flex-1 items-center gap-2">
+    <nav aria-label={tr("Steps")} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {method.steps.map((st, i) => {
         const learned = stepLearned(st, cases, s.learned, entry),
           done = s.learnFinished || stepDone(st, cases, s.learned, entry, learned),
@@ -951,10 +952,10 @@ function StepTrack({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solvin
                 aria-current={here ? "step" : undefined}
                 aria-label={`${i + 1}. ${said(st.title)} · ${tr(done ? "Done" : "To do")}`}
                 onClick={(e) => (e.preventDefault(), run("learnStep:" + i)(e))}
-                className={cn(buttonVariants({ variant: here ? "default" : "secondary" }), "min-w-0 shrink", here && "shrink-0")}
+                className={cn(buttonVariants({ variant: here ? "default" : "secondary" }), "shrink-0")}
               >
                 <ProgressRing done={false} share={done ? 1 : learned.total ? learned.learned / learned.total : 0} className={here ? "text-current" : done ? "text-success" : undefined} />
-                <span className="truncate">{said(st.title)}</span>
+                <span>{said(st.title)}</span>
               </Link>
             </Tip>
           </Fragment>

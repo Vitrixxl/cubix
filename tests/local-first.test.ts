@@ -115,6 +115,16 @@ test("anonymous practice is entirely local and survives reopening offline",async
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM users").get()?.n).toBe(0);
 });
 
+test("a solve just timed is shared once it reached the server; offline it waits", async () => {
+  const {remote} = setup(), a = device(remote);
+  await a.api.devLogin("share_alice");
+  const solve = await a.api.addSolve({puzzle:"333",timeMs:9000});
+  expect(await a.api.shareSolve(solve.id)).toMatch(/^[0-9A-Za-z]{10}$/);
+  const later = await a.api.addSolve({puzzle:"333",timeMs:8000});
+  a.control.offline = true;
+  await expect(a.api.shareSolve(later.id)).rejects.toThrow("The solve is waiting to synchronize.");
+});
+
 test("offline account writes import guest data, retry lost acknowledgements exactly once, and retain original dates",async () => {
   const {remote,db} = setup(); const a = device(remote);
   const session = await a.api.createSession("playground");

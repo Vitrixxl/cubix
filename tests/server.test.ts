@@ -72,7 +72,7 @@ test("a solve's turns are written by hand, and the solve shared by a link anyone
   const shared = await call(`/shared/${link}`);
   expect(shared.status).toBe(200);
   expect(shared.body).toMatchObject({time_ms:9000,scramble:"R U",solution:"hold:yellow/green x2 R U r' M2",username:"sharer"});
-  expect(shared.body.comment).toBeUndefined();
+  expect(shared.body.comment ?? null).toBeNull();
   expect((await call("/shared/nothing")).status).toBe(404);
   // Only its owner shares it, and clearing the turns leaves none.
   const other = (await call("/auth/dev", "POST", {username:"stranger"})).body;

@@ -169,34 +169,37 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
       )}
       {hubbed ? (
         <div className="challenges-hub grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] gap-5">
-          <Surface className="min-h-0 gap-5 p-6" aria-label={tr("Duel")}>
-            <div className="flex items-center gap-3">
-              <IconTile icon={Swords} />
-              <PanelHead title={tr("Duel")} className="min-w-0 flex-1" />
-              {tools.slice(1)}
-            </div>
-            {/* The level and the record; opens the duel's own page (the matching range). */}
-            <button type="button" {...opens(() => setHub(false), "link")} data-hub="duel" data-tour="duel" className={cn(CARD_LINK, "-m-2 flex flex-col gap-2.5 rounded-[18px] p-2 hover:bg-muted")}>
-              <span className={KICKER}>{searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}</span>
-              <b className={cn(NUMERIC, "text-[clamp(44px,5vw,72px)] leading-none font-extrabold tracking-[-0.05em]", searching && "text-primary")}>{searching ? clock(waited) : level}</b>
-              {played.length > 0 && <span className="max-w-sm"><Record won={count("win")} drawn={count("draw")} lost={count("loss")} /></span>}
-            </button>
-            {duel.notice && <p className="text-sm text-balance text-destructive">{duel.notice}</p>}
-            <div className="flex gap-2.5">
-              {searching ? (
-                <Button action="duel:leave" icon={X} variant="secondary" className="flex-1">
-                  {tr("Cancel")}
-                </Button>
-              ) : (
-                <UiButton className="flex-1" data-action="duel:search" onClick={(e) => (setHub(false), run("duel:search")(e))}>
-                  <Swords />
-                  {tr("Face off")}
-                </UiButton>
-              )}
-              {tool(Send, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends"), false)}
-            </div>
+          <div className="flex min-h-0 flex-col gap-5">
+            <Surface className="shrink-0 gap-5 p-6" aria-label={tr("Duel")}>
+              <div className="flex items-center gap-3">
+                <IconTile icon={Swords} />
+                <PanelHead title={tr("Duel")} className="min-w-0 flex-1" />
+                {tools.slice(1)}
+              </div>
+              {/* The level and the record; opens the duel's own page (the matching range). */}
+              <button type="button" {...opens(() => setHub(false), "link")} data-hub="duel" data-tour="duel" className={cn(CARD_LINK, "-m-2 flex flex-col gap-2.5 rounded-[18px] p-2 hover:bg-muted")}>
+                <span className={KICKER}>{searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}</span>
+                <b className={cn(NUMERIC, "text-[clamp(44px,5vw,72px)] leading-none font-extrabold tracking-[-0.05em]", searching && "text-primary")}>{searching ? clock(waited) : level}</b>
+                {played.length > 0 && <span className="max-w-sm"><Record won={count("win")} drawn={count("draw")} lost={count("loss")} /></span>}
+              </button>
+              {duel.notice && <p className="text-sm text-balance text-destructive">{duel.notice}</p>}
+              <div className="flex gap-2.5">
+                {searching ? (
+                  <Button action="duel:leave" icon={X} variant="secondary" className="flex-1">
+                    {tr("Cancel")}
+                  </Button>
+                ) : (
+                  <UiButton className="flex-1" data-action="duel:search" onClick={(e) => (setHub(false), run("duel:search")(e))}>
+                    <Swords />
+                    {tr("Face off")}
+                  </UiButton>
+                )}
+                {tool(Send, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends"), false)}
+              </div>
+            </Surface>
+            {/* The races played and the friends, each its own box under the duel's. */}
             <div className="grid min-h-0 flex-1 grid-cols-2 gap-5">
-              <div className="flex min-h-0 flex-col gap-2.5">
+              <Surface className="min-h-0 gap-2.5 p-6">
                 <PanelHead title={tr("Races played")} meta={played.length || undefined} />
                 {played.length ? (
                   <div className="-mx-1 flex min-h-0 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
@@ -205,13 +208,13 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
                 ) : (
                   <Empty icon={Swords} title={tr("No race yet")} className="flex-1" />
                 )}
-              </div>
-              <div className="flex min-h-0 flex-col gap-2.5">
+              </Surface>
+              <Surface className="min-h-0 gap-2.5 p-6">
                 <PanelHead title={tr("Friends")} meta={community.me?.friends.length || undefined} />
                 <FriendList onChallenge={() => setOpen("friends")} onAdd={() => setAdding(true)} />
-              </div>
+              </Surface>
             </div>
-          </Surface>
+          </div>
           <div className="flex min-h-0 flex-col gap-5">
             <DailyCard />
             <TournamentsCard />

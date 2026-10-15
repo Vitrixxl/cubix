@@ -49,11 +49,13 @@ test("a puzzle stays locked until it can be solved, and a level is no longer req
   expect(withKnownPuzzle(profile, "222", "nope")).toEqual({ ...profile, knownPuzzles: ["333", "222"] });
 });
 
-test("the main cube is any name of 1 to 60 characters", () => {
+test("the main cube is any name of 1 to 60 characters, the WCA ID one as the WCA writes it", () => {
   const profile = { kind: "profile", knownPuzzles: ["333"], priority: null, completedAt: AT };
   expect(validJourneyEntry("profile", { ...profile, mainCube: "GAN 16 3x3 Max" })).toBe(true);
   expect(validJourneyEntry("profile", { ...profile, mainCube: "  " })).toBe(false);
   expect(validJourneyEntry("profile", { ...profile, mainCube: "x".repeat(61) })).toBe(false);
+  expect(validJourneyEntry("profile", { ...profile, wcaId: "2009ZEMD01" })).toBe(true);
+  for (const wcaId of ["2009zemd01", "2009ZEMD1", "", 2009]) expect(validJourneyEntry("profile", { ...profile, wcaId })).toBe(false);
 });
 test("the introduction saved again keeps the main cube and drops the old learning plan", () => {
   const before = { kind: "profile", level: "beginner", knownPuzzles: ["333"], priority: "222", learningPuzzles: ["222"], priorityMethod: "ortega", bests: { "333": 9000 }, mainCube: "GAN 15", completedAt: AT } as const;

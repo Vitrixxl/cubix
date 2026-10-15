@@ -1,4 +1,5 @@
 import { DEFAULT_THEME, type ThemeId } from "../../src/client/lib/theme";
+import { BLD_PREFS } from "../../src/client/lib/bld";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
@@ -295,8 +296,8 @@ export const crossMovesAtom = atom(get => crossMovesFor(get(crossTargetAtom), ge
   (get, set, moves: number) => { if (CROSS_MOVES[get(crossTargetAtom)].includes(moves)) set(storedCrossMovesAtom, moves); });
 /** Training opens on the choice of what to practise, then shows the timer for it (kept while switching tabs). */
 export const trainingStepAtom = atom<"setup" | "practice">("setup");
-/** What the training started drills: the learned cases' pool, free practice, cross scrambles or a recognition run. */
-export type TrainingRun = "cases" | "free" | "cross" | "recognition";
+/** What the training started drills: the learned cases' pool, free practice, cross scrambles, a recognition run or the blindfolded training. */
+export type TrainingRun = "cases" | "free" | "cross" | "recognition" | "bld";
 export const trainingRunAtom = atom<TrainingRun>("cases");
 /** Mode highlighted on the setup screen before it starts; empty = the one trained last. */
 export const trainingSetupModeAtom = atom("");
@@ -374,6 +375,8 @@ export const hasTokenAtom = atom(!!authToken.get());
 /** The app is only used signed in: an account and its token, or the sign-in screen. */
 export const signedInAtom = atom(get => { const user = get(userAtom); return !!user && !user.isGuest && get(hasTokenAtom); });
 /** The app used without an account, on this device only ("Continue without an account"); signing in clears it. */
+/** Each letter pair's word, for the training list's count too. */
+export const bldWordsAtom = persisted<Record<string, string>>(BLD_PREFS.words, {});
 export const guestModeAtom = persisted<boolean>("cubix.guestMode", false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);

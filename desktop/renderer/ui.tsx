@@ -283,7 +283,7 @@ export function SolveActions({ solve, full = false, className }: { solve: { id: 
       {full && (
         <>
           <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-sm" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
-          {!s.user.isGuest && <Button action={"share:" + solve.id} icon={Share2} size="icon-sm" label={tr("Share")} className="text-muted-foreground" />}
+          <Button action={"share:" + solve.id} icon={Share2} size="icon-sm" label={tr("Share")} className="text-muted-foreground" />
           <Button action={"solve:" + solve.id} icon={Info} size="icon-sm" label={tr("Details")} className="text-muted-foreground" />
         </>
       )}

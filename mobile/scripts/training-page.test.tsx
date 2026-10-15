@@ -37,6 +37,7 @@ mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: "CaseDiagram"
 mock.module("../src/components/AlgPlayer", () => ({ PlayerAlg: "PlayerAlg", PlayerControls: "PlayerControls", PlayerCube: "PlayerCube", useAlgPlayer: () => null }));
 mock.module("../src/components/CaseSelector", () => ({ CaseSelector: "CaseSelector" }));
 mock.module("../src/components/CrossPractice", () => ({ CrossPractice: "CrossPractice" }));
+mock.module("../src/components/Bld", () => ({ BldRun: "BldRun" }));
 mock.module("../src/components/SlideSwitch", () => ({ SlideSwitch: ({ children }: any) => createElement(Fragment, {}, children) }));
 mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null }));
 mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", SectionTabs: "SectionTabs" }));
@@ -78,13 +79,13 @@ const texts = () => renderer.root.findAll((n: any) => n.type === "Text" || n.typ
 const chip = (label: string) => renderer.root.findAll((n: any) => n.type === "Chip" && (n.props.accessibilityLabel === label || n.props.children === label))[0];
 const pressable = (label: string) => renderer.root.findAll((n: any) => n.props.accessibilityLabel === label && typeof n.props.onPress === "function")[0];
 
-test("the five ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
+test("the six ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
   const store = await mount();
-  expect(texts()).toEqual(expect.arrayContaining(["Cross", "Recognition", "Learned", "Whole sets", "Free practice"]));
+  expect(texts()).toEqual(expect.arrayContaining(["Cross", "Recognition", "Learned", "Whole sets", "Free practice", "BLD"]));
   // No bar under the ways: each starts from its own card, without a line of settings.
   expect(pressable("Train")).toBeUndefined();
   expect(texts().some(t => t.includes("picked by hand") || t.includes(" s · "))).toBe(false);
-  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(5);
+  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(6);
   // The whole sets are chosen in their drawer.
   expect(chip("OLL, 3 learned")).toBeUndefined();
   await act(() => pressable("Whole sets")!.props.onPress());

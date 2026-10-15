@@ -110,6 +110,33 @@ test("repeating the Sune as the beginner step says orients every last layer whos
   }
 });
 
+test("the beginner's cross help makes the daisy, yellow on top, then takes each petal down to the cross", () => {
+  const step = beginnerStep("White cross"), slots = slotsFor(3);
+  const whiteEdge = (sticker: number) => faceOfSlot(sticker, 3) === "D" && slots[sticker]!.p.filter(v => v !== 0).length === 2;
+  /** The white edges up as petals (white on the yellow face), by their white sticker. */
+  const petals = (state: ReturnType<typeof solved>) => slots.flatMap((g, s) => g.n[1] === 1 && whiteEdge(state[s]!) ? [state[s]!] : []).sort();
+  const help = step.help!;
+  // Where each case's white sticker starts, as its name says: bottom front facing down, then facing you, middle layer front right facing right, top front facing you.
+  const shown = [[[0, -1, 1], [0, -1, 0]], [[0, -1, 1], [0, 0, 1]], [[1, 0, 1], [1, 0, 0]], [[0, 1, 1], [0, 0, 1]]];
+  help.slice(0, 4).forEach((move, i) => {
+    const start = applyAlg(solved(3), move.setup!), before = petals(start), after = petals(applyAlg(start, move.alg));
+    expect(whiteEdge(start[slotAt(...(shown[i] as [number[], number[]]))]!), move.name).toBe(true);
+    // Three petals already up: the moves bring the fourth up and keep those.
+    expect(before, move.name).toHaveLength(3);
+    expect(after, move.name).toHaveLength(4);
+  });
+  // The full daisy, no petal over its centre: the moves take one down to its place in the cross, the others kept up.
+  const last = help[4]!, start = applyAlg(solved(3), last.setup!), end = applyAlg(start, last.alg);
+  expect(petals(start)).toHaveLength(4);
+  for (const [x, , z] of [[1, 1, 0], [-1, 1, 0], [0, 1, 1], [0, 1, -1]]) expect(colorOf(start, slotAt([x!, 1, z!], [x!, 0, z!]))).not.toBe(colorOf(start, slotAt([x!, 0, z!], [x!, 0, z!])));
+  const gone = petals(start).filter(w => !petals(end).includes(w));
+  expect(gone).toHaveLength(1);
+  const [x, , z] = slots[gone[0]!]!.p;
+  // Both its stickers home: white on the white centre, its side colour on its own centre.
+  expect([gone[0]!, slotAt([x!, -1, z!], [x!, 0, z!])].every(s => end[s] === s)).toBe(true);
+  expect(petals(end)).toHaveLength(3);
+});
+
 /** Top-layer stickers of the 3×3 by where they sit: the four edges and the four corners, seen from above. */
 const slotAt = (p: number[], n: number[]) => slotsFor(3).findIndex(g => g.p.every((v, i) => v === p[i]) && g.n.every((v, i) => v === n[i]));
 const UP = [0, 1, 0];

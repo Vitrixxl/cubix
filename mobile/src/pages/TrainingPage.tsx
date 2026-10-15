@@ -21,6 +21,7 @@ import { PushedBar } from "../components/AppBar";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { Chip } from "../components/Chips";
 import { CrossPractice } from "../components/CrossPractice";
+import { BldRun } from "../components/Bld";
 import { Alg, Empty, Fade, Figure, HeadButton, Label, MenuItem, MoreMenu, Numeric, Segmented } from "../components/layout";
 import {
   CubePreview, Hint, SaveError, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock, useSessionSolves, useShownSolves, useTimerChrome,
@@ -72,7 +73,8 @@ function TrainingRoot() {
     replaceRoute({ page: "training" });
   }, [autostart]);
   const start = useCallback((kind: TrainingRun) => {
-    if (kind === "cross") { if (puzzle !== "333") return; setCrossTarget(crossTarget); }
+    if ((kind === "cross" || kind === "bld") && puzzle !== "333") return;
+    if (kind === "cross") setCrossTarget(crossTarget);
     // The recommended cases picked stay those of this start, whatever is recommended later.
     if (kind === "cases") setPicks(data.picks);
     if (kind === "recognition") clearRecognition(null);
@@ -82,12 +84,13 @@ function TrainingRoot() {
   const toSetup = useCallback(() => setStep("setup"), []);
   const toList = useCallback(() => setSetupMode(""), []);
   const practising = step === "practice" || autostart;
-  const kind: TrainingRun = autostart ? "cases" : run === "cross" && puzzle !== "333" ? "cases" : run;
+  const kind: TrainingRun = autostart ? "cases" : (run === "cross" || run === "bld") && puzzle !== "333" ? "cases" : run;
   const id = practising ? `practice:${kind}` : setupMode === "learned" ? "learned" : "list";
   return <SlideSwitch id={id} depth={practising ? 2 : setupMode === "learned" ? 1 : 0}>
     {practising
       ? kind === "cross" ? <CrossPractice key={solveMode} onBack={toSetup} />
         : kind === "recognition" ? <RecognitionRun key={puzzle} onBack={toSetup} />
+        : kind === "bld" ? <BldRun onBack={toSetup} />
         : <TrainingSession key={`${puzzle}:${solveMode}:${kind}`} free={kind === "free"} onBack={toSetup} />
       : setupMode === "learned" ? <LearnedSetup onBack={toList} onTrain={() => start("cases")} />
       : <TrainHome onOpen={setSetupMode} onStart={start} />}

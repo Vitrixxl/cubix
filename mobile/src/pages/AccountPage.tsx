@@ -29,6 +29,7 @@ import { Caption as SheetCaption, EventPicker, PuzzleGrid } from "../components/
 import { Sheet, SheetFlatList } from "../components/Sheet";
 import { StatsScreen } from "../components/Stats";
 import { UserAvatar } from "../components/UserAvatar";
+import { WcaPill } from "../components/Wca";
 import { useTourTarget } from "../tour";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, type DuelRecord } from "../lib/duel";
 import { learnedCaseIdsAtom, profileFiltersAtom, routeAtom, userAtom, type ProfileMode } from "../state";
@@ -125,8 +126,9 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
     <View className={cn("flex-row items-center gap-3", size === "large" && "gap-4")}>
       <UserAvatar user={user} size={size === "large" ? 88 : 64} className={size === "large" ? "rounded-3xl" : "rounded-[20px]"} />
       <View className="min-w-0 flex-1 gap-1">
-        <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-row items-center gap-2">
           <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 shrink text-2xl font-extrabold tracking-[-0.03em]", size === "large" && "text-[32px]")}>{user.username}</Text>
+          <View className="flex-1" />
           <Pressable accessibilityRole="button" accessibilityLabel={tr("Activity")} accessibilityHint={tr("{0} days in a row", { 0: streak })} onPress={onActivity}
             className={cn("h-7 flex-row items-center gap-1 rounded-full px-2.5", streak ? "bg-warning/15" : "bg-muted")}>
             <Icon as={Flame} size={13} className={streak ? "text-warning" : "text-muted-foreground"} />
@@ -134,11 +136,16 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
           </Pressable>
         </View>
         {/* The method they solve with, and the 3×3 they main, a tap away from another. */}
-        {profile ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Main cube")} accessibilityValue={profile.mainCube ? { text: profile.mainCube } : undefined} onPress={() => setCube(true)}
-          className="min-h-6 flex-row items-center gap-1.5 self-start">
-          <Text numberOfLines={1} className="min-w-0 shrink text-[13px] text-muted-foreground">{[method && said(method.name), profile.mainCube ?? tr("Main cube")].filter(Boolean).join(" · ")}</Text>
-          <Icon as={Pencil} size={12} className="text-muted-foreground" />
-        </Pressable> : method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
+        {/* The WCA ID beside the main cube, which keeps the name's width. */}
+        {profile ? <View className="flex-row items-center gap-2">
+          <Pressable accessibilityRole="button" accessibilityLabel={tr("Main cube")} accessibilityValue={profile.mainCube ? { text: profile.mainCube } : undefined} onPress={() => setCube(true)}
+            className="min-h-6 min-w-0 shrink flex-row items-center gap-1.5">
+            <Text numberOfLines={1} className="min-w-0 shrink text-[13px] text-muted-foreground">{[method && said(method.name), profile.mainCube ?? tr("Main cube")].filter(Boolean).join(" · ")}</Text>
+            <Icon as={Pencil} size={12} className="text-muted-foreground" />
+          </Pressable>
+          <View className="flex-1" />
+          <WcaPill profile={profile} records={d?.profile.records ?? []} />
+        </View> : method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
         <View className="flex-row items-baseline justify-between gap-2" accessibilityLabel={tr("{0} XP in all", { 0: xp.toLocaleString() })}>
           <Text className="text-[13px] font-bold">{tr("Level {0}", { 0: l.level })}</Text>
           <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} / {1} XP", { 0: l.into.toLocaleString(), 1: l.span.toLocaleString() })}</Numeric>

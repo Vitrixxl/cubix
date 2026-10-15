@@ -12,7 +12,7 @@ import { recommendedWhy, trainingPool, type Recommendation } from "../../src/cli
 import { groupBySet } from "../../src/client/lib/practiceCatalog";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { caseDetail, hintsForStage, maskForStage } from "../../src/client/lib/caseState";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
+import { Brain, Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import { algScene } from "../../src/client/lib/algPlayer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { BldCard, bldWords } from "./bld";
 
 /** A case's time in seconds, to the hundredth. */
 const sec = (ms: number) => (ms / 1000).toFixed(2);
@@ -75,7 +76,8 @@ function modeRows(sets: Sets): ModeRow[] {
     known = sets.reduce((n, x) => n + x.learned, 0),
     total = sets.reduce((n, x) => n + x.all.length, 0),
     chosen = recognitionSet(sets),
-    free = s.freePicks.filter((id) => s.find(id)).length;
+    free = s.freePicks.filter((id) => s.find(id)).length,
+    words = bldWords();
   const rows: ModeRow[] = [
     { id: "cross", icon: Target, title: "Cross", count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
     {
@@ -86,8 +88,9 @@ function modeRows(sets: Sets): ModeRow[] {
     { id: "learned", icon: GraduationCap, title: "Learned", count: learned, unit: tr(learned === 1 ? "case" : "cases"), start: "trainingStart:cases:practice", ready: !!pool.size },
     { id: "sets", icon: Layers, title: "Whole sets", count: whole, unit: tr(whole === 1 ? "case" : "cases"), share: total ? known / total : 0, start: "trainingStart:cases:practice", ready: !!pool.size },
     { id: "free", icon: Dices, title: "Free practice", count: free, unit: tr(free === 1 ? "case" : "cases"), start: "trainingStart:free", ready: !!free },
+    { id: "bld", icon: Brain, title: "BLD", count: words, unit: tr(words === 1 ? "word" : "words"), start: "", ready: false },
   ];
-  return rows.filter((r) => r.id !== "cross" || s.puzzle === "333");
+  return rows.filter((r) => (r.id !== "cross" && r.id !== "bld") || s.puzzle === "333");
 }
 
 export function TrainingSetup() {
@@ -189,6 +192,8 @@ function ModeHero({ mode, sets, phone = false }: { mode: ModeRow; sets: Sets; ph
           <HandCard learned={learned} />
           <CasesBar />
         </>
+      ) : mode.id === "bld" ? (
+        <BldCard phone={phone} />
       ) : mode.id === "sets" ? (
         <>
           <SetsCard sets={sets} phone={phone} />

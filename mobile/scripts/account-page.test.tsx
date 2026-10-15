@@ -45,6 +45,7 @@ mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "
 mockLucide();
 mock.module("../src/components/ProfileProgress", () => ({ ProfileCaseDialog: "ProfileCaseDialog", TrainingProgress: "TrainingProgress" }));
 mock.module("../src/components/Achievements", () => ({ AchievementBadge: "AchievementBadge", AchievementDialog: "AchievementDialog", AchievementsScreen: "AchievementsScreen" }));
+mock.module("../src/components/Wca", () => ({ WcaPill: "WcaPill" }));
 mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", SectionTabs: "SectionTabs" }));
 mock.module("../src/components/ImportTimes", () => ({ ImportSheet: "ImportSheet" }));
 mock.module("../src/components/Stats", () => ({ StatsScreen: "StatsScreen" }));

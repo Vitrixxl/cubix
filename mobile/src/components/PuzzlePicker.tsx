@@ -1,6 +1,6 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { Check, ChevronDown, Keyboard, Timer, type LucideIcon } from "lucide-react-native";
+import { Check, ChevronDown, Keyboard, Timer, Trophy, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { INSPECTIONS, TIME_ENTRIES, type Inspection, type TimeEntry } from "../../../src/client/lib/format";
@@ -17,6 +17,8 @@ import { useColors } from "../theme";
 import { pickEventAtom } from "../journey";
 import { useLayout } from "../hooks/useLayout";
 import { Sheet } from "./Sheet";
+import { toastAtom } from "./Toast";
+import { startCompSim } from "../lib/compSim";
 import { Label } from "./layout";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -111,14 +113,23 @@ export function SessionSheet() {
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const [inspection, setInspection] = useAtom(inspectionAtom);
-  const puzzle = useAtomValue(puzzleAtom), blind = useAtomValue(solveModeAtom) === "blindfolded";
+  const puzzle = useAtomValue(puzzleAtom), solveMode = useAtomValue(solveModeAtom), blind = solveMode === "blindfolded";
   const { tablet } = useLayout();
   const close = () => setMode(null);
+  const toast = useSetAtom(toastAtom);
+  // A round of the event, on random scrambles.
+  const compSim = () => {
+    close();
+    setScrambleType("normal");
+    startCompSim({ puzzle, solveMode, scrambleType: "normal" }).catch(error => toast({ title: (error as Error).message }));
+  };
   return <Sheet open={!!mode} onClose={close} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} scroll={scramble} contentClassName="gap-3">
     <View className="gap-2">
       {scramble && <Caption>{tr("Puzzle")}</Caption>}
       <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />
     </View>
+    {/* A round of the event picked, in view without scrolling the sheet. */}
+    {scramble && <Pill icon={Trophy} label={tr("Comp sim")} accessibilityLabel={tr("Comp sim · one WCA round of this event")} disabled={locked} onPress={compSim} className="self-start" />}
     {scramble && <>
       <Caption>{tr("Scramble")}</Caption>
       <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Scramble")}>

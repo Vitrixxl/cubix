@@ -46,8 +46,8 @@ const cross = (state: CubeState) => solvedWhere(state, (p, h) => p[1] === -h && 
 /** What a step has done to the cube, by name. */
 const GOALS: Record<string, (state: CubeState) => boolean> = {
   cross,
-  // The beginner's cross pictured turned over (x2), white on top.
-  "cross shown up": s => cross(applyAlg(s, "x2")),
+  // The beginner's cross pictured turned over (z2), white on top.
+  "cross shown up": s => cross(applyAlg(s, "z2")),
   "first layer": s => solvedWhere(s, (p, h) => p[1] === -h),
   "first face": s => faceIs(s, "D"),
   f2l: s => solvedWhere(s, (p, h) => p[1] < h),

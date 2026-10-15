@@ -9,7 +9,7 @@ import { call } from "./bridge";
 import { store as s } from "./store";
 import { Alg, Button, Empty, FOCUS, LABEL, NUMERIC, PenaltyToggles, Surface, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
-import { SolveAnalysisButton, capitalised, colourLabel } from "./SolveAnalysis";
+import { SolveAnalysisButton, SolveSteps, capitalised, colourLabel } from "./SolveAnalysis";
 import { FACE_COLORS } from "../../src/shared/cubeAppearance";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
@@ -21,7 +21,8 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
+import { localePath } from "../../src/client/lib/route";
 import { Brand } from "./logo";
 import { applyTheme } from "./theme";
 import { cachedAppearance } from "../../src/client/lib/appearance";
@@ -66,7 +67,7 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
     player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined });
   const [commenting, setCommenting] = useState(s.commenting);
   useEffect(() => setEditing(false), [solve.id]);
-  const recorded = readSolution(solve.solution),
+  const recorded = useMemo(() => readSolution(solve.solution), [solve.solution]),
     annotation = readAnnotation(solve.solution);
 
   const save = async () => {
@@ -142,8 +143,10 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
             <Alg text={solve.scramble} size={15} className="text-foreground/90" />
           </section>
         )}
-        {solution}
-        {owner && solve.id !== undefined && (commenting ? <CommentField solve={solve} onDone={() => setCommenting(false)} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>)}
+        {/* A visitor sees no solution where none was recorded. */}
+        {(owner || recorded || annotation) && solution}
+        {!owner && recorded && <SolveSteps scramble={solve.scramble} turns={recorded} />}
+        {owner && solve.id !== undefined && commenting ? <CommentField solve={solve} onDone={() => setCommenting(false)} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>}
         {owner && solve.id !== undefined && !editing && (
           // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
           <div className="mt-auto flex flex-wrap items-center gap-1.5">
@@ -152,11 +155,10 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
               <MessageSquare />
               {tr("Comment")}
             </UiButton>
-            {!s.user.isGuest && (
-              <Button action={"share:" + solve.id} icon={Share2} variant="outline" className="text-muted-foreground">
-                {tr("Share")}
-              </Button>
-            )}
+            {/* A guest is asked to sign in first (store.ts). */}
+            <Button action={"share:" + solve.id} icon={Share2} variant="outline" className="text-muted-foreground">
+              {tr("Share")}
+            </Button>
             <Button action={"delete:" + solve.id} icon={Trash2} variant="outline" className="ml-auto text-muted-foreground hover:text-destructive">
               {tr("Delete")}
             </Button>
@@ -349,17 +351,18 @@ export function SharedSolve({ token }: { token: string }) {
       .then(setSolve, () => setSolve(null));
   }, [token]);
   return (
-    <div className="flex min-h-svh flex-col items-center gap-8 bg-background px-4 py-6 md:py-10">
-      <header className="flex w-full max-w-4xl items-center gap-3">
+    <div className="flex h-svh flex-col items-center gap-4 overflow-hidden bg-background px-4 py-4 md:gap-6 md:py-8">
+      <header className="flex w-full max-w-4xl shrink-0 items-center gap-3">
         <a href="/" className={cn("flex items-center gap-2 rounded-md", FOCUS)}>
           <Brand className="text-2xl" />
         </a>
-        <UiButton variant="outline" className="ml-auto" render={<a href="/timer" />}>
+        <UiButton variant="outline" className="ml-auto" render={<a href={localePath(language(), "/timer")} />}>
           {tr("Open Qbix")}
         </UiButton>
       </header>
-      <main className="w-full max-w-4xl">
-        <Surface className="p-5 md:p-8">
+      <main className="flex min-h-0 w-full max-w-4xl flex-1 flex-col">
+        {/* The page stays the window's height: a solve taller than it scrolls in its card. */}
+        <Surface className="min-h-0 overflow-y-auto p-5 md:p-8">
           {solve ? (
             <SolveView solve={solve} />
           ) : solve === null ? (

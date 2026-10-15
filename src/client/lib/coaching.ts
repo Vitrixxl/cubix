@@ -67,6 +67,8 @@ export interface Coach {
   daysOff?: string[];
   overrides?: Override[];
   reviewList?: { rating: number; comment: string; at: number; username: string }[];
+  /** The WCA ID on their profile, on their own page only. */
+  wcaId?: string | null;
   ratingCounts?: number[];
   /** Their activity over a year and per puzzle, on their own page only. */
   history?: History;

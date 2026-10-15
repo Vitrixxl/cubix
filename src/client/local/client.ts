@@ -616,6 +616,8 @@ export function createLocalClient(options: {
     shareSolve: async (solveId: number) => {
       const token = options.getToken();
       if (current().isGuest || !token) throw new Error("Sign in to share a solve.");
+      // A solve just timed may not have reached the server yet: synchronized first.
+      if (!solveServerId(data(),solveId)) await sync();
       const serverId = solveServerId(data(),solveId);
       if (!serverId) throw new Error("The solve is waiting to synchronize.");
       return (await options.remote(token).shareSolve(serverId)).token;

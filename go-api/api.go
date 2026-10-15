@@ -171,6 +171,52 @@ func apiUserAllow(key string, cap, seconds float64) bool {
 	return b.allow(cap, seconds)
 }
 
+// sharedSolveID: a shared solve's id, 10 random letters and digits (59 bits), the link's only key.
+func sharedSolveID() string {
+	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	id := make([]byte, 0, 10)
+	b := make([]byte, 1)
+	for len(id) < cap(id) {
+		_, _ = rand.Read(b)
+		// 248 is 4×62: a byte past it is drawn again, so every letter is as likely.
+		if b[0] < 248 {
+			id = append(id, letters[b[0]%62])
+		}
+	}
+	return string(id)
+}
+
+// shareSolve: the public link to a solve of `uid`'s: a copy of it as it is now, with its owner's name; sharing it again
+// unchanged gives the same link.
+func shareSolve(db *Conn, uid, solve string) (M, error) {
+	row, err := dbRequired(db, "SELECT s.time_ms,s.penalty,s.scramble,s.solution,s.comment,s.memo_ms,s.puzzle_id,s.cube_size,s.solve_mode,s.scramble_type,s.created_at,u.username FROM solves s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.user_id=?", "Unknown solve", solve, uid)
+	if err != nil {
+		return nil, err
+	}
+	if id, ok := asStr(row["puzzle_id"]); !ok || !practiceIsPuzzle(id) {
+		return nil, apiErr(404, "Unknown solve")
+	}
+	copied := encodeJSON(row)
+	same, err := dbOne(db, "SELECT id FROM shared_solves WHERE solve_id=? AND solve=?", solve, copied)
+	if err != nil || same != nil {
+		return M{"token": idx(same, "id")}, err
+	}
+	id := sharedSolveID()
+	if _, err := db.Exec("INSERT INTO shared_solves(id,user_id,solve_id,solve) VALUES(?,?,?,?)", id, uid, solve, copied); err != nil {
+		return nil, err
+	}
+	return M{"token": id}, nil
+}
+
+// sharedSolve: a shared solve, as it was shared, for anyone holding its link.
+func sharedSolve(db *Conn, id string) (any, error) {
+	row, err := dbRequired(db, "SELECT solve FROM shared_solves WHERE id=?", "Unknown solve", id)
+	if err != nil {
+		return nil, err
+	}
+	return decodeJSON([]byte(str(row["solve"])))
+}
+
 func apiQueryInt(query map[string]string, key string, def, max int64) (int64, error) {
 	v, ok := query[key]
 	if !ok {
@@ -471,17 +517,12 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 			return practiceCatalog(state.catalog.cases, filter), nil
 		}
 		// A solve shared by its link: what it was, by whom, for anyone holding the link.
-		if token, ok := strings.CutPrefix(path, "shared/"); ok && token != "" && !strings.Contains(token, "/") {
-			return dbCall(state.db, func(db *Conn) (M, error) {
-				row, err := dbRequired(db, "SELECT s.time_ms,s.penalty,s.scramble,s.solution,s.puzzle_id,s.cube_size,s.solve_mode,s.scramble_type,s.created_at,u.username FROM solves s JOIN users u ON u.id=s.user_id WHERE s.share_token=?", "Unknown solve", token)
-				if err != nil {
-					return nil, err
-				}
-				if id, ok := asStr(row["puzzle_id"]); !ok || !practiceIsPuzzle(id) {
-					return nil, apiErr(404, "Unknown solve")
-				}
-				return row, nil
-			})
+		if id, ok := strings.CutPrefix(path, "shared/"); ok && id != "" && !strings.Contains(id, "/") {
+			return dbCall(state.db, func(db *Conn) (any, error) { return sharedSolve(db, id) })
+		}
+		// A player's official WCA results and competitions, proxied and cached (wca.go).
+		if rest, ok := strings.CutPrefix(path, "wca/"); ok {
+			return wcaRoute(state, trafficKey(state.traffic.ip(peerIP(r), r.Header)).String(), rest)
 		}
 		if id, ok := strings.CutPrefix(path, "cases/"); ok && !strings.Contains(id, "/") {
 			if c, ok := state.catalog.byID[id]; ok {
@@ -900,10 +941,11 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		}
 		return dbRequired(db, "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END,solution=CASE WHEN ? THEN ? ELSE solution END WHERE id=? AND user_id=? RETURNING *", "Unknown solve",
 			penalty, commentSet, comment, solutionSet, solution, parts[1], uid)
-	// The link that shares a solve: made once, the same ever after.
 	case is("POST", "solves", "*", "share"):
-		return dbRequired(db, "UPDATE solves SET share_token=COALESCE(share_token,?) WHERE id=? AND user_id=? RETURNING share_token AS token", "Unknown solve",
-			accountsRandomToken()[:24], parts[1], uid)
+		if !apiUserAllow("shares:"+uid, 30, 60) {
+			return nil, apiErr(429, "Too many links at once. Try again in a minute.")
+		}
+		return shareSolve(db, uid, parts[1])
 	case is("DELETE", "solves", "*"):
 		return dbRequired(db, "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *", "Unknown solve", parts[1], uid)
 	case is("PUT", "journey"):

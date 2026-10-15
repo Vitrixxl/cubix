@@ -8,7 +8,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, ChevronDown, Eye, Flame, Gauge, Layers, Share2, Target, Timer, Trophy, X, type LucideIcon } from "lucide-react-native";
 import { memo, useMemo, useState, type ReactNode } from "react";
-import { FlatList, Modal, Pressable, ScrollView, Share, View } from "react-native";
+import { FlatList, Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { achievementBadge, achievementKind, achievementSeries, isTimeGoal, level } from "../../../src/client/lib/achievements";
@@ -21,11 +21,12 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { API_ORIGIN, api, local } from "../api";
+import { local } from "../api";
 import { profileAchievementsAtom, profilePuzzleAtom } from "../profile";
 import { eventAtom, puzzleAtom, routeAtom } from "../state";
 import { useColors } from "../theme";
 import { useLayout } from "../hooks/useLayout";
+import { useShareSolve } from "../hooks/useShareSolve";
 import { PushedBar } from "./AppBar";
 import { Bar, Empty, Numeric, Segmented } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
@@ -290,16 +291,9 @@ function Categories({ items, category, onChange }: { items: A[]; category: strin
   </>;
 }
 
-/** Shares the solve that unlocked it: a link to its public page. */
-async function shareSolve(a: A) {
-  if (a.solveId == null) return;
-  const url = API_ORIGIN + "/solve/" + await api.shareSolve(a.solveId);
-  await Share.share({ message: `${said(a.title)} · ${url}`, title: said(a.title) }).catch(() => {});
-}
-
 /** One achievement in full, in a dialog over the whole screen; its series and neighbours open in place. */
 export function AchievementDialog({ a, all, onPick, onClose }: { a: A | null; all: A[]; onPick: (a: A) => void; onClose: () => void }) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets(), share = useShareSolve();
   if (!a) return null;
   const solve = a.solveId != null ? local.read.solve(a.solveId) : null;
   return <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -307,7 +301,7 @@ export function AchievementDialog({ a, all, onPick, onClose }: { a: A | null; al
       <View className="h-14 flex-row items-center justify-between px-2">
         <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={onClose} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={X} size={22} /></Pressable>
         <Text accessibilityRole="header" className="text-[17px] font-extrabold">{tr("Achievement")}</Text>
-        {solve ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Share")} onPress={() => void shareSolve(a)} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable> : <View className="size-11" />}
+        {solve ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Share")} onPress={() => void share(a.solveId!, said(a.title), said(a.title))} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable> : <View className="size-11" />}
       </View>
       <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-4 pb-6">
         <AchievementDetail a={a} all={all} onPick={onPick} onLeave={onClose} />
@@ -337,7 +331,7 @@ function AchievementDetail({ a, all, onPick, onLeave, docked }: { a: A; all: A[]
   ];
   const leave = (then: () => void) => { onLeave?.(); then(); };
   const solve = a.solveId != null ? local.read.solve(a.solveId) : null;
-  const share = () => shareSolve(a);
+  const shareSolve = useShareSolve();
   return <>
     <View className="items-center gap-1">
       <AchievementBadge a={a} size={docked ? 96 : 120} />
@@ -353,7 +347,7 @@ function AchievementDetail({ a, all, onPick, onLeave, docked }: { a: A; all: A[]
     </View>
     {a.unlocked ? solve && <View className="flex-row gap-2">
       <Button variant="secondary" className="h-11 flex-1" accessibilityLabel={tr("View the solve")} onPress={() => leave(() => openSolve(solve))}><Icon as={Eye} size={16} /><Text>{tr("Details")}</Text></Button>
-      <Button variant="secondary" className="h-11 flex-1" onPress={() => void share()}><Icon as={Share2} size={16} /><Text>{tr("Share")}</Text></Button>
+      <Button variant="secondary" className="h-11 flex-1" onPress={() => void shareSolve(a.solveId!, said(a.title), said(a.title))}><Icon as={Share2} size={16} /><Text>{tr("Share")}</Text></Button>
     </View> : <Button className="h-11" accessibilityLabel={go.name ?? go.label} onPress={() => leave(go.go)}><Icon as={go.icon} size={16} className="text-primary-foreground" /><Text>{go.label}</Text></Button>}
     {series.length > 1 && <>
       <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("The series · {0}", { 0: `${said(SERIES[achievementKind(a)] ?? "")} ${said(a.group)}` })}</Text>

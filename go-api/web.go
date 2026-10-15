@@ -9,6 +9,8 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
+	"html"
 	"io"
 	"mime"
 	"net/http"
@@ -22,7 +24,7 @@ import (
 // webPages: the first segment of every address of the app (`src/client/lib/route.ts`).
 var webPages = []string{
 	"login", "onboarding", "timer", "algorithms", "training", "duel", "learn", "coaching", "community",
-	"tournaments", "match", "daily", "profile", "solve",
+	"tournaments", "match", "daily", "profile", "solve", "s",
 }
 
 // webLanguages: the languages whose pages live under their prefix; English's are at the root.
@@ -43,7 +45,7 @@ func isFile(path string) bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
-func webRouter(dir string) http.Handler {
+func webRouter(dir string, db *Db) http.Handler {
 	// A build from before the landing page keeps the app at the root.
 	landing := "index.html"
 	if isFile(filepath.Join(dir, "landing.html")) {
@@ -83,7 +85,7 @@ func webRouter(dir string) http.Handler {
 				return
 			}
 		}
-		webPage(dir, w, r)
+		webPage(dir, db, w, r)
 	})
 }
 
@@ -118,7 +120,7 @@ func webAppPath(path string) (string, string, bool) {
 // webPage: the app's address `path`: its page in its language (`pages/<language>/<path>[@<puzzle>[~<step>]].html`,
 // stored compressed with Brotli and gzip), trying without the step, then without the puzzle; else the app's
 // `index.html`, kept out of the index when only English has the page. Any other address is a file of the build.
-func webPage(dir string, w http.ResponseWriter, r *http.Request) {
+func webPage(dir string, db *Db, w http.ResponseWriter, r *http.Request) {
 	language, path, ok := webAppPath(r.URL.EscapedPath())
 	if !ok {
 		webServeDir(w, r, dir)
@@ -188,7 +190,56 @@ func webPage(dir string, w http.ResponseWriter, r *http.Request) {
 	}) {
 		w.Header().Set("X-Robots-Tag", "noindex")
 	}
+	if webSharedPage(dir, db, path, w, r) {
+		return
+	}
 	webServeFile(w, r, filepath.Join(dir, "index.html"))
+}
+
+// webSharedPage: a shared solve's address (`s/<id>`, `solve/<token>` for the links made before) gets the app's page
+// titled after it, "12.345 · 3×3 on Qbix", for the previews of its link; false for any other address or an unknown solve.
+func webSharedPage(dir string, db *Db, path string, w http.ResponseWriter, r *http.Request) bool {
+	page, id, _ := strings.Cut(path, "/")
+	if db == nil || page != "s" && page != "solve" || id == "" || strings.Contains(id, "/") {
+		return false
+	}
+	solve, err := dbCall(db, func(c *Conn) (any, error) { return sharedSolve(c, id) })
+	if err != nil {
+		return false
+	}
+	index, err := os.ReadFile(filepath.Join(dir, "index.html"))
+	if err != nil {
+		return false
+	}
+	ms, _ := asInt(idx(solve, "time_ms"))
+	time := "DNF"
+	if penalty := str(idx(solve, "penalty")); penalty != "dnf" {
+		if penalty == "+2" {
+			ms += 2000
+		}
+		time = fmt.Sprintf("%.3f", float64(ms)/1000)
+		if minutes := ms / 60000; minutes > 0 {
+			time = fmt.Sprintf("%d:%06.3f", minutes, float64(ms%60000)/1000)
+		}
+		if penalty == "+2" {
+			time += "+"
+		}
+	}
+	puzzle, _ := practicePuzzle(str(idx(solve, "puzzle_id")))
+	title := html.EscapeString(time + " · " + str(idx(puzzle, "label")) + " on Qbix")
+	by := html.EscapeString("By " + str(idx(solve, "username")))
+	// The previews want absolute addresses: the site's, served over https behind its proxy.
+	site := html.EscapeString("https://" + r.Host)
+	head := `<title>` + title + `</title><meta property="og:type" content="website" /><meta property="og:site_name" content="Qbix" />` +
+		`<meta property="og:title" content="` + title + `" /><meta property="og:description" content="` + by + `" />` +
+		`<meta property="og:url" content="` + site + `/s/` + html.EscapeString(id) + `" /><meta property="og:image" content="` + site + `/og.png" />` +
+		`<meta name="twitter:card" content="summary_large_image" />`
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(200)
+	if r.Method != "HEAD" {
+		_, _ = w.Write([]byte(strings.Replace(string(index), "<title>Qbix</title>", head, 1)))
+	}
+	return true
 }
 
 // webAccepted: br, else gzip, when the request's Accept-Encoding names it.

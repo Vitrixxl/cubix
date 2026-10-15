@@ -1,3 +1,4 @@
+import { invertAlg } from "./cube";
 import type { CubeMask } from "./cubeAppearance";
 import type { PuzzleId } from "./puzzles";
 
@@ -72,6 +73,18 @@ const CROSS_HELP: MethodAlgorithm[] = [
   { name: "Edge in its place, flipped", alg: "F' D R' D'", note: "White facing out at the bottom: D and D' put the other cross edges back." },
   { name: "Two edges swapped side by side", alg: "F2 U' R2 U F2", note: "The front and right edges each in the other's place." },
   { name: "Two edges swapped across", alg: "F2 U2 B2 U2 F2", note: "The front and back edges each in the other's place." },
+];
+/** The four white edges around the yellow centre, white up, one place round from their centres: a beginner's daisy. */
+const DAISY = "F2 R2 B2 L2 U";
+/** The daisy missing an edge, yellow on top and green in front: its moves bring it back, the other petals kept. */
+const toDaisy = (name: string, alg: string, note: string): MethodAlgorithm => ({ name, alg, note, setup: `${DAISY} ${invertAlg(alg)}` });
+/** The beginner's cross by the daisy: each white edge brought up as a petal, then each petal down to the cross. Checked by tests/methods.test.ts. */
+const DAISY_HELP: MethodAlgorithm[] = [
+  toDaisy("Edge at the bottom, white down", "U' F2", "Turn the top until no petal is above it, then turn that face twice."),
+  toDaisy("Edge at the bottom, white facing you", "F' U' R", "F' brings it into the middle layer, U' frees the slot above it, R brings it up."),
+  toDaisy("Edge in the middle layer", "F'", "White on the right, no petal on top in front: one turn of the front brings it up."),
+  toDaisy("Edge on top, white facing you", "F U' R", "F sends it to the right, U' frees the slot above it, R brings it back up white on top."),
+  { name: "Petal to the cross", alg: "U' F2", note: "Turn the top until its side colour is over its centre, then turn that face twice.", setup: DAISY },
 ];
 /** A 2×2's first corners, white at the bottom: the corner above its slot, at front right. */
 const FIRST_CORNERS_HELP: MethodAlgorithm[] = [
@@ -207,14 +220,14 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       steps: [
         {
           title: "White cross", text: "Place the four white edges around the white centre so their side colours match the side centres.", train: "cross",
-          // Turned over (x2) and held so, white on top: a beginner sees the cross being made, not a yellow face.
-          picture: { from: `${SCRAMBLE} x2`, done: `${CROSS} x2`, mask: "cross", held: true },
+          // Turned over (z2) and held so, white on top, green in front: a beginner sees the cross being made, not a yellow face.
+          picture: { from: `${SCRAMBLE} z2`, done: `${CROSS} z2`, mask: "cross", held: true },
           tips: [
             "Start with a daisy: the four white edges around the yellow centre, white facing up.",
             "Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.",
             "Hold the cube white side down from here on.",
           ],
-          help: CROSS_HELP,
+          help: DAISY_HELP,
         },
         {
           title: "First-layer corners", text: "Bring each white corner under its slot and repeat R U R' U' until it drops in correctly.",

@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronRight, MessageSquare, Share2, Trash2 } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { fmtSolve } from "../../../src/client/lib/format";
 import { heldAlg } from "../../../src/client/lib/solution";
 import { COLOUR_NAMES, type Phase, type PhaseId, type SolveAnalysis } from "../../../src/client/lib/solveAnalysis";
@@ -12,7 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { API_ORIGIN, api, local } from "../api";
+import { api, local } from "../api";
 import { PlayerControls, PlayerCube, useAlgPlayer } from "../components/AlgPlayer";
 import { PushedBar } from "../components/AppBar";
 import { CaseDiagram } from "../components/CaseDiagram";
@@ -20,9 +20,10 @@ import { Alg, Empty, Label, Numeric, Segmented } from "../components/layout";
 import { useSolveMenu } from "../components/SolveMenus";
 import { SolveDetail } from "../components/SolveDetail";
 import { analyseSolution, Dot, seconds, SolveBar, StepNames, useStepColour } from "../components/analysis/steps";
-import { deletedSolveIdAtom, goBackAtom, replaceRouteAtom, routeAtom, signedInAtom, statsVersionAtom, updatedSolveAtom } from "../state";
+import { deletedSolveIdAtom, goBackAtom, replaceRouteAtom, routeAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
 import { useLayout } from "../hooks/useLayout";
+import { useShareSolve } from "../hooks/useShareSolve";
 
 /**
  * A solve on its own screen, pushed from a list of times: its time and penalty, the scramble, the solution replayed in
@@ -49,7 +50,7 @@ type Shown = NonNullable<ReturnType<typeof local.read.solve>>;
 /** The solve: its actions in the bar and beside the time, the rest drawn by SolveDetail. */
 function Replay({ solve, comment }: { solve: Shown; comment?: boolean }) {
   const { togglePenalty, deleteTime, busy } = useSolveMenu();
-  const signedIn = useAtomValue(signedInAtom), setRoute = useSetAtom(routeAtom);
+  const setRoute = useSetAtom(routeAtom);
   const notify = useSetAtom(updatedSolveAtom), bump = useSetAtom(statsVersionAtom);
   const [commenting, setCommenting] = useState(!!comment), [draft, setDraft] = useState(solve.comment ?? "");
   const saved = (next: Shown) => { notify(next); bump(v => v + 1); };
@@ -59,14 +60,11 @@ function Replay({ solve, comment }: { solve: Shown; comment?: boolean }) {
     if (draft.trim() === (solve.comment ?? "")) return;
     void api.setComment(solve.id, draft.trim() || null).then(saved, () => {});
   };
-  const share = async () => {
-    const url = API_ORIGIN + "/solve/" + await api.shareSolve(solve.id);
-    await Share.share({ message: url, title: fmtSolve(solve.time_ms, solve.penalty) });
-  };
+  const share = useShareSolve();
   return <View className="flex-1">
     <PushedBar title={tr("Solve")}>
-      {signedIn && <Pressable accessibilityRole="button" accessibilityLabel={tr("Share a link to this solve")} onPress={() => void share().catch(() => {})}
-        className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable>}
+      <Pressable accessibilityRole="button" accessibilityLabel={tr("Share a link to this solve")} onPress={() => void share(solve.id, fmtSolve(solve.time_ms, solve.penalty))}
+        className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={tr("Delete solve")} disabled={busy} onPress={() => void deleteTime(solve.id)}
         className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Trash2} size={20} /></Pressable>
     </PushedBar>

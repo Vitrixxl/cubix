@@ -24,6 +24,7 @@ import { bindNavigation, go, readRoute, type AppRoute } from "./navigation";
 import { onIntent } from "./prefetch";
 import { preloadAll } from "./preload";
 import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
+import { sharedSolveId } from "../../src/client/lib/sharedSolve";
 import { pageSeo, pageTitle } from "./seo";
 import { isPhone } from "../../src/client/lib/viewport";
 import type { PuzzleId } from "../../src/shared/puzzles";
@@ -332,7 +333,7 @@ onLanguage(() => {
 onLanguage(() => s.emit());
 /** A solve shared by its link opens on its own, signed in or not; anything else is the app. */
 export function Root() {
-  const shared = /^\/solve\/([\w-]+)$/.exec(useLocation().pathname)?.[1];
+  const shared = sharedSolveId(useLocation().pathname);
   return shared ? (
     <TooltipProvider delay={TIP_DELAY}>
       <Suspense fallback={null}><Shown /><SharedSolve token={shared} /></Suspense>

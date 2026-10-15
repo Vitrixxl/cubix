@@ -1,8 +1,9 @@
 import { useAtomValue } from "jotai";
-import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, SlidersHorizontal, Star, Timer, UserRoundX, Users } from "lucide-react-native";
+import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, ExternalLink, MessageSquare, SearchX, SlidersHorizontal, Star, Timer, UserRoundX, Users } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
+import { FlatList, Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import { plural } from "../../../../src/client/lib/format";
+import { wcaPersonUrl } from "../../../../src/client/lib/wca";
 import { localFormat, locale, said, tr } from "../../../../src/client/i18n";
 import { EVENTS, eventInfo } from "../../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
@@ -146,7 +147,13 @@ function CoachHead({ c }: { c: Coach }) {
     <View className="flex-row items-center gap-3">
       <Face name={c.username} src={c.avatar} size={64} />
       <View className="min-w-0 flex-1 gap-0.5">
-        <Text numberOfLines={1} accessibilityRole="header" className="text-xl font-extrabold tracking-[-0.03em]">{c.username}</Text>
+        <View className="flex-row items-center gap-2">
+          <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 shrink text-xl font-extrabold tracking-[-0.03em]">{c.username}</Text>
+          {c.wcaId ? <Pressable accessibilityRole="link" accessibilityLabel={tr("Open on the WCA")} onPress={() => void Linking.openURL(wcaPersonUrl(c.wcaId!))}
+            className="h-7 flex-row items-center gap-1 rounded-full bg-muted px-2.5 active:bg-accent">
+            <Text className="text-xs font-bold text-muted-foreground">WCA</Text><Icon as={ExternalLink} size={12} className="text-muted-foreground" />
+          </Pressable> : null}
+        </View>
         <Text numberOfLines={2} className="text-[13px] text-muted-foreground">{c.headline || tr("Speedcubing coach")}</Text>
         <Text numberOfLines={2} className="text-xs text-muted-foreground">{[c.events.map(e => said(eventInfo(e)?.label ?? e)).join(" · "), c.languages.join(", ")].filter(Boolean).join(" · ")}</Text>
       </View>

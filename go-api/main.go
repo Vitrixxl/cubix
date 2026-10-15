@@ -325,7 +325,7 @@ func (s *AppState) routes() http.Handler {
 	}))
 	if dir, ok := webDirectory(); ok {
 		fmt.Printf("Cubix web: %s\n", dir)
-		fallback = webRouter(dir)
+		fallback = webRouter(dir, s.db)
 	} else {
 		fmt.Println("Cubix web: not built, serving the API only")
 	}

@@ -4,6 +4,7 @@ import { Community, type Notice, type Question, type SocialHost } from "../src/c
 import { Coaching } from "../src/client/lib/coaching";
 import { MatchClient } from "../src/client/lib/match";
 import { readRoute } from "../src/client/lib/route";
+import { sharedSolveId } from "../src/client/lib/sharedSolve";
 import type { LiveLink, LiveMessage } from "../src/client/live";
 
 const realFetch = globalThis.fetch;
@@ -183,4 +184,9 @@ test("the app's addresses read back as routes, for the links the phone opens", (
   expect(readRoute("/community/add/ann", "")).toMatchObject({ page: "community", view: "add/ann" });
   expect(readRoute("/match/42", "")).toMatchObject({ page: "match", view: "42" });
   expect(readRoute("/coaching/messages/3", "")).toMatchObject({ page: "coaching", coaching: "messages/3" });
+});
+
+test("a shared solve's address names it, under a language or not, its old address too", () => {
+  expect(["/s/aB3dE5gH9k", "/fr/s/aB3dE5gH9k", "/solve/0123abcd"].map(sharedSolveId)).toEqual(["aB3dE5gH9k", "aB3dE5gH9k", "0123abcd"]);
+  expect(["/s/", "/s/a/b", "/timer", "/xx/s/a"].map(sharedSolveId)).toEqual([undefined, undefined, undefined, undefined]);
 });

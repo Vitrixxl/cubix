@@ -7,6 +7,7 @@ import { cachedAppearance, paintTheme } from "../../src/client/lib/appearance";
 import { isCompact, isPhone } from "../../src/client/lib/viewport";
 import { LAUNCHED_KEY } from "../../src/client/lib/firstLaunch";
 import { captureInstall } from "../../src/client/lib/pwaInstall";
+import { sharedSolveId } from "../../src/client/lib/sharedSolve";
 
 // The browser's offer to install the app, which can come before either app mounts (pwaInstall.ts).
 captureInstall();
@@ -31,14 +32,15 @@ if (!crawler) root.setAttribute("data-js", "");
 /**
  * Which app this window loads: on a phone (its screen's short side), a touch tablet or a small window (viewport.ts), the
  * phone app (mobile/ for the web, exported by web.ts under /phone), laid out for its width; else the desktop app;
- * always the desktop app in the administration. `cubix.phoneApp` = "off" in localStorage keeps the desktop app (its
- * own phone layout, which the tests check).
+ * always the desktop app in the administration and on a shared solve's page (sharedSolve.ts), which has no startup cube
+ * either. `cubix.phoneApp` = "off" in localStorage keeps the desktop app (its own phone layout, which the tests check).
  */
 declare const CUBIX_DESKTOP_HEAD: string, CUBIX_PHONE_HEAD: string;
 const admin = /^\/admin(\/|$)/.test(location.pathname);
+const shared = !!sharedSolveId(location.pathname);
 const phone = () => {
   try { if (localStorage.getItem("cubix.phoneApp") === "off") return false; } catch {}
-  return !admin && (isPhone(innerWidth) || isPhone(Math.min(screen.width, screen.height)) || isCompact(innerWidth, innerHeight, matchMedia("(pointer: fine)").matches));
+  return !admin && !shared && (isPhone(innerWidth) || isPhone(Math.min(screen.width, screen.height)) || isCompact(innerWidth, innerHeight, matchMedia("(pointer: fine)").matches));
 };
 /**
  * The device's first launch (src/client/lib/firstLaunch.ts): the page stays hidden while the app gets ready, behind the
@@ -46,7 +48,7 @@ const phone = () => {
  */
 declare const CUBIX_FIRST_LAUNCH: string;
 try {
-  if (!admin && person && !localStorage.getItem(LAUNCHED_KEY)) {
+  if (!admin && !shared && person && !localStorage.getItem(LAUNCHED_KEY)) {
     root.setAttribute("data-first-launch", "");
     document.write(`<style>html[data-first-launch]{background:var(--background)}html[data-first-launch] body>:not(#first-launch){visibility:hidden}</style><script src="${CUBIX_FIRST_LAUNCH}" defer></script>`);
   }

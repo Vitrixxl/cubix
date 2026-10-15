@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Check, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
+import { Brain, Check, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
@@ -13,7 +13,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import {
-  casesAtom, crossMovesAtom, crossTargetAtom, guidesAtom, learnedCaseIdsAtom, perPuzzleAtom, persisted, puzzleAtom, randomAufAtom, routeAtom,
+  bldWordsAtom, casesAtom, crossMovesAtom, crossTargetAtom, guidesAtom, learnedCaseIdsAtom, perPuzzleAtom, persisted, puzzleAtom, randomAufAtom, routeAtom,
   selectedCaseIdsAtom, setsAtom, statsAtom, type TrainingRun,
 } from "../state";
 import { AppBar, PushedBar, SectionTabs } from "./AppBar";
@@ -136,6 +136,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const [auf, setAuf] = useAtom(randomAufAtom);
   const [back, setBack] = useAtom(recognitionBackAtom);
   const freePicks = useAtomValue(freePicksAtom);
+  const words = Object.values(useAtomValue(bldWordsAtom)).filter(Boolean).length;
   const setHand = useSetAtom(selectedCaseIdsAtom), setRoute = useSetAtom(routeAtom), sets = useAtomValue(setsAtom);
   const [query, setQuery] = useState("");
   const learnedCases = useMemo(() => data.cases.filter(c => data.learned.has(c.id)), [data.cases, data.learned]);
@@ -169,6 +170,8 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
           onPress={() => setSettings("sets")} action={<StartChip onPress={() => start("cases")} disabled={!data.whole} />} />
         <ModeCard icon={Dices} title={tr("Free practice")} count={free} unit={tr(free === 1 ? "case" : "cases")} onPress={() => setPicking(true)}
           action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>} />
+        {data.puzzle === "333" && <ModeCard icon={Brain} title={tr("BLD")} count={words} unit={tr(words === 1 ? "word" : "words")}
+          onPress={() => start("bld")} action={<StartChip onPress={() => start("bld")} />} />}
       </View>;
   // Each way's settings in a drawer over the page, Start at the bottom; free practice's are its cases to pick.
   const sheets = <>
@@ -220,6 +223,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       { icon: GraduationCap, label: tr("Learned"), detail: plural(data.learnedPool, "case"), on: true },
       { icon: Layers, label: tr("Whole sets"), detail: plural(data.whole, "case") },
       { icon: Dices, label: tr("Free practice"), detail: free ? plural(free, "case") : tr("Pick…") },
+      ...(data.puzzle === "333" ? [{ icon: Brain, label: tr("BLD"), detail: `${words} ${tr(words === 1 ? "word" : "words")}` }] : []),
     ];
     const train = (detail: string) => <Pressable accessibilityRole="button" accessibilityLabel={tr("Train")} disabled={!data.pool.length} onPress={() => onStart("cases")}
       className={cn("h-12 min-w-0 flex-1 flex-row items-center justify-between gap-3 rounded-2xl bg-primary px-4 active:bg-primary/85", !data.pool.length && "opacity-45")}>

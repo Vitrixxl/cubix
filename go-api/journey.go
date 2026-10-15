@@ -161,6 +161,12 @@ func journeyPut(db *Conn, uid string, body any) (any, error) {
 			return nil, validation()
 		}
 	}
+	// Their WCA ID, as they gave it: 2009ZEMD01.
+	if id, ok := get(v, "wcaId"); ok {
+		if s, ok := asStr(id); !ok || !wcaID.MatchString(s) {
+			return nil, validation()
+		}
+	}
 	// Separate statements keep the change-feed trigger's REPLACE policy effective on updates.
 	existing, err := dbOne(db, "SELECT id FROM personal_entries WHERE user_id=? AND key=?", uid, key)
 	if err != nil {

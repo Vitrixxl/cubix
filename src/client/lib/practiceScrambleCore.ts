@@ -1,4 +1,4 @@
-import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
+import { applyAlg, randomAuf, solved, uprightRotation } from "../../shared/cube";
 import { eventOf, puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
 import { crossPattern, crossTrainingType, type PatternData } from "../../shared/crossTraining";
@@ -19,21 +19,12 @@ function moves(faces: string[], suffixes = ["", "'", "2"], length = 25) {
   let previous = "";
   return Array.from({ length }, () => { const face = sample(faces.filter(f => f !== previous)); previous = face; return face + sample(suffixes); }).join(" ");
 }
-const centersKey = (state: CubeState) => [4,13,22,31,40,49].map(i => state[i]).join(",");
-const orientations = new Map<string, string>();
-const queue = [{state:solved(), alg:""}];
-for (let i = 0; i < queue.length; i++) {
-  const {state,alg} = queue[i], key = centersKey(state);
-  if (orientations.has(key)) continue;
-  orientations.set(key,invertAlg(alg));
-  for (const rotation of ["x","y","z"]) queue.push({state:applyAlg(state,rotation),alg:`${alg} ${rotation}`.trim()});
-}
 const setups = new Map<string, string[]>();
 function caseSetup(stage: string) {
   if (!setups.has(stage)) setups.set(stage,cases.filter(c => (c.cube_size ?? 3) === 3 && c.set === stage).map(c => {
     // Catalogue setups may end with a whole-cube rotation. Keep the training blocks
     // in the standard orientation when composing playground scrambles.
-    const correction = orientations.get(centersKey(applyAlg(solved(),c.setup)));
+    const correction = uprightRotation(applyAlg(solved(), c.setup));
     if (correction === undefined) throw new Error("Invalid case orientation.");
     return `${c.setup} ${correction}`.trim();
   }));

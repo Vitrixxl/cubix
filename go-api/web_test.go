@@ -10,7 +10,7 @@ import (
 )
 
 func TestWebTrailingSlash(t *testing.T) {
-	router := webRouter(t.TempDir())
+	router := webRouter(t.TempDir(), nil)
 	for path, want := range map[string]string{
 		"/timer/?puzzle=333":       "/timer?puzzle=333",
 		"/fr/algorithms/OLL%2021/": "/fr/algorithms/OLL%2021",
@@ -37,7 +37,7 @@ func TestWebPageWithoutBrotli(t *testing.T) {
 	_ = zw.Close()
 	_ = os.WriteFile(filepath.Join(dir, "pages", "en", "timer.html.gz"), packed.Bytes(), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "pages", "en", "timer.html.br"), []byte("brotli"), 0o644)
-	router := webRouter(dir)
+	router := webRouter(dir, nil)
 	for encoding, want := range map[string]string{"br, gzip": "brotli", "gzip": packed.String(), "": "<h1>Timer</h1>"} {
 		r := httptest.NewRequest("GET", "/timer", nil)
 		if encoding != "" {
@@ -61,7 +61,7 @@ func TestWebLocalizedCaseNotIndexed(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(dir, "index.html"), []byte("app"), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "pages", "en", "algorithms", "OLL 21.html.gz"), []byte("case"), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "pages", "fr", "timer.html.gz"), []byte("chrono"), 0o644)
-	router := webRouter(dir)
+	router := webRouter(dir, nil)
 	for path, want := range map[string]string{
 		"/fr/algorithms/OLL%2021":            "noindex",
 		"/de/algorithms/OLL%2021?puzzle=333": "noindex",

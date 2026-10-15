@@ -1,6 +1,7 @@
 /** Personal setup: the puzzles and methods the player can solve, stored per account and synchronized. */
 import { isPuzzle, type PuzzleId } from "../../shared/puzzles";
 import { METHODS } from "../../shared/methods";
+import { WCA_ID } from "./wca";
 
 /** Older profiles still carry a self-assessed level; setup no longer asks for it. */
 const LEVEL_IDS = ["new", "beginner", "intermediate", "advanced"] as const;
@@ -18,6 +19,8 @@ export interface JourneyProfile {
   bests?: Partial<Record<PuzzleId, number>>;
   /** The 3×3 the player mains, from `CUBES_333` or typed: 60 characters at most. */
   mainCube?: string;
+  /** Their WCA ID, as they gave it (2009ZEMD01): not verified with the WCA. */
+  wcaId?: string;
   completedAt: string;
 }
 /** Entries other than the profile (personal goals, removed) are ignored. */
@@ -68,7 +71,7 @@ const validAt = (value: unknown) => typeof value === "string" && /^\d{4}-\d{2}-\
 export function validJourneyEntry(key: string, value: unknown): value is JourneyEntry {
   if (key !== PROFILE_KEY || !value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return v.kind === "profile" && (v.mainCube === undefined || typeof v.mainCube === "string" && !!v.mainCube.trim() && v.mainCube.length <= 60) && (v.level === undefined || LEVEL_IDS.includes(v.level as Experience)) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
+  return v.kind === "profile" && (v.mainCube === undefined || typeof v.mainCube === "string" && !!v.mainCube.trim() && v.mainCube.length <= 60) && (v.wcaId === undefined || typeof v.wcaId === "string" && WCA_ID.test(v.wcaId)) && (v.level === undefined || LEVEL_IDS.includes(v.level as Experience)) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
     && Array.isArray(v.knownPuzzles) && v.knownPuzzles.length <= 11 && v.knownPuzzles.every(isPuzzle) && new Set(v.knownPuzzles).size === v.knownPuzzles.length
     && (v.priorityMethod === undefined || typeof v.priorityMethod === "string" && isPuzzle(v.priority) && METHODS[v.priority].some(m => m.id === v.priorityMethod))
     && (v.learningPuzzles === undefined || Array.isArray(v.learningPuzzles) && v.learningPuzzles.length <= 11 && v.learningPuzzles.every(isPuzzle) && new Set(v.learningPuzzles).size === v.learningPuzzles.length && (v.priority === null ? !v.learningPuzzles.length : v.learningPuzzles.includes(v.priority)))

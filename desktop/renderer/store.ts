@@ -9,7 +9,7 @@ import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigure
 import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, PUZZLES, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
+import { EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, PUZZLES, normalizeScrambleType, puzzleOf, roundFormat, type PuzzleId, type RoundFormat, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_MOVES, CROSS_TARGETS, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 import { courseEntry, courseStorageKey, goToStep, methodOf, methodSetIds, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
@@ -18,9 +18,12 @@ import type { PolyPuzzle } from "../../src/shared/puzzleScene";
 import { PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
 import { go, goPage, pageUrl, readRoute, type AppRoute } from "./navigation";
 import { ACCOUNT_PAGES } from "../../src/client/lib/route";
+import { sharedSolveUrl } from "../../src/client/lib/sharedSolve";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { stackmat } from "../../src/client/lib/stackmat";
-import { INSPECTIONS, type Inspection } from "../../src/client/lib/format";
+import { effective, INSPECTIONS, type Inspection } from "../../src/client/lib/format";
+import { compSimName, roundRecord } from "../../src/client/lib/compSim";
+import type { Penalty, SolveDto } from "../../src/shared/types";
 import "./dev/devTools";
 import { toast } from "sonner";
 import { tn, tr } from "../../src/client/i18n";
@@ -31,13 +34,15 @@ import { cancelDaily, dailyDay, fetchDaily, isDailyEvent, DailyError, type Daily
 import { appReady } from "../../src/client/lib/firstLaunch";
 
 const SHOWN_SCRAMBLE = "cubix.shownScramble";
+/** The timer's competition simulation (`Store.compSim`), kept over a reload. */
+const COMP_SIM = "cubix.compSim";
 /** The next scrambles drawn ahead, by context (`Store.ahead`). */
 const AHEAD = "cubix.scramblesAhead";
 /** The scramble shown last and its puzzle, kept on the device: the timer drawn while the app starts shows it already. */
 export const lastScramble: { puzzle?: string; scramble?: string } = (() => { try { return JSON.parse(localStorage.getItem(SHOWN_SCRAMBLE) ?? "{}") ?? {}; } catch { return {}; } })();
 // The connected cube coming and going, wherever the player is.
 /** The ways of training the setup page offers, in its order. */
-export const TRAINING_MODES = ["cross", "recognition", "learned", "sets", "free"] as const;
+export const TRAINING_MODES = ["cross", "recognition", "learned", "sets", "free", "bld"] as const;
 export type TrainingMode = (typeof TRAINING_MODES)[number];
 let cubeLink = smartCube.snapshot.status;
 smartCube.subscribe(() => {
@@ -201,6 +206,15 @@ export class Store {
   statsBy = "solve";
   /** Contexts whose last session was looked for since launch (it resumes on the same day, or when named). */
   private resumed = new Set<string>();
+  /**
+   * A competition simulation on the timer (lib/compSim): its event and session, its format, the record it is compared
+   * with, the session to go back to, and the attempt stopped and waiting for its judge (OK, +2 or DNF). Its attempts
+   * are the solves of its session. Kept on this device (written at each change, see `emit`): the round goes on whenever
+   * the timer shows its session, after a reload too.
+   */
+  compSim: { event: string; session: number; format: RoundFormat; record: number | null; previous?: number; pending: { ms: number; penalty: Penalty; solution?: string | null; memo?: number } | null } | null =
+    (() => { try { return JSON.parse(localStorage.getItem(COMP_SIM) ?? "null"); } catch { return null; } })();
+  private savedCompSim = JSON.stringify(this.compSim);
   lastSolve = 0;
   notice = "";
   replay = 0;
@@ -259,6 +273,7 @@ export class Store {
   };
   emit = () => {
     if (this.scramble && this.scramble !== this.savedScramble) try { localStorage.setItem(SHOWN_SCRAMBLE, JSON.stringify({ puzzle: this.puzzle, scramble: (this.savedScramble = this.scramble) })); } catch {}
+    if (JSON.stringify(this.compSim) !== this.savedCompSim) try { localStorage.setItem(COMP_SIM, (this.savedCompSim = JSON.stringify(this.compSim))); } catch {}
     this.version++;
     this.listeners.forEach((fn) => fn());
   };
@@ -798,9 +813,16 @@ export class Store {
    * `penalty`: given with the time, as a smart cube solve stopped before the cube is solved. `solution`: the turns
    * made, when a smart cube recorded them. `memo`: blindfolded, when the memorisation ended.
    */
-  async save(ms: number, penalty?: "none" | "+2" | "dnf", solution?: string | null, memo?: number) {
+  async save(ms: number, penalty?: "none" | "+2" | "dnf", solution?: string | null, memo?: number, judged = false) {
     if (this.saving || this.generating || this.pendingSolve) return;
-    if (this.page === "playground" && this.entry === "casual") {
+    const round = this.compRound();
+    // A round's attempt waits for its judge before it is saved, whatever the time entry.
+    if (round && !judged) {
+      round.pending = { ms, penalty: penalty ?? "none", solution, memo };
+      this.emit();
+      return;
+    }
+    if (!round && this.page === "playground" && this.entry === "casual") {
       this.lastSolve = 0;
       await this.nextScramble();
       return;
@@ -849,6 +871,40 @@ export class Store {
       this.saving = false;
       this.emit();
     }
+  }
+  /** The competition simulation, while the timer shows its event and its session. */
+  compRound() {
+    const round = this.compSim;
+    return round && this.practicePage() === "playground" && !this.crossTraining && round.event === this.event().id && this.sessions.get(this.contextKey()) === round.session ? round : null;
+  }
+  /** Starts a round of the event: random scrambles, a session of its own, the record of the event's earlier solves. */
+  async startCompSim() {
+    if (this.scrambleType !== "normal" || this.dailyEvent()) await this.action("scrambleType:normal");
+    const event = this.event().id, format = roundFormat(event),
+      previous = this.compRound() ? this.compSim!.previous : this.sessions.get(this.contextKey()),
+      earlier: SolveDto[] = await call("solves", "playground", Infinity, this.puzzle, this.context());
+    await this.useSession("new", tr(compSimName()));
+    this.compSim = {
+      event, format, previous, pending: null, session: this.sessions.get(this.contextKey())!,
+      record: roundRecord(format, [...earlier].reverse().map((v) => effective(v.time_ms, v.penalty))),
+    };
+    this.timerEpoch++;
+    await this.nextScramble();
+  }
+  /** Leaves the round, asked first until it is over: its attempts stay in its session, the timer goes back to the one before. */
+  async endCompSim(over: boolean) {
+    const round = this.compRound();
+    if (round && !over && !(await ask({ title: tr("Leave the round?"), text: tr("Its attempts stay in its session."), action: tr("Leave"), destructive: false }))) return;
+    this.compSim = null;
+    this.timerEpoch++;
+    if (round) await this.useSession(round.previous ?? "new");
+  }
+  /** The judge signs the attempt waiting: as timed (with its inspection's penalty), +2 or DNF. */
+  async judge(penalty: Penalty) {
+    const round = this.compRound(), pending = round?.pending;
+    if (!pending) return;
+    round.pending = null;
+    await this.save(pending.ms, penalty, pending.solution, pending.memo, true);
   }
   /** The timer's current session, or none before its first solve. */
   currentSession() {
@@ -1189,6 +1245,8 @@ export class Store {
             if (this.learning) this.learnStep(this.learning.entry.step + 1);
             break;
           }
+          // A round's scramble is never skipped.
+          if (this.compRound()) break;
           this.timerEpoch++;
           if (this.practicePage() === "training") await this.nextCase();
           else await this.nextScramble();
@@ -1432,6 +1490,12 @@ export class Store {
           this.statsBy = arg;
           this.pref("cubix.profile.statsBy", arg);
           break;
+        // A competition simulation: started, left ("end", asked first; "done" once over), or an attempt judged.
+        case "compSim":
+          if (!arg) await this.startCompSim();
+          else if (arg === "end" || arg === "done") await this.endCompSim(arg === "done");
+          else await this.judge(arg as Penalty);
+          break;
         // The timer's sessions: a new one, or back to an earlier one.
         case "session":
           await this.useSession(arg === "new" ? "new" : Number(arg));
@@ -1500,7 +1564,11 @@ export class Store {
           }
           break;
         case "share": {
-          const url = location.origin + "/solve/" + (await call("shareSolve", Number(arg)));
+          if (this.user.isGuest) {
+            this.askSignIn();
+            break;
+          }
+          const url = sharedSolveUrl(location.origin, await call("shareSolve", Number(arg)));
           if (isPhone(innerWidth) && navigator.share) await navigator.share({ url }).catch((e) => {
             if (e.name !== "AbortError") throw e;
           });

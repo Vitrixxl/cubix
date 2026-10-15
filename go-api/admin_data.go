@@ -135,6 +135,7 @@ func adminDataPurge(tx *Conn, user string) (solves int64, sessions int64, err er
 		"DELETE FROM learned_cases WHERE user_id=?",
 		"DELETE FROM learning_group_orders WHERE user_id=?",
 		"DELETE FROM personal_entries WHERE user_id=?",
+		"DELETE FROM shared_solves WHERE user_id=?",
 		"DELETE FROM sync_receipts WHERE user_id=?",
 		// Last: the deletions above journal their changes here.
 		"DELETE FROM sync_changes WHERE user_id=?",
