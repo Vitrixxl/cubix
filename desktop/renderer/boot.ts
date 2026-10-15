@@ -59,5 +59,9 @@ document.write(crawler ? CUBIX_DESKTOP_HEAD.replace(preloads, "").replace(/<scri
 if (!crawler && "serviceWorker" in navigator) {
   addEventListener("load", () => (window.requestIdleCallback ?? setTimeout)(() => void navigator.serviceWorker.register(started ? "/sw.js?app=phone" : "/sw.js").catch(() => {})), { once: true });
 }
-// A window resized across the line loads the other app.
-if (CUBIX_PHONE_HEAD && !crawler) addEventListener("resize", () => { if (phone() !== started) location.reload(); });
+// A window resized across the line loads the other app, once it has the focus back: a sign-in popup (Google's) that a
+// tiling window manager squeezes it beside must find the page it left, and the window its size again (given a moment).
+if (CUBIX_PHONE_HEAD && !crawler) {
+  const reload = () => { if (phone() !== started) location.reload(); };
+  addEventListener("resize", () => document.hasFocus() ? reload() : addEventListener("focus", () => setTimeout(reload, 500), { once: true }));
+}
