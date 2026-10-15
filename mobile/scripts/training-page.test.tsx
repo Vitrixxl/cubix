@@ -144,3 +144,16 @@ test("a recognition run counts down, shows cases without their names, a tap paus
   await act(() => chip("Close")!.props.onPress());
   expect(texts()).toEqual(expect.arrayContaining(["2", "cases done"]));
 });
+
+test("a recognition run left for another page goes on where it was when the page comes back", async () => {
+  const store = await mount(s => { s.set(trainingRunAtom, "recognition"); s.set(trainingStepAtom, "practice"); });
+  for (let i = 0; i < 3; i++) await act(() => new Promise(resolve => setTimeout(resolve, 1020)));
+  await act(() => pressable("Show the algorithm")!.props.onPress());
+  await act(() => chip("Next")!.props.onPress());
+  const shown = renderer.root.findAllByType("CubePreview" as any)[0]!.props.alg;
+  await act(() => renderer.unmount());
+  await act(() => { renderer = create(<Provider store={store}><TrainingPage /></Provider>); });
+  // No countdown again: the same case, the count kept.
+  expect(renderer.root.findAllByType("CubePreview" as any)[0]!.props.alg).toBe(shown);
+  expect(renderer.root.findByType("PushedBar" as any).props.sub).toContain("1 case");
+});

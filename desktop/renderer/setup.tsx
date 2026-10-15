@@ -331,6 +331,8 @@ function CourseRow({ set }: { set: any }) {
   );
 }
 
+/** The runs whose countdown is over: a new run (Again) counts down again, one left and come back to goes on. */
+const counted = new WeakSet<object>();
 /**
  * A running recognition: three seconds counted down, then cases drawn at random from the set until it is closed, timed
  * on a connected cube like any training, else each shown for a set time; once closed, how many cases were seen.
@@ -338,10 +340,9 @@ function CourseRow({ set }: { set: any }) {
 export function RecognitionPractice() {
   const runOf = s.recognition,
     cube = useCubeRecognition(),
-    // The run whose countdown is over: a new run (Again) counts down again.
-    [started, setStarted] = useState<object | null>(null);
+    [, setStarted] = useState<object | null>(null);
   if (!runOf || runOf.closed || !runOf.ids.length) return <RecognitionDone />;
-  if (started !== runOf) return <Countdown onDone={() => setStarted(runOf)} />;
+  if (!counted.has(runOf)) return <Countdown onDone={() => (counted.add(runOf), setStarted(runOf))} />;
   return cube ? <Practice /> : <TimedRecognition />;
 }
 

@@ -1,5 +1,5 @@
 import { useKeepAwake } from "expo-keep-awake";
-import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { Box, Check, ChevronLeft, ChevronRight, ChevronUp, CirclePlay, Eye, EyeOff, List, ListChecks, Pause, RotateCcw, Shuffle, SkipForward, Undo2, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Animated, Easing, Linking, Pressable, ScrollView, View } from "react-native";
@@ -60,7 +60,7 @@ function TrainingRoot() {
   const [run, setRun] = useAtom(trainingRunAtom);
   // Starting writes the target down: one read from the former first-block training stays an XCross.
   const [crossTarget, setCrossTarget] = useAtom(crossTargetAtom);
-  const setPicks = useSetAtom(trainPicksAtom), setSets = useSetAtom(trainSetsAtom);
+  const setPicks = useSetAtom(trainPicksAtom), setSets = useSetAtom(trainSetsAtom), clearRecognition = useSetAtom(recognitionRunAtom);
   const route = useAtomValue(routeAtom);
   const replaceRoute = useSetAtom(replaceRouteAtom);
   const data = useTrainingData();
@@ -75,6 +75,7 @@ function TrainingRoot() {
     if (kind === "cross") { if (puzzle !== "333") return; setCrossTarget(crossTarget); }
     // The recommended cases picked stay those of this start, whatever is recommended later.
     if (kind === "cases") setPicks(data.picks);
+    if (kind === "recognition") clearRecognition(null);
     setRun(kind); setStep("practice");
   }, [puzzle, crossTarget, data.picks]);
   // Leaving a training goes back to where it was started, leaving Learned to the list.
@@ -394,6 +395,14 @@ function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo, dock
 }
 
 /**
+ * A recognition run: its cases, fixed at its start, the one shown with its AUF and how it is held, how many were done, and
+ * where it stands. `paused`: the seconds the case was seen before a tap paused it to show its algorithm; `since`: when it showed.
+ */
+type RecognitionState = { puzzle: string; ids: string[]; current: string; auf: string; turn: number; paused: number | null; since: number; done: number; phase: "countdown" | "running" | "closed"; left: number };
+/** The recognition run under way, kept while the page is left as the other trainings are (`trainingStepAtom`); a new start clears it. */
+const recognitionRunAtom = atom<RecognitionState | null>(null);
+
+/**
  * A recognition run: three seconds counted down, then the learned cases of the set drawn at random (never the same
  * twice in a row), each shown alone for the seconds chosen, never named, until Close; then how many were done.
  */
@@ -409,9 +418,11 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
   const back = useAtomValue(recognitionBackAtom);
   const useAuf = useAtomValue(randomAufAtom);
   const set = data.recognition?.set;
-  // The run: its cases, fixed at its start, the one shown with its AUF and how it is held, how many were done, and where it stands.
-  // `paused`: the seconds the case was seen before a tap paused it to show its algorithm; `since`: when it showed.
-  const [state, setState] = useState(() => ({ ids: set ? recognitionCases(cases, data.learned, set.id) : [], current: "", auf: "", turn: 0, paused: null as number | null, since: 0, done: 0, phase: "countdown" as "countdown" | "running" | "closed", left: 3 }));
+  const [kept, keep] = useAtom(recognitionRunAtom);
+  // Back on the page, the run goes on where it was, the case shown starting its bar again.
+  const [state, setState] = useState<RecognitionState>(() => kept?.puzzle === puzzle && kept.ids.length ? { ...kept, since: Date.now() }
+    : { puzzle, ids: set ? recognitionCases(cases, data.learned, set.id) : [], current: "", auf: "", turn: 0, paused: null, since: 0, done: 0, phase: "countdown", left: 3 });
+  useEffect(() => keep(state), [state]);
   const draw = (last?: string) => ({ current: nextRecognition(state.ids, last) ?? "", auf: useAuf && cube ? randomAuf() : "", turn: recognitionTurn(), paused: null as number | null, since: Date.now() });
   const startOver = () => setState(s => ({ ...s, done: 0, phase: "countdown", left: 3 }));
   useEffect(() => {
