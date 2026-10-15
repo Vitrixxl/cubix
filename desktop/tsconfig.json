@@ -13,7 +13,8 @@
   ],
   "exclude": [
     "assets",
-    "dist"
+    "dist",
+    "testing/_*.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

@@ -375,7 +375,7 @@ function Net({ colours, doubt, brush, onPaint }: { colours: (Face | null)[]; dou
                 aria-label={unsure ? tr("Check this sticker") : tr("Paint this sticker")}
                 onClick={() => onPaint(slot)}
                 className={cn(
-                  "flex size-[calc((100vw_-_5rem)/13)] items-center justify-center rounded-[6px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-xs font-extrabold text-[#1c1317] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:cursor-pointer enabled:hover:opacity-80 md:size-[clamp(1rem,min(5.4svh,calc((100vw_-_34rem)/14)),2.75rem)]",
+                  "flex size-[calc((100vw_-_5rem)/13)] items-center justify-center rounded-[6px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-xs font-extrabold text-[#1c1317] outline-none enabled:cursor-pointer enabled:hover:opacity-80 md:size-[clamp(1rem,min(5.4svh,calc((100vw_-_34rem)/14)),2.75rem)]",
                   !colour && "bg-[repeating-linear-gradient(45deg,var(--muted),var(--muted)_3px,transparent_3px,transparent_6px)] ring-1 ring-foreground/15",
                   colour === brush && i !== 4 && "ring-1 ring-foreground/30",
                   unsure && "outline-2 -outline-offset-2 outline-foreground outline-dashed",

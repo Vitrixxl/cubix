@@ -182,7 +182,7 @@ function TournamentRow({ t, current, onClick, ref }: { t: Tournament; current: b
       aria-current={current ? "true" : undefined}
       data-tournament={t.id}
       data-status={t.status}
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-[14px] px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current]:bg-muted"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-[14px] px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted aria-[current]:bg-muted"
     >
       <b className="truncate text-[15px] font-bold">{t.name}</b>
       <Steps t={t} />

@@ -11,6 +11,19 @@ import { sharedSolveId } from "../../src/client/lib/sharedSolve";
 
 // The browser's offer to install the app, which can come before either app mounts (pwaInstall.ts).
 captureInstall();
+// An app's behaviour in either app: its own menus only (the browser's reload, inspect, save image… stay out, but where
+// text is typed or selected to copy), Ctrl+A selecting only in a field, and nothing dragged off the page but what is
+// made to be dragged.
+const typed = (target: EventTarget | null) => !!(target as HTMLElement).closest?.("input, textarea, [contenteditable=true]");
+addEventListener("contextmenu", (e) => {
+  if (!typed(e.target) && !getSelection()?.toString()) e.preventDefault();
+});
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a" && !typed(e.target)) e.preventDefault();
+});
+addEventListener("dragstart", (e) => {
+  if (!(e.target as HTMLElement).closest?.("[draggable=true]")) e.preventDefault();
+});
 const root = document.documentElement;
 // The theme chosen on this device, never the default one first.
 const { themeName, light } = cachedAppearance();

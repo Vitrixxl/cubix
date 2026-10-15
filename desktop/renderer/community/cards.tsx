@@ -113,7 +113,7 @@ function Seat({ p, name, score, won, take, action, order }: { p: Person | null; 
   const tile = "flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-center text-sm font-bold";
   if (take)
     return (
-      <button type="button" onClick={take} data-action={action} className={cn(tile, order, "border-2 border-dashed border-muted-foreground/50 text-foreground/80 transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:outline-none")}>
+      <button type="button" onClick={take} data-action={action} className={cn(tile, order, "border-2 border-dashed border-muted-foreground/50 text-foreground/80 transition-colors hover:border-primary hover:text-primary")}>
         {p ? (
           <Avatar name={p.username} src={p.avatar} size={34} />
         ) : (

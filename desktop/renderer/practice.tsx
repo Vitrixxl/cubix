@@ -912,7 +912,7 @@ export function Practice() {
                 ) : typing ? (
                   <input
                     ref={typedRef}
-                    className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
+                    className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40")}
                     aria-label={tr("Time")}
                     data-tour="timer"
                     placeholder="0.000"
@@ -1547,7 +1547,7 @@ const TimeRow = memo(
   function TimeRow({ solve: v, number, tone, touch, caption }: { solve: any; number: number; tone: ReturnType<typeof solveTone>; touch: boolean; lang: string; caption?: string }) {
     return (
       <SolveMenu solve={v}>
-        <div className={cn(ROW, "group/row flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-2 select-none has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset", touch && "h-11 active:bg-muted/50")}>
+        <div className={cn(ROW, "group/row flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-2 select-none", touch && "h-11 active:bg-muted/50")}>
           <button
             type="button"
             data-action={"solve:" + v.id}

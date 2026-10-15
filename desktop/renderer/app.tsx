@@ -64,6 +64,7 @@ const CODE = {
   tournaments: () => import("./tournaments/page"),
   match: () => import("./tournaments/match"),
   daily: () => import("./daily"),
+  wca: () => import("./wca/page"),
   training: () => import("./setup"),
   learn: () => import("./learn"),
 };
@@ -95,6 +96,7 @@ const CommunityPage = later(CODE.community, (m) => m.CommunityPage);
 const TournamentsPage = later(CODE.tournaments, (m) => m.TournamentsPage);
 const MatchPage = later(CODE.match, (m) => m.MatchPage);
 const DailyPage = later(CODE.daily, (m) => m.DailyPage);
+const WcaPage = later(CODE.wca, (m) => m.WcaPage);
 const TrainingSetup = later(CODE.training, (m) => m.TrainingSetup);
 const RecognitionPractice = later(CODE.training, (m) => m.RecognitionPractice);
 const Learn = later(CODE.learn, (m) => m.Learn);
@@ -290,6 +292,8 @@ function App() {
                     <MatchPage />
                   ) : s.page === "daily" ? (
                     <DailyPage />
+                  ) : s.page === "wca" ? (
+                    <WcaPage />
                   ) : (
                     <Profile />
                   )}

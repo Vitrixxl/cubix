@@ -520,9 +520,9 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		if id, ok := strings.CutPrefix(path, "shared/"); ok && id != "" && !strings.Contains(id, "/") {
 			return dbCall(state.db, func(db *Conn) (any, error) { return sharedSolve(db, id) })
 		}
-		// A player's official WCA results and competitions, proxied and cached (wca.go).
+		// The WCA's rankings, records, competitions and people, proxied and cached (wca.go).
 		if rest, ok := strings.CutPrefix(path, "wca/"); ok {
-			return wcaRoute(state, trafficKey(state.traffic.ip(peerIP(r), r.Header)).String(), rest)
+			return wcaRoute(state, trafficKey(state.traffic.ip(peerIP(r), r.Header)).String(), rest, query)
 		}
 		if id, ok := strings.CutPrefix(path, "cases/"); ok && !strings.Contains(id, "/") {
 			if c, ok := state.catalog.byID[id]; ok {

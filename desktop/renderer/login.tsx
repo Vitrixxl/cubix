@@ -129,7 +129,7 @@ function GoogleButton({ id, busy, onError }: { id: string; busy: boolean; onErro
     return () => { live = false; };
   }, [id]);
   return (
-    <div className={cn("group relative w-full rounded-[12px] focus-within:ring-3 focus-within:ring-ring/50", busy && "pointer-events-none opacity-60")} data-slot="login-google" aria-busy={busy || undefined}>
+    <div className={cn("group relative w-full rounded-[12px]", busy && "pointer-events-none opacity-60")} data-slot="login-google" aria-busy={busy || undefined}>
       <div aria-hidden className={cn(buttonVariants(), "w-full group-hover:bg-primary/85")}>
         <span className="grid size-6 place-items-center rounded-full bg-white"><GoogleMark /></span>
         {busy ? tr("Signing in…") : tr("Continue with Google")}

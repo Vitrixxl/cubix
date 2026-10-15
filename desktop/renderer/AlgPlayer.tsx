@@ -129,7 +129,7 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
             data-move={part.move}
             aria-current={part.move === current ? "step" : undefined}
             onClick={() => player.playSource(part.move!)}
-            className="-mx-[0.15em] rounded-[0.3em] px-[0.15em] outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 aria-[current=step]:bg-primary aria-[current=step]:text-primary-foreground"
+            className="-mx-[0.15em] rounded-[0.3em] px-[0.15em] outline-none transition-colors hover:bg-muted aria-[current=step]:bg-primary aria-[current=step]:text-primary-foreground"
           >
             {said(part.text)}
           </button>

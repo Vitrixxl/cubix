@@ -311,7 +311,7 @@ export function LearnedMark({ id, learned, touch = false, action = "learn:" + id
           run(action)(e);
         }}
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50",
+          "flex shrink-0 items-center justify-center rounded-full outline-none transition-colors",
           touch ? "size-11" : "size-7",
           learned ? "text-success" : "text-muted-foreground/40 group-hover/row:text-muted-foreground/80 group-focus-within/row:text-muted-foreground/80 hover:text-foreground",
         )}

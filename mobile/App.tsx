@@ -73,6 +73,7 @@ function renderPage(route: Route) {
     // The social pages load on first use: none of them is on the way to the timer.
     case "community": { const { CommunityPage } = require("./src/pages/CommunityPage") as typeof import("./src/pages/CommunityPage"); return <CommunityPage view={route.view} />; }
     case "tournaments": { const { TournamentsPage } = require("./src/pages/TournamentsPage") as typeof import("./src/pages/TournamentsPage"); return <TournamentsPage view={route.view} />; }
+    case "wca": { const { WcaPage } = require("./src/pages/WcaPage") as typeof import("./src/pages/WcaPage"); return <WcaPage view={route.view} />; }
     case "match": { const { MatchPage } = require("./src/pages/MatchPage") as typeof import("./src/pages/MatchPage"); return <MatchPage id={route.id} />; }
     case "coaching": { const { CoachingPage } = require("./src/pages/CoachingPage") as typeof import("./src/pages/CoachingPage"); return <CoachingPage view={route.view} />; }
   }

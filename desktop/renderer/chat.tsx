@@ -298,7 +298,7 @@ export function MessageList<T extends Said>({
 export function Bubble({ at, children }: { at: number; children: React.ReactNode }) {
   return (
     <Tip content={<span className={NUMERIC}>{span(at)}</span>} side="right">
-      <p className="max-w-full text-[15px] leading-normal break-words whitespace-pre-wrap">{children}</p>
+      <p data-selectable className="max-w-full text-[15px] leading-normal break-words whitespace-pre-wrap">{children}</p>
     </Tip>
   );
 }

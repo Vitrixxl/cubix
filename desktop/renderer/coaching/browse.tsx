@@ -161,7 +161,7 @@ export function CoachRow({ c, active = false, slot = null, onPick }: { c: Coach;
       <Avatar name={c.username} src={c.avatar} size={52} className="row-span-2" />
       <span className="flex min-w-0 items-baseline gap-2.5">
         {onPick ? (
-          <button type="button" className="truncate text-base font-extrabold outline-none after:absolute after:inset-0 after:rounded-[18px] focus-visible:after:ring-3 focus-visible:after:ring-ring/50" onClick={() => onPick(null)}>
+          <button type="button" className="truncate text-base font-extrabold outline-none after:absolute after:inset-0 after:rounded-[18px]" onClick={() => onPick(null)}>
             {c.username}
           </button>
         ) : (
@@ -583,7 +583,7 @@ export function Booking({ id, preset = null }: { id: string; preset?: number | n
               disabled={!n}
               onClick={() => setPicked(key)}
               data-day={key}
-              className={cn("flex flex-col items-center gap-0.5 rounded-[14px] py-2 text-xs text-muted-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:hover:bg-transparent", on && "bg-accent hover:bg-accent")}
+              className={cn("flex flex-col items-center gap-0.5 rounded-[14px] py-2 text-xs text-muted-foreground transition-colors outline-none hover:bg-muted disabled:hover:bg-transparent", on && "bg-accent hover:bg-accent")}
             >
               {weekdayName.format(d)}
               <b className={cn(NUMERIC, "text-lg font-extrabold", n ? "text-foreground" : "text-muted-foreground")}>{new Date(d).getDate()}</b>

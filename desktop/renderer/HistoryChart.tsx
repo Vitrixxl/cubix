@@ -206,7 +206,7 @@ export function HistoryChart({ history, averages, range, onRange, points = false
       </div>
       <div
         ref={plot}
-        className={cn("chart-plot relative min-h-0 cursor-crosshair touch-none rounded-md outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50", drag?.pan && "cursor-grabbing")}
+        className={cn("chart-plot relative min-h-0 cursor-crosshair touch-none rounded-md outline-none select-none", drag?.pan && "cursor-grabbing")}
         tabIndex={0}
         role="group"
         aria-label={tr("Solve times: scroll to zoom, drag to select a period, Shift-drag to pan, double-click to reset. Keyboard: plus or minus to zoom, arrows to pan, Home to reset.")}

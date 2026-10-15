@@ -23,15 +23,17 @@ import { Label } from "./layout";
 import { said, tr } from "../../../src/client/i18n";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
-const CODEPOINT: Record<EventId, number> = {
+const CODEPOINT: Record<string, number> = {
   "222": 0xf10a, "333": 0xf106, "444": 0xf101, "555": 0xf10c, "666": 0xf113, "777": 0xf111,
   "333oh": 0xf115, "333bf": 0xf107, "444bf": 0xf104, "555bf": 0xf114,
   sq1: 0xf102, pyram: 0xf112, skewb: 0xf105, minx: 0xf103,
+  // The WCA events Qbix does not time, for the WCA pages.
+  clock: 0xf108, "333fm": 0xf10d, "333mbf": 0xf10e,
 };
-/** The WCA glyph of a puzzle or event, `size` dp, in `color` (default: the text colour). */
-export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: EventId; size?: number; color?: string }) {
+/** The WCA glyph of a puzzle or event (any WCA event), `size` dp, in `color` (default: the text colour). */
+export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: string; size?: number; color?: string }) {
   const colors = useColors();
-  return <RNText style={{ fontFamily: "cubing-icons", fontSize: size, lineHeight: size * 1.1, color: color ?? colors.foreground, includeFontPadding: false }}>{String.fromCodePoint(CODEPOINT[puzzle])}</RNText>;
+  return <RNText style={{ fontFamily: "cubing-icons", fontSize: size, lineHeight: size * 1.1, color: color ?? colors.foreground, includeFontPadding: false }}>{String.fromCodePoint(CODEPOINT[puzzle] ?? 0xf106)}</RNText>;
 }
 
 /** Cross scrambles belong to training (cross1 is kept for history); the timer's scramble choice leaves them out. */

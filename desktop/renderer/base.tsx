@@ -2,7 +2,7 @@
  * The store-free half of the visual primitives: class names, figures, bars, headings and the viewport hooks. The app
  * reaches them through ui.tsx; the administration (admin/*), which has no store, imports them from here.
  */
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isPhone } from "../../src/client/lib/viewport";
 import { TONE_TEXT, type Tone } from "../../src/client/lib/tone";
 import { ChevronLeft, Ellipsis, Play, Search, Star, X, type LucideIcon } from "lucide-react";
@@ -62,8 +62,8 @@ export const NUMERIC = "font-sans tabular-nums";
 /** The small uppercase-free caption over a figure or a block. */
 export const LABEL = "font-sans text-xs font-medium text-muted-foreground";
 
-/** The keyboard focus of anything clickable that is not a shadcn control: the same ring as a button's. */
-export const FOCUS = "outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+/** Anything clickable that is not a shadcn control: no focus ring, as everywhere (globals.css). */
+export const FOCUS = "outline-none";
 
 /** A clickable row of a list (a link, a raw button): tinted under the pointer and while open, the button's focus ring. */
 export const ROW = cn("rounded-xl text-left transition-colors hover:bg-muted aria-[current=page]:bg-accent aria-pressed:bg-accent", FOCUS);
@@ -761,10 +761,13 @@ export function SearchField({
   className?: string;
 }) {
   const [text, setText] = useState(value);
+  // The page's latest handler: a filter changed meanwhile is not undone when the delay ends.
+  const latest = useRef(onChange);
+  latest.current = onChange;
   useEffect(() => setText(value), [value]);
   useEffect(() => {
     if (!delay || text.trim() === value) return;
-    const id = setTimeout(() => onChange(text.trim()), delay);
+    const id = setTimeout(() => latest.current(text.trim()), delay);
     return () => clearTimeout(id);
   }, [text]);
   const change = (next: string) => {
@@ -782,6 +785,7 @@ export function SearchField({
         data-action={action}
         className={cn(numeric && text && NUMERIC)}
         spellCheck={false}
+        autoComplete="off"
         autoFocus={autoFocus}
       />
       {text && (

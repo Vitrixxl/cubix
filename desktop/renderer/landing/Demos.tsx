@@ -104,7 +104,7 @@ export function TimerDemo() {
       tabIndex={0}
       aria-label={tr("Try the timer")}
       data-demo="timer"
-      className={cn(CARD, "cursor-pointer touch-manipulation gap-6 outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50")}
+      className={cn(CARD, "cursor-pointer touch-manipulation gap-6 outline-none select-none")}
       onPointerDown={(e) => {
         if (e.button === 0) press();
       }}

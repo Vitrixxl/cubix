@@ -283,7 +283,7 @@ function App() {
               rows={3}
               spellCheck={false}
               placeholder="Paste the app's scramble, or an algorithm"
-              className="resize-none rounded-md border bg-transparent p-2 font-mono text-sm outline-none focus:border-ring"
+              className="resize-none rounded-md border bg-transparent p-2 font-mono text-sm outline-none"
             />
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={() => start(false)} disabled={!text.trim()}>Scramble</Button>

@@ -554,7 +554,7 @@ function SolveRow({ v, index, pb, session, ao5, ao12, when, phone, measure }: { 
   );
   return (
     <SolveMenu solve={{ ...v, time_ms: v.timeMs }}>
-      <div ref={measure} className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
+      <div ref={measure} className={cn(ROW, "history-row group/row")}>
         <div className={cn("grid items-center gap-3 px-2", COLUMNS)}>
           <button type="button" data-action={open} data-row onClick={run(open)} className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3">
             <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
@@ -719,7 +719,7 @@ function SolvesTable({ history, ao5, ao12, range, total, tools, sort, setSort, c
           // A case done during a smart cube solve opens that solve; its time is the case's, so it has no actions.
           const open = "solve:" + (v.solveId ?? v.id),
             row = (
-              <div ref={measure} className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
+              <div ref={measure} className={cn(ROW, "history-row group/row")}>
                 <div className={cn("grid items-center gap-4 px-2", TABLE_COLUMNS)}>
                   <button type="button" data-action={open} data-row onClick={run(open)} className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3">
                     <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>

@@ -13,6 +13,31 @@
 @font-face { font-family: Geist; src: url("../assets/fonts/Geist-SemiBold.woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: Geist; src: url("../assets/fonts/Geist-Bold.woff2"); font-weight: 700; font-display: swap; }
 
+/* Tailwind's cursor utilities draw the mouse pointers of /assets/cursors/cursors.css (scripts/build-cursors.ts, linked by
+   desktop/web.ts), with their variants (disabled:, active:…) too. */
+@utility cursor-default { cursor: var(--cursor-default); }
+@utility cursor-pointer { cursor: var(--cursor-pointer); }
+@utility cursor-text { cursor: var(--cursor-text); }
+@utility cursor-grab { cursor: var(--cursor-grab); }
+@utility cursor-grabbing { cursor: var(--cursor-grabbing); }
+@utility cursor-not-allowed { cursor: var(--cursor-not-allowed); }
+@utility cursor-progress { cursor: var(--cursor-progress); }
+@utility cursor-wait { cursor: var(--cursor-wait); }
+@utility cursor-help { cursor: var(--cursor-help); }
+@utility cursor-move { cursor: var(--cursor-move); }
+@utility cursor-copy { cursor: var(--cursor-copy); }
+@utility cursor-crosshair { cursor: var(--cursor-crosshair); }
+@utility cursor-ew-resize { cursor: var(--cursor-ew-resize); }
+@utility cursor-ns-resize { cursor: var(--cursor-ns-resize); }
+@utility cursor-col-resize { cursor: var(--cursor-col-resize); }
+@utility cursor-row-resize { cursor: var(--cursor-row-resize); }
+@utility cursor-nwse-resize { cursor: var(--cursor-nwse-resize); }
+@utility cursor-nesw-resize { cursor: var(--cursor-nesw-resize); }
+@utility cursor-e-resize { cursor: var(--cursor-e-resize); }
+@utility cursor-w-resize { cursor: var(--cursor-w-resize); }
+@utility cursor-zoom-in { cursor: var(--cursor-zoom-in); }
+@utility cursor-zoom-out { cursor: var(--cursor-zoom-out); }
+
 @custom-variant dark (&:is(.dark *));
 
 /* Phones below 701px get the tab bar; the shadcn sidebar's `md` breakpoint follows. */
@@ -167,6 +192,21 @@
   html, body, #root {
     @apply h-full overflow-hidden;
   }
+  /* An app, not a page: a stray click or drag selects nothing, the page never bounces at its edges, a tap leaves no grey
+     flash. What is typed, read at length or copied stays selectable: fields, scrambles, guides, documents, messages. */
+  html {
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :is(input, textarea, [contenteditable="true"], .scramble, .guides-body, article, [data-selectable]) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  :is(img, svg, a, button) {
+    -webkit-user-drag: none;
+  }
   /* Base UI popups portal into <body>: the app stays below them. */
   #root {
     isolation: isolate;
@@ -200,7 +240,7 @@
     }
   }
   /* A menu's rows, 6px in so their 10px corners follow the surface's 16px: the accent tints the one under the pointer or
-     the keys and lights its icon; the keys add the accent's ring (at least 3:1 on the surface and on the tint). Phones
+     the keys and lights its icon. Phones
      and touch screens get 44px rows. A destructive row turns red when reached, a `primary` row is filled with the accent. */
   .menu-list {
     padding: 6px;
@@ -219,10 +259,6 @@
       > svg {
         color: var(--primary);
       }
-    }
-    &:focus-visible {
-      outline: 2px solid var(--ring);
-      outline-offset: -2px;
     }
     &[data-checked] {
       font-weight: 650;
@@ -246,9 +282,6 @@
       &[data-highlighted] {
         background: color-mix(in srgb, var(--primary) 85%, var(--foreground));
       }
-      &:focus-visible {
-        outline-offset: 2px;
-      }
     }
     @media (pointer: coarse), (width < 43.8125rem) {
       min-height: 2.75rem;
@@ -269,14 +302,10 @@ html.landing #root {
 html.landing {
     scroll-behavior: smooth;
 }
-/* What the browser draws on it takes the theme's accent too: selected text, the ring of a link reached by keyboard. */
+/* What the browser draws on it takes the theme's accent too: selected text. */
 html.landing ::selection {
     background: color-mix(in oklch, var(--primary) 55%, transparent);
     color: var(--foreground);
-}
-html.landing a:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 3px;
 }
 @media (prefers-reduced-motion: no-preference) {
     /* The top of the page comes in by itself as the page opens, one part after the other (--i). */
@@ -308,4 +337,12 @@ html:not(.dark) .diagram-top path {
 }
 html:not(.dark) img.case-diagram {
   filter: drop-shadow(0 0 0.5px var(--rim)) drop-shadow(0 0 0.5px var(--rim));
+}
+
+/* No focus ring anywhere (the components set none either), outside the layers so it wins over every utility: a focused
+   element keeps its look, without the browser's outline or a ring. */
+:focus {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
 }

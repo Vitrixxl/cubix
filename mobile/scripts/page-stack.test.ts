@@ -28,6 +28,7 @@ test("web addresses read as routes and back", () => {
     ["/community/add/l%C3%A9na", { page: "community", view: "add/léna" }],
     ["/tournaments", { page: "tournaments" }],
     ["/match/9", { page: "match", id: 9 }],
+    ["/wca/persons/2009ZEMD01", { page: "wca", view: "persons/2009ZEMD01" }],
     ["/coaching/call/abc", { page: "coaching", view: "call/abc" }],
     ["/coaching", { page: "coaching" }],
     ["/algorithms/OLL%201", { page: "algorithms", caseId: "OLL 1" }],

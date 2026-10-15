@@ -401,7 +401,7 @@ function Friends({ onAdd, onSent }: { onAdd: () => void; onSent: () => void }) {
                 aria-pressed={picked === f.id}
                 onClick={() => setPicked(picked === f.id ? null : f.id)}
                 data-friend={f.username}
-                className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-muted aria-pressed:ring-[1.5px] aria-pressed:ring-primary aria-pressed:ring-inset"
+                className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center transition-colors outline-none hover:bg-muted aria-pressed:bg-muted aria-pressed:ring-[1.5px] aria-pressed:ring-primary aria-pressed:ring-inset"
               >
                 <Avatar name={f.username} src={f.avatar} size={52} />
                 <b className="max-w-full truncate text-[13px] font-bold">{f.username}</b>
@@ -411,7 +411,7 @@ function Friends({ onAdd, onSent }: { onAdd: () => void; onSent: () => void }) {
               type="button"
               onClick={onAdd}
               data-action="duel:find-players"
-              className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="grid min-w-0 justify-items-center gap-1.5 rounded-2xl px-0.5 pt-2.5 pb-2 text-center text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground"
             >
               <span className="flex size-[52px] items-center justify-center rounded-full bg-muted">
                 <UserPlus className="size-5" />

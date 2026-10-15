@@ -39,6 +39,8 @@ export type Route =
    */
   | { page: "community"; view?: string }
   | { page: "tournaments"; view?: string }
+  /** The WCA's rankings, records, competitions and people; `view` as on the web ("records", "persons/<WCA ID>"). */
+  | { page: "wca"; view?: string }
   /** A battle or a tournament match, live. */
   | { page: "match"; id: number }
   /** Coaching: its section and argument, as on the web ("dashboard", "coach/<id>", "messages/<id>", "call/<id>"); none opens the account's default. */
@@ -60,7 +62,7 @@ export type Tab = "timer" | "learn" | "algorithms" | "social" | "me";
 export const TABS: readonly Tab[] = ["timer", "learn", "algorithms", "social", "me"];
 const TAB_OF: Record<Page, Tab> = {
   playground: "timer", analysis: "timer", solve: "timer", learn: "learn", assisted: "learn", training: "learn", algorithms: "algorithms",
-  duel: "social", tournaments: "social", match: "social", daily: "social", community: "social", coaching: "social",
+  duel: "social", tournaments: "social", match: "social", daily: "social", wca: "social", community: "social", coaching: "social",
   profile: "me", settings: "me",
 };
 export const tabOf = (page: Page): Tab => TAB_OF[page];
@@ -91,6 +93,7 @@ export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
     { id: "duel", group: "Challenges", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
     { id: "tournaments", group: "Challenges", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },
     { id: "daily", group: "Challenges", label: "Daily", route: { page: "daily" }, has: r => r.page === "daily" },
+    { id: "wca", group: "Challenges", label: "WCA", route: { page: "wca" }, has: r => r.page === "wca" },
   ],
   me: [{ id: "profile", label: "Profile", route: { page: "profile" }, has: r => r.page === "profile" || r.page === "settings" }],
 };
@@ -107,6 +110,7 @@ export function routeDepth(route: Route) {
     case "daily": return route.day ? 1 : 0;
     case "community": return route.view && route.view !== "people" ? 1 : 0;
     case "tournaments": return route.view ? 1 : 0;
+    case "wca": return route.view?.includes("/") ? 1 : 0;
     case "match": return 2;
     // A section is the tab's own level; what it opens (a coach, a conversation, a call) goes one deeper.
     case "coaching": return route.view?.includes("/") ? 1 : 0;
@@ -127,7 +131,7 @@ export function routeOfUrl(url: string): { route: Route; puzzle?: PuzzleId } | n
     : r.page === "algorithms" ? (r.caseId ? { page: "algorithms", caseId: r.caseId } : { page: "algorithms" })
     : r.page === "learn" ? (r.learnMethod ? { page: "learn", method: r.learnMethod } : { page: "learn" })
     : r.page === "profile" ? (PROFILE_SECTIONS.some(s => s.id === r.profileMode && s.id !== "overview") ? { page: "profile", mode: r.profileMode as ProfileMode } : { page: "profile" })
-    : r.page === "community" || r.page === "tournaments" ? (r.view ? { page: r.page, view: r.view } : { page: r.page })
+    : r.page === "community" || r.page === "tournaments" || r.page === "wca" ? (r.view ? { page: r.page, view: r.view } : { page: r.page })
     : r.page === "match" ? { page: "match", id: Number(r.view!.split("/")[0]) }
     : r.page === "coaching" ? (r.coaching ? { page: "coaching", view: r.coaching } : { page: "coaching" })
     : null;
@@ -143,7 +147,7 @@ export function urlOfRoute(route: Route) {
     case "solve": return pageUrl("playground");
     case "settings": return pageUrl("profile");
     case "profile": return pageUrl("profile", { profileMode: route.mode ?? "overview" });
-    case "community": case "tournaments": return pageUrl(route.page, { view: route.view });
+    case "community": case "tournaments": case "wca": return pageUrl(route.page, { view: route.view });
     case "match": return pageUrl("match", { view: String(route.id) });
     case "coaching": return pageUrl("coaching", { coaching: route.view });
     default: return pageUrl(route.page);
@@ -158,7 +162,7 @@ const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "analysis", "learn", "algorithms", "training", "duel", "daily", "tournaments", "coaching", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "analysis", "learn", "algorithms", "training", "duel", "daily", "tournaments", "wca", "coaching", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }

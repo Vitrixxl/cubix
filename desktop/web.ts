@@ -5,7 +5,7 @@
  *                          pages written ahead of time in every language under pages/ (desktop/prerender.tsx)
  *   /robots.txt…           with sitemap.xml, llms.txt and llms-full.txt, for search engines and language models
  *   /build/*               bundles, fonts and the scrambler (scrambler/) with a content hash in their name, immutable
- *   /assets/*              icons and case diagrams
+ *   /assets/*              icons, case diagrams and the mouse pointers (scripts/build-cursors.ts)
  */
 import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -19,6 +19,9 @@ import { buildPages } from "./prerender";
 const root = resolve(import.meta.dir, "..");
 process.chdir(root);
 export const WEB_DIR = resolve(root, "dist/web");
+/** The mouse pointers (scripts/build-cursors.ts), linked as they are by every page: a bundler would resolve their
+ * absolute URLs and cannot read image-set() in an @supports. */
+const CURSORS = "/assets/cursors/cursors.css";
 
 /** Tailwind for Bun.build: each imported stylesheet that uses Tailwind is compiled with the classes found in its
  * `@source` paths (or the whole project without `source(…)`); other stylesheets go to Bun's own CSS loader. */
@@ -104,7 +107,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const styles = app.files.filter((path) => path.endsWith(".css"));
   // Before anything is drawn: whether this device shows the pages written ahead of time, and which app it loads, the
   // desktop one or the phone one (boot.ts writes either's tags).
-  const desktopHead = [...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
+  const desktopHead = [...[...styles, CURSORS].map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
   let phoneHead = await phone;
   if (phoneHead instanceof Error) {
     // In development the desktop app is still served, everywhere, while mobile/ does not build.
@@ -139,16 +142,17 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
       .replace("<!-- scripts -->", page.files.filter((path) => path.endsWith(".js")).map((src) => `<script type="module" src="${src}"></script>`).join("\n    ")));
   }
   for (const name of ["manifest.webmanifest", "favicon.svg", "icon-192.png", "icon-512.png"]) await cp(join("desktop/renderer/pwa", name), join(out, name));
-  for (const directory of ["icons", "cases"]) await cp(join("desktop/assets", directory), join(out, "assets", directory), { recursive: true });
+  for (const directory of ["icons", "cases", "cursors"]) await cp(join("desktop/assets", directory), join(out, "assets", directory), { recursive: true });
   // Everything the app needs to open offline, scramblers included: the engine worker starts before the
   // service worker controls a first visit. Case diagrams are kept once shown; dictionaries, the device's one.
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
+  const cursors = (await readdir(join(out, "assets/cursors"))).filter((name) => /\.(png|css)$/.test(name)).map((name) => `/assets/cursors/${name}`);
   // The administration is never used offline.
   const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
   // The app's own page, without any page written in it: the one every address opens offline (sw.ts). Either app's
   // files: the desktop one's bundles, or the phone one's, those its page loads and its workers (mobile/public).
   const precache = {
-    shared: ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", boot, firstLaunch],
+    shared: ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", boot, firstLaunch, ...cursors],
     desktop: [worker, ...shell, ...fonts.values(), ...icons, scrambler],
     phone: phoneHead ? [...new Set([...phoneHead.matchAll(/(?:href|src)="(\/phone\/[^"]+)"/g)].map((match) => match[1]!)), "/phone/scrambler.js", "/phone/scan.js"] : [],
   };
@@ -189,7 +193,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
       language: id,
       body: renderToString(createElement(Landing)),
       theme: themeTokens(DEFAULT_THEME, "dark"),
-      styles: outputs.filter((path) => path.endsWith(".css")),
+      styles: [...outputs.filter((path) => path.endsWith(".css")), CURSORS],
       scripts: [entry],
       app,
     }).replace("</head>", `  ${preloads.join("\n    ")}\n  </head>`));
@@ -220,7 +224,7 @@ async function legal(out: string, bundle: (entry: string) => Promise<Bundle>) {
       path,
       body: renderToString(createElement(LegalPage, { id })),
       theme: themeTokens(DEFAULT_THEME, "dark"),
-      styles: outputs.filter((file) => file.endsWith(".css")),
+      styles: [...outputs.filter((file) => file.endsWith(".css")), CURSORS],
       scripts: [entry],
     }));
 }
@@ -250,9 +254,12 @@ async function exportPhone(out: string): Promise<string> {
   // app it covers, only up to a phone's width): the app is in view at once, over pageDocument.ts's more specific rule.
   // Like a native app, no text is selected by a long press or a drag, `selectable` texts included; only fields keep it.
   // A drawing keeps its size: in a crowded row the browser would narrow an icon (flex items shrink on the web, never
-  // in React Native), squashing it.
-  return [...tags, "<style>#prerendered{display:none}#prerendered~#root{position:static!important;visibility:visible!important;pointer-events:auto!important}" +
-    "#root *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none}#root :is(input,textarea,[contenteditable]){-webkit-user-select:text!important;user-select:text!important}#root svg{flex-shrink:0}</style>"].join("\n");
+  // in React Native), squashing it. The mouse pointers (CURSORS) replace those its Tailwind classes (outside any layer)
+  // and React Native for the web give: its pressables (Pressable, Touchable…, a Text with onPress) share one class, the
+  // hash of cursor: pointer, its Switch that of cursor: default, in a stylesheet it writes after this one.
+  return [...tags, `<link rel="stylesheet" href="${CURSORS}" />`, "<style>#prerendered{display:none}#prerendered~#root{position:static!important;visibility:visible!important;pointer-events:auto!important}" +
+    "#root *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none}#root :focus,#root :focus-visible{outline:none!important;--tw-ring-shadow:0 0 #0000!important;--tw-ring-offset-shadow:0 0 #0000!important}#root :is(input,textarea,[contenteditable]){-webkit-user-select:text!important;user-select:text!important}#root svg{flex-shrink:0}" +
+    ":root .r-1loqt21{cursor:var(--cursor-pointer)}:root .r-7q8q6z{cursor:var(--cursor-default)}.cursor-default{cursor:var(--cursor-default)}</style>"].join("\n");
 }
 
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */

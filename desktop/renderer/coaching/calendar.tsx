@@ -121,7 +121,7 @@ export function Month({
               onClick={(e) => !off && pick(day, e)}
               onKeyDown={(e) => !off && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pick(day, e))}
               className={cn(
-                "@container relative flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1.5 transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset max-md:rounded-lg max-md:p-1",
+                "@container relative flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1.5 transition-colors outline-none focus-visible:z-10 max-md:rounded-lg max-md:p-1",
                 !outside && "bg-muted/45",
                 off ? "text-muted-foreground/60" : "cursor-pointer hover:bg-accent",
                 className,

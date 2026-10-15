@@ -264,10 +264,10 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       emit({ id: req.id, value: value instanceof Shown ? value.value : display(value ?? null) }); connect();
     } catch (error) { emit({ id: req.id, error: (error as Error).message }); }
   }
-  // Requests are handled one after another, like the solves they record; a scramble records nothing and never waits
-  // behind them, nor holds them while it is searched.
+  // Requests are handled one after another, like the solves they record; a scramble, or the WCA's answers (many seconds
+  // at times), record nothing and never wait behind them, nor hold them while they are searched or fetched.
   let queue = Promise.resolve();
-  const searches = new Set(['scramble', 'dailyScramble']);
+  const searches = new Set(['scramble', 'dailyScramble', 'wca']);
   const retry = setInterval(() => { void local.restore(); connect(); }, 30000);
   void local.restore().then(connect);
   return {

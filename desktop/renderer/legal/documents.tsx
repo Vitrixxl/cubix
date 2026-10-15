@@ -35,6 +35,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
             <>
               <p>L'application, son code, son interface, ses textes, ses cours et son logo appartiennent à l'éditeur, sauf mention contraire. Toute reproduction ou réutilisation sans autorisation est interdite, en dehors des usages permis par la loi.</p>
               <p>Qbix utilise des logiciels libres, chacun sous sa propre licence (notamment cubing.js sous licence MPL 2.0, React, Motion et Sonner sous licence MIT) ; leurs licences sont fournies avec l'application. Les algorithmes du catalogue sont des connaissances partagées par la communauté du speedcubing ; leurs sources (SpeedCubeDB, J Perm, F2L Trainer…) sont citées à côté de chacun.</p>
+              <p>Le pointeur de la souris reprend le thème Bibata Modern Classic de <a href="https://github.com/ful1e5/Bibata_Cursor">Bibata Cursor</a>, d'Abdulkaiz Khatri (ful1e5), sous licence GPL 3.0 ou ultérieure ; sa licence est fournie avec ses images.</p>
               <p>Rubik's Cube est une marque de Spin Master. Qbix n'est affilié ni à la World Cube Association (WCA) ni aux fabricants de puzzles cités ; les noms des épreuves et des puzzles ne servent qu'à les désigner.</p>
             </>
           ),
@@ -56,6 +57,7 @@ export const DOCUMENTS: Record<DocumentId, Record<DocumentLanguage, LegalDocumen
             <>
               <p>The app, its code, interface, texts, courses and logo belong to the publisher unless stated otherwise. Copying or reusing them without permission is forbidden, outside the uses the law allows.</p>
               <p>Qbix uses free software, each under its own licence (cubing.js under the MPL 2.0; React, Motion and Sonner under the MIT licence among others); their licences ship with the app. The catalogue's algorithms are knowledge shared by the speedcubing community; their sources (SpeedCubeDB, J Perm, F2L Trainer…) are credited beside each of them.</p>
+              <p>The mouse pointer is the Bibata Modern Classic theme of <a href="https://github.com/ful1e5/Bibata_Cursor">Bibata Cursor</a>, by Abdulkaiz Khatri (ful1e5), under the GPL 3.0 or later; its licence ships with its images.</p>
               <p>Rubik's Cube is a trademark of Spin Master. Qbix is affiliated neither with the World Cube Association (WCA) nor with the puzzle makers it names; event and puzzle names only identify them.</p>
             </>
           ),

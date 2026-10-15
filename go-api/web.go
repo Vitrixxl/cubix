@@ -24,7 +24,7 @@ import (
 // webPages: the first segment of every address of the app (`src/client/lib/route.ts`).
 var webPages = []string{
 	"login", "onboarding", "timer", "algorithms", "training", "duel", "learn", "coaching", "community",
-	"tournaments", "match", "daily", "profile", "solve", "s",
+	"tournaments", "match", "daily", "wca", "profile", "solve", "s",
 }
 
 // webLanguages: the languages whose pages live under their prefix; English's are at the root.

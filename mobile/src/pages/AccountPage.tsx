@@ -144,7 +144,7 @@ function Identity({ d, onActivity, size }: { d: PreparedProfile | null; onActivi
             <Icon as={Pencil} size={12} className="text-muted-foreground" />
           </Pressable>
           <View className="flex-1" />
-          <WcaPill profile={profile} records={d?.profile.records ?? []} />
+          <WcaPill profile={profile} />
         </View> : method ? <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(method.name)}</Text> : null}
         <View className="flex-row items-baseline justify-between gap-2" accessibilityLabel={tr("{0} XP in all", { 0: xp.toLocaleString() })}>
           <Text className="text-[13px] font-bold">{tr("Level {0}", { 0: l.level })}</Text>
