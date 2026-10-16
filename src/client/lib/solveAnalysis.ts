@@ -72,6 +72,8 @@ export interface Phase extends Segment {
    */
   looks?: Segment[];
 }
+/** What a bar of steps draws of a phase: a smart cube solve's, or a phase timed by hand (lib/phases). */
+export type PhaseSpan = Pick<Phase, "id" | "label" | "start" | "end" | "skip"> & { looks?: { end: number }[] };
 export interface SolveAnalysis {
   method: SolveMethod;
   time: number;

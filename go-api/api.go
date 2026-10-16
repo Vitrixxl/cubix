@@ -106,6 +106,73 @@ func apiSolution(body any) (*string, error) {
 	return &s, nil
 }
 
+// apiSplits: a solve timed in phases (src/client/lib/phases.ts): absent, or when each phase but the last ended, in
+// milliseconds from the start, rising and within the solve, 1 to 7 of them; kept as JSON text.
+func apiSplits(body any, time float64) (any, error) {
+	v, ok := get(body, "splits")
+	if !ok || v == nil {
+		return nil, nil
+	}
+	list, ok := v.([]any)
+	if !ok || len(list) < 1 || len(list) > 7 {
+		return nil, validation()
+	}
+	splits := make([]int64, len(list))
+	last := 0.0
+	for i, x := range list {
+		f, ok := asFloat(x)
+		if !ok || math.IsNaN(f) || f <= last || f >= time {
+			return nil, validation()
+		}
+		last = f
+		splits[i] = int64(math.Round(f))
+	}
+	return strings.TrimSpace(encodeJSON(splits)), nil
+}
+
+// apiSolveRow: a solve as the API gives it, its splits a list rather than the table's JSON text.
+func apiSolveRow(row M, err error) (M, error) {
+	if err != nil || row == nil {
+		return row, err
+	}
+	row["splits"], err = parseJSONText(row["splits"], "null")
+	return row, err
+}
+
+// apiSolveResult: a Fewest Moves solve's move count (0 to 200), a Multi-Blind one's cubes solved and attempted (2 to 40,
+// as the app offers them); each absent or nil, and refused on another solve mode.
+func apiSolveResult(body any, mode string) (moves, solved, attempted *int64, err error) {
+	count := func(key string, low, high int64) (*int64, error) {
+		v, ok := get(body, key)
+		if !ok || v == nil {
+			return nil, nil
+		}
+		f, ok := asFloat(v)
+		if !ok || f != math.Trunc(f) || f < float64(low) || f > float64(high) {
+			return nil, validation()
+		}
+		n := int64(f)
+		return &n, nil
+	}
+	if moves, err = count("moves", 0, 200); err != nil {
+		return
+	}
+	if attempted, err = count("cubesAttempted", 2, 40); err != nil {
+		return
+	}
+	high := int64(0)
+	if attempted != nil {
+		high = *attempted
+	}
+	if solved, err = count("cubesSolved", 0, high); err != nil {
+		return
+	}
+	if (moves != nil && mode != "fewest-moves") || ((solved != nil || attempted != nil) && mode != "multi-blind") || (solved == nil) != (attempted == nil) {
+		return nil, nil, nil, validation()
+	}
+	return
+}
+
 // apiSolutionEdit: the turns of a solve as edited: absent, cleared (`null` or blank) or trimmed text of at most
 // 10000 characters.
 func apiSolutionEdit(body any) (set bool, text *string, err error) {
@@ -189,12 +256,18 @@ func sharedSolveID() string {
 // shareSolve: the public link to a solve of `uid`'s: a copy of it as it is now, with its owner's name; sharing it again
 // unchanged gives the same link.
 func shareSolve(db *Conn, uid, solve string) (M, error) {
-	row, err := dbRequired(db, "SELECT s.time_ms,s.penalty,s.scramble,s.solution,s.comment,s.memo_ms,s.puzzle_id,s.cube_size,s.solve_mode,s.scramble_type,s.created_at,u.username FROM solves s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.user_id=?", "Unknown solve", solve, uid)
+	row, err := dbRequired(db, "SELECT s.time_ms,s.penalty,s.scramble,s.solution,s.comment,s.memo_ms,s.moves,s.cubes_solved,s.cubes_attempted,s.puzzle_id,s.cube_size,s.solve_mode,s.scramble_type,s.created_at,u.username FROM solves s JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.user_id=?", "Unknown solve", solve, uid)
 	if err != nil {
 		return nil, err
 	}
 	if id, ok := asStr(row["puzzle_id"]); !ok || !practiceIsPuzzle(id) {
 		return nil, apiErr(404, "Unknown solve")
+	}
+	// Only Fewest Moves and Multi-Blind have these: a timed solve's copy stays as it was.
+	for _, key := range []string{"moves", "cubes_solved", "cubes_attempted"} {
+		if row[key] == nil {
+			delete(row, key)
+		}
 	}
 	copied := encodeJSON(row)
 	same, err := dbOne(db, "SELECT id FROM shared_solves WHERE solve_id=? AND solve=?", solve, copied)
@@ -792,6 +865,11 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if err != nil {
 			return nil, err
 		}
+		for _, solve := range solves {
+			if _, err := apiSolveRow(solve, nil); err != nil {
+				return nil, err
+			}
+		}
 		s["solves"] = solves
 		return s, nil
 	case is("GET", "solves"):
@@ -846,8 +924,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		}
 		var scramble *string
 		if v, ok := get(body, "scramble"); ok && v != nil {
-			// As long as a duel's or a match's scramble.
-			s, err := apiString(body, "scramble", 0, 2000)
+			// As long as a Multi-Blind attempt's 40 scrambles.
+			s, err := apiString(body, "scramble", 0, 4000)
 			if err != nil {
 				return nil, err
 			}
@@ -870,6 +948,10 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			}
 			f = math.Round(f)
 			memo = &f
+		}
+		splits, err := apiSplits(body, time)
+		if err != nil {
+			return nil, err
 		}
 		var selectedSession M
 		if sid != nil {
@@ -904,6 +986,10 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 				return nil, apiErr(400, "Unknown case")
 			}
 		}
+		moves, solved, attempted, err := apiSolveResult(body, context.solveMode)
+		if err != nil {
+			return nil, err
+		}
 		// A thousand a minute lets an import through (a hundred per sync request), not a flood.
 		if !apiUserAllow("solves:"+uid, 1000, 60) {
 			return nil, apiErr(429, "Too many solves at once. Try again in a minute.")
@@ -916,8 +1002,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if n, _ := asInt(count["n"]); n >= apiMaxSolves {
 			return nil, apiErr(409, "This account holds 200,000 solves, the most it can keep. Delete old ones to add more.")
 		}
-		return dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
-			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType)
+		return apiSolveRow(dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,splits,moves,cubes_solved,cubes_attempted,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
+			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, splits, moves, solved, attempted, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType))
 	case is("PATCH", "solves", "*"):
 		// Either field may be edited on its own; the other keeps its value.
 		var penalty *string
@@ -939,15 +1025,15 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if penalty == nil && !commentSet && !solutionSet {
 			return nil, validation()
 		}
-		return dbRequired(db, "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END,solution=CASE WHEN ? THEN ? ELSE solution END WHERE id=? AND user_id=? RETURNING *", "Unknown solve",
-			penalty, commentSet, comment, solutionSet, solution, parts[1], uid)
+		return apiSolveRow(dbRequired(db, "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END,solution=CASE WHEN ? THEN ? ELSE solution END WHERE id=? AND user_id=? RETURNING *", "Unknown solve",
+			penalty, commentSet, comment, solutionSet, solution, parts[1], uid))
 	case is("POST", "solves", "*", "share"):
 		if !apiUserAllow("shares:"+uid, 30, 60) {
 			return nil, apiErr(429, "Too many links at once. Try again in a minute.")
 		}
 		return shareSolve(db, uid, parts[1])
 	case is("DELETE", "solves", "*"):
-		return dbRequired(db, "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *", "Unknown solve", parts[1], uid)
+		return apiSolveRow(dbRequired(db, "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *", "Unknown solve", parts[1], uid))
 	case is("PUT", "journey"):
 		return journeyPut(db, uid, body)
 	case is("PUT", "learning-group-order"):

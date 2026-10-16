@@ -1,7 +1,10 @@
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { analyseSolve, type CatalogCase, type PhaseId, type SolveAnalysis } from "../../../../src/client/lib/solveAnalysis";
+import { useAtomValue } from "jotai";
+import { analyseSolve, type CatalogCase, type PhaseId, type PhaseSpan, type SolveAnalysis } from "../../../../src/client/lib/solveAnalysis";
+import { phaseSpans } from "../../../../src/client/lib/phases";
+import { phasesAtom } from "../../state";
 import { readSolution, recordedSolve } from "../../../../src/client/lib/solution";
 import { said, tr } from "../../../../src/client/i18n";
 import { local } from "../../api";
@@ -43,7 +46,7 @@ export const Dot = ({ colour, size = 8 }: { colour: string; size?: number }) =>
  * The steps side by side, each as wide as it took (skipped ones take no room); a tap opens a step's analysis. The
  * selected one stands taller.
  */
-export function SolveBar({ analysis, selected, onSelect, height = 18 }: { analysis: SolveAnalysis; selected?: PhaseId; onSelect?: (id: PhaseId) => void; height?: number }) {
+export function SolveBar({ analysis, selected, onSelect, height = 18 }: { analysis: { phases: readonly PhaseSpan[] }; selected?: PhaseId; onSelect?: (id: PhaseId) => void; height?: number }) {
   const colour = useStepColour();
   return <View accessibilityLabel={tr("Solve steps")} className="flex-row items-center gap-1" style={{ height: height + 8 }}>
     {analysis.phases.filter(p => !p.skip).map(phase => {
@@ -56,14 +59,25 @@ export function SolveBar({ analysis, selected, onSelect, height = 18 }: { analys
   </View>;
 }
 
-/** Each step's name; the selected one with its time. */
-export function StepNames({ analysis, selected, onSelect }: { analysis: SolveAnalysis; selected?: PhaseId; onSelect: (id: PhaseId) => void }) {
+/** Each step's name; the selected one with its time, or each one with `times`. */
+export function StepNames({ analysis, selected, onSelect, times = false }: { analysis: { phases: readonly PhaseSpan[] }; selected?: PhaseId; onSelect?: (id: PhaseId) => void; times?: boolean }) {
   return <View className="flex-row flex-wrap gap-x-3">
-    {analysis.phases.filter(p => !p.skip).map(phase => <Pressable key={phase.id} onPress={() => onSelect(phase.id)} className="min-h-8 justify-center">
+    {analysis.phases.filter(p => !p.skip).map(phase => <Pressable key={phase.id} disabled={!onSelect} onPress={() => onSelect?.(phase.id)} className="min-h-8 justify-center">
       <Numeric className={cn("text-xs", selected === phase.id ? "font-bold text-foreground" : "text-muted-foreground")}>
-        {said(phase.label)}{selected === phase.id ? ` · ${seconds(phase.end - phase.start)} s` : ""}
+        {said(phase.label)}{times || selected === phase.id ? ` · ${seconds(phase.end - phase.start)} s` : ""}
       </Numeric>
     </Pressable>)}
+  </View>;
+}
+
+/** A solve timed in phases without a smart cube (lib/phases): the same bar, each phase with its time. */
+export function PhaseSplits({ solve, height = 12 }: { solve: { time_ms: number; splits?: number[] | null }; height?: number }) {
+  const phases = useAtomValue(phasesAtom);
+  if (!solve.splits?.length) return null;
+  const analysis = { phases: phaseSpans(solve.splits, solve.time_ms, phases) };
+  return <View accessibilityLabel={tr("Phases")}>
+    <SolveBar analysis={analysis} height={height} />
+    <StepNames analysis={analysis} times />
   </View>;
 }
 

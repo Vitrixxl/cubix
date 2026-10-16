@@ -68,6 +68,22 @@ pub fn megaminx(rng: &mut Rng, out: &mut String) {
     }
 }
 
+/// The WCA's Clock scramble, as TNoodle writes it: the nine pin settings of the front (UR … ALL) each turning its dials
+/// from 5 back to 6 forward, y2, then the five of the back. The 14 turns reach every state alike: a random state. The
+/// pins end down (regulation 12g), so none are written after the turns.
+pub fn clock(rng: &mut Rng, out: &mut String) {
+    for (i, pins) in ["UR", "DR", "DL", "UL", "U", "R", "D", "L", "ALL", "y2", "U", "R", "D", "L", "ALL"].iter().enumerate() {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(pins);
+        if *pins != "y2" {
+            let turn = rng.below(12) as i32 - 5;
+            out.push_str(&format!("{}{}", turn.abs(), if turn >= 0 { '+' } else { '-' }));
+        }
+    }
+}
+
 /// The Square-1 as cubing.js lays it out: top and bottom slots 0–11 each hold a piece, a corner fills two. "(x, y)"
 /// turns the top by x slots and the bottom by y; "/" swaps top slots 6–11 with bottom slots 0–5, which needs both
 /// layers cut at slots 0 and 6.

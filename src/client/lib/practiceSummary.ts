@@ -1,11 +1,12 @@
 import type { Penalty } from "../../shared/types";
-import { averageOf, best, bestAverage, effective, fmtTime, mean, median, rollingAverages, worstAverage } from "./format";
+import { averageOf, best, bestAverage, fmtResult, fmtTime, mean, median, rollingAverages, solveResult, worstAverage, type Solved } from "./format";
+import { attemptMode } from "../../shared/puzzles";
 import type { Tone } from "./tone";
 import { msg } from "../i18n/msg";
 
 /** Solves must be oldest first; rolling averages include DNF attempts. */
-export function practiceSummary(solves: readonly { time_ms: number; penalty: Penalty }[]) {
-  const times = solves.map(s => effective(s.time_ms, s.penalty));
+export function practiceSummary(solves: readonly Solved[]) {
+  const times = solves.map(solveResult);
   return {
     count: times.length, times,
     validCount: times.filter(time => time !== null).length,
@@ -36,7 +37,8 @@ export type Metric = [label: string, value: string, tone: Tone];
  * The session figures under the timer: Best and Best Ao5/Ao12 in green, Worst in red (DNF as soon as one attempt is a
  * DNF), the current averages in the accent.
  */
-export function sessionMetrics(solves: readonly { time_ms: number; penalty: Penalty }[]): Metric[] {
+export function sessionMetrics(solves: readonly Solved[], mode = solves[0]?.solve_mode): Metric[] {
+  if (attemptMode(mode)) return sessionFigures(solves, shownFigures(mode, []), mode);
   const summary = practiceSummary(solves), times = summary.times;
   const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
   return [
@@ -91,12 +93,29 @@ export function figureLabel(id: string) {
 /** The chosen figures, valid and once each, at most `FIGURE_LIMIT`. */
 export const cleanFigures = (ids: unknown): string[] =>
   Array.isArray(ids) ? [...new Set(ids.filter((id): id is string => typeof id === "string" && !!parseFigure(id)))].slice(0, FIGURE_LIMIT) : DEFAULT_FIGURES;
-const fmtFigure = (value: number | null) => (value === Infinity ? "DNF" : fmtTime(value));
+/** Fewest Moves and Multi-Blind show their own figures whatever the timer's: a mean of 3 is Fewest Moves' WCA average. */
+export const shownFigures = (mode: string | undefined, ids: readonly string[]) =>
+  mode === "fewest-moves" ? ["best", "mo3", "mo3:best", "mean", "count"] : mode === "multi-blind" ? ["best", "count"] : ids;
+/** The means of 3 ending at each result, null for the first two; Infinity when one of the three is a DNF. */
+function meansOf3(times: readonly (number | null)[]) {
+  return times.map((_, i) => {
+    const three = times.slice(i - 2, i + 1);
+    return i < 2 ? null : three.includes(null) ? Infinity : (three as number[]).reduce((a, b) => a + b) / 3;
+  });
+}
 
-/** The chosen figures of a session, in order: best ones in green, worst ones in red, current averages in the accent. */
-export function sessionFigures(solves: readonly { time_ms: number; penalty: Penalty; memo_ms?: number | null }[], ids: readonly string[]): Metric[] {
-  const times = practiceSummary(solves).times;
+/**
+ * The chosen figures of a session, in order: best ones in green, worst ones in red, current averages in the accent.
+ * `mode`: the session's solve mode, whose results the figures read as (`fmtResult`).
+ */
+export function sessionFigures(solves: readonly (Solved & { memo_ms?: number | null })[], ids: readonly string[], mode = solves[0]?.solve_mode): Metric[] {
+  const times = practiceSummary(solves).times,
+    fmtFigure = (value: number | null, single = false) => (value === Infinity ? "DNF" : fmtResult(value, mode, single));
   return ids.flatMap((id): Metric[] => {
+    if (id === "mo3" || id === "mo3:best") {
+      const means = meansOf3(times);
+      return [id === "mo3" ? ["Mo3", fmtFigure(means.at(-1) ?? null), "accent"] : [msg("Best Mo3"), fmtFigure(best(means)), "good"]];
+    }
     const figure = parseFigure(id);
     if (!figure) return [];
     const label = figureLabel(id);
@@ -105,7 +124,7 @@ export function sessionFigures(solves: readonly { time_ms: number; penalty: Pena
       if (id === "memo") return [[label, fmtTime(memoMean(solves)), ""]];
       const value = id === "best" ? best(times) : id === "mean" ? mean(times) : id === "median" ? median(times)
         : !times.length ? null : times.includes(null) ? Infinity : Math.max(...(times as number[]));
-      return [[label, fmtFigure(value), SINGLES[id]![1]]];
+      return [[label, fmtFigure(value, id !== "mean" && id !== "median"), SINGLES[id]![1]]];
     }
     const { size, which } = figure;
     if (which === "best") return [[label, fmtFigure(bestAverage(times, size)), "good"]];
@@ -119,11 +138,13 @@ export function sessionFigures(solves: readonly { time_ms: number; penalty: Pena
 export function timerFigures(summary: {
   best: number | null; bestAo5: number | null; bestAo12: number | null; ao5: number | null; ao12: number | null; mean: number | null; count: number;
   memo?: number | null;
-}): Metric[] {
+}, mode?: string): Metric[] {
+  // Fewest Moves and Multi-Blind read as their results (`fmtResult`), a mean as one.
+  const fmtTime = (value: number | null | undefined, single = false) => fmtResult(value, mode, single);
   return [
     // Blindfolded solves with a memorisation lead with its mean.
     ...(summary.memo != null ? [[msg("Mean memo"), fmtTime(summary.memo), ""] as Metric] : []),
-    [msg("Best single"), fmtTime(summary.best), "good"],
+    [msg("Best single"), fmtTime(summary.best, true), "good"],
     [msg("Best Ao5"), fmtTime(summary.bestAo5), ""],
     [msg("Best Ao12"), fmtTime(summary.bestAo12), ""],
     [msg("Current Ao5"), fmtTime(summary.ao5), "accent"],
@@ -136,7 +157,7 @@ export function timerFigures(summary: {
 /** The session's fastest and slowest solves (a DNF is the slowest), once there are two. */
 export function sessionExtremes(solves: readonly { id: number; time_ms: number; penalty: Penalty }[]): { best?: number; worst?: number } {
   if (solves.length < 2) return {};
-  const ranked = [...solves].sort((a, b) => (effective(a.time_ms, a.penalty) ?? Infinity) - (effective(b.time_ms, b.penalty) ?? Infinity));
+  const ranked = [...solves].sort((a, b) => (solveResult(a) ?? Infinity) - (solveResult(b) ?? Infinity));
   return { best: ranked[0]!.id, worst: ranked.at(-1)!.id };
 }
 

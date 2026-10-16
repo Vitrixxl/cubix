@@ -158,6 +158,8 @@ func syncPull(db *Conn, uid string, after int64, learningGroups bool, journey bo
 			switch table {
 			case "sessions":
 				value["case_ids"], err = parseJSONText(value["case_ids"], "[]")
+			case "solves":
+				value, err = apiSolveRow(value, nil)
 			case "learned_cases":
 				value = apiLearnedRow(value)
 			case "learning_group_orders":

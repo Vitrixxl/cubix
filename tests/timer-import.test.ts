@@ -18,9 +18,10 @@ describe("reading other timers' exports", () => {
       ["333", 12345, "+2", 1696500060000],
       ["333", 9800, "dnf", 1696500120000],
       ["333oh", 95321, "none", 1696600000000],
+      ["clock", 30000, "none", 1696700000000],
     ]);
     expect(r.solves[1]).toMatchObject({ comment: "pop", scramble: "D2 B", session: "main" });
-    expect(r.skipped).toEqual({ "events Qbix does not practise": 1 });
+    expect(r.skipped).toEqual({});
   });
 
   test("CubeTime's csTimer file: its 3BLD name and session names", () => {

@@ -1,6 +1,6 @@
-import { EVENTS, PUZZLES, matchesPractice, puzzleOf, solveModeOf, scrambleTypeOf, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { attemptMode, EVENTS, PUZZLES, matchesPractice, puzzleOf, solveModeOf, scrambleTypeOf, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { CaseHistoryDto, EventRecordDto, SessionDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
-import { effective, best, bestAverage, mean, rollingAverages } from "../lib/format";
+import { effective, best, bestAverage, mean, rollingAverages, solveResult } from "../lib/format";
 import { cases } from "./catalog";
 import { sessionSummaries } from "../lib/sessions";
 import { memoMean } from "../lib/practiceSummary";
@@ -21,13 +21,15 @@ function summary(caseId: string, solves: SolveDto[], times: (number | null)[], a
 /** A case attempt made during a smart cube solve (smartDigests.ts): `solveId` names the solve. */
 type Attempt = SolveDto & { solveId?: number };
 function orderedHistory(caseId: string, solves: Attempt[]): CaseHistoryDto {
-  const times = solves.map(s => effective(s.time_ms, s.penalty));
+  const times = solves.map(solveResult);
   const ao5 = rollingAverages(times, 5), ao12 = rollingAverages(times, 12);
   let minimum: number | null = null;
   return { summary: summary(caseId, solves, times, ao5, ao12),
     history: solves.map((s,i) => { const time = times[i]; if (time !== null) minimum = minimum === null ? time : Math.min(minimum,time);
       return { id:s.id, time, timeMs:s.time_ms, penalty:s.penalty, comment:s.comment ?? null, at:s.created_at, best:minimum, sessionId:s.session_id,
-        ...(s.solution || s.solveId !== undefined ? { smart:true } : {}), ...(s.solveId !== undefined ? { solveId:s.solveId } : {}), ...(s.memo_ms != null ? { memoMs:s.memo_ms } : {}) }; }), ao5, ao12 };
+        ...((s.solution && !attemptMode(s.solve_mode)) || s.solveId !== undefined ? { smart:true } : {}), ...(s.solveId !== undefined ? { solveId:s.solveId } : {}), ...(s.memo_ms != null ? { memoMs:s.memo_ms } : {}),
+        // Fewest Moves and Multi-Blind: what the solve dialog reads their result from.
+        ...(attemptMode(s.solve_mode) ? { solve_mode:s.solve_mode, moves:s.moves ?? null, cubes_solved:s.cubes_solved ?? null, cubes_attempted:s.cubes_attempted ?? null, solution:s.solution ?? null } : {}) }; }), ao5, ao12 };
 }
 export function history(caseId: string, rows: Attempt[]): CaseHistoryDto {
   return orderedHistory(caseId, [...rows].sort(chronological));
@@ -64,7 +66,7 @@ export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput =
       const c = casesById.get(id); return c ? [{ ...orderedHistory(id,rows), name:c.name, stage:c.stage }] : [];
     }),
     records: orderedRecords(ordered, bests),
-    activity: rows.map(s => ({ at: s.created_at, time: timed.has(s.id) ? effective(s.time_ms, s.penalty) : null, timer: timed.has(s.id) })) };
+    activity: rows.map(s => ({ at: s.created_at, time: timed.has(s.id) ? solveResult(s) : null, timer: timed.has(s.id) })) };
 }
 
 /** Each event's timer records on its standard scrambles; a declared best stands until beaten. */
@@ -82,7 +84,7 @@ function orderedRecords(rows: SolveDto[], bests: Partial<Record<string, number>>
     const solves = groups.get(`${e.puzzle}:${e.solveMode}`) ?? [];
     const declared = e.solveMode === "standard" ? bests[e.puzzle] ?? null : null;
     if (!solves.length && declared === null) return [];
-    const times = solves.map(s => effective(s.time_ms, s.penalty)), single = best(times);
+    const times = solves.map(solveResult), single = best(times);
     const given = declared !== null && (single === null || declared < single);
     return [{ event: e.id, puzzle: e.puzzle, solveMode: e.solveMode, count: solves.length, best: given ? declared : single,
       bestAo5: bestAverage(times, 5), bestAo12: bestAverage(times, 12), bestAo100: bestAverage(times, 100), lastAt: solves.at(-1)?.created_at ?? null, ...(given ? { declared: true } : {}) }];

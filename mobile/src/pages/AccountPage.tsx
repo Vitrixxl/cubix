@@ -2,7 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, CalendarDays, ChartLine, Check, Pencil, ChevronLeft, ChevronRight, Flame, Gauge, History, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
-import { fmtTime, plural, shortDate } from "../../../src/client/lib/format";
+import { fmtResult, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
 import { achievementLists, dayKey, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
 import { level } from "../../../src/client/lib/achievements";
 import { PROFILE_KEY, journeyProfile, type JourneyProfile } from "../../../src/client/lib/journey";
@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { api } from "../api";
 import { METHODS } from "../../../src/shared/methods";
-import { eventInfo, eventLabel, eventOf, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
+import { attemptMode, eventInfo, eventLabel, eventOf, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -198,9 +198,9 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
   const row = (r: (typeof records)[number]) => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
     <View className="min-w-0 flex-1">
       <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
-      <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
+      <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtResult(r.best, r.solveMode)}</Numeric>
     </View>
-    <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
+    <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null && !attemptMode(r.solveMode) ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
   </View>;
   return <View className={cn("gap-1", list && "min-h-0 gap-2 rounded-3xl bg-card p-3.5", className)}>
     <Caption link={<Pressable accessibilityRole="button" onPress={onStatistics} className="h-8 flex-row items-center gap-0.5 pl-2">
@@ -213,8 +213,8 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
         <View className="min-w-0 flex-1">
           <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(current.puzzle, current.solveMode))}</Text>
           <View className="flex-row items-baseline gap-2">
-            <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(current) && "text-success")}>{fmtTime(current.best)}</Numeric>
-            {current.bestAo5 != null && <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{tr("Ao5 {0}", { 0: fmtTime(current.bestAo5) })}</Numeric>}
+            <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(current) && "text-success")}>{fmtResult(current.best, current.solveMode)}</Numeric>
+            {current.bestAo5 != null && !attemptMode(current.solveMode) && <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{tr("Ao5 {0}", { 0: fmtTime(current.bestAo5) })}</Numeric>}
           </View>
         </View>
         <Icon as={Trophy} size={15} className="text-muted-foreground" />

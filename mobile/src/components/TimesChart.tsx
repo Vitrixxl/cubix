@@ -3,7 +3,7 @@ import { ChartLine, MessageSquare, Table } from "lucide-react-native";
 import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
-import { effective, fmtDate, fmtTime } from "../../../src/client/lib/format";
+import { effective, fmtDate, fmtTime, fmtValue } from "../../../src/client/lib/format";
 import type { CaseHistoryDto, HistoryPoint } from "../../../src/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,12 +108,15 @@ export function fitRange(start: number, width: number, last: number): Range {
  * selects a period and zooms into it; Reset shows every solve. `points` draws each time as a dot rather than a
  * line, `marks` (indices) as larger mint dots (the records), `dnfs` a cross on top for each time missing (a DNF).
  */
-export const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height, points = false, marks, dnfs = false, label }: {
+export const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height, points = false, marks, dnfs = false, label, mode }: {
   history: readonly { time: number | null; at: string }[]; averages: (number | null)[]; range: Range; onRange: (range: Range) => void; height?: number;
   points?: boolean; marks?: readonly number[]; dnfs?: boolean;
   /** The line of a point's tip under its time (default: its number and date). */
   label?: (index: number) => string;
+  /** The solve mode whose results these are: Fewest Moves' moves and Multi-Blind's cubes read as theirs (`fmtValue`). */
+  mode?: string;
 }) {
+  const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, mode, opts);
   const colors = useColors();
   const [size, setSize] = useState({ w: 0, h: height ?? 0 });
   const [hover, setHover] = useState<number | null>(null);

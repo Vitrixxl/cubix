@@ -7,7 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
 import { PLAYER_SPEEDS, speedLabel } from "../../src/client/lib/algPlayer";
 import { SmartCube, stateToFacelets } from "../../src/client/lib/smartCube";
-import { COLOUR_NAMES, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "../../src/client/lib/solveAnalysis";
+import { COLOUR_NAMES, type Phase, type PhaseId, type PhaseSpan, type Segment, type SolveAnalysis } from "../../src/client/lib/solveAnalysis";
+import { phaseSpans } from "../../src/client/lib/phases";
 import { recordedSolve, type SolutionTurn } from "../../src/client/lib/solution";
 import { call } from "./bridge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ const crossName = (colour: string) =>
  * The steps side by side, each as wide as it took, in colours only; skipped steps take no room. The selected step
  * stands out and shows its time; the others give theirs on hover.
  */
-export function SolveBar({ analysis, selected, onSelect, large = false, legend = true, className }: { analysis: SolveAnalysis; selected?: PhaseId; onSelect: (id: PhaseId) => void; large?: boolean; legend?: boolean; className?: string }) {
+export function SolveBar({ analysis, selected, onSelect, large = false, legend = true, times = false, className }: { analysis: { phases: readonly PhaseSpan[] }; selected?: PhaseId; onSelect?: (id: PhaseId) => void; large?: boolean; legend?: boolean; times?: boolean; className?: string }) {
   const shown = analysis.phases.filter((phase) => !phase.skip);
   return (
     <div className={cn("flex w-full flex-col", large ? "gap-2" : "gap-1.5", className)}>
@@ -48,7 +49,7 @@ export function SolveBar({ analysis, selected, onSelect, large = false, legend =
               data-step={phase.id}
               aria-label={`${said(phase.label)}, ${seconds(phase.end - phase.start)} s`}
               aria-pressed={selected === phase.id}
-              onClick={() => onSelect(phase.id)}
+              onClick={() => onSelect?.(phase.id)}
               style={{ flexGrow: Math.max(phase.end - phase.start, 1), flexBasis: 0, background: stepColour(phase.id) }}
               className={cn(
                 "relative min-w-2 rounded-full transition-[height] duration-150",
@@ -67,13 +68,13 @@ export function SolveBar({ analysis, selected, onSelect, large = false, legend =
           </Tip>
         ))}
       </div>
-      {legend && <SolveLegend analysis={analysis} selected={selected} onSelect={onSelect} large={large} />}
+      {legend && <SolveLegend analysis={analysis} selected={selected} onSelect={onSelect} large={large} times={times} />}
     </div>
   );
 }
 
-/** Each step's colour and name; the selected one with its time. */
-export function SolveLegend({ analysis, selected, onSelect, large = false, className }: { analysis: SolveAnalysis; selected?: PhaseId; onSelect: (id: PhaseId) => void; large?: boolean; className?: string }) {
+/** Each step's colour and name; the selected one with its time, or each one with `times`. */
+export function SolveLegend({ analysis, selected, onSelect, large = false, times = false, className }: { analysis: { phases: readonly PhaseSpan[] }; selected?: PhaseId; onSelect?: (id: PhaseId) => void; large?: boolean; times?: boolean; className?: string }) {
   const shown = analysis.phases.filter((phase) => !phase.skip);
   return (
     <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground", large ? "text-sm" : "text-xs", className)}>
@@ -81,16 +82,22 @@ export function SolveLegend({ analysis, selected, onSelect, large = false, class
         <button
           key={phase.id}
           type="button"
-          onClick={() => onSelect(phase.id)}
+          onClick={() => onSelect?.(phase.id)}
           className={cn("flex items-center gap-1.5 rounded-md transition-colors hover:text-foreground", FOCUS, selected === phase.id && "font-medium text-foreground")}
         >
           <span className="size-2 rounded-full" style={{ background: stepColour(phase.id) }} />
           {said(phase.label)}
-          {selected === phase.id && <span className={NUMERIC}>{seconds(phase.end - phase.start)} s</span>}
+          {(times || selected === phase.id) && <span className={NUMERIC}>{seconds(phase.end - phase.start)} s</span>}
         </button>
       ))}
     </div>
   );
+}
+
+/** A solve timed in phases without a smart cube (lib/phases): the same bar, each phase with its time. */
+export function PhaseSplits({ solve, className }: { solve: { time_ms: number; splits?: number[] | null }; className?: string }) {
+  if (!solve.splits?.length) return null;
+  return <SolveBar analysis={{ phases: phaseSpans(solve.splits, solve.time_ms, s.phases) }} times className={className} />;
 }
 
 /** The bar of the last solve under the timer, and its analysis on a click. */

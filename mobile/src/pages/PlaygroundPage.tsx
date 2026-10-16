@@ -3,13 +3,15 @@ import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { effective, fmtSolve, fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
 import { attemptTexts, roundAttempts, roundResult, versusRecord } from "../../../src/client/lib/compSim";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, sessionFigures } from "../../../src/client/lib/practiceSummary";
+import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMIT, sessionFigures, shownFigures } from "../../../src/client/lib/practiceSummary";
+import { mbldLimitMs, mbldValue, scrambleList } from "../../../src/client/lib/wca";
+import type { AddSolveBody } from "../../../src/client/api-client";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
-import { contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { attemptMode, contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -19,8 +21,14 @@ import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
+import { useSmartCubeOn, useSmartCubeSolve } from "../hooks/useSmartCube";
+import { devicesAtom } from "../components/Devices";
 import { ensureLaunchSession } from "../lib/launchSession";
-import { guidesAtom, playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
+import { mbldCubesAtom, metronomeAtom, phasesAtom, playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
+import { phaseCount, phaseNames } from "../../../src/client/lib/phases";
+import { PhaseSplits } from "../components/analysis/steps";
+import { FewestMovesAttempt, MultiBlindResult, ScrambleExportSheet, ScrambleLines } from "../components/Attempts";
+import { metronome } from "../scrambler";
 import { Alg, Fade, Figure, HeadButton, Numeric } from "../components/layout";
 import { ask } from "../components/Confirm";
 import { toastAtom } from "../components/Toast";
@@ -30,7 +38,7 @@ import {
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome,
 } from "../components/Practice";
 import { AppBar, SectionTabs } from "../components/AppBar";
-import { Caption, inspectionAtom, Pill, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
+import { Caption, inspectionAtom, Pill, scrambleExportAtom, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
 import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar, PillAction } from "../components/SolveMenus";
 import { ScrambleCube } from "../components/ScrambleCube";
@@ -57,31 +65,43 @@ function CompSimRound({ context, round }: { context: PracticeContext; round: Rou
   const inspection = useAtomValue(inspectionAtom);
   const { height, tablet } = useLayout();
   const [solves, setSolves] = useSessionSolves("playground", context);
-  const [scramble, setScramble] = useState("");
+  // The attempt's scramble lives with the round: leaving the timer and coming back keeps it.
+  const scramble = round.scramble ?? "";
+  const setScramble = useCallback((next: string) => setRound(r => r && { ...r, scramble: next }), [setRound]);
   const [saving, setSaving] = useState(false);
   const { generating, error: generationError, generate } = useScrambleGeneration(context, setScramble);
-  useEffect(() => { void generate(); }, []);
+  useEffect(() => { if (!round.scramble) void generate(); }, []);
   const attempts = roundAttempts(round.format), over = solves.length >= attempts, pending = round.pending;
   const blind = context.solveMode === "blindfolded";
-  const onStop = useCallback((ms: number, penalty?: Penalty, memo?: number) => setRound(r => r && { ...r, pending: { ms, penalty: penalty ?? "none", memo } }), [setRound]);
+  // An attempt waits for its judge; a DNF (an inspection past 17 seconds) has nothing to sign and is recorded at once.
+  const onStop = (ms: number, penalty?: Penalty, memo?: number) => {
+    const attempt = { ms, penalty: penalty ?? "none", memo };
+    if (attempt.penalty === "dnf") void judge("dnf", attempt);
+    else setRound(r => r && { ...r, pending: attempt });
+  };
   const timer = useTimer({ onStop, canStart: !pending && !over && !saving && !generating && !!scramble && !generationError, inspection: !blind, memo: blind });
   useTimerChrome(timer);
   const { running } = usePracticeLock(timer, saving);
-  const judge = async (penalty: Penalty) => {
-    if (!pending || saving) return;
+  async function judge(penalty: Penalty, attempt = pending) {
+    if (!attempt || saving) return;
     setSaving(true);
     try {
-      const solve = await api.addSolve({ sessionId: round.session, caseId: null, timeMs: pending.ms, scramble, ...context, ...(penalty !== "none" ? { penalty } : {}), ...(pending.memo !== undefined ? { memoMs: pending.memo } : {}) });
+      const solve = await api.addSolve({ sessionId: round.session, caseId: null, timeMs: attempt.ms, scramble, ...context, ...(penalty !== "none" ? { penalty } : {}), ...(attempt.memo !== undefined ? { memoMs: attempt.memo } : {}) });
       setSolves(list => [...list.filter(item => item.id !== solve.id), solve]);
-      setRound(r => r && { ...r, pending: null });
-      timer.reset();
+      setRound(r => r && { ...r, pending: null, scramble: undefined });
+      // A DNF recorded at once stays on screen until the next attempt.
+      if (attempt === pending) timer.reset();
       if (solves.length + 1 < attempts) void generate();
     } catch (error) {
       toast({ title: (error as Error).message });
+      // A DNF not saved waits for its judge, to be signed again.
+      if (attempt !== pending) setRound(r => r && { ...r, pending: attempt });
     } finally { setSaving(false); }
-  };
+  }
+  // The timer resumes the round's session after a restart, and the one before once it is left.
+  useEffect(() => rememberTimerSession(context, round.session), [round.session]);
   const leave = async () => {
-    if (over || await ask({ title: tr("Leave the round?"), text: tr("Its attempts stay in its session."), action: tr("Leave"), destructive: false })) await endCompSim(context, round);
+    if (over || await ask({ title: tr("Leave the round?"), text: tr("Its attempts stay in its session."), action: tr("Leave"), destructive: false })) rememberTimerSession(context, await endCompSim(context, round));
   };
   const promptFont = Math.round((/\+\+|--/.test(scramble) ? 13 : scramble.length > 90 ? 16 : 20) * (tablet ? 1.3 : 1));
   const inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
@@ -147,7 +167,7 @@ function RoundResult({ round, solves, onAgain, onDone }: { round: Round; solves:
 const WIDTH: Record<number, string> = { 1: "w-full", 2: "w-1/2", 3: "w-1/3", 4: "w-1/4", 5: "w-1/5", 6: "w-1/6" };
 /** The colour dot of a figure of the session card. */
 const dotOf = (id: string) => id === "best" || id.endsWith(":best") ? "bg-success" : id === "worst" || id.endsWith(":worst") ? "bg-destructive"
-  : id === "ao5" ? "bg-primary" : id === "ao12" ? "bg-chart-2" : id === "mean" ? "bg-warning" : /^ao\d+$/.test(id) ? "bg-primary" : "bg-muted-foreground";
+  : id === "ao5" || id === "mo3" ? "bg-primary" : id === "ao12" ? "bg-chart-2" : id === "mean" ? "bg-warning" : /^ao\d+$/.test(id) ? "bg-primary" : "bg-muted-foreground";
 
 function TimerSession({ context }: { context: PracticeContext }) {
   const { height, tablet, wide } = useLayout();
@@ -160,7 +180,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const lastInspection = useRef<typeof inspection>("both");
   if (inspection !== "off") lastInspection.current = inspection;
   const figureIds = useAtomValue(timerFiguresAtom);
-  const openSheet = useSetAtom(sessionSheetAtom), openGuide = useSetAtom(guidesAtom);
+  const openSheet = useSetAtom(sessionSheetAtom), openDevices = useSetAtom(devicesAtom);
   const [saving, setSaving] = useState(false);
   const [scramble, setScramble] = useAtom(playgroundScrambleAtom);
   const [solves, setSolves] = useSessionSolves("playground", context);
@@ -174,17 +194,28 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const { generating, slow, error: generationError, generate: generateNext } = useScrambleGeneration(context, setScramble);
   useEffect(() => { if (!scramble) void generateNext(); }, []);
   // Blindfolded solves split the memorisation from the execution and have no inspection (it is part of the time).
-  const blind = context.solveMode === "blindfolded", typing = entry === "typing";
-  const inspected = !blind && !typing && inspection !== "off";
+  // Fewest Moves is written, not timed (`FewestMovesAttempt`); a Multi-Blind attempt is timed for all its cubes, then
+  // waits for the cubes solved (`MultiBlindResult`).
+  const fmc = context.solveMode === "fewest-moves", multi = context.solveMode === "multi-blind";
+  const blind = context.solveMode === "blindfolded", typing = entry === "typing" && !fmc;
+  const inspected = !blind && !typing && !attemptMode(context.solveMode) && inspection !== "off";
+  const bpm = useAtomValue(metronomeAtom), cubes = useAtomValue(mbldCubesAtom);
+  const [mbld, setMbld] = useState<{ ms: number; cubes: number } | null>(null);
+  const toast = useSetAtom(toastAtom);
+  const [exporting, setExporting] = useAtom(scrambleExportAtom);
 
-  const onStop = useCallback(async (ms: number, penalty?: Penalty, memo?: number) => {
+  const cube = useRef<{ take: () => string | null } | null>(null);
+  const onStop = useCallback(async (ms: number, penalty?: Penalty, memo?: number, result?: Pick<AddSolveBody, "solution" | "moves" | "cubesSolved" | "cubesAttempted" | "splits">) => {
     // Casual timing records nothing: the time stays on screen and the next scramble comes up.
     if (entry === "casual") { setLastSolveId(null); void generateNext(); return; }
+    if (multi && !result) { setMbld({ ms, cubes: scrambleList(scramble).length }); return; }
     setSaving(true);
     try {
       const sessionId = await ensureLaunchSession("playground", context);
       rememberTimerSession(context, sessionId);
-      const solve = await api.addSolve({ sessionId, caseId: null, timeMs: ms, scramble, ...context, ...(penalty && penalty !== "none" ? { penalty } : {}), ...(memo !== undefined ? { memoMs: memo } : {}) });
+      // A solve turned on a connected cube keeps its turns.
+      const solution = cube.current?.take();
+      const solve = await api.addSolve({ sessionId, caseId: null, timeMs: ms, scramble, ...context, ...(penalty && penalty !== "none" ? { penalty } : {}), ...(memo !== undefined ? { memoMs: memo } : {}), ...(solution ? { solution } : {}), ...result });
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
       setLastSolveId(solve.id);
       // Records span every session, unlike the listed one.
@@ -192,16 +223,39 @@ function TimerSession({ context }: { context: PracticeContext }) {
       if (message) showNotice(message);
       void generateNext();
     } finally { setSaving(false); }
-  }, [scramble, context, generateNext, entry, showNotice]);
-  const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError, inspection: inspected, memo: blind });
+  }, [scramble, context, generateNext, entry, showNotice, multi]);
+  // Each tap of a running solve but the last ends a phase (src/client/lib/phases).
+  const phaseSetting = useAtomValue(phasesAtom), cubeOn = useSmartCubeOn(), phases = blind || typing || attemptMode(context.solveMode) || cubeOn && context.puzzle === "333" ? 1 : phaseCount(phaseSetting);
+  const timer = useTimer({ onStop: (ms, penalty, memo, splits) => onStop(ms, penalty, memo, splits ? { splits } : undefined), canStart: !saving && !generating && !!scramble && !generationError && !fmc && !mbld, inspection: inspected, memo: blind, phases });
+  const running = timer.phase === "running";
+  // The metronome ticks while a solve runs.
+  useEffect(() => (running && bpm ? metronome(bpm) : undefined), [running, bpm]);
+  // A Multi-Blind attempt stops at its time limit (H1b): the limit is its time.
+  useEffect(() => {
+    if (!running || !multi) return;
+    const limit = mbldLimitMs(scrambleList(scramble).length),
+      wait = setTimeout(() => timer.finish(limit), Math.max(0, limit - (performance.now() - timer.startedAt)));
+    return () => clearTimeout(wait);
+  }, [running, multi]);
+  // Another count of cubes: an attempt of as many scrambles.
+  useEffect(() => { if (multi && scramble && scrambleList(scramble).length !== cubes) void generateNext(); }, [cubes]);
+  const saveMultiBlind = (solved: number) => {
+    if (!mbld) return;
+    setMbld(null);
+    const value = mbldValue(solved, mbld.cubes, mbld.ms);
+    onStop(mbld.ms, value === null ? "dnf" : "none", undefined, { cubesSolved: solved, cubesAttempted: mbld.cubes }).catch(error => toast({ title: (error as Error).message }));
+  };
   useTimerChrome(timer);
+  // A connected cube times the 3×3's solves itself: its first turn once scrambled starts, the solved cube stops.
+  const smart = useSmartCubeSolve(timer, scramble, context.puzzle === "333" && !blind && !typing && !attemptMode(context.solveMode));
+  cube.current = smart;
   // A typed time is saved like a timed one; a failed save keeps the time for a retry.
   const [typedError, setTypedError] = useState<{ message: string; ms: number; penalty: Penalty } | null>(null);
   const submitTyped = (ms: number, penalty: Penalty) => { setTypedError(null); onStop(ms, penalty).catch(error => setTypedError({ message: (error as Error).message, ms, penalty })); };
 
   const shown = useShownSolves(solves);
   const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
-  const { busy, running } = usePracticeLock(timer, saving);
+  const { busy } = usePracticeLock(timer, saving);
   const nextScramble = () => { if (!busy && !generating) { timer.reset(); void generateNext(); } };
   const copyScramble = () => void Clipboard.setStringAsync(scramble).then(() => showNotice(tr("Scramble copied"), Copy)).catch(() => {});
 
@@ -215,14 +269,17 @@ function TimerSession({ context }: { context: PracticeContext }) {
 
   // The scramble's settings as pills in the scramble's card on a tablet; a phone keeps them in the sheet behind its sliders button.
   const settings = <>
-    <Pill label={tr("Scramble")} value={tr(scrambleLabel(context.scrambleType))} trailing={ChevronDown} onPress={() => openSheet("timer")} />
-    <Pill label={tr("Entry")} value={said(TIME_ENTRIES.find(e => e.id === entry)?.label ?? entry)} trailing={ChevronDown} onPress={() => openSheet("timer")} />
-    {!blind && !typing && <Pill label={tr("Inspection")} value={said(INSPECTIONS.find(i => i.id === inspection)?.label ?? inspection)} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
+    {multi ? <Pill label={tr("Cubes")} value={String(cubes)} trailing={ChevronDown} onPress={() => openSheet("timer")} />
+      : <Pill label={tr("Scramble")} value={tr(scrambleLabel(context.scrambleType))} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
+    {!fmc && <Pill label={tr("Entry")} value={said(TIME_ENTRIES.find(e => e.id === entry)?.label ?? entry)} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
+    {!blind && !typing && !attemptMode(context.solveMode) && <Pill label={tr("Inspection")} value={said(INSPECTIONS.find(i => i.id === inspection)?.label ?? inspection)} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
   </>;
   const scrambleText = <View {...scrambleTarget} className="overflow-hidden" style={{ maxHeight: Math.round(height * 0.24) }}>
     {loading
       ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
       : generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
+      // A Multi-Blind attempt's scrambles scroll: many cubes outgrow the card.
+      : multi ? <ScrollView nestedScrollEnabled><ScrambleLines text={scramble} size={Math.min(promptFont, 16)} /></ScrollView>
       : <Alg text={scramble} size={promptFont} />}
   </View>;
   const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;
@@ -237,13 +294,17 @@ function TimerSession({ context }: { context: PracticeContext }) {
     </View>
   </View>;
 
-  const figures = useMemo(() => sessionFigures(shown, figureIds).map((f, i) => [...f, figureIds[i]!] as const), [shown, figureIds]);
+  // Fewest Moves and Multi-Blind show their own figures (a mean of 3, the best result).
+  const ids = shownFigures(context.solveMode, figureIds);
+  const figures = useMemo(() => sessionFigures(shown, ids, context.solveMode).map((f, i) => [...f, ids[i]!] as const), [shown, ids, context.solveMode]);
   const inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
   const hint = blind && timer.phase === "running"
     ? timer.memo === undefined ? tr("Tap when memorised") : tr("Memo {0} · {1}", { 0: fmtTime(timer.memo), 1: tr("Tap to stop") })
     : blind && timer.phase === "stopped" && timer.memo !== undefined
     ? tr("Memo {0} · execution {1}", { 0: fmtTime(timer.memo), 1: fmtTime(timer.elapsed - timer.memo) })
-    : timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? tr("One moment…") : false });
+    : smart.hint ?? (phases > 1 && timer.phase === "running"
+    ? phaseNames(phaseSetting, phases)[timer.splits?.length ?? 0]!
+    : timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? tr("One moment…") : false }));
   const event = tr(eventOf(context.puzzle, context.solveMode)?.label ?? info.label);
   const editFigures = <Pressable accessibilityRole="button" accessibilityLabel={tr("Choose the figures")} hitSlop={8} onPress={() => setEditingFigures(true)} className="size-8 items-center justify-center rounded-full active:bg-muted">
     <Icon as={Pencil} size={16} className="text-muted-foreground" />
@@ -263,28 +324,36 @@ function TimerSession({ context }: { context: PracticeContext }) {
             {tablet ? <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
               : <HeadButton icon={SlidersHorizontal} label={tr("Puzzle and scramble")} onPress={() => openSheet("timer")} />}
             {/* The WCA inspection on the timer itself, on or off (spoken and on screen); its other ways in the sheet. */}
-            {!tablet && !blind && !typing && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? lastInspection.current : "off")} />}
-            <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
+            {!tablet && !blind && !typing && !attemptMode(context.solveMode) && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? lastInspection.current : "off")} />}
+            <HeadButton icon={Bluetooth} label={tr("Devices")} onPress={() => openDevices(true)} />
           </AppBar>
           <SectionTabs />
         </Fade>
         <View className={cn("min-h-0 flex-1 px-4 pt-2 pb-3", tablet && "px-7 pt-4")}>
-          <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
+          <Stage timer={timer} disabled={typing || fmc || !!mbld || !!timer.saveError} running={running} prompt={prompt} visual={visual}
             promptClassName={tablet ? "gap-5 rounded-3xl bg-card px-5 py-4" : undefined}
             readout={area => <View {...timerTarget} className="w-full items-center">
-              {typing
+              {fmc
+                ? <FewestMovesAttempt scramble={scramble} area={area} disabled={saving || generating || !scramble || !!generationError}
+                  onDone={(ms, r) => {
+                    if (r.dnf) toast({ title: `${tr("DNF")} · ${said(r.why)}` });
+                    onStop(ms, r.dnf ? "dnf" : "none", undefined, { ...(r.solution ? { solution: r.solution } : {}), ...(r.moves !== null ? { moves: r.moves } : {}) }).catch(error => toast({ title: (error as Error).message }));
+                  }} />
+                : typing
                 ? <TypedTime size={digitsSize(area, 6, digitsMax)} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message}
                   onRetry={() => typedError && submitTyped(typedError.ms, typedError.penalty)} onSubmit={submitTyped} />
                 : <>
                   {inspecting ? <InspectionDigits timer={timer} area={area} max={digitsMax} show={inspection === "display" || inspection === "both"} speak={inspection === "voice" || inspection === "both"} />
                     : <TimerDigits timer={timer} area={area} max={digitsMax} />}
-                  <Hint notice={running ? null : notice} hidden={running && !blind}>{hint}</Hint>
+                  <Hint notice={running ? null : notice} hidden={running && !blind && phases < 2}>{hint}</Hint>
+                  {!running && lastSolve?.splits && <View className="mt-2 w-full max-w-md px-2"><PhaseSplits solve={lastSolve} height={10} /></View>}
                   <SaveError timer={timer} />
                 </>}
             </View>}
             bar={<View className="gap-2.5">
               {/* The shared row of the last five sets its own top margin (mt-6), for a place under the digits; out of sight until a first time. */}
-              <View className={cn("-mt-6", tablet && "items-center")}><AverageWindow solves={shown} hidden={running || !shown.length} large={tablet} /></View>
+              {mbld ? <MultiBlindResult key={mbld.ms} ms={mbld.ms} cubes={mbld.cubes} disabled={saving} onSave={saveMultiBlind} onCancel={() => { setMbld(null); timer.reset(); }} />
+                : !attemptMode(context.solveMode) && <View className={cn("-mt-6", tablet && "items-center")}><AverageWindow solves={shown} hidden={running || !shown.length} large={tablet} /></View>}
               {/* On a phone the last solve's actions show once there is one to act on (their place kept, so the digits never
                   move); a tablet keeps them, with the next scramble as the fifth action, under the thumb. */}
               <Fade hidden={!tablet && !lastSolve}>
@@ -319,6 +388,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
     </View>
     <TimesSheet open={times !== null} calendar={times === "calendar"} onClose={() => setTimes(null)} solves={shown} title={event} context={context} onEditFigures={() => setEditingFigures(true)} />
     <FiguresSheet open={editingFigures} onClose={() => setEditingFigures(false)} />
+    <ScrambleExportSheet open={exporting} onClose={() => setExporting(false)} context={context} />
     <StopSurface timer={timer} />
   </View>;
 }

@@ -1,7 +1,7 @@
 import { ChartNoAxesColumn, Delete, PenLine } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { ScrollView, View } from "react-native";
-import { fmtSolve } from "../../../src/client/lib/format";
+import { fmtSolveOf } from "../../../src/client/lib/format";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../../src/client/lib/solution";
 import { mergeTurns, type PhaseId } from "../../../src/client/lib/solveAnalysis";
 import { FACE_COLORS } from "../../../src/shared/cubeAppearance";
@@ -13,7 +13,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { Alg, Label, Numeric } from "./layout";
-import { analyseSolution, SolveBar, SplitTime, StepLegend } from "./analysis/steps";
+import { analyseSolution, PhaseSplits, SolveBar, SplitTime, StepLegend } from "./analysis/steps";
 import { SheetChoice } from "./PuzzlePicker";
 import { useLayout } from "../hooks/useLayout";
 import type { SolveSummary } from "./SolveMenus";
@@ -24,7 +24,7 @@ import { locale, tr } from "../../../src/client/i18n";
  * scrambled cube when it is known, recorded by a smart cube or written by hand. The turns can be written here (how the
  * cube was held, then its turns); `children` are the solve's actions, hidden while writing.
  */
-export type ViewedSolve = SolveSummary & Partial<Pick<SolveDto, "solution" | "puzzle_id" | "cube_size">>;
+export type ViewedSolve = SolveSummary & Partial<Pick<SolveDto, "solution" | "puzzle_id" | "cube_size" | "splits">>;
 
 /** Each colour as the 3D cube draws it (its faces seen yellow on top, blue in front). */
 const SWATCH: Record<Colour, string> = { white: FACE_COLORS.D, yellow: FACE_COLORS.U, green: FACE_COLORS.B, blue: FACE_COLORS.F, red: FACE_COLORS.R, orange: FACE_COLORS.L };
@@ -64,10 +64,12 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
     [editing, setEditing] = useState(false),
     [draft, setDraft] = useState<Annotation>(() => readAnnotation(solve.solution) ?? { top: "yellow", front: "green", moves: "" }),
     draftText = writeAnnotation(draft),
-    alg = (editing ? (draftText && draft.moves ? annotationAlg(draft) : "") : played(solve.solution)) ?? "",
+    // Fewest Moves keeps the solution written, never turns recorded on a cube.
+    fmc = solve.solve_mode === "fewest-moves",
+    alg = (editing ? (draftText && draft.moves ? annotationAlg(draft) : "") : fmc ? "" : played(solve.solution)) ?? "",
     player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined }),
     [room, setRoom] = useState(0);
-  const recorded = readSolution(solve.solution), annotation = readAnnotation(solve.solution),
+  const recorded = fmc ? null : readSolution(solve.solution), annotation = fmc ? null : readAnnotation(solve.solution),
     analysis = useMemo(() => (size === 3 && recorded ? analyseSolution(solve.scramble, solve.solution) : null), [solve.scramble, solve.solution]);
   const save = async () => {
     if (!draftText) return;
@@ -81,11 +83,12 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
   const head = <>
     <View className="flex-row items-end justify-between gap-3">
       <View className="min-w-0 shrink gap-1">
-        <SplitTime text={fmtSolve(solve.time_ms, solve.penalty)} size={52} className={cn(solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")} />
+        <SplitTime text={fmtSolveOf(solve)} size={52} className={cn(solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")} />
         <Text numberOfLines={1} className="text-sm text-muted-foreground">{[tr(puzzleInfo(puzzleOf(solve)).label), fmtDate(solve.created_at), ...(recorded?.at(-1)?.at ? [tr("smart cube")] : [])].join(" · ")}</Text>
       </View>
       {aside}
     </View>
+    <PhaseSplits solve={solve} />
     {solve.scramble ? <View className="gap-0.5" accessibilityLabel={tr("Scramble")}>
       <Label className="font-bold tracking-widest uppercase">{tr("Scramble")}</Label>
       <Alg text={solve.scramble} size={14} selectable />
@@ -99,7 +102,11 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
     {cube && player && alg ? <PlayerControls player={player} /> : null}
   </>;
   const rest = <>
-    {editing ? <AnnotationEditor value={draft} onChange={setDraft} valid={!!draftText} onCancel={() => setEditing(false)} onSave={() => void save()} />
+    {fmc ? <View className="gap-1" accessibilityLabel={tr("Solution")}>
+      <Label className="font-bold tracking-widest uppercase">{tr("Solution")}</Label>
+      {solve.solution ? <Alg text={solve.solution} size={14} selectable /> : <Text className="text-sm text-muted-foreground">{tr("No solution")}</Text>}
+    </View>
+      : editing ? <AnnotationEditor value={draft} onChange={setDraft} valid={!!draftText} onCancel={() => setEditing(false)} onSave={() => void save()} />
       : <View className="gap-1" accessibilityLabel={tr("Solution")}>
         <View className="min-h-9 flex-row items-center gap-3">
           <Label className="font-bold tracking-widest uppercase">{tr("Solution")}</Label>

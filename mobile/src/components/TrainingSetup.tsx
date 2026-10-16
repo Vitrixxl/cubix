@@ -5,7 +5,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
 import { groupBySet } from "../../../src/client/lib/practiceCatalog";
-import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
+import { CROSS_METHODS, CROSS_MOVES, CROSS_OPTIONS, CROSS_TARGET_LABELS } from "../../../src/shared/crossTraining";
 import { puzzleInfo } from "../../../src/shared/puzzles";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export type TrainingData = ReturnType<typeof useTrainingData>;
  * or Pick…). A tap anywhere else opens its settings.
  */
 function ModeCard({ icon, title, count, unit, lit = false, action, onPress, children, accessibilityLabel }: {
-  icon: LucideIcon; title: string; count?: number; unit?: string; lit?: boolean; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
+  icon: LucideIcon; title: string; count?: number | string; unit?: string; lit?: boolean; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? title} onPress={onPress}
     className={cn("gap-2.5 rounded-2xl p-3 active:opacity-80", lit ? "border border-primary bg-primary/10" : "bg-card")}>
@@ -122,7 +122,7 @@ const Field = ({ label, children }: { label: string; children: ReactNode }) => <
 
 /**
  * The Training tab: the five ways of training, each a card with its count and Start; a tap opens its settings in a
- * drawer (the cross's goal and moves, the recognition's set, seconds and AUF, the whole sets with Random AUF and Train,
+ * drawer (the step and its moves, the recognition's set, seconds and AUF, the whole sets with Random AUF and Train,
  * the free practice's cases), Start at the bottom; Learned opens its own screen, with Random AUF and Train. A tablet
  * shows Learned on the page and the ways in a sheet.
  */
@@ -157,7 +157,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const toggleSet = (id: string) => setTrainSets(trainSets.includes(id) ? trainSets.filter(x => x !== id) : [...trainSets, id]);
   const ofSet = (x: TrainingData["setRows"][number]) => tr("{0} · {1} of {2}", { 0: tr(x.set.label), 1: x.learned, 2: x.all.length });
   const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
-        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} count={moves} unit={tr(CROSS_TARGET_LABELS[target])}
+        {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Steps")} count={moves || "–"} unit={tr(CROSS_TARGET_LABELS[target])}
           onPress={() => setSettings("cross")} action={<StartChip onPress={() => start("cross")} />} />}
         <ModeCard icon={Eye} title={tr("Recognition")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}
           onPress={() => setSettings("recognition")} action={<StartChip onPress={() => start("recognition")} disabled={!chosen} />}>
@@ -175,13 +175,14 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
       </View>;
   // Each way's settings in a drawer over the page, Start at the bottom; free practice's are its cases to pick.
   const sheets = <>
-    <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Cross")}>
-      <Field label={tr("What to build")}>
-        <Segmented label={tr("What to build")} value={target} onChange={setTarget} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))} />
-      </Field>
-      <Field label={tr("Moves")}>
+    <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Steps")} scroll>
+      {/* The steps method by method, then the number of moves of one drawn by it. */}
+      {CROSS_METHODS.map(method => <Field key={method} label={method}>
+        <Choice label={method} value={target} onChange={setTarget} options={CROSS_OPTIONS.filter(o => o.group === method)} />
+      </Field>)}
+      {!!moves && <Field label={tr("Moves")}>
         <Segmented label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))} />
-      </Field>
+      </Field>}
       <StartButton onPress={() => start("cross")} />
     </Sheet>
     <Sheet open={settings === "recognition"} onClose={() => setSettings("")} title={tr("Recognition")} scroll>
@@ -218,7 +219,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     // are tiles peeking above the bar with Train, or chips over the page when wide, and each opens their settings in a sheet.
     const openWays = () => setWaysOpen(true);
     const tiles: { icon: LucideIcon; label: string; detail: string; on?: boolean }[] = [
-      ...(data.puzzle === "333" ? [{ icon: Target, label: tr("Cross"), detail: tr("{0} moves", { 0: moves }) }] : []),
+      ...(data.puzzle === "333" ? [{ icon: Target, label: tr("Steps"), detail: moves ? `${tr(CROSS_TARGET_LABELS[target])} · ${moves}` : tr(CROSS_TARGET_LABELS[target]) }] : []),
       { icon: Eye, label: tr("Recognition"), detail: chosen ? `${chosen.learned} · ${tr(chosen.set.label)}` : "–" },
       { icon: GraduationCap, label: tr("Learned"), detail: plural(data.learnedPool, "case"), on: true },
       { icon: Layers, label: tr("Whole sets"), detail: plural(data.whole, "case") },

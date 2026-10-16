@@ -225,8 +225,16 @@ func webSharedPage(dir string, db *Db, path string, w http.ResponseWriter, r *ht
 			time += "+"
 		}
 	}
+	// Fewest Moves reads its move count, Multi-Blind its cubes before its time.
 	puzzle, _ := practicePuzzle(str(idx(solve, "puzzle_id")))
-	title := html.EscapeString(time + " · " + str(idx(puzzle, "label")) + " on Qbix")
+	label := str(idx(puzzle, "label"))
+	if moves, ok := asInt(idx(solve, "moves")); ok && str(idx(solve, "penalty")) != "dnf" {
+		time, label = fmt.Sprintf("%d moves", moves), label+" Fewest Moves"
+	} else if attempted, ok := asInt(idx(solve, "cubes_attempted")); ok {
+		solved, _ := asInt(idx(solve, "cubes_solved"))
+		time, label = fmt.Sprintf("%d/%d", solved, attempted), label+" Multi-Blind"
+	}
+	title := html.EscapeString(time + " · " + label + " on Qbix")
 	by := html.EscapeString("By " + str(idx(solve, "username")))
 	// The previews want absolute addresses: the site's, served over https behind its proxy.
 	site := html.EscapeString("https://" + r.Host)

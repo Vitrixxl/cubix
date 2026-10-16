@@ -155,6 +155,22 @@ test("coaching and the community hear their channels of the app's socket, reload
   await expect(coaching.sendMedia(1, Object.assign(new Blob(["x"], { type: "text/plain" }), { name: "a.txt" }))).rejects.toThrow("a.txt is neither a picture nor a video.");
 });
 
+test("a coach's page opened before the account is known gets its coach once it is, and across a change of account", async () => {
+  const { host } = fakeHost();
+  const coaching = new Coaching(host);
+  answers["GET coaching/coaches/c1"] = { id: "c1" };
+  // Asked with no account: nothing fetched until one is attached.
+  void coaching.load("coach:c1");
+  expect(requests).toEqual([]);
+  coaching.attach("guest");
+  // Asked, then the account changes before the answer: it is asked again for the new one.
+  coaching.attach("me");
+  await tick();
+  await tick();
+  expect(coaching.profiles.get("c1")).toEqual({ id: "c1" } as never);
+  expect(requests.filter((r) => r.url.endsWith("coaches/c1")).length).toBe(2);
+});
+
 test("a match joins once the socket is ready, again after a reconnection, and draws the scramble from the first seat once both players are here", async () => {
   const scrambles: unknown[] = [];
   const { host, live: socket } = fakeHost();

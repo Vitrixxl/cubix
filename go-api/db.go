@@ -176,6 +176,12 @@ func dbMigrate(db *Conn) error {
 		func() error { return addColumnIfMissing(db, "solves", "solution", "TEXT") },
 		// Blindfolded solves keep their memorisation time, within the solve's.
 		func() error { return addColumnIfMissing(db, "solves", "memo_ms", "INTEGER") },
+		// Solves timed in phases keep when each phase but the last ended, as a JSON list.
+		func() error { return addColumnIfMissing(db, "solves", "splits", "TEXT") },
+		// Fewest Moves keeps its move count, Multi-Blind its cubes solved and attempted.
+		func() error { return addColumnIfMissing(db, "solves", "moves", "INTEGER") },
+		func() error { return addColumnIfMissing(db, "solves", "cubes_solved", "INTEGER") },
+		func() error { return addColumnIfMissing(db, "solves", "cubes_attempted", "INTEGER") },
 		// One day's extra hours or hours taken back arrived after the weekly hours.
 		func() error { return addColumnIfMissing(db, "coaches", "overrides", "TEXT NOT NULL DEFAULT '[]'") },
 		// Coaches may keep to the students they have; accounts may show a picture.

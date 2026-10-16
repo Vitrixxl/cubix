@@ -3,15 +3,16 @@
  * (timerImport.ts), or only the solves as a table for a spreadsheet. Shared by the web app and the Android app.
  */
 import { eventOf, type PuzzleId, type SolveMode } from "../../shared/puzzles";
+import { phaseTimes } from "./phases";
 
-type ExportedSolve = { created_at: string; puzzle_id?: string | null; solve_mode?: string | null; time_ms: number; penalty: string; case_id?: string | null; scramble?: string | null; comment?: string | null };
+type ExportedSolve = { created_at: string; puzzle_id?: string | null; solve_mode?: string | null; time_ms: number; penalty: string; case_id?: string | null; scramble?: string | null; comment?: string | null; splits?: number[] | null };
 
 const cell = (v: unknown) => (v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v));
 
 /** The solves as CSV; the columns stay in English: the file is data, for any spreadsheet. */
 export function solvesCsv(solves: readonly ExportedSolve[]): string {
   return [
-    "Date,Event,Time (s),Penalty,Case,Scramble,Comment".split(","),
+    "Date,Event,Time (s),Penalty,Case,Scramble,Comment,Phases (s)".split(","),
     ...solves.map((x) => [
       x.created_at,
       eventOf((x.puzzle_id ?? "333") as PuzzleId, (x.solve_mode ?? "standard") as SolveMode)?.id ?? x.puzzle_id,
@@ -20,6 +21,7 @@ export function solvesCsv(solves: readonly ExportedSolve[]): string {
       x.case_id,
       x.scramble,
       x.comment,
+      x.splits && phaseTimes(x.splits, x.time_ms).map((t) => (t / 1000).toFixed(3)).join(" "),
     ]),
   ]
     .map((row) => row.map(cell).join(","))

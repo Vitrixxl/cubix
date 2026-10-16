@@ -5,7 +5,7 @@
  * competition's (where and when, its results by event and round) have their own address.
  */
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Globe, Link2, MapPin, Medal, Search, Trophy, UserRound, Users, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Globe, Link2, MapPin, Medal, Search, Trophy, UserRound, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { store as s } from "../store";
 import { call } from "../bridge";
@@ -15,7 +15,8 @@ import { PanelHead } from "../tournaments/format";
 import { linkWca } from "../profile/wca";
 import { tr } from "../../../src/client/i18n";
 import { Back, said } from "../base";
-import { fmtTime, plural } from "../../../src/client/lib/format";
+import { fmtResult, fmtTime, plural } from "../../../src/client/lib/format";
+import { eventInfo } from "../../../src/shared/puzzles";
 import { journeyProfile } from "../../../src/client/lib/journey";
 import {
   CONTINENTS, WCA_EVENTS, WCA_TABS, competitionsPath, countriesByName, countryName, flagOf, historyOf, monthLabel, rankingPath, readWcaView, recordReach, regionLabel, wcaAttempts, wcaDates, wcaEventLabel,
@@ -142,8 +143,11 @@ function EventMenu({ value, onChange, events = WCA_EVENTS }: { value: string; on
   );
 }
 
-/** A region (or a country) picked in a searchable list: the world and the continents first, unless `anywhere` replaces them. */
-function RegionPicker({ value, onChange, anywhere }: { value: string; onChange: (region: string) => void; anywhere?: string }) {
+/**
+ * A region (or a country) picked in a searchable list: the world and the continents first, unless `anywhere` replaces
+ * them. `compact`, the flag (or the globe) alone on the button, its name in the tooltip.
+ */
+function RegionPicker({ value, onChange, anywhere, compact = false }: { value: string; onChange: (region: string) => void; anywhere?: string; compact?: boolean }) {
   const countries = useCountries(),
     [open, setOpen] = useState(false),
     pick = (region: string) => (setOpen(false), onChange(region)),
@@ -154,12 +158,15 @@ function RegionPicker({ value, onChange, anywhere }: { value: string; onChange: 
       {said(name)}
     </CommandItem>
   );
+  const trigger = (
+    <PopoverTrigger render={<UiButton variant="secondary" size={compact ? "icon" : "default"} data-action="wca:region" aria-label={compact ? `${tr("Region")} · ${said(label)}` : tr("Region")} className="max-w-56" />}>
+      {value.length === 2 ? <span aria-hidden="true">{flagOf(value)}</span> : <Globe />}
+      {!compact && <span className="truncate">{said(label)}</span>}
+    </PopoverTrigger>
+  );
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<UiButton variant="secondary" data-action="wca:region" aria-label={tr("Region")} className="max-w-56" />}>
-        {value.length === 2 ? <span aria-hidden="true">{flagOf(value)}</span> : <Globe />}
-        <span className="truncate">{said(label)}</span>
-      </PopoverTrigger>
+      {compact ? <Tip content={said(label)}>{trigger}</Tip> : trigger}
       <PopoverContent align="end" className="w-72 p-0">
         <Command>
           <CommandInput placeholder={tr("Region")} />
@@ -285,17 +292,28 @@ function Competitions() {
   const [f, set] = useKept("competitions"),
     update = (patch: Partial<typeof f>) => set({ ...f, page: 1, ...patch }),
     { data, error } = useWca<WcaCompetitionList>(competitionsPath(f, f.page)),
-    months = wcaMonths(f.status === "past");
+    months = wcaMonths(f.status === "past"),
+    [searching, setSearching] = useState(!!f.q);
+  // The filters hold on one line: the region and the month as their mark (the month's value once picked), the name's
+  // field opened by its magnifier and closed again when left empty.
   return (
     <Frame
       tab="competitions"
       tools={
         <>
           <Segmented label="When" value={f.status} options={[{ id: "upcoming", label: "Upcoming" }, { id: "past", label: "Past" }]} onChange={(status) => update({ status: status as "upcoming" | "past", month: "" })} action="wca:status:" />
-          <RegionPicker value={f.country} onChange={(country) => update({ country })} anywhere="Anywhere" />
-          <SelectMenu action="wca:month" label="Month" value={f.month} onChange={(month) => update({ month })} variant="secondary"
+          <RegionPicker value={f.country} onChange={(country) => update({ country })} anywhere="Anywhere" compact />
+          <SelectMenu action="wca:month" label="Month" value={f.month} onChange={(month) => update({ month })} variant="secondary" icon={<CalendarDays />} bare={!f.month}
             options={[{ id: "", label: "Any month" }, ...months.map((id) => ({ id, label: monthLabel(id) }))]} />
-          <SearchField value={f.q} onChange={(q) => update({ q })} placeholder="Name" label="Find a competition by name" delay={400} action="wca:find" className="w-44" />
+          {searching || f.q ? (
+            <div onBlur={(e) => !(e.target as HTMLInputElement).value && setSearching(false)}>
+              <SearchField value={f.q} onChange={(q) => update({ q })} placeholder="Name" label="Find a competition by name" delay={400} action="wca:find" autoFocus={!f.q} className="w-44" />
+            </div>
+          ) : (
+            <Tip content={tr("Find a competition by name")}>
+              <UiButton variant="secondary" size="icon" aria-label={tr("Find a competition by name")} data-action="wca:search" onClick={() => setSearching(true)}><Search /></UiButton>
+            </Tip>
+          )}
         </>
       }
     >
@@ -485,7 +503,7 @@ function PersonPage({ id }: { id: string }) {
                         {own && (
                           <TableCell className={cn(NUMERIC, "text-right")}>
                             <div className="flex flex-col">
-                              <span className="font-bold">{fmtTime(row.qbixSingle)}</span>
+                              <span className="font-bold">{fmtResult(row.qbixSingle, eventInfo(row.event)?.solveMode)}</span>
                               {row.qbixAverage != null && <span className="text-xs text-muted-foreground">{tr("Ao5 {0}", { 0: fmtTime(row.qbixAverage) })}</span>}
                             </div>
                           </TableCell>

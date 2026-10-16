@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-11",
+ "generated": "2026-10-16",
  "sets": [
   {
    "id": "f2l",
@@ -142871,7 +142871,28 @@
      "xcross-7",
      "xxcross-6",
      "xxcross-7",
-     "xxcross-8"
+     "xxcross-8",
+     "f2l-only",
+     "lsll",
+     "ll",
+     "eoline-5",
+     "eoline-6",
+     "eoline-7",
+     "eocross-6",
+     "eocross-7",
+     "eocross-8",
+     "zbll",
+     "fb-6",
+     "fb-7",
+     "fb-8",
+     "sb",
+     "cmll",
+     "2x2x2-5",
+     "2x2x2-6",
+     "2x2x2-7",
+     "2x2x3-5",
+     "2x2x3-6",
+     "2x2x3-7"
     ]
    },
    {
@@ -142950,6 +142971,15 @@
     "label": "Megaminx",
     "cubeSize": null,
     "twisty": "megaminx",
+    "scrambles": [
+     "normal"
+    ]
+   },
+   {
+    "id": "clock",
+    "label": "Clock",
+    "cubeSize": null,
+    "twisty": "clock",
     "scrambles": [
      "normal"
     ]
@@ -143063,6 +143093,90 @@
    {
     "id": "xxcross-8",
     "label": "XXCross · 8 moves"
+   },
+   {
+    "id": "f2l-only",
+    "label": "F2L · Steps"
+   },
+   {
+    "id": "lsll",
+    "label": "LSLL · Steps"
+   },
+   {
+    "id": "ll",
+    "label": "Last layer · Steps"
+   },
+   {
+    "id": "eoline-5",
+    "label": "EOLine · 5 moves"
+   },
+   {
+    "id": "eoline-6",
+    "label": "EOLine · 6 moves"
+   },
+   {
+    "id": "eoline-7",
+    "label": "EOLine · 7 moves"
+   },
+   {
+    "id": "eocross-6",
+    "label": "EOCross · 6 moves"
+   },
+   {
+    "id": "eocross-7",
+    "label": "EOCross · 7 moves"
+   },
+   {
+    "id": "eocross-8",
+    "label": "EOCross · 8 moves"
+   },
+   {
+    "id": "zbll",
+    "label": "ZBLL · Steps"
+   },
+   {
+    "id": "fb-6",
+    "label": "First block · 6 moves"
+   },
+   {
+    "id": "fb-7",
+    "label": "First block · 7 moves"
+   },
+   {
+    "id": "fb-8",
+    "label": "First block · 8 moves"
+   },
+   {
+    "id": "sb",
+    "label": "Second block · Steps"
+   },
+   {
+    "id": "cmll",
+    "label": "CMLL · Steps"
+   },
+   {
+    "id": "2x2x2-5",
+    "label": "2×2×2 · 5 moves"
+   },
+   {
+    "id": "2x2x2-6",
+    "label": "2×2×2 · 6 moves"
+   },
+   {
+    "id": "2x2x2-7",
+    "label": "2×2×2 · 7 moves"
+   },
+   {
+    "id": "2x2x3-5",
+    "label": "2×2×3 · 5 moves"
+   },
+   {
+    "id": "2x2x3-6",
+    "label": "2×2×3 · 6 moves"
+   },
+   {
+    "id": "2x2x3-7",
+    "label": "2×2×3 · 7 moves"
    }
   ],
   "solveModes": [
@@ -143077,6 +143191,14 @@
    {
     "id": "blindfolded",
     "label": "Blindfolded"
+   },
+   {
+    "id": "fewest-moves",
+    "label": "Fewest moves"
+   },
+   {
+    "id": "multi-blind",
+    "label": "Multi-blind"
    }
   ],
   "events": [
@@ -143129,6 +143251,12 @@
     "solveMode": "blindfolded"
    },
    {
+    "id": "333fm",
+    "label": "3×3 Fewest Moves",
+    "puzzle": "333",
+    "solveMode": "fewest-moves"
+   },
+   {
     "id": "444bf",
     "label": "4×4 Blindfolded",
     "puzzle": "444",
@@ -143139,6 +143267,12 @@
     "label": "5×5 Blindfolded",
     "puzzle": "555",
     "solveMode": "blindfolded"
+   },
+   {
+    "id": "333mbf",
+    "label": "3×3 Multi-Blind",
+    "puzzle": "333",
+    "solveMode": "multi-blind"
    },
    {
     "id": "sq1",
@@ -143162,6 +143296,12 @@
     "id": "minx",
     "label": "Megaminx",
     "puzzle": "minx",
+    "solveMode": "standard"
+   },
+   {
+    "id": "clock",
+    "label": "Clock",
+    "puzzle": "clock",
     "solveMode": "standard"
    }
   ]

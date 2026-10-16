@@ -16,7 +16,6 @@ import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { LevelBar } from "./xp";
 import { smartCube } from "../../src/client/lib/smartCube";
-import { stackmat } from "../../src/client/lib/stackmat";
 import { canInstall, install, onInstallChange } from "../../src/client/lib/pwaInstall";
 /** How long the pointer rests on something before its tooltip shows: the same in every part of the app. */
 export const TIP_DELAY = 400;
@@ -193,12 +192,11 @@ export function AccountMenu() {
           <Item action="importTimes" icon={Upload}>
             {tr("Import times")}
           </Item>
-          <DropdownMenuItem data-action="smartCube" data-status={cube.status} onClick={run("smartCube")}>
+          <DropdownMenuItem data-action="devices" onClick={run("devices")}>
             <cube.Icon className={cn(cube.status === "on" && "text-success", cube.status === "connecting" && "animate-pulse text-primary")} />
-            <span className="min-w-0 flex-1 truncate">{cube.status === "on" ? cube.name : cube.status === "connecting" ? tr("Connecting…") : tr("Connect a cube")}</span>
+            <span className="min-w-0 flex-1 truncate">{tr("Devices")}</span>
             {cube.status === "on" && cube.battery !== undefined && <span className="ml-auto text-xs font-semibold text-muted-foreground tabular-nums">{cube.battery}%</span>}
           </DropdownMenuItem>
-          <StackmatItem />
         </DropdownMenuGroup>
         {/* Phones have no header: the coffee, in plain view here. */}
         {phone && (
@@ -218,23 +216,6 @@ export function AccountMenu() {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/** The Stackmat on the audio input (experimental), beside the connected cube: a click listens to it or stops. */
-function StackmatItem() {
-  const link = useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot.link, () => stackmat.snapshot.link);
-  return (
-    <DropdownMenuItem data-action="stackmat" data-status={link} onClick={run("stackmat")}>
-      <Timer className={cn(link === "on" && "text-success", link === "connecting" && "animate-pulse text-primary")} />
-      <span className="min-w-0 flex-1 truncate">{link === "on" ? tr("Stackmat connected") : link === "connecting" ? tr("Waiting for the Stackmat…") : tr("Connect a Stackmat")}</span>
-      {link === "off" ? (
-        // Opaque, so the accent on it stays at 4.5:1 on a highlighted row too.
-        <span className="ml-auto rounded-full bg-[color-mix(in_srgb,var(--primary)_6%,var(--popover))] px-2 py-0.5 text-[11px] font-bold text-primary ring-1 ring-primary/25">{tr("Experimental")}</span>
-      ) : (
-        <span className="ml-auto text-xs font-semibold text-muted-foreground">{tr("Stop")}</span>
-      )}
-    </DropdownMenuItem>
   );
 }
 

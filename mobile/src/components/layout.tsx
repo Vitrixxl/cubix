@@ -75,11 +75,13 @@ export function HeadButton({ icon, label, onPress, disabled, active, badge, prim
 
 /** Two or three parts of one page as a segmented control, the chosen part raised; `locked` ones are greyed but answer a tap. */
 export function Segmented<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; locked?: boolean; count?: number; accent?: boolean }[]; onChange: (id: T) => void; label: string; className?: string }) {
-  return <View accessibilityRole="tablist" accessibilityLabel={said(label)} className={cn("h-11 flex-row rounded-xl bg-muted p-1", className)}>
+  // Each tab takes the track's whole height (44 px, a finger's reach), the chosen one raised on a pill drawn inside it.
+  return <View accessibilityRole="tablist" accessibilityLabel={said(label)} className={cn("h-11 flex-row rounded-xl bg-muted px-1", className)}>
     {options.map(o => {
       const on = o.id === value;
       return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { if (!on) onChange(o.id); }}
-        className={cn("flex-1 flex-row items-center justify-center gap-1 rounded-lg", on && "bg-background shadow-sm shadow-black/20", o.locked && "opacity-45")}>
+        className={cn("flex-1 flex-row items-center justify-center gap-1", o.locked && "opacity-45")}>
+        {on ? <View className="absolute top-1 right-0 bottom-1 left-0 rounded-lg bg-background shadow-sm shadow-black/20" /> : null}
         <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("shrink text-sm", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{said(o.label)}</Text>
         {o.count ? <Numeric className={cn("text-xs font-bold", o.accent ? "text-primary" : "text-muted-foreground")}>{o.count}</Numeric> : null}
       </Pressable>;

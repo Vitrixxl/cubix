@@ -4,7 +4,6 @@
  * found shown before it is linked.
  */
 import React, { useState } from "react";
-import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { store as s } from "../store";
 import { call } from "../bridge";
@@ -12,18 +11,17 @@ import { go } from "../navigation";
 import { tr } from "../../../src/client/i18n";
 import { plural } from "../../../src/client/lib/format";
 import { PROFILE_KEY, journeyProfile } from "../../../src/client/lib/journey";
-import { wcaIdOf, wcaPersonUrl, wcaUrl, type WcaPerson } from "../../../src/client/lib/wca";
+import { wcaIdOf, wcaUrl, type WcaPerson } from "../../../src/client/lib/wca";
 import { Modal, Tip, said } from "../ui";
-import { Button as UiButton, buttonVariants } from "@/components/ui/button";
+import { Button as UiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
-/** A link to the WCA's page, drawn as the app's buttons are. */
-export function WcaLink({ id, className }: { id: string; className?: string }) {
+/** A person's page in the app's WCA pages (wca/page.tsx), which links on to the WCA's own. */
+export function WcaLink({ id }: { id: string }) {
   return (
-    <a href={wcaPersonUrl(id)} target="_blank" rel="noreferrer" data-action="wca:page" aria-label={tr("Open on the WCA")} className={cn(buttonVariants({ variant: "ghost" }), "text-muted-foreground", className)}>
-      WCA <ExternalLink />
-    </a>
+    <UiButton variant="ghost" data-action="wca:page" onClick={() => go(wcaUrl("persons/" + id))} className="text-muted-foreground">
+      WCA
+    </UiButton>
   );
 }
 

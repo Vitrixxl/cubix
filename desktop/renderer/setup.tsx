@@ -1,13 +1,13 @@
 /**
  * The training's page, before the timer: the ways of training as a list on the left (arrows move, Enter starts), the
- * one chosen large on the right: the cross, a recognition run through a set, the learned cases (the recommended ones,
- * the slowest against the player's usual, and those picked by hand, else all of them), whole sets, or free practice on any case. Phones
- * open the chosen one in a sheet. Learning new cases is the courses' work: a set with none learned leads to its course.
+ * one chosen large on the right: the steps (the cross, an EOLine, a block…), a recognition run through a set, the
+ * learned cases (the recommended ones, the slowest against the player's usual, and those picked by hand, else all of
+ * them), whole sets, or free practice on any case. Phones open the chosen one in a sheet. Learning new cases is the courses' work: a set with none learned leads to its course.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { METHODS } from "../../src/shared/methods";
-import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/shared/crossTraining";
+import { CROSS_MOVES, CROSS_OPTIONS, CROSS_TARGET_LABELS } from "../../src/shared/crossTraining";
 import { recommendedWhy, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { groupBySet } from "../../src/client/lib/practiceCatalog";
 import { smartCube } from "../../src/client/lib/smartCube";
@@ -21,7 +21,7 @@ import { store as s, matches, type TrainingMode } from "./store";
 import { PhoneSheet } from "./phone";
 import { Practice } from "./practice";
 import { Cube } from "./Cube";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, SelectMenu, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
 import { CaseTile, TILES } from "./algorithms";
 import { VirtualList, inRows, useColumns } from "./virtual";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,7 +66,7 @@ function useCubeRecognition() {
 const recognitionSet = (sets: Sets) => sets.find((x) => x.set.id === s.recognitionSet);
 
 /** A way of training as the list shows it: its icon and name, then its number, large, with what it counts. */
-type ModeRow = { id: TrainingMode; icon: LucideIcon; title: string; count: number; unit: string; share?: number; start: string; ready: boolean };
+type ModeRow = { id: TrainingMode; icon: LucideIcon; title: string; count: number | string; unit: string; share?: number; start: string; ready: boolean };
 
 function modeRows(sets: Sets): ModeRow[] {
   const cases = s.cases(),
@@ -79,7 +79,8 @@ function modeRows(sets: Sets): ModeRow[] {
     free = s.freePicks.filter((id) => s.find(id)).length,
     words = bldWords();
   const rows: ModeRow[] = [
-    { id: "cross", icon: Target, title: "Cross", count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
+    // A step drawn by its number of moves shows it; a random state, a dash.
+    { id: "cross", icon: Target, title: "Steps", count: s.crossMoves || "–", unit: tr(CROSS_TARGET_LABELS[s.crossTarget]), start: "trainingStart:cross", ready: true },
     {
       id: "recognition", icon: Eye, title: "Recognition",
       count: chosen?.learned ?? 0, unit: chosen ? tr(chosen.set.label) : tr("cases"), share: chosen ? chosen.learned / chosen.all.length : 0,
@@ -690,39 +691,27 @@ function HandCard({ learned }: { learned: number }) {
   );
 }
 
-/** The cross: what to build by its number of moves, picked in one grid, and its start. */
+/** The steps: which one, from a menu method by method, its number of moves when it has some, and its start. */
 function CrossCard() {
-  const moves = [...new Set(CROSS_TARGETS.flatMap((t) => CROSS_MOVES[t]))].sort();
+  const moves = CROSS_MOVES[s.crossTarget],
+    label = tr(CROSS_TARGET_LABELS[s.crossTarget]);
   return (
-    <Card title={tr("Cross")} className="shrink-0">
-      <div className="grid grid-cols-[4.5rem_repeat(var(--n),minmax(0,1fr))] items-center gap-1" style={{ "--n": moves.length } as React.CSSProperties} role="radiogroup" aria-label={tr("Cross")}>
-        <span />
-        {moves.map((n) => (
-          <span key={n} className={cn(NUMERIC, "text-center text-xs font-bold text-faint")}>{n}</span>
-        ))}
-        {CROSS_TARGETS.map((t) => [
-          <span key={t} className="text-xs font-bold text-faint">{tr(CROSS_TARGET_LABELS[t])}</span>,
-          ...moves.map((n) =>
-            CROSS_MOVES[t].includes(n) ? (
-              <button
-                key={t + n}
-                type="button"
-                role="radio"
-                aria-checked={s.crossTarget === t && s.crossMoves === n}
-                aria-label={tr("{0} in {1} moves", { 0: tr(CROSS_TARGET_LABELS[t]), 1: n })}
-                data-action={"crossTarget:" + t}
-                onClick={run("crossTarget:" + t, "crossMoves:" + n)}
-                className={cn("h-6 rounded-lg bg-muted transition-colors hover:bg-accent aria-checked:bg-primary", FOCUS)}
-              />
-            ) : (
-              <span key={t + n} />
-            ),
-          ),
-        ])}
+    <Card title={tr("Steps")} className="shrink-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <SelectMenu action="crossTarget" caption="Step" value={s.crossTarget} options={CROSS_OPTIONS} align="start" />
+        {!!moves.length && (
+          <Segmented
+            label={tr("Moves")}
+            action="crossMoves:"
+            value={String(s.crossMoves)}
+            onChange={(n) => void s.action("crossMoves:" + n)}
+            options={moves.map((n) => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))}
+          />
+        )}
       </div>
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-sm text-muted-foreground">{tr("{0} in {1} moves", { 0: tr(CROSS_TARGET_LABELS[s.crossTarget]), 1: s.crossMoves })}</span>
-        <Button action="trainingStart:cross" variant="outline" icon={Play} tip={tr("Start the cross")}>{tr("Start")}</Button>
+        <span className="flex-1 text-sm text-muted-foreground">{s.crossMoves ? tr("{0} in {1} moves", { 0: label, 1: s.crossMoves }) : label}</span>
+        <Button action="trainingStart:cross" variant="outline" icon={Play} tip={tr("Start the step")}>{tr("Start")}</Button>
       </div>
     </Card>
   );

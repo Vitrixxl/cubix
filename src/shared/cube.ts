@@ -274,11 +274,13 @@ export function applyAlg(state: CubeState, alg: string | Move[]): CubeState {
   return cur;
 }
 
-/** A 3×3's centres, U D F B R L. */
-const CENTRE_SLOTS = [4, 13, 22, 31, 40, 49];
-const centresKey = (state: CubeState) => CENTRE_SLOTS.map(i => state[i]).join(",");
+/** The faces whose colours an odd cube's middle centres show, U D F B R L (an even cube has none: no key found). */
+const centresKey = (state: CubeState) => {
+  const area = state.length / 6;
+  return FACES.map((_, f) => Math.floor(state[f * area + (area - 1) / 2] / area)).join(",");
+};
 let uprights: Map<string, string> | undefined;
-/** The whole-cube rotation ("x y2"…) bringing a 3×3's centres home, "" when they are; undefined for no such rotation. */
+/** The whole-cube rotation ("x y2"…) bringing an odd cube's centres home, "" when they are; undefined for no such rotation or an even cube. */
 export function uprightRotation(state: CubeState): string | undefined {
   if (!uprights) {
     uprights = new Map();

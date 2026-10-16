@@ -5,7 +5,7 @@
  * competition) and a competition's (where and when, its results by event and round) pushed over them.
  */
 import { useAtomValue, useSetAtom } from "jotai";
-import { ArrowLeftRight, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Globe, MapPin, Medal, Search, Trophy, UserRound, Users, X } from "lucide-react-native";
+import { ArrowLeftRight, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Globe, MapPin, Medal, Search, Trophy, UserRound, Users, X } from "lucide-react-native";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Linking, Pressable, ScrollView, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,8 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { fmtTime, plural } from "../../../src/client/lib/format";
+import { fmtResult, fmtTime, plural } from "../../../src/client/lib/format";
+import { eventInfo } from "../../../src/shared/puzzles";
 import { journeyProfile } from "../../../src/client/lib/journey";
 import {
   CONTINENTS, WCA_EVENTS, WCA_TABS, competitionsPath, countriesByName, countryName, flagOf, historyOf, monthLabel, rankingPath, readWcaView, recordReach, regionLabel, wcaAttempts, wcaDates, wcaEventLabel,
@@ -87,17 +88,18 @@ function Head({ tab, children }: { tab: WcaTab; children?: ReactNode }) {
   </>;
 }
 
-/** A filter as a pill: its icon, its value, opening its sheet (or switching, `swap`). */
-function Pill({ icon, label, onPress, swap = false, accessibilityLabel }: { icon?: ReactNode; label: string; onPress: () => void; swap?: boolean; accessibilityLabel: string }) {
+/** A filter as a pill: its icon, its value (not shown when `bare`, its mark enough), opening its sheet (or switching, `swap`, never cut). */
+function Pill({ icon, label, onPress, swap = false, bare = false, accessibilityLabel }: { icon?: ReactNode; label: string; onPress: () => void; swap?: boolean; bare?: boolean; accessibilityLabel: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={said(accessibilityLabel)} accessibilityValue={{ text: said(label) }} onPress={onPress}
-    className="h-11 max-w-44 shrink flex-row items-center gap-1.5 rounded-full bg-muted pr-2.5 pl-3 active:bg-muted/70">
+    className={cn("h-11 max-w-44 flex-row items-center gap-1.5 rounded-full bg-muted pr-2.5 pl-3 active:bg-muted/70", swap || bare ? "shrink-0" : "shrink")}>
     {icon}
-    <Text numberOfLines={1} className="shrink text-sm font-bold">{said(label)}</Text>
+    {bare ? null : <Text numberOfLines={1} className="shrink text-sm font-bold">{said(label)}</Text>}
     <Icon as={swap ? ArrowLeftRight : ChevronDown} size={14} className="text-muted-foreground" />
   </Pressable>;
 }
-function Filters({ children }: { children: ReactNode }) {
-  return <View className="flex-row flex-wrap items-center gap-2 px-4 pt-1 pb-2">{children}</View>;
+/** The filters' row; `line` keeps them on one line, the pills shrinking (their values cut) rather than wrapping. */
+function Filters({ line = false, children }: { line?: boolean; children: ReactNode }) {
+  return <View className={cn("flex-row items-center gap-2 px-4 pt-1 pb-2", !line && "flex-wrap")}>{children}</View>;
 }
 
 /** A choice among many in a sheet, searchable when `search` names its field. */
@@ -144,9 +146,9 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
   </View>;
 }
 
-/** A person on a row: their flag and name. */
-function Who({ who, className }: { who: WcaWho; className?: string }) {
-  return <Text numberOfLines={1} className={cn("min-w-0 flex-1 text-[15px] font-semibold", className)}>{flagOf(who.country)} {who.name}</Text>;
+/** A person on a row: their flag and name, on `lines` lines at most. */
+function Who({ who, className, lines = 1 }: { who: WcaWho; className?: string; lines?: number }) {
+  return <Text numberOfLines={lines} className={cn("min-w-0 flex-1 text-[15px] font-semibold", className)}>{flagOf(who.country)} {who.name}</Text>;
 }
 
 function Rankings() {
@@ -166,10 +168,10 @@ function Rankings() {
       <HeadButton icon={Search} label="Find a name in the ranking" active={searching} onPress={() => { setSearching(!searching); if (searching) { setText(""); update({ q: "" }); } }} />
       {mine ? <HeadButton icon={UserRound} label="Find me in the ranking" onPress={() => update({ person: mine })} /> : null}
     </Head>
-    <Filters>
+    <Filters line>
       <Pill icon={<PuzzleIcon puzzle={f.event} size={16} />} label={wcaEventLabel(f.event)} accessibilityLabel="Event" onPress={() => setSheet("event")} />
       {f.event !== "333mbf" ? <Pill label={kind === "single" ? "Single" : "Average"} swap accessibilityLabel="Result" onPress={() => update({ kind: kind === "single" ? "average" : "single" })} /> : null}
-      <Pill icon={f.region.length === 2 ? <Text>{flagOf(f.region)}</Text> : <Icon as={Globe} size={15} />} label={regionLabel(f.region, countries)} accessibilityLabel="Region" onPress={() => setSheet("region")} />
+      <Pill icon={f.region.length === 2 ? <Text>{flagOf(f.region)}</Text> : <Icon as={Globe} size={15} />} label={regionLabel(f.region, countries)} bare accessibilityLabel="Region" onPress={() => setSheet("region")} />
     </Filters>
     {searching ? <SearchField value={text} onChangeText={setText} placeholder="Name" autoFocus className="mx-4 mb-2" /> : null}
     {error && f.person ? <Text className="px-4 pb-1 text-sm text-destructive">{error}</Text> : null}
@@ -227,10 +229,10 @@ function Competitions() {
     <Head tab="competitions">
       <HeadButton icon={Search} label="Find a competition by name" active={searching} onPress={() => { setSearching(!searching); if (searching) { setText(""); update({ q: "" }); } }} />
     </Head>
-    <Filters>
+    <Filters line>
       <Pill label={f.status === "past" ? "Past" : "Upcoming"} swap accessibilityLabel="When" onPress={() => update({ status: f.status === "past" ? "upcoming" : "past", month: "" })} />
-      <Pill icon={f.country ? <Text>{flagOf(f.country)}</Text> : <Icon as={Globe} size={15} />} label={f.country ? countryName(f.country, countries) : "Anywhere"} accessibilityLabel="Region" onPress={() => setSheet("country")} />
-      <Pill label={f.month ? monthLabel(f.month) : "Any month"} accessibilityLabel="Month" onPress={() => setSheet("month")} />
+      <Pill icon={f.country ? <Text>{flagOf(f.country)}</Text> : <Icon as={Globe} size={15} />} label={f.country ? countryName(f.country, countries) : "Anywhere"} bare accessibilityLabel="Region" onPress={() => setSheet("country")} />
+      <Pill icon={<Icon as={CalendarDays} size={15} />} label={f.month ? monthLabel(f.month) : "Any month"} bare={!f.month} accessibilityLabel="Month" onPress={() => setSheet("month")} />
     </Filters>
     {searching ? <SearchField value={text} onChangeText={setText} placeholder="Name" autoFocus className="mx-4 mb-2" /> : null}
     {!data?.items.length ? <Missing error={error} empty={!!data && tr("No competition")} />
@@ -352,7 +354,7 @@ function PersonPage({ id }: { id: string }) {
           renderItem={({ item: r }) => <Pressable onPress={() => { setEvent(r.event); setPart("results"); }} className="gap-1.5 rounded-2xl bg-card px-3.5 py-2.5 active:bg-muted/50">
             <View className="flex-row items-center gap-2"><PuzzleIcon puzzle={r.event} size={15} /><Text className="min-w-0 flex-1 text-sm font-bold">{said(r.label)}</Text></View>
             <View className="flex-row gap-3"><Official event={r.event} kind="single" r={r.single} /><Official event={r.event} kind="average" r={r.average} /></View>
-            {own && r.qbixSingle != null ? <Text className="text-xs text-muted-foreground">Qbix <Numeric className="text-xs font-bold text-foreground">{fmtTime(r.qbixSingle)}</Numeric>{r.qbixAverage != null ? ` · ${tr("Ao5 {0}", { 0: fmtTime(r.qbixAverage) })}` : ""}</Text> : null}
+            {own && r.qbixSingle != null ? <Text className="text-xs text-muted-foreground">Qbix <Numeric className="text-xs font-bold text-foreground">{fmtResult(r.qbixSingle, eventInfo(r.event)?.solveMode)}</Numeric>{r.qbixAverage != null ? ` · ${tr("Ao5 {0}", { 0: fmtTime(r.qbixAverage) })}` : ""}</Text> : null}
           </Pressable>} />)
         : <View className="min-h-0 flex-1 gap-2">
           {rows.length ? <View className="flex-row"><Pill icon={<PuzzleIcon puzzle={shown} size={16} />} label={wcaEventLabel(shown)} accessibilityLabel="Event" onPress={() => setSheet(true)} /></View> : null}
@@ -409,7 +411,7 @@ function CompetitionPage({ id }: { id: string }) {
             {rounds.length > 1 ? <Choice label="Round" value={picked?.round ?? ""} onChange={setRound} options={[...rounds].reverse().map(r => ({ id: r.round, label: said(wcaRound(r.round)) }))} /> : null}
             {!picked?.results.length ? <Empty icon={Trophy} title={tr("Results not yet available")} />
               : <><ResultHead event={shown} /><FlatList data={picked.results} keyExtractor={r => r.id + r.pos} contentContainerClassName="pb-3" accessibilityLabel={said(wcaRound(picked.round))}
-                renderItem={({ item: r }) => <Pressable accessibilityRole="link" onPress={() => open("persons/" + r.id)}><ResultRow event={shown} r={r} lead={<Who who={r} className="text-sm" />} /></Pressable>} /></>}
+                renderItem={({ item: r }) => <Pressable accessibilityRole="link" onPress={() => open("persons/" + r.id)}><ResultRow event={shown} r={r} lead={<Who who={r} lines={2} className="text-sm" />} /></Pressable>} /></>}
           </>}
         </View>}
     </View>}

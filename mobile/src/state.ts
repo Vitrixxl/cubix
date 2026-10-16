@@ -1,15 +1,15 @@
 import { DEFAULT_THEME, type ThemeId } from "../../src/client/lib/theme";
-import { BLD_PREFS } from "../../src/client/lib/bld";
+import { BLD_PREFS, type OwnAlgs } from "../../src/client/lib/bld";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
+import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, type ScrambleType, type SolveMode, scrambleTypesOf } from "../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, SolveDto, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
 import { pageUrl, readRoute } from "../../src/client/lib/route";
 import { api, authToken, local } from "./api";
 import { storage } from "./platform/storage";
-import { CROSS_MOVES, crossMovesFor, crossScrambleType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
+import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossSolveMode, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
@@ -329,13 +329,20 @@ export const eventAtom = atom<EventId, [EventId], void>(get => eventOf(get(puzzl
 });
 const preferredScrambleTypeAtom = perPuzzleAtom<ScrambleType>("cubix.practice.typeByPuzzle", "normal");
 export const scrambleTypeAtom = atom(get => {
-  const info = puzzleInfo(get(puzzleAtom)), preferred = get(preferredScrambleTypeAtom);
-  return info.scrambles.includes(preferred) ? preferred : info.scrambles[0];
+  // Fewest Moves and Multi-Blind keep to WCA scrambles, whatever the puzzle's other events use.
+  const types = scrambleTypesOf(get(puzzleAtom), get(solveModeAtom)), preferred = get(preferredScrambleTypeAtom);
+  return types.includes(preferred) ? preferred : types[0]!;
 }, (get, set, type: ScrambleType) => {
-  if (!get(cubeSwitchLockedAtom) && puzzleInfo(get(puzzleAtom)).scrambles.includes(type)) set(preferredScrambleTypeAtom, type);
+  if (!get(cubeSwitchLockedAtom) && scrambleTypesOf(get(puzzleAtom), get(solveModeAtom)).includes(type)) set(preferredScrambleTypeAtom, type);
 });
+/** A metronome's beats per minute while a solve runs, 0 when off (src/client/lib/metronome). */
+export const metronomeAtom = persisted<number>("cubix.timer.metronome", 0);
+/** Multi-Blind: the cubes of an attempt. */
+export const mbldCubesAtom = persisted<number>("cubix.timer.mbldCubes", 3);
 /** Timer page only: run the timer, type a time from an external timer, or time without recording. */
 export const timeEntryAtom = persisted<TimeEntry>("cubix.timer.entry", "timer");
+/** The phases a timer solve is timed in (src/client/lib/phases), as the web's `cubix.timer.phases`. */
+export const phasesAtom = persisted<string>("cubix.timer.phases", "off");
 export const practiceContextAtom = atom(get => ({ puzzle: get(puzzleAtom), solveMode: get(solveModeAtom), scrambleType: get(scrambleTypeAtom) }));
 const scramblesAtom = persisted<Record<string, string>>("cubix.playground.scrambleByContext", {});
 export const playgroundScrambleAtom = atom(get => {
@@ -346,7 +353,7 @@ export const playgroundScrambleAtom = atom(get => {
   set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: value });
 });
 /** Cross training: timer solves of its own scramble type (`xcross-6`…) on the 3×3. */
-export const crossContextAtom = atom(get => ({ puzzle: "333" as PuzzleId, solveMode: get(solveModeAtom), scrambleType: crossScrambleType(get(crossTargetAtom), get(crossMovesAtom)) as ScrambleType }));
+export const crossContextAtom = atom(get => ({ puzzle: "333" as PuzzleId, solveMode: crossSolveMode(get(solveModeAtom)), scrambleType: crossScrambleType(get(crossTargetAtom), get(crossMovesAtom)) as ScrambleType }));
 /** Its scramble, kept per context beside the timer's own ones, like the web. */
 export const crossScrambleAtom = atom(get => {
   const c = get(crossContextAtom);
@@ -381,6 +388,11 @@ export const signedInAtom = atom(get => { const user = get(userAtom); return !!u
 /** The app used without an account, on this device only ("Continue without an account"); signing in clears it. */
 /** Each letter pair's word, for the training list's count too. */
 export const bldWordsAtom = persisted<Record<string, string>>(BLD_PREFS.words, {});
+/**
+ * The algorithms a player wrote for a case ("Add yours", a commutator's own), and those of them used. Kept on this
+ * device: the account only records the catalogue's algorithms.
+ */
+export const ownAlgsAtom = persisted<OwnAlgs>(BLD_PREFS.own, {});
 export const guestModeAtom = persisted<boolean>("cubix.guestMode", false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);

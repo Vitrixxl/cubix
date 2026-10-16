@@ -12,6 +12,7 @@ import { PUZZLES } from "../src/shared/puzzles";
 import { authToken, local, localChanged, syncStatusChanged } from "./src/api";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { GuidesSheet } from "./src/components/GuidesDialog";
+import { DeviceNotices, DevicesSheet } from "./src/components/Devices";
 import { NotationSheet } from "./src/components/Notation";
 import { Fade } from "./src/components/layout";
 import { LiveConnection } from "./src/components/LiveConnection";
@@ -209,6 +210,8 @@ function Shell() {
     <FloatingCall />
     <SessionSheet />
     <GuidesSheet />
+    <DevicesSheet />
+    <DeviceNotices />
     <NotationSheet />
     <SyncIndicator hidden={running} />
     <XpGain />

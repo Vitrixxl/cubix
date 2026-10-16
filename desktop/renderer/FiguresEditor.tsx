@@ -6,7 +6,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { averageFigure, AVERAGE_SIZES, FIGURE_LIMIT, figureLabel, figureRows, parseFigure } from "../../src/client/lib/practiceSummary";
+import { averageFigure, AVERAGE_SIZES, FIGURE_LIMIT, figureLabel, figureRows, parseFigure, shownFigures } from "../../src/client/lib/practiceSummary";
+import { attemptMode } from "../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -68,8 +69,11 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
     keys = useRef(new Map<string, number>()),
     serial = useRef(0),
     metrics = s.figuresShown(),
-    byId = new Map(s.figures.map((id, i) => [id, metrics[i]!])),
-    ids = order ?? s.figures,
+    // Fewest Moves and Multi-Blind show their own figures (shownFigures), not to edit.
+    fixed = attemptMode(s.solveMode),
+    figures = fixed ? shownFigures(s.solveMode, s.figures) : s.figures,
+    byId = new Map(figures.map((id, i) => [id, metrics[i]!])),
+    ids = order ?? figures,
     adding = editing && ids.length < FIGURE_LIMIT,
     colours = dots(ids.map((id) => byId.get(id)?.[2] ?? "")),
     rows = figureRows(ids.length, adding ? 1 : 0),
@@ -175,7 +179,7 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
     <div className="group/stats relative flex shrink-0 flex-col gap-3" data-tour="session" data-no-timer={editing || undefined}>
       <div className={cn("flex gap-2", FADE)} data-no-timer>
         {actions}
-        <Button
+        {!fixed && <Button
           variant={editing ? "default" : "ghost"}
           size={editing ? "default" : "icon"}
           aria-label={editing ? undefined : tr("Edit the figures")}
@@ -186,7 +190,7 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
         >
           {editing ? <Check data-icon="inline-start" /> : <Pencil />}
           {editing && tr("Done")}
-        </Button>
+        </Button>}
       </div>
       {/* One wrapping line of siblings (so a dragged box keeps its place in the tree), each tile as wide as its line asks. */}
       <section aria-label={tr("Statistics")} className={cn("flex flex-wrap gap-3", FADE)}>

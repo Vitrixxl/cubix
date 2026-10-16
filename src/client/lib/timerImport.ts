@@ -8,7 +8,7 @@
  * Dates are when the solve was done, in milliseconds. Events outside the WCA ones Cubix practises, trainers and
  * custom puzzles are left out and counted.
  */
-import { EVENTS, eventOf, type EventId } from "../../shared/puzzles";
+import { attemptMode, EVENTS, eventOf, type EventId } from "../../shared/puzzles";
 import { msg } from "../i18n/msg";
 
 export type Penalty = "none" | "+2" | "dnf";
@@ -24,6 +24,13 @@ export interface ImportedSolve {
   session?: string;
   /** The session's name when `session` is not one (Qbix's own export: its id); blank for none. */
   sessionName?: string;
+  /** Timed in phases: the end of each phase but the last, in ms from the start (see lib/phases). */
+  splits?: number[];
+  /** Qbix's own export: Fewest Moves' written solution and move count, Multi-Blind's cubes. */
+  solution?: string;
+  moves?: number;
+  cubesSolved?: number;
+  cubesAttempted?: number;
 }
 export interface TimerImport {
   /** The timer the file comes from, as shown to the player. */
@@ -35,17 +42,18 @@ export interface TimerImport {
   needsEvent: boolean;
 }
 
-const WCA = new Set<string>(EVENTS.map((e) => e.id));
+// Fewest Moves and Multi-Blind keep their moves and cubes in Qbix's own files only: from another timer, a time alone is no result.
+const WCA = new Set<string>(EVENTS.filter((e) => !attemptMode(e.solveMode)).map((e) => e.id));
 const isEvent = (id: string): id is EventId => WCA.has(id);
 
 /** csTimer's scramble types, and the other timers' puzzle names, as WCA events. */
 const CSTIMER: Record<string, EventId> = {
   "333": "333", "222so": "222", "444wca": "444", "555wca": "555", "666wca": "666", "777wca": "777",
-  "333ni": "333bf", "333oh": "333oh", mgmp: "minx", pyrso: "pyram", skbso: "skewb", sqrs: "sq1",
+  "333ni": "333bf", "333oh": "333oh", clkwca: "clock", mgmp: "minx", pyrso: "pyram", skbso: "skewb", sqrs: "sq1",
   "444bld": "444bf", "555bld": "555bf",
   // Same puzzles, other scramblers.
   "222o": "222", "2223": "222", "444m": "444", "444": "444", "444yj": "444", "555": "555", "666si": "666", "666p": "666",
-  "666s": "666", "777si": "777", "777p": "777", "777s": "777",
+  "666s": "666", "777si": "777", "777p": "777", "777s": "777", clkwcab: "clock", clk: "clock", clko: "clock",
   mgmc: "minx", mgmo: "minx", mgmso: "minx", pyro: "pyram", pyrm: "pyram", skbo: "skewb", skb: "skewb", sq1h: "sq1",
   sq1t: "sq1",
   // CubeTime's own name for 3BLD in its csTimer files.
@@ -53,7 +61,7 @@ const CSTIMER: Record<string, EventId> = {
 };
 const TWISTY: Record<string, EventId> = {
   "222": "222", "333": "333", "444": "444", "555": "555", "666": "666", "777": "777", mega: "minx", pyra: "pyram",
-  skewb: "skewb", sq1: "sq1", "333oh": "333oh", "333bld": "333bf", "444bld": "444bf", "555bld": "555bf",
+  skewb: "skewb", clock: "clock", sq1: "sq1", "333oh": "333oh", "333bld": "333bf", "444bld": "444bf", "555bld": "555bf",
 };
 const CUBEDESK: Record<string, EventId> = { "333bl": "333bf" };
 
@@ -129,6 +137,8 @@ function cstimer(data: any): TimerImport {
         comment: text(comment),
         at: at * 1000,
         session: cubeTime ? name.replace(/^CubeTime Export - /, "") : name,
+        // A multi-phase solve: its phases' ends after the time, the last phase's first.
+        ...(result.length > 2 ? { splits: result.slice(2).reverse() } : {}),
       });
     }
   }
@@ -237,7 +247,12 @@ function qbix(data: any): TimerImport {
       skip(skipped, "unreadable solves");
       continue;
     }
-    solves.push({ event, timeMs: solve.time_ms, penalty: solve.penalty ?? "none", scramble: text(solve.scramble), comment: text(solve.comment), at, session: solve.session_id == null ? undefined : String(solve.session_id), sessionName: names.get(solve.session_id) ?? "" });
+    solves.push({
+      event, timeMs: solve.time_ms, penalty: solve.penalty ?? "none", scramble: text(solve.scramble), comment: text(solve.comment), at, session: solve.session_id == null ? undefined : String(solve.session_id), sessionName: names.get(solve.session_id) ?? "",
+      ...(typeof solve.solution === "string" ? { solution: solve.solution } : {}), ...(solve.moves != null ? { moves: solve.moves } : {}),
+      ...(solve.cubes_attempted != null ? { cubesSolved: solve.cubes_solved, cubesAttempted: solve.cubes_attempted } : {}),
+      ...(solve.splits ? { splits: solve.splits } : {}),
+    });
   }
   return { app: "Qbix", solves, skipped, needsEvent: false };
 }

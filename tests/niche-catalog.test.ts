@@ -8,7 +8,8 @@ import {readFile} from 'node:fs/promises';
 
 test('all selectable puzzles have a distinct, nonempty algorithm and training catalogue',()=>{
   expect(new Set(cases.map(c=>c.id)).size).toBe(cases.length);
-  for(const p of PUZZLES){
+  // The Clock has no algorithms: its pin settings are not in Qbix yet.
+  for(const p of PUZZLES.filter(p=>p.id!=='clock')){
     const puzzleCases=cases.filter(c=>puzzleOf(c)===p.id),puzzleSets=sets.filter(s=>puzzleOf(s)===p.id);
     expect(puzzleCases.length,p.label).toBeGreaterThan(0);
     expect(puzzleSets.length,p.label).toBeGreaterThan(0);

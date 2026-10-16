@@ -59,7 +59,7 @@ const fake = {
   sections: () => (fake.isCoach ? [[["dashboard", "Dashboard"], ["students", "Students"], ["schedule", "Schedule"], ["profile", "Coach profile"]], PLAYER] : [PLAYER, [["apply", "Become a coach"]]]),
   badge: () => 0,
 };
-mock.module("../src/lib/social", () => ({ coaching: fake, useCoaching: () => fake }));
+mock.module("../src/lib/social", () => ({ coaching: fake, useCoaching: () => fake, openUrl: () => {} }));
 
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { CoachingPage } = await import("../src/pages/CoachingPage");

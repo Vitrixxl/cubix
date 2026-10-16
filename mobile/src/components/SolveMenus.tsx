@@ -4,7 +4,7 @@ import { Ban, Info, MessageSquare, Plus, Trash2 } from "lucide-react-native";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, View, type PressableProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fmtSolve } from "../../../src/client/lib/format";
+import { fmtSolveOf } from "../../../src/client/lib/format";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuLabel, ContextMenuRadioGroup, ContextMenuRadioItem,
@@ -23,7 +23,9 @@ import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { said, tr } from "../../../src/client/i18n";
 
 /** What the actions need from a solve; history rows on the profile provide the same fields. */
-export type SolveSummary = Pick<SolveDto, "id" | "time_ms" | "penalty" | "created_at" | "comment"> & { scramble?: string | null };
+export type SolveSummary = Pick<SolveDto, "id" | "time_ms" | "penalty" | "created_at" | "comment"> & { scramble?: string | null }
+  // Fewest Moves and Multi-Blind read their result from these (`fmtSolveOf`).
+  & Partial<Pick<SolveDto, "solve_mode" | "moves" | "cubes_solved" | "cubes_attempted">>;
 
 const MenuContext = createContext<{
   /** Sets a penalty, or takes it off when it is the one already set (as the web's menu). */
@@ -99,7 +101,7 @@ export function SolveMenu({ solve, children, className, rootClassName, onPress, 
   return <ContextMenu relativeTo="longPress" className={rootClassName} onOpenChange={open => { if (open) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); }}>
     <ContextMenuTrigger delayLongPress={350} onPress={onPress ?? (() => openSolve(current))} className={className} {...props}>{children}</ContextMenuTrigger>
     <ContextMenuContent className="min-w-60" insets={{ top: insets.top + 8, bottom: insets.bottom + 8, left: 12, right: 12 }}>
-      <ContextMenuLabel><Numeric className={cn("text-base font-semibold", current.penalty === "dnf" && "text-destructive")}>{fmtSolve(current.time_ms, current.penalty)}</Numeric></ContextMenuLabel>
+      <ContextMenuLabel><Numeric className={cn("text-base font-semibold", current.penalty === "dnf" && "text-destructive")}>{fmtSolveOf(current)}</Numeric></ContextMenuLabel>
       <ContextMenuRadioGroup value={current.penalty} onValueChange={value => void togglePenalty(current, value as Penalty)}>
         <ContextMenuRadioItem value="none" className="min-h-11"><Text>{tr("No penalty")}</Text></ContextMenuRadioItem>
         <ContextMenuRadioItem value="+2" className="min-h-11"><Text>+2</Text></ContextMenuRadioItem>
@@ -124,7 +126,8 @@ export function LastSolveBar({ solve, extra, look = "touch" }: { solve: SolveSum
   const last = solve && pending !== null ? { ...solve, ...pending } : null;
   const off = !last || busy;
   if (look === "pills") return <View accessibilityLabel={tr("Last solve")} className="flex-row gap-1.5">
-    <PillAction label="+2" accessibilityLabel={tr("+2 penalty")} pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
+    {/* A move count takes no +2. */}
+    {solve?.solve_mode !== "fewest-moves" && <PillAction label="+2" accessibilityLabel={tr("+2 penalty")} pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />}
     <PillAction label={tr("DNF")} accessibilityLabel={tr("Did not finish")} pressed={last?.penalty === "dnf"} tone="bad" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
     <PillAction icon={MessageSquare} label={tr("Note")} accessibilityLabel={last?.comment ? tr("Edit comment") : tr("Add comment")} pressed={!!last?.comment} tone="accent" disabled={off} onPress={() => last && editComment(last)} />
     <PillAction icon={Trash2} label={tr("Delete")} accessibilityLabel={tr("Delete solve")} disabled={off} onPress={() => last && void deleteTime(last.id)} />

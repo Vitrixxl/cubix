@@ -91,14 +91,14 @@ func TestSyncedSolveLimitsAndCompactReceipts(t *testing.T) {
 			return M{"id": id, "method": "POST", "path": "solves", "createdAt": "2026-10-10T08:00:00.000Z",
 				"body": M{"timeMs": int64(9000), "scramble": scramble}}
 		}
-		if s := status(push(solve("long", strings.Repeat("R ", 1000)+"U"))); s != 422 {
-			t.Fatalf("a 2001-character scramble: %d", s)
+		if s := status(push(solve("long", strings.Repeat("R ", 2000)+"U"))); s != 422 {
+			t.Fatalf("a 4001-character scramble: %d", s)
 		}
 		if s := status(push(M{"id": "cases", "method": "POST", "path": "sessions", "createdAt": "2026-10-10T08:00:00.000Z",
 			"body": M{"mode": "training", "caseIds": []any{"PLL Aa"}}})); s != 422 {
 			t.Fatalf("more case ids than the catalogue holds: %d", s)
 		}
-		op := solve("ok", strings.Repeat("R ", 1000))
+		op := solve("ok", strings.Repeat("R ", 2000))
 		first, err := push(op)
 		if err != nil {
 			t.Fatal(err)
@@ -167,6 +167,54 @@ func TestUsernameChange(t *testing.T) {
 		row, err := dbOne(c, "SELECT username FROM users WHERE id='u'")
 		if err != nil || row["username"] != "sam_cubes" {
 			t.Fatalf("stored %v %v", row, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A solve timed in phases keeps its splits, rising and within the solve, and other devices pull them as a list.
+func TestSolveSplits(t *testing.T) {
+	db, err := dbOpen(filepath.Join(t.TempDir(), "cubix.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = db.Call(func(c *Conn) error {
+		if _, err := c.Exec("INSERT INTO users(id,username) VALUES('u','sam')"); err != nil {
+			return err
+		}
+		caller := &ApiCaller{user: M{"id": "u"}}
+		state := &AppState{catalog: &Catalog{}}
+		push := func(id string, splits any) (any, error) {
+			return syncPush(c, state, "u", caller, M{"operations": []any{M{"id": id, "method": "POST", "path": "solves", "createdAt": "2026-10-10T08:00:00.000Z",
+				"body": M{"timeMs": float64(10000), "splits": splits}}}})
+		}
+		for i, bad := range []any{[]any{}, []any{float64(3000), float64(2000)}, []any{float64(10000)}, []any{float64(0)}, "1,2", make([]any, 8)} {
+			if _, err := push("bad"+strconv.Itoa(i), bad); err == nil || toApiError(err).Status != 422 {
+				t.Fatalf("splits %v: %v", bad, err)
+			}
+		}
+		if _, err := push("ok", []any{float64(1500.4), float64(6000), float64(8200)}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := push("none", nil); err != nil {
+			t.Fatal(err)
+		}
+		pulled, err := syncPull(c, "u", 0, false, false)
+		if err != nil {
+			return err
+		}
+		changes := pulled["changes"].([]any)
+		if len(changes) != 2 {
+			t.Fatalf("pulled %v", changes)
+		}
+		if got := strings.TrimSpace(encodeJSON(changes[0].(M)["value"].(M)["splits"])); got != "[1500,6000,8200]" {
+			t.Fatalf("splits %q", got)
+		}
+		if got := changes[1].(M)["value"].(M)["splits"]; got != nil {
+			t.Fatalf("no splits %v", got)
 		}
 		return nil
 	})

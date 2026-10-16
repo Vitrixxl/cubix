@@ -1,8 +1,8 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { getDefaultStore, useAtomValue, useSetAtom } from "jotai";
 import { CalendarDays, ChevronDown, ChevronRight, ListOrdered, MessageSquare, Rotate3d, Timer as TimerIcon, Trophy, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
-import { effective, fmtTime, plural, rollingAverages, shortDate } from "../../../src/client/lib/format";
+import { effective, fmtValue, plural, rollingAverages, shortDate } from "../../../src/client/lib/format";
 import { periodFigures, singleRecords, type PeriodFigure } from "../../../src/client/lib/practiceSummary";
 import { sessionName } from "../../../src/client/lib/sessions";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
@@ -23,6 +23,10 @@ import { Sheet, SheetFlatList } from "./Sheet";
 import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
 import { HistoryChart, type Range } from "./TimesChart";
 import { locale, said, tr } from "../../../src/client/i18n";
+
+/** A figure of the event shown: a time, or Fewest Moves' moves and Multi-Blind's cubes (`fmtValue`). */
+const shownMode = () => getDefaultStore().get(profileSolveModeAtom);
+const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, shownMode(), opts);
 
 /**
  * The timer's statistics, pushed from the profile (the web's StatsPage): one event and one scramble type. A board of
@@ -176,10 +180,10 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
           </View>}
       </View>
       {perSession
-        ? <HistoryChart history={sessions.map(x => ({ time: x[metric], at: x.at }))} averages={[]} range={sessionRange} onRange={setSessionRange}
+        ? <HistoryChart history={sessions.map(x => ({ time: x[metric], at: x.at }))} averages={[]} range={sessionRange} onRange={setSessionRange} mode={shownMode()}
           marks={(() => { let best = -1; sessions.forEach((x, i) => { if (x[metric] != null && (best < 0 || x[metric]! < sessions[best]![metric]!)) best = i; }); return best < 0 ? [] : [best]; })()}
           label={i => `${sessionLabel(sessions[i] ?? null)} · ${plural(sessions[i]?.count ?? 0, "solve")}`} />
-        : <HistoryChart history={history} averages={long ? derived.ao50 : data.ao5} range={solveRange} onRange={setSolveRange} points dnfs
+        : <HistoryChart history={history} averages={long ? derived.ao50 : data.ao5} range={solveRange} onRange={setSolveRange} mode={shownMode()} points dnfs
           marks={derived.records.map(r => r.index)} label={i => `#${i + 1} · ${sessionLabel(derived.session[i] ?? null) || shortDate(history[i]!.at)}`} />}
       <PeriodBar items={perSession ? sessions : history} range={perSession ? sessionRange : solveRange} onRange={perSession ? setSessionRange : setSolveRange}
         lastSession={perSession || !derived.session.at(-1) ? null : derived.session.indexOf(derived.session.at(-1)!)} count={range[1] - range[0] + 1} />
@@ -276,7 +280,8 @@ function RecordsSheet({ open, onClose, records, history, label }: { open: boolea
   </Sheet>;
 }
 
-const summaryOf = (v: HistoryPoint): SolveSummary => ({ id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment });
+const summaryOf = (v: HistoryPoint): SolveSummary => ({ id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment,
+  ...(v.solve_mode ? { solve_mode: v.solve_mode, moves: v.moves, cubes_solved: v.cubes_solved, cubes_attempted: v.cubes_attempted } : {}) });
 
 type Row = { kind: "head"; session: SessionSummary | null; key: string } | { kind: "solve"; v: HistoryPoint; index: number; session: SessionSummary | null; key: string; first: boolean; last: boolean };
 

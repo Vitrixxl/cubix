@@ -262,6 +262,9 @@ export const euros = (cents: number) => (cents / 100).toLocaleString(locale(), {
 /** The price of a session, "Free" when there is none. */
 export const price = (cents: number) => (cents ? euros(cents) : tr("Free"));
 
+/** One piece of state `load` fetches. */
+type Piece = "me" | "coaches" | "bookings" | "conversations" | "dashboard" | `coach:${string}` | `slots:${string}` | `messages:${number}` | `person:${string}`;
+
 export class Coaching {
   constructor(readonly host: SocialHost) {
     host.live.on("coaching", (e) => this.user && this.event(e));
@@ -286,18 +289,26 @@ export class Coaching {
   inCall = "";
   connected = false;
   failure = "";
-  private loading = new Map<string, Promise<unknown>>();
+  private loading = new Map<Piece, Promise<unknown>>();
+  /** What a page asked for with no account attached: fetched once one is. */
+  private asked = new Set<Piece>();
   private callListener?: (event: CallEvent) => void;
 
   /** Follows the signed-in account: a new one starts afresh. */
   attach(user: string | null) {
     if (user === this.user) return;
+    // A page asks once, on opening (a coach's page opened by its link, before the account is known): what it asked for
+    // and never got is fetched again for the new account.
+    const again = new Set([...this.asked, ...this.loading.keys()]);
     this.detach();
     this.user = user;
-    if (user) {
-      this.connected = this.host.live.connected();
-      void this.load("me");
+    if (!user) {
+      this.asked = again;
+      return;
     }
+    this.connected = this.host.live.connected();
+    void this.load("me");
+    for (const what of again) void this.load(what);
   }
   private detach() {
     this.connected = false;
@@ -308,6 +319,7 @@ export class Coaching {
     this.people.clear();
     this.waiting.clear();
     this.loading.clear();
+    this.asked.clear();
   }
   get isCoach() {
     return !!this.me?.coach?.active;
@@ -331,9 +343,13 @@ export class Coaching {
   }
 
   /** Fetches one piece of state (at most once at a time) and redraws. */
-  load(what: "me" | "coaches" | "bookings" | "conversations" | "dashboard" | `coach:${string}` | `slots:${string}` | `messages:${number}` | `person:${string}`) {
+  load(what: Piece) {
     const pending = this.loading.get(what);
     if (pending) return pending;
+    if (!this.user) {
+      this.asked.add(what);
+      return Promise.resolve();
+    }
     const owner = this.user;
     const [kind, arg] = what.includes(":") ? [what.slice(0, what.indexOf(":")), what.slice(what.indexOf(":") + 1)] : [what, ""];
     const path = kind === "coach" ? "coaches/" + encodeURIComponent(arg) : kind === "slots" ? `coaches/${encodeURIComponent(arg)}/slots` : kind === "messages" ? `conversations/${arg}/messages` : kind === "person" ? "people/" + encodeURIComponent(arg) : kind;
@@ -357,7 +373,7 @@ export class Coaching {
         this.failure = e.message;
         this.host.changed();
       })
-      .finally(() => this.loading.delete(what));
+      .finally(() => this.loading.get(what) === request && this.loading.delete(what));
     this.loading.set(what, request);
     return request;
   }

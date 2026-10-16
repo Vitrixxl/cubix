@@ -51,12 +51,11 @@ export interface WcaRound { round: string; format: string; results: (WcaWho & Wc
 export interface WcaHistory { competitions: WcaCompetition[]; results: (WcaResult & { competition: string; event: string; round: string })[] }
 export interface WcaCountry { iso2: string; name: string; continent: string }
 
-/** The WCA's events in its own order; the events Qbix times keep its names. */
-const NAMES: Record<string, string> = { "333fm": msg("3×3 Fewest Moves"), clock: msg("Clock"), "333mbf": msg("3×3 Multi-Blind") };
+/** The WCA's events in its own order. */
 export const WCA_EVENTS = ["333", "222", "444", "555", "666", "777", "333bf", "333fm", "333oh", "clock", "minx", "pyram", "skewb", "sq1", "444bf", "555bf", "333mbf"];
-export const wcaEventLabel = (id: string) => NAMES[id] ?? eventLabelOf(id);
-/** Events whose WCA average is a mean of 3, not an Ao5: no Qbix Ao5 beside it. */
-const MEAN_OF_3 = ["666", "777", "333bf", "444bf", "555bf", "333fm"];
+export const wcaEventLabel = eventLabelOf;
+/** Events whose WCA average is a mean of 3 (or none, Multi-Blind), not an Ao5: no Qbix Ao5 beside it. */
+const MEAN_OF_3 = ["666", "777", "333bf", "444bf", "555bf", "333fm", "333mbf"];
 
 /**
  * A result as the WCA writes it: centiseconds as 1:02.34, moves for Fewest Moves (its mean to two decimals), cubes and
@@ -73,6 +72,27 @@ export function wcaResult(event: string, kind: "single" | "average", value: numb
     return `${solved}/${solved + missed} ${seconds < 60 ? `0:${pad(seconds)}` : clock(seconds * 100).slice(0, -3)}`;
   }
   return clock(value);
+}
+/** Multi-Blind's time limit (H1b): 10 minutes a cube, 60 minutes from 6 cubes. */
+export const mbldLimitMs = (cubes: number) => Math.min(cubes, 6) * 600_000;
+/** The cubes a Multi-Blind attempt can have here (at least 2, H1a1), and the counts offered. */
+export const MBLD_CUBES = { min: 2, max: 40 };
+export const MBLD_CHOICES = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40].map((n) => ({ id: String(n), label: String(n) }));
+/** A stored count of cubes, 3 for anything not offered. */
+export const mbldCubes = (value: unknown) => (MBLD_CHOICES.some((c) => c.id === String(value)) ? Number(value) : 3);
+/** Scrambles numbered as on a WCA scramble sheet, one a line: "1. R U …". */
+export const numberedScrambles = (list: readonly string[]) => list.map((s, i) => `${i + 1}. ${s}`).join("\n");
+/** The scrambles of a numbered list (`numberedScrambles`), without their numbers. */
+export const scrambleList = (text: string) => text.split("\n").map((line) => line.replace(/^\d+\.\s*/, "")).filter(Boolean);
+/**
+ * A Multi-Blind attempt as the WCA ranks it (9f12c): its value 0DDTTTTTMM (lower is better), null for a DNF (more cubes
+ * unsolved than solved, or a single one solved). Over 10 minutes a time is rounded to the second, under it truncated
+ * (9f1); the value keeps whole seconds.
+ */
+export function mbldValue(solved: number, attempted: number, ms: number): number | null {
+  const missed = attempted - solved, points = solved - missed;
+  if (points < 0 || solved < 2 || missed < 0) return null;
+  return (99 - points) * 1e7 + (ms < 600_000 ? Math.floor(ms / 1000) : Math.round(ms / 1000)) * 100 + missed;
 }
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Centiseconds as H:MM:SS.CC, its leading zeros and colons dropped (the WCA's SolveTime): 4.12, 1:01.23, 1:00:04.00. */
@@ -179,10 +199,11 @@ export function wcaMonths(past: boolean, today = new Date()) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 }
-const MONTH = localFormat({ month: "long", year: "numeric" }),
+const MONTH = localFormat({ month: "short", year: "numeric" }),
   DAY = localFormat({ day: "numeric", month: "short" }),
   DATE = localFormat({ day: "numeric", month: "short", year: "numeric" });
 const at = (iso: string) => new Date(iso + "T12:00:00");
+/** "Oct 2026", short enough for a filter on one line. */
 export const monthLabel = (month: string) => MONTH.format(at(month + "-01"));
 /** "12 Dec 2026", or "12 Dec – 13 Dec 2026". */
 export const wcaDates = (c: Pick<WcaCompetition, "start" | "end">) => (c.start === c.end ? DATE.format(at(c.start)) : `${DAY.format(at(c.start))} – ${DATE.format(at(c.end))}`);

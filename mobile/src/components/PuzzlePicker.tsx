@@ -1,17 +1,20 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { Check, ChevronDown, Keyboard, Timer, Trophy, type LucideIcon } from "lucide-react-native";
+import { Check, ChevronDown, Download, Keyboard, Timer, Trophy, type LucideIcon } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { INSPECTIONS, TIME_ENTRIES, type Inspection, type TimeEntry } from "../../../src/client/lib/format";
+import { METRONOME_CHOICES } from "../../../src/client/lib/metronome";
+import { MBLD_CHOICES } from "../../../src/client/lib/wca";
 import { DEFAULT_FIGURES } from "../../../src/client/lib/practiceSummary";
-import { EVENTS, eventInfo, puzzleInfo, scrambleLabel, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
+import { PHASE_OPTIONS } from "../../../src/client/lib/phases";
+import { attemptMode, EVENTS, eventInfo, scrambleLabel, scrambleTypesOf, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
 import { crossTrainingType } from "../../../src/shared/crossTraining";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom } from "../state";
+import { cubeSwitchLockedAtom, eventAtom, mbldCubesAtom, metronomeAtom, phasesAtom, puzzleAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom } from "../state";
 import { storage } from "../platform/storage";
 import { useColors } from "../theme";
 import { pickEventAtom } from "../journey";
@@ -92,6 +95,8 @@ export function SessionTrigger({ event, detail, onPress, disabled }: { event: Ev
 
 /** The puzzle sheet of the app, open from a page head: `timer` also holds the scramble type and the time entry. */
 export const sessionSheetAtom = atom<null | "puzzle" | "timer">(null);
+/** The timer's scrambles to export (`ScrambleExportSheet`), open from the timer's sheet. */
+export const scrambleExportAtom = atom(false);
 
 
 const json = createJSONStorage<any>(() => storage);
@@ -115,7 +120,9 @@ export function SessionSheet() {
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const [inspection, setInspection] = useAtom(inspectionAtom);
+  const [phases, setPhases] = useAtom(phasesAtom);
   const puzzle = useAtomValue(puzzleAtom), solveMode = useAtomValue(solveModeAtom), blind = solveMode === "blindfolded";
+  const [bpm, setBpm] = useAtom(metronomeAtom), [cubes, setCubes] = useAtom(mbldCubesAtom), setExporting = useSetAtom(scrambleExportAtom);
   const { tablet } = useLayout();
   const close = () => setMode(null);
   const toast = useSetAtom(toastAtom);
@@ -131,27 +138,49 @@ export function SessionSheet() {
       <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />
     </View>
     {/* A round of the event picked, in view without scrolling the sheet. */}
-    {scramble && <Pill icon={Trophy} label={tr("Comp sim")} accessibilityLabel={tr("Comp sim · one WCA round of this event")} disabled={locked} onPress={compSim} className="self-start" />}
+    {scramble && <View className="flex-row flex-wrap gap-2">
+      {!attemptMode(solveMode) && <Pill icon={Trophy} label={tr("Comp sim")} accessibilityLabel={tr("Comp sim · one WCA round of this event")} disabled={locked} onPress={compSim} />}
+      <Pill icon={Download} label={tr("Export")} disabled={locked} onPress={() => { close(); setExporting(true); }} />
+    </View>}
     {scramble && <>
-      <Caption>{tr("Scramble")}</Caption>
-      <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Scramble")}>
-        {timerScrambles(puzzleInfo(puzzle).scrambles).map(id => <Pill key={id} label={tr(scrambleLabel(id))} icon={id === scrambleType ? Check : undefined} primary={id === scrambleType}
-          disabled={locked} onPress={() => setScrambleType(id)} role="radio" />)}
-      </View>
+      {/* Multi-Blind has its cubes in place of the scramble types (WCA scrambles only). */}
+      <Caption>{solveMode === "multi-blind" ? tr("Cubes") : tr("Scramble")}</Caption>
+      {solveMode === "multi-blind"
+        ? <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Cubes")}>
+          {MBLD_CHOICES.map(c => <Pill key={c.id} label={c.label} primary={Number(c.id) === cubes} disabled={locked} onPress={() => setCubes(Number(c.id))} role="radio" />)}
+        </View>
+        : <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Scramble")}>
+          {timerScrambles(scrambleTypesOf(puzzle, solveMode)).map(id => <Pill key={id} label={tr(scrambleLabel(id))} icon={id === scrambleType ? Check : undefined} primary={id === scrambleType}
+            disabled={locked} onPress={() => setScrambleType(id)} role="radio" />)}
+        </View>}
       {/* Side by side on a tablet's wider sheet. */}
       <View className={cn("gap-3", tablet && "flex-row gap-4")}>
-        <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
+        {solveMode !== "fewest-moves" && <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
           <Caption>{tr("Entry")}</Caption>
           <PillSeg<TimeEntry> block label={tr("Entry")} value={entry} onChange={setEntry} disabled={locked}
             options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label, icon: e.id === "timer" ? Timer : e.id === "typing" ? Keyboard : undefined }))} />
-        </View>
+        </View>}
         {/* Blindfolded solves have no inspection (it is part of the time), typed ones neither. */}
-        {!blind && entry !== "typing" && <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
+        {!blind && entry !== "typing" && !attemptMode(solveMode) && <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
           <Caption>{tr("WCA inspection")}</Caption>
           <PillSeg<Inspection> block label={tr("WCA inspection")} value={inspection} onChange={setInspection}
             options={INSPECTIONS.map(i => ({ id: i.id, label: INSPECTION_SHORT[i.id] ?? i.label }))} />
         </View>}
       </View>
+      {/* Each tap of a running solve ends a phase; blindfolded solves split their memorisation instead. */}
+      {!blind && !attemptMode(solveMode) && entry !== "typing" && <>
+        <Caption>{tr("Phases")}</Caption>
+        <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Phases")}>
+          {PHASE_OPTIONS.map(o => <Pill key={o.id} label={said(o.label)} icon={o.id === phases ? Check : undefined} primary={o.id === phases} onPress={() => setPhases(o.id)} role="radio" />)}
+        </View>
+      </>}
+      {/* Fewest Moves is never timed: no metronome. */}
+      {solveMode !== "fewest-moves" && <>
+        <Caption>{tr("Metronome")}</Caption>
+        <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={tr("Metronome")}>
+          {METRONOME_CHOICES.map(c => <Pill key={c.id} label={said(c.label)} primary={Number(c.id) === bpm} onPress={() => setBpm(Number(c.id))} role="radio" />)}
+        </View>
+      </>}
     </>}
   </Sheet>;
 }

@@ -1,6 +1,7 @@
 // Runs inside the hidden WebView (and as a worker on the web). Bundled by scripts/build-scrambler.ts.
 import { wasmScrambleEngine } from "../../src/client/lib/wasmScrambleEngine";
 import { crossSolutions } from "../../src/shared/crossTraining";
+import { startMetronome } from "../../src/client/lib/metronome";
 
 /** The scrambler's WebAssembly module (scrambler/), inlined in base64: the page has no origin to load it from. */
 declare const CUBIX_SCRAMBLER_WASM: string;
@@ -17,7 +18,14 @@ const handlers: Record<string, (payload: any) => Promise<string>> = {
   pattern: ({ pattern }) => engine.patternScramble(pattern),
   // Optimal cross, XCross or XXCross solutions: a depth-first search too slow for the app's JS thread.
   crossSolutions: async ({ scramble, target }) => JSON.stringify(crossSolutions(scramble, target)),
+  // The timer's metronome (src/client/lib/metronome): Hermes has no Web Audio, this page has. 0 stops it.
+  metronome: async ({ bpm }) => {
+    stopMetronome();
+    stopMetronome = startMetronome(bpm);
+    return "";
+  },
 };
+let stopMetronome = () => {};
 window.addEventListener("message", event => void handle(event.data));
 document.addEventListener("message", event => void handle((event as MessageEvent).data));
 async function handle(raw: unknown) {

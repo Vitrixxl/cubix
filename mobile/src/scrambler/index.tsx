@@ -32,6 +32,11 @@ export const nativeEngine: ScrambleEngine = {
   orbitScramble: orbit => send("orbit", { orbit }),
   patternScramble: pattern => send("pattern", { pattern }),
 };
+/** The timer's metronome at `bpm`, played by the page's Web Audio, until the function it returns is called. */
+export function metronome(bpm: number): () => void {
+  void send("metronome", { bpm }).catch(() => {});
+  return () => void send("metronome", { bpm: 0 }).catch(() => {});
+}
 export type CrossSolution = { moves: string; slot: string };
 /** Optimal cross, XCross or XXCross solutions of a scramble (`crossSolutions`), searched in the WebView off the JS thread. */
 export async function crossSolutions(scramble: string, target: CrossTarget): Promise<CrossSolution[]> {
@@ -64,7 +69,7 @@ export const ScramblerHost = memo(function ScramblerHost() {
   };
   return <View style={styles.host} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <WebView key={key} ref={ref} originWhitelist={["*"]} source={{ html: SCRAMBLER_HTML, baseUrl: "https://cubix.local/" }}
-      javaScriptEnabled domStorageEnabled={false} cacheEnabled={false} androidLayerType="none" mixedContentMode="never"
+      javaScriptEnabled domStorageEnabled={false} mediaPlaybackRequiresUserAction={false} cacheEnabled={false} androidLayerType="none" mixedContentMode="never"
       onMessage={(event: WebViewMessageEvent) => receive(event.nativeEvent.data)}
       onRenderProcessGone={restart} onContentProcessDidTerminate={restart}
       onError={() => restart()} />

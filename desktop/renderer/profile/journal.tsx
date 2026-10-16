@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import { store as s } from "../store";
 import { AchievementBadge } from "./sections";
-import { fmtTime } from "../../../src/client/lib/format";
+import { fmtResult, fmtTime, fmtValue } from "../../../src/client/lib/format";
+import { attemptMode } from "../../../src/shared/puzzles";
 import {
   dayKey,
   heatDays,
@@ -299,7 +300,7 @@ export function RecordPlates({ d }: { d: ProfileData }) {
                     "text-success",
                 )}
               >
-                {fmtTime(r.best)}
+                {fmtResult(r.best, r.solveMode)}
               </p>
               <p
                 className={cn(
@@ -307,7 +308,7 @@ export function RecordPlates({ d }: { d: ProfileData }) {
                   "text-xs font-semibold text-muted-foreground",
                 )}
               >
-                {r.bestAo5 != null
+                {r.bestAo5 != null && !attemptMode(r.solveMode)
                   ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) })
                   : "–"}
               </p>
@@ -496,7 +497,7 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
                       >
                         {" · "}
                         {said(event.label)}{" "}
-                        {tr("best {0}", { 0: fmtTime(day.best) })}
+                        {tr("best {0}", { 0: fmtValue(day.best, s.profileSolveMode) })}
                         {day.ao5 != null &&
                           " · " + tr("Ao5 {0}", { 0: fmtTime(day.ao5) })}
                       </span>
@@ -513,13 +514,14 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
                             {r.kind === "single"
                               ? tr("Single record")
                               : tr("Ao5 record")}{" "}
-                            <b className={NUMERIC}>{fmtTime(r.time)}</b>
-                            {r.gain != null && (
+                            <b className={NUMERIC}>{fmtValue(r.time, s.profileSolveMode)}</b>
+                            {/* A Multi-Blind result's gain is no time nor count. */}
+                            {r.gain != null && s.profileSolveMode !== "multi-blind" && (
                               <span
                                 className={cn(NUMERIC, "text-muted-foreground")}
                               >
                                 {" "}
-                                (−{fmtTime(r.gain)})
+                                (−{fmtValue(r.gain, s.profileSolveMode)})
                               </span>
                             )}
                           </Moment>

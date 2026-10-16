@@ -31,7 +31,7 @@ func practicePuzzle(id string) (M, error) {
 	return nil, validation()
 }
 
-// practiceIsPuzzle: whether the registry still has this puzzle: rows of a retired one (Clock) stay in the database,
+// practiceIsPuzzle: whether the registry still has this puzzle: rows of a retired one stay in the database,
 // unlisted.
 func practiceIsPuzzle(id string) bool {
 	_, err := practicePuzzle(id)
@@ -318,12 +318,14 @@ func practiceMigrate(db *Conn) error {
 	return err
 }
 
-// practiceIsEvent: whether an event of the registry (`333`, `333oh`…) has this id.
+// practiceIsEvent: whether a timed event of the registry (`333`, `333oh`…) has this id, as duels and tournaments race
+// on: Fewest Moves and Multi-Blind are no race.
 func practiceIsEvent(id string) bool {
 	events, _ := asArray(idx(practiceRegistry(), "events"))
 	for _, e := range events {
 		if eqStr(idx(e, "id"), id) {
-			return true
+			mode := str(idx(e, "solveMode"))
+			return mode != "fewest-moves" && mode != "multi-blind"
 		}
 	}
 	return false

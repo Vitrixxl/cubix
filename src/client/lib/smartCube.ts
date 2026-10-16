@@ -10,6 +10,7 @@
  * so it compares with the timer's own scramble preview as it is.
  */
 import { applyMove, FACES, faceOfSlot, heldMove, parseMove, slotsFor, solved, type CubeState, type Face, type Move } from "../../shared/cube";
+import { cancelled, isCancel } from "./bluetooth/link";
 
 /**
  * How a cube with a gyroscope is held: the rotation from its reference pose (yellow on top, green facing the player)
@@ -24,6 +25,9 @@ export type SmartCubeEvent =
   /** The whole state, on connection or when the cube resynchronises: 54 facelets, Kociemba order (URFDLB). */
   | { type: "facelets"; facelets: string }
   | { type: "battery"; level: number }
+  /** Out of reach: the driver calls it again, then says whether it came back. */
+  | { type: "reconnecting" }
+  | { type: "reconnected" }
   | { type: "disconnected"; reason?: string };
 
 export interface SmartCubeConnection {
@@ -156,7 +160,18 @@ export interface SmartCubeSnapshot {
   orientation?: Quaternion;
   count: number;
   error?: string;
+  /** A Bluetooth cube whose MAC address the browser cannot read waits for the player to type it (`answerMac`). */
+  macRequest?: { name: string; guess?: string; wrong: boolean };
 }
+
+const MACS = "cubix.cubeMacs";
+const storedMacs = (): Record<string, string> => {
+  try {
+    return JSON.parse(globalThis.localStorage?.getItem(MACS) ?? "{}") ?? {};
+  } catch {
+    return {};
+  }
+};
 
 /** The connected cube: its status and its state, followed turn by turn. */
 export class SmartCube {
@@ -166,6 +181,9 @@ export class SmartCube {
   private listeners = new Set<() => void>();
   private connection?: SmartCubeConnection;
   private abort?: AbortController;
+  private macAnswer?: (mac: string | null) => void;
+  /** The MAC address the player typed, kept once the cube answers to it. */
+  private typedMac?: Record<string, string>;
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -186,15 +204,48 @@ export class SmartCube {
       }, abort.signal);
       if (this.abort !== abort) return connection.disconnect();
       this.connection = connection;
+      if (this.typedMac)
+        try {
+          globalThis.localStorage?.setItem(MACS, JSON.stringify({ ...storedMacs(), ...this.typedMac }));
+        } catch {
+          // Not kept: asked again next time.
+        }
       this.set({ status: "on", name: connection.name });
     } catch (error) {
       if (this.abort !== abort) return;
       this.abort = undefined;
-      this.set({ status: "off", error: (error as Error)?.message ?? String(error) });
+      // A chooser closed or a question left unanswered is no error.
+      this.set({ status: "off", macRequest: undefined, error: isCancel(error) ? undefined : ((error as Error)?.message ?? String(error)) });
     }
   }
 
+  /**
+   * A cube's MAC address, for the drivers (bluetooth/cubes.ts): the one that worked last time on this device unless
+   * it was `wrong`, else the player's answer (the dialog of devices shows the question). Rejects when the player
+   * gives up.
+   */
+  askMac = (name: string, guess: string | undefined, wrong: boolean): Promise<string> => {
+    const known = storedMacs()[name];
+    if (known && !wrong) return Promise.resolve(known);
+    this.macAnswer?.(null);
+    return new Promise((resolve, reject) => {
+      this.macAnswer = (mac) => {
+        this.macAnswer = undefined;
+        this.set({ macRequest: undefined });
+        if (mac === null) return reject(cancelled());
+        this.typedMac = { [name]: mac };
+        resolve(mac);
+      };
+      // After a wrong one, the address typed stays in the field, to be corrected.
+      this.set({ macRequest: { name, guess: this.typedMac?.[name] ?? known ?? guess, wrong } });
+    });
+  };
+  /** The player's answer to `macRequest`; null gives up. */
+  answerMac = (mac: string | null) => this.macAnswer?.(mac);
+
   disconnect() {
+    this.macAnswer?.(null);
+    this.typedMac = undefined;
     this.abort?.abort();
     this.abort = undefined;
     this.connection?.disconnect();
@@ -213,6 +264,8 @@ export class SmartCube {
         break;
       }
       case "facelets":
+        // The state the cube already shows, sent again to check: nothing changes.
+        if (event.facelets === stateToFacelets(this.snapshot.state)) break;
         this.moves = [];
         this.set({ state: faceletsToState(event.facelets), turn: undefined, count: this.snapshot.count + 1 });
         break;
@@ -221,6 +274,12 @@ export class SmartCube {
         break;
       case "battery":
         this.set({ battery: event.level });
+        break;
+      case "reconnecting":
+        this.set({ status: "connecting" });
+        break;
+      case "reconnected":
+        this.set({ status: "on", error: undefined });
         break;
       case "disconnected":
         this.abort = undefined;

@@ -535,7 +535,7 @@ func adminLive(conn *websocket.Conn, state *AppState, token string, expires int6
 	defer heartbeat.Stop()
 	// Sign-outs in this process arrive on `revoked`; a token replaced or revoked by the CLI, or
 	// a session ended in the database, is noticed by checking the session again while open.
-	recheck := time.NewTicker(5 * time.Second)
+	recheck := time.NewTicker(time.Second)
 	defer recheck.Stop()
 	incoming, stop := wsReceive(conn)
 	defer stop()

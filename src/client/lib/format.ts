@@ -1,6 +1,7 @@
 import type { Penalty } from "../../shared/types";
 import { msg } from "../i18n/msg";
 import { tn } from "../i18n";
+import { MBLD_CUBES, mbldValue, wcaResult } from "./wca";
 
 /** Times read to the millisecond: 12345 → "12.345", 61234 → "1:01.234" */
 export function fmtTime(ms: number | null | undefined, opts: { blank?: string } = {}): string {
@@ -77,6 +78,47 @@ export function fmtSolve(timeMs: number, penalty: Penalty): string {
 }
 
 export const effective = (timeMs: number, penalty: Penalty): number | null => (penalty === "dnf" ? null : timeMs + (penalty === "+2" ? 2000 : 0));
+
+/** A solve of any event: Fewest Moves keeps its move count, Multi-Blind its cubes. */
+export type Solved = { time_ms: number; penalty: Penalty; solve_mode?: string; moves?: number | null; cubes_solved?: number | null; cubes_attempted?: number | null };
+/**
+ * What a solve ranks by, lower is better, null for a DNF: its time; Fewest Moves its move count; Multi-Blind the WCA's
+ * value (`mbldValue`). The figures and records of every event are worked out on it.
+ */
+export function solveResult(v: Solved): number | null {
+  if (v.solve_mode === "fewest-moves") return v.penalty === "dnf" || v.moves == null ? null : v.moves;
+  if (v.solve_mode === "multi-blind") return v.penalty === "dnf" || v.cubes_attempted == null ? null : mbldValue(v.cubes_solved ?? 0, v.cubes_attempted, effective(v.time_ms, v.penalty)!);
+  return effective(v.time_ms, v.penalty);
+}
+/**
+ * A figure of a solve mode's results, as the WCA writes them: a time; Fewest Moves a move count (`single` false: a mean,
+ * to two decimals); Multi-Blind "3/4 52:13", which has no mean ("–").
+ */
+export function fmtResult(value: number | null | undefined, mode?: string, single = true, opts: { blank?: string } = {}): string {
+  if (value == null || Number.isNaN(value) || !(mode === "fewest-moves" || mode === "multi-blind")) return fmtTime(value, opts);
+  if (mode === "fewest-moves") return single ? String(Math.round(value)) : value.toFixed(2);
+  return single ? wcaResult("333mbf", "single", value) : "–";
+}
+/** Any figure of a solve mode's statistics (a single, an average, a gain), a whole one read as a single. */
+export const fmtValue = (value: number | null | undefined, mode?: string, opts: { blank?: string } = {}) =>
+  fmtResult(value, mode, value != null && Number.isInteger(value), opts);
+/** A solve as the times list shows it: its time with its penalty, a move count, a Multi-Blind result, or DNF. */
+export function fmtSolveOf(v: Solved): string {
+  if (v.solve_mode !== "fewest-moves" && v.solve_mode !== "multi-blind") return fmtSolve(v.time_ms, v.penalty);
+  const result = solveResult(v);
+  return result === null ? "DNF" : fmtResult(result, v.solve_mode);
+}
+/** The Fewest Moves and Multi-Blind fields of a solve to keep, those of its mode only and in range; none for another mode. */
+export function resultFields(mode: string, body: { moves?: unknown; cubesSolved?: unknown; cubesAttempted?: unknown }) {
+  const int = (v: unknown, min: number, max: number) => (Number.isInteger(v) && (v as number) >= min && (v as number) <= max ? (v as number) : undefined);
+  if (mode === "fewest-moves") {
+    const moves = int(body.moves, 0, 200);
+    return moves === undefined ? {} : { moves };
+  }
+  const attempted = mode === "multi-blind" ? int(body.cubesAttempted, MBLD_CUBES.min, MBLD_CUBES.max) : undefined,
+    solved = attempted === undefined ? undefined : int(body.cubesSolved, 0, attempted);
+  return solved === undefined ? {} : { cubes_solved: solved, cubes_attempted: attempted! };
+}
 
 /** Formatters built once: `toLocaleDateString` with options builds a new one per call, sixty times slower
  * over a profile's thousands of solves. */

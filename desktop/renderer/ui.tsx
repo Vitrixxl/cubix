@@ -35,7 +35,8 @@ import { cubeScene } from "../../src/shared/cubeScene";
 import { caseState, maskForStage } from "../../src/client/lib/caseState";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { viewForStage } from "../../src/shared/cubeDiagram";
-import { fmtSolve } from "../../src/client/lib/format";
+import { fmtSolveOf } from "../../src/client/lib/format";
+import type { Penalty } from "../../src/shared/types";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
@@ -134,13 +135,14 @@ export function SelectMenu({
   icon,
   align = "end",
   variant: chosen,
+  bare = false,
   className,
 }: {
   /** The store action each choice dispatches, as `action:id`; or `onChange` for a choice kept by the page. */
   action: string;
   onChange?: (id: string) => void;
   value: string;
-  options: { id: string; label: string; icon?: React.ReactNode }[];
+  options: { id: string; label: string; icon?: React.ReactNode; group?: string }[];
   /** Muted word before the value, e.g. "Scramble". */
   caption?: string;
   /** The menu's name for screen readers, when no caption says it. */
@@ -148,30 +150,42 @@ export function SelectMenu({
   icon?: React.ReactNode;
   align?: "start" | "end" | "center";
   variant?: Variant;
+  /** The icon alone on the button, without the value: a filter left at its default. */
+  bare?: boolean;
   className?: string;
 }) {
   const current = options.find((o) => o.id === value);
   const variant = useQuiet(chosen);
+  const trigger = (
+    <DropdownMenuTrigger
+      render={<UiButton variant={variant} data-action={"menu:" + action} aria-label={said(label)} className={className} />}
+    >
+      {icon}
+      {/* With its caption, a pill: "Scramble normal", the value in the accent and no chevron. */}
+      {caption && <span className="font-semibold text-muted-foreground">{said(caption)}</span>}
+      {!bare && <span className={cn("truncate", caption && "font-bold text-primary")}>{said(current?.label ?? value)}</span>}
+      {!caption && <ChevronDown className="text-muted-foreground" />}
+    </DropdownMenuTrigger>
+  );
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<UiButton variant={variant} data-action={"menu:" + action} aria-label={said(label)} className={className} />}
-      >
-        {icon}
-        {/* With its caption, a pill: "Scramble normal", the value in the accent and no chevron. */}
-        {caption && <span className="font-semibold text-muted-foreground">{said(caption)}</span>}
-        <span className={cn("truncate", caption && "font-bold text-primary")}>{said(current?.label ?? value)}</span>
-        {!caption && <ChevronDown className="text-muted-foreground" />}
-      </DropdownMenuTrigger>
+      {/* Bare, the value it holds in the tooltip. */}
+      {bare ? <Tip content={said(current?.label ?? label ?? value)}>{trigger}</Tip> : trigger}
       <DropdownMenuContent align={align} className="w-auto min-w-44">
-        <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => (onChange ? onChange(v) : void s.action(action + ":" + v))}>
-          {options.map((o) => (
-            <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
-              {o.icon}
-              {said(o.label)}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        {/* Options with a `group` come under its name, group by group. */}
+        {[...new Set(options.map((o) => o.group))].map((group) => (
+          <DropdownMenuGroup key={group ?? ""}>
+            {group && <DropdownMenuLabel>{said(group)}</DropdownMenuLabel>}
+            <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => (onChange ? onChange(v) : void s.action(action + ":" + v))}>
+              {options.filter((o) => o.group === group).map((o) => (
+                <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
+                  {o.icon}
+                  {said(o.label)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -240,7 +254,7 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
       <ContextMenuContent className="min-w-48 max-md:min-w-56">
         {ms != null && (
           <ContextMenuGroup>
-            <ContextMenuLabel className={NUMERIC}>{fmtSolve(ms, penalty as any)}</ContextMenuLabel>
+            <ContextMenuLabel className={NUMERIC}>{fmtSolveOf({ ...solve, time_ms: ms, penalty: penalty as Penalty })}</ContextMenuLabel>
           </ContextMenuGroup>
         )}
         <ContextMenuRadioGroup value={penalty} onValueChange={(v: string) => void s.action(`penalty:${id}:${v}`)}>
@@ -272,12 +286,13 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
  * The actions of a solve row, shown while the row is hovered or focused (the row is a `group/row`): +2, DNF, the
  * comment, the link and the details when `full`, and delete.
  */
-export function SolveActions({ solve, full = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; full?: boolean; className?: string }) {
+export function SolveActions({ solve, full = false, className }: { solve: { id: number; penalty?: string; comment?: string | null; solve_mode?: string }; full?: boolean; className?: string }) {
   return (
     <span className={cn("flex items-center opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100", className)}>
-      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="text-muted-foreground aria-pressed:text-warning">
+      {/* A move count takes no +2. */}
+      {solve.solve_mode !== "fewest-moves" && <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="text-muted-foreground aria-pressed:text-warning">
         +2
-      </ActionToggle>
+      </ActionToggle>}
       <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="text-muted-foreground aria-pressed:text-destructive">
         {tr("DNF")}</ActionToggle>
       {full && (
@@ -462,7 +477,8 @@ export function MenuChoice({ label, action, value, options }: { label: string; a
   return (
     <DropdownMenuGroup>
       <DropdownMenuLabel>{said(label)}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => void s.action(action + ":" + v)}>
+      {/* A long list in two columns, to fit a 600 px high window. */}
+      <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => void s.action(action + ":" + v)} className={cn(options.length > 8 && "grid grid-cols-2")}>
         {options.map((o) => (
           <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
             {said(o.label)}

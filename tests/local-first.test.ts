@@ -616,13 +616,13 @@ test("pending legacy uploads retain their operation IDs and retry a lost acknowl
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE scramble_type='normal'").get()?.n).toBe(1);
 });
 
-test("sessions, solves and profile entries of a retired puzzle (Clock) leave the device", () => {
+test("sessions, solves and profile entries of a retired puzzle leave the device", () => {
   const { remote } = setup(), storage = new Storage(), key = "cubix.local.v1:workspace:guest";
   const row = { cube_size: null, solve_mode: "standard", scramble_type: "normal", created_at: new Date().toISOString() };
   storage.setItem(key, JSON.stringify({ version: 1, normalScrambles: true, groupOrder: {}, outbox: [], cursor: 0, learned: {},
-    journey: { profile: { kind: "profile", knownPuzzles: ["333", "clock"], bests: { clock: 9000 }, priority: "clock", learningPuzzles: ["clock"], completedAt: row.created_at } },
-    sessions: { [-1]: { ...row, id: -1, puzzle_id: "clock", mode: "playground", case_ids: [] }, [-2]: { ...row, id: -2, puzzle_id: "333", mode: "playground", case_ids: [] } },
-    solves: { [-3]: { ...row, id: -3, puzzle_id: "clock", session_id: -1, time_ms: 9000, penalty: "none" }, [-4]: { ...row, id: -4, puzzle_id: "333", session_id: -2, time_ms: 9000, penalty: "none" } } }));
+    journey: { profile: { kind: "profile", knownPuzzles: ["333", "fto"], bests: { fto: 9000 }, priority: "fto", learningPuzzles: ["fto"], completedAt: row.created_at } },
+    sessions: { [-1]: { ...row, id: -1, puzzle_id: "fto", mode: "playground", case_ids: [] }, [-2]: { ...row, id: -2, puzzle_id: "333", mode: "playground", case_ids: [] } },
+    solves: { [-3]: { ...row, id: -3, puzzle_id: "fto", session_id: -1, time_ms: 9000, penalty: "none" }, [-4]: { ...row, id: -4, puzzle_id: "333", session_id: -2, time_ms: 9000, penalty: "none" } } }));
   const a = device(remote, storage);
   expect(a.local.read.journey().profile).toMatchObject({ knownPuzzles: ["333"], bests: {}, priority: null, learningPuzzles: [] });
   const saved = JSON.parse(storage.getItem(key)!);

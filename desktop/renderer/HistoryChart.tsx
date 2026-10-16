@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fmtTime, joinedDate, shortDate } from "../../src/client/lib/format";
+import { fmtValue, joinedDate, shortDate } from "../../src/client/lib/format";
+import { store as s } from "./store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { tr } from "../../src/client/i18n";
 import { NUMERIC } from "./base";
+
+/** A figure of the event shown: a time, or Fewest Moves' moves and Multi-Blind's cubes (`fmtValue`). */
+const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, s.profileSolveMode, opts);
 
 export type ChartRange = [number, number];
 type Entry = { time: number | null; displayDate: string; at?: string; memoMs?: number | null };

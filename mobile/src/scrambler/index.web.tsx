@@ -43,6 +43,8 @@ export const nativeEngine: ScrambleEngine = {
   orbitScramble: orbit => send("orbit", { orbit }),
   patternScramble: pattern => send("pattern", { pattern }),
 };
+/** The timer's metronome: the page's own Web Audio (a worker has none). */
+export { startMetronome as metronome } from "../../../src/client/lib/metronome";
 export type CrossSolution = { moves: string; slot: string };
 export async function crossSolutions(scramble: string, target: CrossTarget): Promise<CrossSolution[]> {
   return JSON.parse(await send("crossSolutions", { scramble, target }, 60000)) as CrossSolution[];

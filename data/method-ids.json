@@ -42,5 +42,9 @@
   "minx": [
     "beginner",
     "speed"
+  ],
+  "clock": [
+    "beginner",
+    "7-simul"
   ]
 }

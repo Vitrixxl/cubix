@@ -1,6 +1,6 @@
 //! The app's scrambles, drawn on the device (offline too): the `ScrambleEngine` of
 //! src/client/lib/practiceScrambleCore.ts, built to WebAssembly (scrambler/build.ts). Random-state for the 2×2, 3×3,
-//! Pyraminx and Skewb; random moves for the larger cubes, the Megaminx and the Square-1.
+//! Pyraminx, Skewb and Clock; random moves for the larger cubes, the Megaminx and the Square-1.
 
 mod cube;
 mod moves;
@@ -15,7 +15,9 @@ pub fn event(id: &str, rng: &mut Rng, out: &mut String) -> bool {
     match id {
         "222" => small::scramble222(rng, out),
         "333" | "333oh" => random333(rng, out),
-        "333bf" => {
+        "333fm" => cube::fewest_moves(&cube::random_cube(rng, true, true), out),
+        // One cube of a Multi-Blind attempt: a 3×3 blindfolded scramble (the app asks one per cube).
+        "333bf" | "333mbf" => {
             random333(rng, out);
             moves::orientation("Rw", "Fw", "Uw", rng, out);
         }
@@ -35,6 +37,7 @@ pub fn event(id: &str, rng: &mut Rng, out: &mut String) -> bool {
         "pyram" => small::scramble_pyraminx(rng, out),
         "skewb" => small::scramble_skewb(rng, out),
         "minx" => moves::megaminx(rng, out),
+        "clock" => moves::clock(rng, out),
         _ => return false,
     }
     true
@@ -165,11 +168,48 @@ mod tests {
     #[test]
     fn every_event() {
         let mut rng = Rng::new(13);
-        for id in ["222", "333", "333oh", "333bf", "444", "444bf", "555", "555bf", "666", "777", "sq1", "pyram", "skewb", "minx"] {
+        for id in ["222", "333", "333oh", "333bf", "333fm", "333mbf", "444", "444bf", "555", "555bf", "666", "777", "sq1", "pyram", "skewb", "minx", "clock"] {
             let mut out = String::new();
             assert!(event(id, &mut rng, &mut out) && !out.is_empty(), "{id}");
         }
-        assert!(!event("clock", &mut rng, &mut String::new()));
+        assert!(!event("fto", &mut rng, &mut String::new()));
+    }
+
+    #[test]
+    fn fewest_moves_scrambles_are_padded_without_merging() {
+        let mut rng = Rng::new(14);
+        let axis = |turn: &str| FACES.iter().position(|&x| x == turn.as_bytes()[0]).unwrap() % 3;
+        for _ in 0..200 {
+            let c = cube::random_cube(&mut rng, true, true);
+            let mut out = String::new();
+            cube::fewest_moves(&c, &mut out);
+            let inner = out.strip_prefix("R' U' F ").and_then(|s| s.strip_suffix(" R' U' F")).expect(&out);
+            assert_eq!(play(inner), c, "{out}");
+            let turns: Vec<&str> = inner.split(' ').collect();
+            assert!(axis(turns[0]) != 2 && axis(turns[turns.len() - 1]) != 1, "{out}");
+        }
+    }
+
+    #[test]
+    fn clock_scrambles_follow_tnoodle() {
+        let mut rng = Rng::new(15);
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..500 {
+            let mut out = String::new();
+            event("clock", &mut rng, &mut out);
+            let words: Vec<&str> = out.split(' ').collect();
+            assert_eq!(words.len(), 15, "{out}");
+            assert_eq!(words[9], "y2");
+            for w in words.iter().filter(|w| **w != "y2") {
+                let pins = w.trim_end_matches(|c: char| c.is_ascii_digit() || c == '+' || c == '-');
+                let amount = &w[pins.len()..];
+                let n: i32 = amount[..amount.len() - 1].parse().unwrap();
+                let turn = if amount.ends_with('+') { n } else { -n };
+                assert!((-5..=6).contains(&turn) && !(n == 0 && amount.ends_with('-')), "{out}");
+                seen.insert(turn);
+            }
+        }
+        assert_eq!(seen.len(), 12);
     }
 
     #[test]

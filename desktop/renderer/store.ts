@@ -5,12 +5,12 @@ import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { resumedSession, type SessionSummary } from "../../src/client/lib/sessions";
 import { exportFile } from "../../src/client/lib/exportData";
 import { matches, toggleSelection } from "../../src/client/lib/practiceCatalog";
-import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigures, sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
+import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigures, sessionMetrics, shownFigures, type Metric } from "../../src/client/lib/practiceSummary";
 import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, PUZZLES, normalizeScrambleType, puzzleOf, roundFormat, type PuzzleId, type RoundFormat, type SolveMode } from "../../src/shared/puzzles";
-import { CROSS_MOVES, CROSS_TARGETS, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
+import { attemptMode, EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, roundFormat, scrambleTypesOf, type PuzzleId, type RoundFormat, type SolveMode } from "../../src/shared/puzzles";
+import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossSolveMode, crossTrainingType, hasSolutions, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 import { courseEntry, courseStorageKey, goToStep, methodOf, methodSetIds, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
@@ -21,7 +21,13 @@ import { ACCOUNT_PAGES } from "../../src/client/lib/route";
 import { sharedSolveUrl } from "../../src/client/lib/sharedSolve";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { stackmat } from "../../src/client/lib/stackmat";
+import { smartTimer } from "../../src/client/lib/bluetooth/timers";
+import { announceDevice, webBluetooth, type DeviceNotice } from "../../src/client/lib/bluetooth/link";
+import { bluetoothCube } from "../../src/client/lib/bluetooth/cubes";
 import { effective, INSPECTIONS, type Inspection } from "../../src/client/lib/format";
+import { metronomeBpm } from "../../src/client/lib/metronome";
+import { mbldCubes, mbldValue, numberedScrambles, scrambleList } from "../../src/client/lib/wca";
+import type { AddSolveBody } from "../../src/client/api-client";
 import { compSimName, roundRecord } from "../../src/client/lib/compSim";
 import type { Penalty, SolveDto } from "../../src/shared/types";
 import "./dev/devTools";
@@ -34,24 +40,27 @@ import { cancelDaily, dailyDay, fetchDaily, isDailyEvent, DailyError, type Daily
 import { appReady } from "../../src/client/lib/firstLaunch";
 
 const SHOWN_SCRAMBLE = "cubix.shownScramble";
+/** Saves a file made on the page (an export) to the downloads. */
+export function download(body: string, type: string, name: string) {
+  const url = URL.createObjectURL(new Blob([body], { type }));
+  Object.assign(document.createElement("a"), { href: url, download: name }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
 /** The timer's competition simulation (`Store.compSim`), kept over a reload. */
 const COMP_SIM = "cubix.compSim";
 /** The next scrambles drawn ahead, by context (`Store.ahead`). */
 const AHEAD = "cubix.scramblesAhead";
 /** The scramble shown last and its puzzle, kept on the device: the timer drawn while the app starts shows it already. */
 export const lastScramble: { puzzle?: string; scramble?: string } = (() => { try { return JSON.parse(localStorage.getItem(SHOWN_SCRAMBLE) ?? "{}") ?? {}; } catch { return {}; } })();
-// The connected cube coming and going, wherever the player is.
 /** The ways of training the setup page offers, in its order. */
 export const TRAINING_MODES = ["cross", "recognition", "learned", "sets", "free", "bld"] as const;
 export type TrainingMode = (typeof TRAINING_MODES)[number];
-let cubeLink = smartCube.snapshot.status;
-smartCube.subscribe(() => {
-  const { status, name, error } = smartCube.snapshot;
-  if (status === cubeLink) return;
-  if (status === "on") toast.success(tr("{0} connected", { 0: name }));
-  else if (status === "off" && cubeLink === "on") toast(tr("{0} disconnected", { 0: name }), { description: error ? tr(error) : undefined });
-  cubeLink = status;
-});
+// Bluetooth devices coming, going out of reach, back, gone, or failing to connect (told in the open Devices dialog already).
+const notice = ({ title, description, tone }: DeviceNotice) => {
+  if (tone !== "error" || store.overlay !== "devices") (tone === "success" ? toast.success : tone === "error" ? toast.error : toast)(title, { description });
+};
+announceDevice(() => ({ ...smartCube.snapshot, link: smartCube.snapshot.status }), smartCube.subscribe, notice);
+announceDevice(() => smartTimer.snapshot, smartTimer.subscribe, notice);
 // The Stackmat's signal coming and going.
 let stackmatLink = stackmat.snapshot.link;
 stackmat.subscribe(() => {
@@ -119,6 +128,14 @@ export class Store {
   entry = "timer";
   /** The WCA inspection before a timer solve: off, announced aloud, counted down on screen, or both. */
   inspection: Inspection = "off";
+  /** The phases a timer solve is timed in (lib/phases): off, a method's steps or a number of them. */
+  phases = "off";
+  /** A metronome's beats per minute while a solve runs, 0 when off. */
+  metronome = 0;
+  /** Multi-Blind: the cubes of an attempt. */
+  mbldCubes = 3;
+  /** Multi-Blind: the attempt stopped, waiting for the cubes solved. */
+  mbldPending: { ms: number; cubes: number } | null = null;
   themeName: string = cachedAppearance().themeName;
   light = cachedAppearance().light;
   /** What the player chose: `light` follows it, the system's look when "system". */
@@ -237,7 +254,7 @@ export class Store {
   /** Training opens on the choice of what to practise, then shows the timer for it. */
   trainingStep: "setup" | "practice" = "setup";
   /**
-   * Learned cases of the catalogue, cross scrambles (cross, XCross or XXCross) on the 3×3, a recognition run through
+   * Learned cases of the catalogue, step scrambles (cross, EOLine, blocks…) on the 3×3, a recognition run through
    * a set, or free practice on any case.
    */
   trainingKind: "cases" | "cross" | "recognition" | "free" = "cases";
@@ -285,13 +302,13 @@ export class Store {
   practicePage = () => (this.crossTraining ? "playground" : this.page);
   context = () => ({
     puzzle: this.puzzle,
-    solveMode: this.solveMode,
+    solveMode: this.crossTraining ? crossSolveMode(this.solveMode) : this.solveMode,
     scrambleType: this.crossTraining
       ? crossScrambleType(this.crossTarget, this.crossMoves)
       : this.page === "training" ? "case" : this.scrambleType,
   });
   contextKey = () =>
-    `${this.page}:${this.puzzle}:${this.solveMode}:${this.context().scrambleType}`;
+    `${this.page}:${this.puzzle}:${this.context().solveMode}:${this.context().scrambleType}`;
   cases = (p = this.puzzle) => {
     let cases = casesByPuzzle.get(p);
     if (!cases) casesByPuzzle.set(p, (cases = catalog.cases.filter((c: any) => puzzleOf(c) === p)));
@@ -471,6 +488,9 @@ export class Store {
       this.figures = cleanFigures(this.prefs["cubix.practice.figures"] ?? DEFAULT_FIGURES);
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.inspection = INSPECTIONS.some((i) => i.id === this.prefs["cubix.timer.inspection"]) ? this.prefs["cubix.timer.inspection"] : "off";
+      this.phases = this.prefs["cubix.timer.phases"] ?? "off";
+      this.metronome = metronomeBpm(this.prefs["cubix.timer.metronome"]);
+      this.mbldCubes = mbldCubes(this.prefs["cubix.timer.mbldCubes"]);
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
       this.statsBy = this.prefs["cubix.profile.statsBy"] ?? "solve";
@@ -578,6 +598,8 @@ export class Store {
     this.scrambleType = normalizeScrambleType(
       this.prefs["cubix.practice.typeByPuzzle"]?.[p] ??
       "normal");
+    // Fewest Moves and Multi-Blind keep to WCA scrambles, whatever the puzzle's other events use.
+    if (!scrambleTypesOf(p as PuzzleId, this.solveMode).includes(this.scrambleType as never)) this.scrambleType = "normal";
     this.dailyOn = false;
     this.selected = new Set(
       this.prefs["cubix.training.selectionByCube"]?.[p] ?? [],
@@ -718,11 +740,14 @@ export class Store {
     this.drawing.add(key);
     void call("scramble", context).then((v: string) => void this.ahead((a) => void (a[key] ??= v)), () => {}).finally(() => this.drawing.delete(key));
   }
-  /** Every event's scramble, every scramble type of the puzzle in use, and the cross training's. */
+  /** Every event's scramble, every scramble type of the puzzle in use, and the step training's (its step's alone). */
   drawAllAhead() {
-    for (const e of EVENTS) this.drawAhead({ puzzle: e.puzzle, solveMode: e.solveMode, scrambleType: "normal" });
-    const cross = this.puzzle === "333" ? CROSS_TARGETS.flatMap((t) => CROSS_MOVES[t].map((n) => crossScrambleType(t, n))) : [];
-    for (const type of [...(PUZZLES.find((p) => p.id === this.puzzle)?.scrambles ?? []), ...cross]) this.drawAhead({ puzzle: this.puzzle, solveMode: this.solveMode, scrambleType: type });
+    for (const e of EVENTS) if (e.solveMode !== "multi-blind") this.drawAhead({ puzzle: e.puzzle, solveMode: e.solveMode, scrambleType: "normal" });
+    if (this.solveMode === "multi-blind") return;
+    const counts = CROSS_MOVES[this.crossTarget],
+      cross = this.puzzle === "333" ? (counts.length ? counts : [0]).map((n) => crossScrambleType(this.crossTarget, n)) : [];
+    for (const type of scrambleTypesOf(this.puzzle as PuzzleId, this.solveMode)) this.drawAhead({ puzzle: this.puzzle, solveMode: this.solveMode, scrambleType: type });
+    for (const type of cross) this.drawAhead({ puzzle: this.puzzle, solveMode: crossSolveMode(this.solveMode), scrambleType: type });
   }
   async nextScramble() {
     const revision = ++this.revision,
@@ -730,16 +755,20 @@ export class Store {
       daily = this.dailyEvent(),
       day = dailyDay();
     if (this.crossTraining) context.scrambleType = this.context().scrambleType;
-    const key = `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
+    const key = `${context.puzzle}:${context.solveMode}:${context.scrambleType}`,
+      // A Multi-Blind attempt: a 3×3 blindfolded scramble for each of its cubes, numbered.
+      multi = !daily && context.solveMode === "multi-blind";
     let ready: string | undefined;
-    if (!daily) this.ahead((a) => void ((ready = a[key]), delete a[key]));
+    if (!daily && !multi) this.ahead((a) => void ((ready = a[key]), delete a[key]));
     if (ready === undefined) {
       this.generating = true;
       this.emit();
     }
     try {
-      const value = ready ?? (await (daily ? call("dailyScramble", day, daily) : call("scramble", context)));
-      if (!daily) this.drawAhead(context);
+      const value = multi
+        ? numberedScrambles(await Promise.all(Array.from({ length: this.mbldCubes }, () => call("scramble", context) as Promise<string>)))
+        : ready ?? (await (daily ? call("dailyScramble", day, daily) : call("scramble", context)));
+      if (!daily && !multi) this.drawAhead(context);
       if (revision !== this.revision) return;
       this.scramble = value;
       this.dailyShown = daily ? { day, event: daily } : null;
@@ -758,7 +787,7 @@ export class Store {
   }
   /** Cross solutions are worked out as soon as a scramble is shown, so revealing them is instant. */
   prefetchCrossSolutions() {
-    if (this.crossTraining && this.scramble) void this.loadCrossSolutions();
+    if (this.crossTraining && this.scramble && hasSolutions(this.crossTarget)) void this.loadCrossSolutions();
   }
   async nextCase(direction = "next") {
     // A recognition run draws another of its cases once one is done, until it is closed.
@@ -811,13 +840,14 @@ export class Store {
   }
   /**
    * `penalty`: given with the time, as a smart cube solve stopped before the cube is solved. `solution`: the turns
-   * made, when a smart cube recorded them. `memo`: blindfolded, when the memorisation ended.
+   * made, when a smart cube recorded them. `memo`: blindfolded, when the memorisation ended. `splits`: timed in
+   * phases, when each phase ended.
    */
-  async save(ms: number, penalty?: "none" | "+2" | "dnf", solution?: string | null, memo?: number, judged = false) {
+  async save(ms: number, penalty?: "none" | "+2" | "dnf", solution?: string | null, memo?: number, judged = false, result?: Pick<AddSolveBody, "moves" | "cubesSolved" | "cubesAttempted" | "splits">) {
     if (this.saving || this.generating || this.pendingSolve) return;
     const round = this.compRound();
-    // A round's attempt waits for its judge before it is saved, whatever the time entry.
-    if (round && !judged) {
+    // A round's attempt waits for its judge before it is saved, whatever the time entry; a DNF has nothing to sign.
+    if (round && !judged && penalty !== "dnf") {
       round.pending = { ms, penalty: penalty ?? "none", solution, memo };
       this.emit();
       return;
@@ -825,6 +855,12 @@ export class Store {
     if (!round && this.page === "playground" && this.entry === "casual") {
       this.lastSolve = 0;
       await this.nextScramble();
+      return;
+    }
+    // A Multi-Blind attempt waits for the cubes solved (`saveMultiBlind`).
+    if (!result && this.solveMode === "multi-blind" && this.practicePage() === "playground") {
+      this.mbldPending = { ms, cubes: scrambleList(this.scramble).length };
+      this.emit();
       return;
     }
     const page = this.practicePage();
@@ -839,6 +875,7 @@ export class Store {
         ...(penalty && penalty !== "none" ? { penalty } : {}),
         ...(solution ? { solution } : {}),
         ...(memo !== undefined ? { memoMs: Math.round(memo) } : {}),
+        ...result,
         scramble: page === "training" ? this.training?.setup : this.scramble,
         caseId: page === "training" ? this.training?.id : null,
       },
@@ -872,6 +909,16 @@ export class Store {
       this.emit();
     }
   }
+  /** Saves the Multi-Blind attempt waiting with its cubes solved (`null`: given up, nothing saved); DNF as the WCA ranks it. */
+  async saveMultiBlind(solved: number | null) {
+    const pending = this.mbldPending;
+    if (!pending) return;
+    this.mbldPending = null;
+    this.timerEpoch++;
+    if (solved === null) return void this.emit();
+    const penalty = mbldValue(solved, pending.cubes, pending.ms) === null ? "dnf" : "none";
+    await this.save(pending.ms, penalty, null, undefined, true, { cubesSolved: solved, cubesAttempted: pending.cubes });
+  }
   /** The competition simulation, while the timer shows its event and its session. */
   compRound() {
     const round = this.compSim;
@@ -879,6 +926,7 @@ export class Store {
   }
   /** Starts a round of the event: random scrambles, a session of its own, the record of the event's earlier solves. */
   async startCompSim() {
+    if (attemptMode(this.solveMode)) return;
     if (this.scrambleType !== "normal" || this.dailyEvent()) await this.action("scrambleType:normal");
     const event = this.event().id, format = roundFormat(event),
       previous = this.compRound() ? this.compSim!.previous : this.sessions.get(this.contextKey()),
@@ -896,6 +944,8 @@ export class Store {
     const round = this.compRound();
     if (round && !over && !(await ask({ title: tr("Leave the round?"), text: tr("Its attempts stay in its session."), action: tr("Leave"), destructive: false }))) return;
     this.compSim = null;
+    // The round's PB notice stays with it.
+    this.notice = "";
     this.timerEpoch++;
     if (round) await this.useSession(round.previous ?? "new");
   }
@@ -1001,10 +1051,10 @@ export class Store {
     if (this.dailyEvent()) return this.nextScramble();
     const { puzzle, solveMode, scrambleType } = this.context(),
       stored = this.prefs["cubix.playground.scrambleByContext"]?.[`${puzzle}:${solveMode}:${scrambleType}`];
-    if (stored === this.scramble && stored) return this.prefetchCrossSolutions();
+    if (stored === this.scramble && stored && !this.otherCubes(stored)) return this.prefetchCrossSolutions();
     this.revision++;
     this.generating = false;
-    this.scramble = stored ?? "";
+    this.scramble = stored && !this.otherCubes(stored) ? stored : "";
     this.revealed = false;
     this.replay++;
     this.emit();
@@ -1013,6 +1063,8 @@ export class Store {
     // This puzzle's other scramble types, ahead (before the app is ready, `init` does it once the first is shown).
     if (this.ready) this.drawAllAhead();
   }
+  /** A Multi-Blind attempt's scrambles kept for another count of cubes than the one chosen now. */
+  private otherCubes = (scramble: string) => this.solveMode === "multi-blind" && scrambleList(scramble).length !== this.mbldCubes;
   /** A solve of the timer session or of a profile history, shaped like a timer solve. */
   findSolve(id: number) {
     const row = [
@@ -1124,7 +1176,7 @@ export class Store {
         case "crossMoves": {
           const target = kind === "crossTarget" ? arg : this.crossTarget,
             moves = kind === "crossTarget" ? crossMovesFor(target as CrossTarget, this.crossMoves) : Number(arg);
-          if (!isCrossTarget(target) || !CROSS_MOVES[target].includes(moves) || (target === this.crossTarget && moves === this.crossMoves)) break;
+          if (!isCrossTarget(target) || crossMovesFor(target, moves) !== moves || (target === this.crossTarget && moves === this.crossMoves)) break;
           this.crossTarget = target;
           this.crossMoves = moves;
           this.pref("cubix.training.crossTarget", target);
@@ -1262,15 +1314,18 @@ export class Store {
         case "replayCube":
           this.replay++;
           break;
+        case "devices":
+          this.overlay = this.overlay === "devices" ? "" : "devices";
+          break;
         case "smartCube":
-          // Only the virtual cube of development for now; Bluetooth cubes will be drivers of their own.
+          // A Bluetooth cube (bluetooth/cubes.ts), or the virtual cube of development (`smartCube:virtual`).
           if (smartCube.snapshot.status !== "off") smartCube.disconnect();
-          else if (typeof CUBIX_DEV !== "undefined" && CUBIX_DEV) {
-            const { virtualSmartCube } = await import("./dev/virtualSmartCube");
-            void smartCube.connect(virtualSmartCube).then(() => {
-              if (smartCube.snapshot.error) toast.error(smartCube.snapshot.error);
-            });
-          } else toast(tr("Qbix cannot connect a Bluetooth cube yet."));
+          else if (arg === "virtual" && typeof CUBIX_DEV !== "undefined" && CUBIX_DEV) void smartCube.connect((await import("./dev/virtualSmartCube")).virtualSmartCube);
+          else void smartCube.connect(bluetoothCube(webBluetooth, smartCube.askMac));
+          break;
+        case "smartTimer":
+          if (smartTimer.snapshot.link !== "off") smartTimer.disconnect();
+          else void smartTimer.connect(webBluetooth);
           break;
         case "solution":
           // A case's solution is its dialog (every algorithm, the 3D player, the times); the cross's is shown in place.
@@ -1279,7 +1334,7 @@ export class Store {
             break;
           }
           this.revealed = !this.revealed;
-          if (this.revealed && this.crossTraining) void this.loadCrossSolutions();
+          if (this.revealed && this.crossTraining && hasSolutions(this.crossTarget)) void this.loadCrossSolutions();
           break;
         case "auf":
           this.randomAuf = !this.randomAuf;
@@ -1393,6 +1448,19 @@ export class Store {
           await this.nextScramble();
           await this.refresh();
           break;
+        case "metronome":
+          this.metronome = metronomeBpm(Number(arg));
+          this.pref("cubix.timer.metronome", this.metronome);
+          break;
+        case "mbldCubes":
+          this.mbldCubes = mbldCubes(Number(arg));
+          this.pref("cubix.timer.mbldCubes", this.mbldCubes);
+          this.timerEpoch++;
+          await this.nextScramble();
+          break;
+        case "mbld":
+          await this.saveMultiBlind(arg === "cancel" ? null : Number(arg));
+          break;
         case "inspection":
           this.inspection = arg as Inspection;
           this.timerEpoch++;
@@ -1404,6 +1472,11 @@ export class Store {
             void stackmat.connect().then(() => {
               if (stackmat.snapshot.error) toast.error(tr("The audio input could not be opened: {0}", { 0: stackmat.snapshot.error }));
             });
+          break;
+        case "phases":
+          this.phases = arg;
+          this.timerEpoch++;
+          this.pref("cubix.timer.phases", arg);
           break;
         case "entry":
           this.entry = arg;
@@ -1432,9 +1505,7 @@ export class Store {
         case "exportData":
         case "exportSolves": {
           const { body, type, name } = exportFile(kind === "exportSolves" ? "csv" : "json", await call("exportData"), this.user.username);
-          const url = URL.createObjectURL(new Blob([body], { type }));
-          Object.assign(document.createElement("a"), { href: url, download: name }).click();
-          setTimeout(() => URL.revokeObjectURL(url), 10_000);
+          download(body, type, name);
           break;
         }
         // The account was deleted (Settings): this device goes back to a guest, as after signing out, the sign-in dialog open;
@@ -1707,16 +1778,17 @@ export class Store {
   }
   /** The timer's band on the desktop: the figures the player chose. */
   figuresShown(): Metric[] {
-    return sessionFigures(this.solves, this.figures);
+    const mode = this.context().solveMode;
+    return sessionFigures(this.solves, shownFigures(mode, this.figures), mode);
   }
   /** Session figures under the timer: label, value and the tone it is drawn in; a training keeps three. */
   metrics(): Metric[] {
-    const all = sessionMetrics(this.solves);
+    const all = sessionMetrics(this.solves, this.context().solveMode);
     if (this.practicePage() === "training") return all.filter(([label]) => [msg("Best"), msg("Mean"), "Ao5", "Ao12"].includes(label));
     return all;
   }
   /** The scramble types the timer offers for the puzzle (cross training has its own page; cross1 is kept for history). */
-  scrambleOptions = () => this.info().scrambles.filter((id: string) => !id.startsWith("cross1-") && !crossTrainingType(id)).map((id: string) => ({ id, label: this.label("scrambles", id) }));
+  scrambleOptions = () => scrambleTypesOf(this.puzzle as PuzzleId, this.solveMode).filter((id: string) => !id.startsWith("cross1-") && !crossTrainingType(id)).map((id: string) => ({ id, label: this.label("scrambles", id) }));
   /** The scramble menu's choice (the daily scramble has its own button). */
   scrambleChoice = () => this.scrambleType;
   /** The event whose daily scramble the timer shows, if it shows one. */

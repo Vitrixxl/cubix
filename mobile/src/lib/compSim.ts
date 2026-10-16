@@ -20,6 +20,8 @@ export interface Round {
   format: RoundFormat;
   record: number | null;
   pending: { ms: number; penalty: Penalty; memo?: number } | null;
+  /** The attempt's scramble, kept so that coming back to the timer mid-round draws no other. */
+  scramble?: string;
 }
 export const compSimAtom = persisted<Round | null>("cubix.compSim", null);
 const store = getDefaultStore();
@@ -39,9 +41,11 @@ export async function startCompSim(context: PracticeContext) {
   localChanged.emit();
 }
 
-/** Leaves the round: its attempts stay in its session, the timer goes back to the one before (a new one without). */
+/** Leaves the round: its attempts stay in its session, the timer goes back to the one before (a new one without), returned. */
 export async function endCompSim(context: PracticeContext, round: Round) {
-  setLaunchSession("playground", context, round.previous ?? (await api.createSession("playground", [], context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType })).id);
+  const id = round.previous ?? (await api.createSession("playground", [], context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType })).id;
+  setLaunchSession("playground", context, id);
   store.set(compSimAtom, null);
   localChanged.emit();
+  return id;
 }

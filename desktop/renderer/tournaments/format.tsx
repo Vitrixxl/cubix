@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { EVENTS } from "../../../src/shared/puzzles";
+import { attemptMode, EVENTS } from "../../../src/shared/puzzles";
 import { fmtTime } from "../../../src/client/lib/format";
 import { tn, tr } from "../../../src/client/i18n";
 import { ActionCard, Avatar, FOCUS, Icon, NUMERIC, Tip, said } from "../base";
@@ -250,7 +250,7 @@ function EventSelect({ value, onChange }: { value: string; onChange: (event: str
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-[min(32rem,var(--available-height))] w-auto min-w-52">
         <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => onChange(v)}>
-          {EVENTS.map((e) => (
+          {EVENTS.filter((e) => !attemptMode(e.solveMode)).map((e) => (
             <DropdownMenuRadioItem key={e.id} value={e.id} closeOnClick data-event={e.id}>
               <Icon name={"Puzzle" + e.id} size={16} />
               {said(e.label)}

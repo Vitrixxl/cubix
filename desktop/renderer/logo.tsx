@@ -1,4 +1,4 @@
-import { PUZZLES } from "../../src/shared/puzzles";
+import { eventInfo, PUZZLES } from "../../src/shared/puzzles";
 import { tr } from "../../src/client/i18n";
 
 /** A sticker: a rounded square (x, y, width, height, radius) or a path. */
@@ -90,6 +90,11 @@ const SHAPES: Record<string, [accents: number[], paths: string[]]> = {
     "M163 137 192 30H270V108Z",
     "M150 131 123 30H177Z",
   ]],
+  // The dial with the hand cut out of it, then the hand.
+  clock: [[1], [
+    "M150 276Q116 276 87.0 259.0Q58 242 41.0 213.0Q24 184 24.0 150.0Q24 116 41.0 87.0Q58 58 87.0 41.0Q116 24 150.0 24.0Q184 24 213.0 41.0Q242 58 259.0 87.0Q276 116 276.0 150.0Q276 184 259.0 213.0Q242 242 213.0 259.0Q184 276 150 276ZM150 265 180 158Q182 154 182 149Q182 136 172.5 127.0Q163 118 150.0 118.0Q137 118 127.5 127.0Q118 136 118 149Q118 154 120 158Z",
+    "M150 225 130 155Q129 152 129 149Q129 141 135.0 135.0Q141 129 150.0 129.0Q159 129 165.0 135.0Q171 141 171 149Q171 152 170 155Z",
+  ]],
 };
 
 /**
@@ -100,7 +105,7 @@ export function puzzleMark(puzzle = "222"): Mark {
   // An event (one-handed, blindfolded) has its own icon; otherwise the puzzle's.
   const shape = SHAPES[puzzle];
   if (shape) return { box: 300, flip: true, parts: shape[1].map((d, i) => ({ d, accent: shape[0].includes(i) })) };
-  const n = PUZZLES.find((p) => p.id === puzzle)?.cubeSize ?? 2,
+  const n = PUZZLES.find((p) => p.id === (eventInfo(puzzle)?.puzzle ?? puzzle))?.cubeSize ?? 2,
     gap = n === 2 ? 1.5 : Math.max(0.7, 3 / n),
     cell = (18 - gap * (n - 1)) / n,
     // The top right quarter takes the accent, as the 2×2's one sticker: a 3×3 block on the 7×7.

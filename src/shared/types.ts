@@ -72,6 +72,13 @@ export interface SolveDto {
   solution?: string | null;
   /** Blindfolded: the memorisation, in milliseconds from the start (the rest of `time_ms` is the execution). */
   memo_ms?: number | null;
+  /** Timed in phases (lib/phases): the end of each phase but the last, in milliseconds from the start. */
+  splits?: number[] | null;
+  /** Fewest Moves: the solution's move count (its written solution is `solution`); null for a solution not read. */
+  moves?: number | null;
+  /** Multi-Blind: the cubes solved out of those attempted. */
+  cubes_solved?: number | null;
+  cubes_attempted?: number | null;
   created_at: string;
 }
 
@@ -149,6 +156,12 @@ export interface HistoryPoint {
   solveId?: number;
   /** Blindfolded: the memorisation time, when it was marked. */
   memoMs?: number;
+  /** Fewest Moves and Multi-Blind (`time` is their result, see `solveResult`): the solve's own fields. */
+  solve_mode?: SolveMode;
+  moves?: number | null;
+  cubes_solved?: number | null;
+  cubes_attempted?: number | null;
+  solution?: string | null;
 }
 
 export interface CaseHistoryDto {

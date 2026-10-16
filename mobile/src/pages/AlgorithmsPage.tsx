@@ -35,9 +35,10 @@ import { useTourTarget } from "../tour";
 import { casePlayItem, displayAlg, maskForStage, shortId } from "../lib/caseState";
 import { storage } from "../platform/storage";
 import {
-  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
+  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, ownAlgsAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
   solveModeAtom, statsAtom, statsVersionAtom, type Route,
 } from "../state";
+import type { OwnAlgs as OwnAlgsByCase } from "../../../src/client/lib/bld";
 import { said, tr } from "../../../src/client/i18n";
 
 /** The algorithm each learned case was learned with, as the local workspace holds it. */
@@ -45,12 +46,7 @@ const learnedAlgsAtom = atom(get => { get(statsVersionAtom); return local.learne
 const json = createJSONStorage<any>(() => storage);
 /** The tiles of a set: large (four a line on a phone) or compact (five); a tablet also lists them with their algorithm. */
 const tileSizeAtom = atomWithStorage<"large" | "small" | "list">("cubix.algs.tileSize", "large", json, { getOnInit: true });
-/**
- * The algorithms a player wrote for a case ("Add yours"), and those of them used. Kept on this device: the account
- * only records the catalogue's algorithms.
- */
-type OwnAlgs = { algs: string[]; used: string[] };
-const ownAlgsAtom = atomWithStorage<Record<string, OwnAlgs>>("cubix.algs.own", {}, json, { getOnInit: true });
+type OwnAlgs = OwnAlgsByCase[string];
 /** The case's tab, kept from one case to the next. */
 const caseTabAtom = atom<"algorithms" | "times">("algorithms");
 /** The method whose steps list the catalogue's sets, by puzzle ("all": every set by its stage), the web's `algsMethod`. */

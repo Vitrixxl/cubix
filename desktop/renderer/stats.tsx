@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownUp, ChartLine, List, MessageSquare, Plus, Rotate3d, Timer } from "lucide-react";
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
-import { fmtTime, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
+import { fmtValue, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
 import { periodFigures, singleRecords, solveTone, timerFigures, type PeriodFigure } from "../../src/client/lib/practiceSummary";
 import { Back, Button, Choice, Empty, MenuChoice, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
@@ -21,6 +21,9 @@ import { Toggle } from "@/components/ui/toggle";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { VirtualList } from "./virtual";
+
+/** A figure of the event shown: a time, or Fewest Moves' moves and Multi-Blind's cubes (`fmtValue`). */
+const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, s.profileSolveMode, opts);
 
 type SolveSort = "newest" | "oldest" | "fastest" | "slowest";
 
@@ -609,7 +612,7 @@ function TimerStatsView({ data, table, tools }: { data: any; table: SolveTableSt
   const zoomed = range[0] > 0 || range[1] < history.length - 1,
     count = range[1] - range[0] + 1,
     total = <span className="text-sm text-muted-foreground">{zoomed ? tr("{0} of {1} solves", { 0: count, 1: history.length }) : plural(count, "solve")}</span>;
-  const figures = timerFigures(data.summary),
+  const figures = timerFigures(data.summary, s.profileSolveMode),
     figureDots = dots(figures.map((f) => f[2]));
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">

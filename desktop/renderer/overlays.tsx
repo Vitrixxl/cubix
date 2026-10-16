@@ -6,6 +6,7 @@ import { store as s } from "./store";
 import { searchCases } from "../../src/client/lib/practiceCatalog";
 import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
+import { ScrambleExport } from "./attempts";
 import { accents } from "./theme";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
@@ -17,6 +18,7 @@ import { AlgView } from "./algView";
 import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
 import { DailyDialog } from "./daily";
+import { DevicesDialog } from "./devices";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList, Command } from "@/components/ui/command";
@@ -388,11 +390,15 @@ export const Overlays = memo(function Overlays() {
       <Modal id="importTimes" title={tr("Import times")} className="sm:max-w-lg">
         <ImportTimes />
       </Modal>
+      <Modal id="scrambles" title={tr("Scrambles")} className="sm:max-w-2xl">
+        <ScrambleExport />
+      </Modal>
       <GuidesDialog />
       <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
       <DailyDialog />
+      <DevicesDialog />
       <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? tr("Algorithm")} description={tr("The algorithm played on the cube")} hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
         <AlgView />
       </Modal>

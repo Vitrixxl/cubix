@@ -130,7 +130,14 @@ func TestWcaRankingsRecordsCompetitions(t *testing.T) {
 		case "/search/persons":
 			fmt.Fprint(w, `{"result":[{"wca_id":"2000PERS07","name":"Name 2000PERS07","country_iso2":"FR"},{"wca_id":"","name":"No ID"},{"wca_id":"2000PERS77","name":"Elsewhere"},{"wca_id":"2009ZEMD01","name":"Not ranked here"}]}`)
 		case "/records":
-			fmt.Fprint(w, `{"world_records":{"333":{"single":251,"average":351},"333mbf":{"single":380350302}},"continental_records":{},"national_records":{}}`)
+			fmt.Fprint(w, `{"world_records":{"333":{"single":251,"average":351},"333mbf":{"single":380350302}},"continental_records":{"_Europe":{"333":{"single":401,"average":400}}},"national_records":{}}`)
+		case "/rank/europe/average/333.json":
+			// The record's holder, now of Asia, filed with a better average set since.
+			fmt.Fprint(w, `{"total":2,"items":[{"personId":"2000ASIA01","best":380,"rank":{"continent":1}},{"personId":"2000PERS01","best":420,"rank":{"continent":2}}]}`)
+		case "/persons/2000ASIA01/results":
+			fmt.Fprint(w, `[{"best":350,"average":380,"event_id":"333","country_iso2":"JP","competition_id":"B"},{"best":390,"average":400,"event_id":"333","country_iso2":"FR","competition_id":"A"}]`)
+		case "/persons/2000ASIA01/competitions":
+			fmt.Fprint(w, `[]`)
 		case "/competitions":
 			w.Header().Set("Total", "51")
 			fmt.Fprintf(w, `[{"id":"Soon","name":"Soon Open","city":"Paris","country_iso2":"FR","start_date":"2030-01-01","end_date":"2030-01-02","event_ids":["333"],"cancelled_at":null},
@@ -204,6 +211,14 @@ func TestWcaRankingsRecordsCompetitions(t *testing.T) {
 	list, _ := value.([]wcaRecordRow)
 	if err != nil || len(list) != 2 || list[0].Event != "333" || list[0].Single.Best != 251 || list[0].Single.Holders[0].ID != "2023GENG02" ||
 		list[0].Average.Holders[0].Name != "Name 2019WANY36" || list[1].Event != "333mbf" || list[1].Average != nil {
+		t.Fatal(value, err)
+	}
+
+	// A continent's: a holder who has since moved away found in their results, with the country they set it for.
+	value, err = wcaRoute(state, "ip", "records", map[string]string{"region": "europe"})
+	list, _ = value.([]wcaRecordRow)
+	if err != nil || len(list) != 1 || list[0].Single.Holders[0].ID != "2000PERS01" || len(list[0].Average.Holders) != 1 ||
+		list[0].Average.Holders[0] != (wcaWho{"2000ASIA01", "Name 2000ASIA01", "FR"}) {
 		t.Fatal(value, err)
 	}
 

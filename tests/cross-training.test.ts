@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CROSS_MOVES, CROSS_TARGETS, crossDistance, crossPattern, crossSolutions, crossTrainingType, patternAfter, type PatternData } from "../src/shared/crossTraining";
+import { CROSS_MOVES, CROSS_TARGETS, crossDistance, crossPattern, crossSolutions, crossTrainingType, hasSolutions, patternAfter, type PatternData } from "../src/shared/crossTraining";
 
 const odd = (pieces: number[]) => pieces.reduce((sum, a, i) => sum + pieces.slice(i + 1).filter(b => b < a).length, 0) % 2 === 1;
 const SOLVED: PatternData = { EDGES: { pieces: [...Array(12).keys()], orientation: Array(12).fill(0) }, CORNERS: { pieces: [...Array(8).keys()], orientation: Array(8).fill(0) }, CENTERS: { pieces: [0, 1, 2, 3, 4, 5], orientation: Array(6).fill(0) } };
@@ -17,8 +17,8 @@ describe("cross training scrambles", () => {
     expect(crossTrainingType("cross1-4")).toBeNull();
     expect(crossTrainingType("normal")).toBeNull();
   });
-  test("the solved cube is solved for every target", () => {
-    for (const target of CROSS_TARGETS) expect(crossDistance(SOLVED, target)).toBe(0);
+  test("the solved cube is solved for every target with a solver", () => {
+    for (const target of CROSS_TARGETS.filter(hasSolutions)) expect(crossDistance(SOLVED, target)).toBe(0);
   });
   for (const target of CROSS_TARGETS) for (const moves of CROSS_MOVES[target]) test(`the best ${target} takes exactly ${moves} moves on a legal cube`, () => {
     for (let i = 0; i < 4; i++) {

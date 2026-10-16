@@ -2,6 +2,7 @@ import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { isPuzzle, puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { ImportedSolve } from "../lib/timerImport";
 import { readSolution, SOLUTION_MAX } from "../lib/solution";
+import { cleanSplits } from "../lib/phases";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
 import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
@@ -10,6 +11,10 @@ import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
 import { sessionSummaries } from "../lib/sessions";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
+import { resultFields } from "../lib/format";
+
+/** A solve's Fewest Moves and Multi-Blind fields as the API takes them. */
+const resultBody = (s: SolveDto) => ({ ...(s.moves != null ? { moves:s.moves } : {}), ...(s.cubes_attempted != null ? { cubesSolved:s.cubes_solved ?? 0, cubesAttempted:s.cubes_attempted } : {}) });
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
@@ -135,7 +140,7 @@ export function createLocalClient(options: {
     if (workspace.cache !== undefined) { delete workspace.cache; workspace.outbox = workspace.outbox.filter(op => !["bio","message"].includes(op.kind)); save(id,workspace); }
     const profile = workspace.journey.profile;
     if (profile && JSON.stringify(withoutRetired(profile)) !== JSON.stringify(profile)) { workspace.journey.profile = withoutRetired(profile) as typeof profile; save(id,workspace); }
-    // Retired puzzles (Clock): their sessions and solves leave this device; the server keeps its copy untouched.
+    // Puzzles the app no longer has: their sessions and solves leave this device; the server keeps its copy untouched.
     const retired = (row: SessionDto | SolveDto) => !isPuzzle(puzzleOf(row));
     if ([...Object.values(workspace.sessions), ...Object.values(workspace.solves)].some(retired)) {
       const gone = new Set<number>();
@@ -211,7 +216,7 @@ export function createLocalClient(options: {
       }
       for (const solve of liveSolves(guest)) if (!account.solves[solve.id]) {
         account.solves[solve.id] = { ...solve, serverId:undefined };
-        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...(solve.solution ? { solution:solve.solution } : {}), ...(solve.memo_ms != null ? { memoMs:solve.memo_ms } : {}), ...contextOf(solve) },solve.created_at);
+        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...(solve.solution ? { solution:solve.solution } : {}), ...(solve.memo_ms != null ? { memoMs:solve.memo_ms } : {}), ...(solve.splits ? { splits:solve.splits } : {}), ...resultBody(solve), ...contextOf(solve) },solve.created_at);
       }
       for (const caseId of learnedIds(guest)) if (!account.learned[caseId]) {
         account.learned[caseId] = true;
@@ -271,9 +276,11 @@ export function createLocalClient(options: {
             if (dirty.has(`solves:${localId}`)) continue;
             const row = change.value as SolveDto;
             const sid = (row.session_id == null ? undefined : sessionIds.get(row.session_id)) ?? row.session_id;
-            // A server that does not keep memorisation times yet leaves the one recorded here.
-            const memo = row.memo_ms ?? workspace.solves[localId]?.memo_ms;
-            workspace.solves[localId] = { ...row, ...(memo != null ? { memo_ms:memo } : {}), scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
+            // A server that does not keep memorisation times, splits or results yet leaves the ones recorded here.
+            const here = workspace.solves[localId], memo = row.memo_ms ?? here?.memo_ms, splits = row.splits ?? here?.splits;
+            // Fewest Moves and Multi-Blind results alike.
+            const result = row.moves != null || row.cubes_attempted != null || !here ? {} : { ...(here.moves != null ? { moves:here.moves } : {}), ...(here.cubes_attempted != null ? { cubes_solved:here.cubes_solved, cubes_attempted:here.cubes_attempted } : {}) };
+            workspace.solves[localId] = { ...row, ...(memo != null ? { memo_ms:memo } : {}), ...(splits ? { splits } : {}), ...result, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
             solveIds.set(change.id, localId);
           }
         }
@@ -554,9 +561,11 @@ export function createLocalClient(options: {
           workspace.sessions[session.id] = session; sessions.set(group,session);
           operation(workspace,id,"session",session.id,{ mode:"playground", caseIds:[], ...(name ? { name } : {}), ...context },at);
         }
-        const row: Solve = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", session_id:session.id, case_id:null, time_ms:timeMs, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment?.slice(0,500) || null, created_at:at };
+        const splits = cleanSplits(solve.splits, timeMs);
+        const solution = solveMode === "fewest-moves" && solve.solution && solve.solution.length <= SOLUTION_MAX ? solve.solution : undefined;
+        const row: Solve = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", session_id:session.id, case_id:null, time_ms:timeMs, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment?.slice(0,500) || null, ...(solution ? { solution } : {}), ...resultFields(solveMode, solve), ...(splits ? { splits } : {}), created_at:at };
         workspace.solves[row.id] = row;
-        operation(workspace,id,"solve",row.id,{ sessionId:session.id, caseId:null, timeMs, penalty:row.penalty, scramble:row.scramble, comment:row.comment, ...context },at);
+        operation(workspace,id,"solve",row.id,{ sessionId:session.id, caseId:null, timeMs, penalty:row.penalty, scramble:row.scramble, comment:row.comment, ...(solution ? { solution } : {}), ...resultBody(row), ...(splits ? { splits } : {}), ...context },at);
         imported++;
       }
       return { imported, duplicates };
@@ -576,12 +585,16 @@ export function createLocalClient(options: {
       const latest = Date.parse(derived("latest", () => Object.values(workspace.solves).reduce((at,s) => s.created_at > at ? s.created_at : at,""))) || 0;
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
       // A solution that cannot be read is left out: it never keeps the time from being saved.
-      const solution = readSolution(body.solution) ? body.solution!.trim() : undefined;
+      // Fewest Moves keeps the solution as written (WCA notation, rotations and wide turns too).
+      const written = context.solveMode === "fewest-moves" && body.solution?.trim() && body.solution.length <= SOLUTION_MAX;
+      const solution = written || readSolution(body.solution) ? body.solution!.trim() : undefined;
       // A memorisation outside the solve is left out the same way.
       const memo = Number.isFinite(body.memoMs) && body.memoMs! >= 0 && body.memoMs! <= body.timeMs ? Math.round(body.memoMs!) : undefined;
-      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),created_at:createdAt };
+      const splits = cleanSplits(body.splits, body.timeMs);
+      const result = resultFields(context.solveMode, body);
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),...result,...(splits ? { splits } : {}),created_at:createdAt };
       workspace.solves[solve.id] = solve;
-      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution,memoMs:memo},solve.created_at); return solve;
+      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution,memoMs:memo,splits,...resultBody(solve)},solve.created_at); return solve;
     }),
     solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
       const newest = derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {

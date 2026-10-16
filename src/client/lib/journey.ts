@@ -28,7 +28,7 @@ export type JourneyEntry = JourneyProfile;
 export type Journey = Record<string, JourneyEntry | null>;
 export interface JourneyEntryDto { id: number; key: string; value: JourneyEntry | null; updated_at: string }
 export const PROFILE_KEY = "profile";
-/** A profile without the puzzles the app retired (Clock), so one saved when they existed stays valid. */
+/** A profile without the puzzles the app no longer has, so one saved when they existed stays valid. */
 export function withoutRetired(value: unknown): unknown {
   const v = value as Record<string, any> | null;
   if (v?.kind !== "profile" || !Array.isArray(v.knownPuzzles)) return value;

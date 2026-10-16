@@ -5,7 +5,9 @@ import type { JourneyEntryDto } from "./lib/journey";
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null; solution?: string | null; /** Blindfolded: the memorisation, within `timeMs`. */ memoMs?: number }
+export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null; solution?: string | null; /** Blindfolded: the memorisation, within `timeMs`. */ memoMs?: number; /** Timed in phases: see `SolveDto.splits`. */ splits?: number[];
+  /** Fewest Moves: the move count of `solution`, the solution written. */ moves?: number;
+  /** Multi-Blind: the cubes solved out of those attempted. */ cubesSolved?: number; cubesAttempted?: number }
 export interface SyncPage { changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }
 export interface SyncOperation { id: string; method: string; path: string; body: unknown; createdAt?: string }
 export interface SyncResult { results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[] }

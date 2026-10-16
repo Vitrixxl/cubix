@@ -1,6 +1,6 @@
 /** Timer sessions: their figures, one row per session, and the name shown for one the player did not name. */
 import type { SessionSummary, SolveDto } from "../../shared/types";
-import { best, bestAverage, effective, mean, shortDate } from "./format";
+import { best, bestAverage, mean, shortDate, solveResult } from "./format";
 
 export type { SessionSummary };
 
@@ -18,7 +18,7 @@ export function sessionSummaries(solves: readonly SolveDto[], sessions: Record<n
     else groups.set(key, { id, solves: [solve] });
   }
   const out: SessionSummary[] = [...groups.values()].map(({ id, solves }) => {
-    const times = solves.map((s) => effective(s.time_ms, s.penalty));
+    const times = solves.map(solveResult);
     return {
       id, name: id == null ? null : sessions[id]?.name ?? null, at: solves[0]!.created_at, lastAt: solves.at(-1)!.created_at,
       count: solves.length, best: best(times), mean: mean(times), ao5: bestAverage(times, 5), ao12: bestAverage(times, 12),

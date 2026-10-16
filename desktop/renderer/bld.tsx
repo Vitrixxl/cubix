@@ -1,19 +1,23 @@
 /**
- * Blindfolded training (3×3), in the training page's panel: Memo (a blindfolded scramble and its cube held white on
- * top, the memo typed, then checked against the one traced) and Pairs (each letter pair's word, written once, then
- * recalled); the letter scheme and the buffers in a drawer. The rules are src/client/lib/bld.ts's.
+ * Blindfolded training (3×3, 4×4, 5×5), in the training page's panel: Memo (a blindfolded scramble and its cube held
+ * white on top, the memo typed, then checked against the one traced), Pairs (each letter pair's word, written once,
+ * then recalled) and Comms (a pair of targets, then its 3-style commutator played in 3D); the letter scheme and the
+ * buffers in a drawer. The rules are src/client/lib/bld.ts's.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Eye, Pencil, RotateCcw, Settings2, SkipForward, X } from "lucide-react";
+import { Check, Eye, ListFilter, Pencil, RotateCcw, Settings2, SkipForward, X } from "lucide-react";
 import { Button as UiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  BLD_COLORS, BLD_FACES, BLD_PREFS, BLD_SCRAMBLE, BUFFERS, SPEFFZ, allPairs, bldPicture, bldState, cleanBuffers, cleanScheme, nextPair, pairsOf,
-  recentPairs, repeated, reviewPair, sameMemo, stickerAt, traceMemo, withLetter, type BldKind, type Memo, type PairBoxes,
+  BLD_COLORS, BLD_FACES, BLD_INK, BLD_KINDS, BLD_PREFS, BLD_PUZZLES, BUFFER_NAMES, BUFFERS, SPEFFZ, allPairs, bldPicture, bldScramble, bldState, cleanBuffers, cleanCommFilter,
+  cleanPuzzle, cleanScheme, commLetters, commOf, commPool, doesComm, netSize, nextPair, ownAlg, pairsOf, recentPairs, repeated, reviewPair, sameMemo, stickerAt,
+  kindName, traceMemo, withLetter, withOwnAlg, type BldKind, type BldPuzzle, type CommFilter, type Memo, type OwnAlgs, type PairBoxes,
 } from "../../src/client/lib/bld";
+import { puzzleInfo } from "../../src/shared/puzzles";
 import { tr } from "../../src/client/i18n";
+import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
 import { Cube } from "./Cube";
 import { PhoneSheet } from "./phone";
@@ -29,22 +33,28 @@ const buffers = () => cleanBuffers(s.prefs[BLD_PREFS.buffers]);
 const words = (): Record<string, string> => s.prefs[BLD_PREFS.words] ?? {};
 /** The pairs with a word written, for the training list's count. */
 export const bldWords = () => Object.values(words()).filter(Boolean).length;
+const kindLabel = (kind: BldKind, puzzle?: BldPuzzle) => tr(kindName(kind, puzzle));
 
-/** The blindfolded training: Memo or Pairs, and its settings' drawer. */
+/** The blindfolded training: Memo, Pairs or Comms, and its settings' drawer. */
 export function BldCard({ phone }: { phone: boolean }) {
-  const mode = s.prefs[BLD_PREFS.mode] === "pairs" ? "pairs" : "memo",
+  const mode = ["pairs", "comms"].includes(s.prefs[BLD_PREFS.mode]) ? s.prefs[BLD_PREFS.mode] : "memo",
     [settings, setSettings] = useState(false);
   return (
     <Surface className={cn("gap-3.5 px-5 py-4 md:px-6 md:py-5", !phone && "min-h-0 flex-1")}>
       <SectionHead title={tr("BLD")}>
-        <Segmented label={tr("Blindfolded")} value={mode} onChange={(id) => save(BLD_PREFS.mode, id)} options={[{ id: "memo", label: tr("Memo") }, { id: "pairs", label: tr("Pairs") }]} />
+        <Segmented
+          label={tr("Blindfolded")}
+          value={mode}
+          onChange={(id) => save(BLD_PREFS.mode, id)}
+          options={[{ id: "memo", label: tr("Memo") }, { id: "pairs", label: tr("Pairs") }, { id: "comms", label: tr("Comms") }]}
+        />
         <Tip content={tr("Letter scheme and buffers")}>
           <UiButton variant="ghost" size="icon" aria-label={tr("Letter scheme and buffers")} onClick={() => setSettings(true)}>
             <Settings2 />
           </UiButton>
         </Tip>
       </SectionHead>
-      {mode === "memo" ? <MemoDrill /> : <PairsDrill />}
+      {mode === "memo" ? <MemoDrill /> : mode === "pairs" ? <PairsDrill /> : <CommsDrill />}
       <Drawer open={settings} onOpenChange={setSettings} title={tr("Settings")}>
         <BldSettings />
       </Drawer>
@@ -72,31 +82,40 @@ function Drawer({ open, onOpenChange, title, children }: { open: boolean; onOpen
   );
 }
 
-/** A blindfolded scramble and its cube, the memo typed, then the one traced beside it. */
-function MemoDrill() {
+/** The side of the largest square the room left holds (a desktop's; a phone's drawer grows with its content: its cube follows the window). */
+function useFit(max: number) {
   const { h } = useViewport(),
     phone = usePhone(),
+    room = useRef<HTMLDivElement>(null),
+    [fit, setFit] = useState(0);
+  useLayoutEffect(() => {
+    if (phone || !room.current) return;
+    const observer = new ResizeObserver(([e]) => setFit(Math.floor(Math.min(max, e!.contentRect.width, e!.contentRect.height) - 16)));
+    observer.observe(room.current);
+    return () => observer.disconnect();
+  }, [phone, max]);
+  return { room, size: phone ? Math.round(Math.max(120, Math.min(h * 0.28, 230))) : fit };
+}
+
+/** A blindfolded scramble of the puzzle chosen and its cube, the memo typed, then the one traced beside it. */
+function MemoDrill() {
+  const puzzle = cleanPuzzle(s.prefs[BLD_PREFS.puzzle]),
+    n = puzzleInfo(puzzle).cubeSize!,
+    [round, setRound] = useState(0),
     [scramble, setScramble] = useState(""),
     [typed, setTyped] = useState(""),
     [memo, setMemo] = useState<Memo | null>(null),
-    room = useRef<HTMLDivElement>(null),
-    [fit, setFit] = useState(0),
-    // A phone's drawer grows with its content: its cube follows the window; a desktop's fills the room left for it.
-    size = phone ? Math.round(Math.max(120, Math.min(h * 0.28, 230))) : fit;
-  useLayoutEffect(() => {
-    if (phone) return;
-    const observer = new ResizeObserver(([e]) => setFit(Math.floor(Math.min(360, e!.contentRect.width, e!.contentRect.height) - 16)));
-    observer.observe(room.current!);
-    return () => observer.disconnect();
-  }, [phone]);
-  const draw = () => {
+    { room, size } = useFit(360);
+  useEffect(() => {
+    let live = true;
     setMemo(null);
     setTyped("");
-    call("scramble", BLD_SCRAMBLE).then(setScramble, () => {});
-  };
-  useEffect(draw, []);
+    setScramble("");
+    call("scramble", bldScramble(puzzle)).then((v: string) => live && setScramble(v), () => {});
+    return () => void (live = false);
+  }, [puzzle, round]);
   const check = () => {
-    const traced = traceMemo(bldState(scramble), scheme(), buffers());
+    const traced = traceMemo(bldState(scramble, n), scheme(), buffers());
     setMemo(traced);
     save(BLD_PREFS.recent, recentPairs(traced, s.prefs[BLD_PREFS.recent] ?? []));
   };
@@ -106,13 +125,14 @@ function MemoDrill() {
       onSubmit={(e) => {
         e.preventDefault();
         if (!scramble) return;
-        if (memo) draw();
+        if (memo) setRound(round + 1);
         else check();
       }}
     >
-      <Alg text={scramble || "…"} size={17} className="shrink-0" />
-      <div ref={room} className="flex min-h-0 flex-1 items-center justify-center">{scramble && size >= 64 && <Cube key={scramble} setup={bldPicture(scramble)} held cubeSize={3} size={size} animated={false} />}</div>
-      {memo && <MemoResult memo={memo} right={sameMemo(typed, memo)} />}
+      <Segmented label={tr("Puzzle")} value={puzzle} onChange={(id) => save(BLD_PREFS.puzzle, id)} options={BLD_PUZZLES.map((id) => ({ id, label: puzzleInfo(id).label }))} className="self-start" />
+      <Alg text={scramble || "…"} size={n > 3 ? 15 : 17} className="shrink-0" />
+      <div ref={room} className="flex min-h-0 flex-1 items-center justify-center">{scramble && size >= 64 && <Cube key={scramble} setup={bldPicture(scramble, n)} held cubeSize={n} size={size} animated={false} />}</div>
+      {memo && <MemoResult memo={memo} puzzle={puzzle} right={sameMemo(typed, memo)} />}
       <div className="flex shrink-0 items-center gap-2">
         <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="AB CD EF" aria-label={tr("Your memo")} readOnly={!!memo} autoComplete="off" spellCheck={false} className="flex-1 font-semibold uppercase" />
         {memo ? (
@@ -131,16 +151,17 @@ function MemoDrill() {
   );
 }
 
-/** The memo traced: right or not, edges then corners in pairs, then what is noted apart. */
-function MemoResult({ memo, right }: { memo: Memo; right: boolean }) {
-  const rows: [string, string][] = [
-    [tr("Edges"), pairsOf(memo.edges).join(" ")],
-    [tr("Corners"), pairsOf(memo.corners).join(" ")],
-    ...(memo.flipped.length ? [[tr("Flipped"), memo.flipped.join(" ")] as [string, string]] : []),
-    ...(memo.twisted.length ? [[tr("Twisted"), memo.twisted.join(" ")] as [string, string]] : []),
+/** The memo traced: right or not, each piece type's pairs in order (parity beside), then what is noted apart. */
+function MemoResult({ memo, puzzle, right }: { memo: Memo; puzzle: BldPuzzle; right: boolean }) {
+  const edges = memo.find((p) => p.kind === "edges"),
+    corners = memo.find((p) => p.kind === "corners")!;
+  const rows: [string, string, boolean][] = [
+    ...memo.map((part): [string, string, boolean] => [kindLabel(part.kind, puzzle), pairsOf(part.targets).join(" "), part.parity]),
+    ...(edges?.turned.length ? [[tr("Flipped"), edges.turned.join(" "), false] as [string, string, boolean]] : []),
+    ...(corners.turned.length ? [[tr("Twisted"), corners.turned.join(" "), false] as [string, string, boolean]] : []),
   ];
   return (
-    <div className="flex shrink-0 items-start gap-3 rounded-2xl bg-muted px-4 py-3" aria-live="polite">
+    <div className="flex min-h-0 items-start gap-3 overflow-y-auto rounded-2xl bg-muted px-4 py-3" aria-live="polite">
       <span
         className={cn("mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full", right ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}
         role="img"
@@ -148,16 +169,30 @@ function MemoResult({ memo, right }: { memo: Memo; right: boolean }) {
       >
         {right ? <Check className="size-4" /> : <X className="size-4" />}
       </span>
-      <dl className="grid min-w-0 flex-1 grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1">
-        {rows.map(([label, text]) => [
+      <dl className="grid min-w-0 flex-1 grid-cols-[auto_1fr_auto] items-baseline gap-x-3 gap-y-1">
+        {rows.map(([label, text, parity]) => [
           <dt key={label + "t"} className="text-xs font-bold text-faint">{label}</dt>,
-          <dd key={label + "d"} className={cn(NUMERIC, "text-base font-extrabold tracking-wide")}>{text || "–"}</dd>,
+          <dd key={label + "d"} className={cn(NUMERIC, "min-w-0 text-base font-extrabold tracking-wide break-words")}>{text || "–"}</dd>,
+          <dd key={label + "p"}>{parity && <span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-bold text-warning">{tr("Parity")}</span>}</dd>,
         ])}
       </dl>
-      {memo.parity && <span className="shrink-0 rounded-full bg-warning/15 px-2.5 py-1 text-xs font-bold text-warning">{tr("Parity")}</span>}
     </div>
   );
 }
+
+/** Again or Got it, under a card. */
+const Answer = ({ onAnswer }: { onAnswer: (got: boolean) => void }) => (
+  <div className="flex shrink-0 justify-center gap-2">
+    <UiButton variant="outline" onClick={() => onAnswer(false)}>
+      <RotateCcw />
+      {tr("Again")}
+    </UiButton>
+    <UiButton onClick={() => onAnswer(true)}>
+      <Check />
+      {tr("Got it")}
+    </UiButton>
+  </div>
+);
 
 /** A letter pair to recall: shown, then its word (written here once), Got it or Again. */
 function PairsDrill() {
@@ -229,23 +264,132 @@ function PairsDrill() {
               </Tip>
             </div>
           )}
-          <div className="flex gap-2">
-            <UiButton variant="outline" onClick={() => answer(false)}>
-              <RotateCcw />
-              {tr("Again")}
-            </UiButton>
-            <UiButton onClick={() => answer(true)}>
-              <Check />
-              {tr("Got it")}
-            </UiButton>
-          </div>
+          <Answer onAnswer={answer} />
         </div>
       )}
     </div>
   );
 }
 
-/** Where each face of the net stands, in stickers' thirds: U above L F R B, D below. */
+/**
+ * A pair of targets from the chosen buffer, in the player's letters: recall its commutator, show it (the player's own
+ * or the catalogue's 3-style one, played in 3D from the case), then Got it or Again, boxed as the letter pairs are.
+ */
+function CommsDrill() {
+  const filter = cleanCommFilter(s.prefs[BLD_PREFS.comms]),
+    letters = scheme(),
+    chosen = buffers(),
+    boxes: PairBoxes = s.prefs[BLD_PREFS.commBoxes] ?? {},
+    pool = commPool(filter, chosen, letters, boxes),
+    [seen, setSeen] = useState<string[]>([]),
+    [key, setKey] = useState<string | undefined>(() => nextPair(pool, boxes, [])),
+    [shown, setShown] = useState(false),
+    [filters, setFilters] = useState(false),
+    setFilter = (change: Partial<CommFilter>) => save(BLD_PREFS.comms, { ...filter, ...change });
+  useEffect(() => {
+    if (!key || !pool.includes(key)) setKey(nextPair(pool, boxes, seen));
+    setShown(false);
+  }, [filter.kind, filter.letter, filter.fresh, chosen[filter.kind]]);
+  const answer = (got: boolean) => {
+    if (!key) return;
+    const next = reviewPair(boxes, key, got),
+      last = [...seen, key].slice(-6);
+    save(BLD_PREFS.commBoxes, next);
+    setSeen(last);
+    setKey(nextPair(commPool(filter, chosen, letters, next), next, last));
+    setShown(false);
+  };
+  const firsts = [...new Set(commPool({ ...filter, letter: "", fresh: false }, chosen, letters, {}).map((k) => commLetters(k, filter.kind, letters)[0]!))].sort();
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {/* The pair shown, its commutator below: its letters move up between the bar's controls, leaving the cube the room. */}
+      <div className="grid shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2">
+        <Segmented label={tr("Pieces")} value={filter.kind} onChange={(id) => setFilter({ kind: id as CommFilter["kind"], letter: "" })} options={(["edges", "corners"] as const).map((id) => ({ id, label: kindLabel(id) }))} />
+        {key && shown ? <b className={cn(NUMERIC, "justify-self-center text-3xl leading-none font-extrabold tracking-[0.04em]")}>{commLetters(key, filter.kind, letters)}</b> : <span />}
+        <Tip content={tr("Filter")}>
+          <UiButton variant={filter.letter || filter.fresh ? "secondary" : "ghost"} size="icon" aria-label={tr("Filter")} onClick={() => setFilters(true)}>
+            <ListFilter />
+          </UiButton>
+        </Tip>
+      </div>
+      {!key ? (
+        <Empty icon={Check} title={tr("All known")} className="my-auto py-8" />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4">
+          {!shown && <b className={cn(NUMERIC, "shrink-0 text-[clamp(4rem,14vh,7rem)] leading-none font-extrabold tracking-[0.04em]")}>{commLetters(key, filter.kind, letters)}</b>}
+          {shown ? (
+            <CommAnswer key={key} id={key} kind={filter.kind} />
+          ) : (
+            <UiButton variant="outline" onClick={() => setShown(true)}>
+              <Eye />
+              {tr("Show")}
+            </UiButton>
+          )}
+          <Answer onAnswer={answer} />
+        </div>
+      )}
+      <Drawer open={filters} onOpenChange={setFilters} title={tr("Filter")}>
+        <Field label={tr("First letter")}>
+          <Segmented label={tr("First letter")} value={filter.letter} onChange={(letter) => setFilter({ letter })} options={[{ id: "", label: tr("All") }, ...firsts.map((id) => ({ id, label: id }))]} />
+        </Field>
+        <Field label={tr("Pairs")}>
+          <Segmented label={tr("Pairs")} value={filter.fresh ? "new" : "all"} onChange={(id) => setFilter({ fresh: id === "new" })} options={[{ id: "all", label: tr("All") }, { id: "new", label: tr("New") }]} />
+        </Field>
+      </Drawer>
+    </div>
+  );
+}
+
+/** A commutator shown: played in 3D from its case, its moves and notation, and the player's own written in its place. */
+function CommAnswer({ id, kind }: { id: string; kind: CommFilter["kind"] }) {
+  const own: OwnAlgs = s.prefs[BLD_PREFS.own] ?? {},
+    mine = ownAlg(own, id),
+    comm = commOf(id, kind, s.find),
+    alg = mine ?? comm?.alg ?? "",
+    player = useAlgPlayer(alg, alg ? 3 : null, "full", { autoplay: 300 }),
+    { room, size } = useFit(260),
+    [draft, setDraft] = useState<string | null>(null),
+    typed = draft?.trim().replace(/\s+/g, " ") ?? "",
+    valid = !typed || doesComm(id, kind, typed);
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
+      <div ref={room} className="flex min-h-0 w-full flex-1 items-center justify-center">{player && size >= 64 && <PlayerCube player={player} size={size} />}</div>
+      {draft != null ? (
+        // The player's own, in place of the moves while written: saved once it does this cycle.
+        <form
+          className="flex w-full max-w-md shrink-0 flex-col gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!valid) return;
+            save(BLD_PREFS.own, withOwnAlg(own, id, typed === comm?.alg ? "" : typed));
+            setDraft(null);
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={comm?.alg} aria-label={tr("Your algorithm")} aria-invalid={!valid || undefined} autoComplete="off" spellCheck={false} className="flex-1" />
+            <UiButton type="submit" disabled={!valid}>{tr("Save")}</UiButton>
+          </div>
+          {!valid && <p className="text-sm text-destructive">{tr("Not this cycle")}</p>}
+        </form>
+      ) : (
+        <>
+          <div className="flex max-w-full shrink-0 items-center gap-1">
+            <PlayerAlg player={player} text={alg || "–"} size={18} className="justify-center" />
+            <Tip content={tr("Edit")}>
+              <UiButton variant="ghost" size="icon-sm" aria-label={tr("Edit")} onClick={() => setDraft(mine ?? "")}>
+                <Pencil />
+              </UiButton>
+            </Tip>
+          </div>
+          {mine ? <span className="shrink-0 text-xs font-bold text-faint">{tr("Yours")}</span> : comm?.notation && <span className={cn(NUMERIC, "shrink-0 text-sm text-muted-foreground")}>{comm.notation}</span>}
+          {player && <PlayerControls player={player} inline className="shrink-0" />}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Where each face of the net stands, in faces: U above L F R B, D below. */
 const NET: Record<(typeof BLD_FACES)[number], [number, number]> = { U: [1, 0], L: [0, 1], F: [1, 1], R: [2, 1], B: [3, 1], D: [1, 2] };
 
 /** The buffers, then the letter scheme on the cube's net: a sticker picked takes the letter typed, then the next one. */
@@ -253,25 +397,33 @@ function BldSettings() {
   const letters = scheme(),
     chosen = buffers(),
     [kind, setKind] = useState<BldKind>("edges"),
-    [picked, setPicked] = useState(0);
+    [picked, setPicked] = useState(0),
+    n = netSize(kind);
   const buffer = (BUFFERS[kind] as Record<string, number>)[chosen[kind]];
   return (
     <div className="flex flex-col gap-4">
-      <Field label={tr("Edge buffer")}>
-        <Segmented label={tr("Edge buffer")} value={chosen.edges} onChange={(id) => save(BLD_PREFS.buffers, { ...chosen, edges: id })} options={Object.keys(BUFFERS.edges).map((id) => ({ id, label: id }))} />
-      </Field>
-      <Field label={tr("Corner buffer")}>
-        <Segmented label={tr("Corner buffer")} value={chosen.corners} onChange={(id) => save(BLD_PREFS.buffers, { ...chosen, corners: id })} options={Object.keys(BUFFERS.corners).map((id) => ({ id, label: id }))} />
-      </Field>
+      {BLD_KINDS.map((k) => (
+        <Field key={k} label={tr(BUFFER_NAMES[k])}>
+          <Segmented label={tr(BUFFER_NAMES[k])} value={chosen[k]} onChange={(id) => save(BLD_PREFS.buffers, { ...chosen, [k]: id })} options={Object.keys(BUFFERS[k]).map((id) => ({ id, label: id }))} />
+        </Field>
+      ))}
       <Field label={tr("Letters")}>
-        <Segmented label={tr("Letters")} value={kind} onChange={(id) => setKind(id as BldKind)} options={[{ id: "edges", label: tr("Edges") }, { id: "corners", label: tr("Corners") }]} />
-        <div className="grid grid-cols-12 gap-0.5" role="radiogroup" aria-label={tr("Letters")}>
+        <Segmented
+          label={tr("Letters")}
+          value={kind}
+          onChange={(id) => {
+            setKind(id as BldKind);
+            setPicked(0);
+          }}
+          options={BLD_KINDS.map((id) => ({ id, label: kindLabel(id) }))}
+        />
+        <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${4 * n}, minmax(0, 1fr))` }} role="radiogroup" aria-label={tr("Letters")}>
           {BLD_FACES.flatMap((face) =>
-            Array.from({ length: 9 }, (_, f) => {
-              const sticker = stickerAt(face, f),
+            Array.from({ length: n * n }, (_, f) => {
+              const sticker = stickerAt(face, f, n),
                 [x, y] = NET[face],
-                place = { gridColumn: x * 3 + (f % 3) + 1, gridRow: y * 3 + Math.floor(f / 3) + 1, background: BLD_COLORS[face] };
-              if (sticker?.kind !== kind) return <span key={face + f} style={place} className={cn("aspect-square rounded-[4px]", sticker && "opacity-35")} aria-hidden="true" />;
+                place = { gridColumn: x * n + (f % n) + 1, gridRow: y * n + Math.floor(f / n) + 1, background: BLD_COLORS[face] };
+              if (sticker?.kind !== kind) return <span key={face + f} style={place} className={cn("aspect-square rounded-[4px]", f !== (n * n - 1) / 2 && "opacity-35")} aria-hidden="true" />;
               return (
                 <button
                   key={face + f}
@@ -281,8 +433,14 @@ function BldSettings() {
                   aria-invalid={repeated(letters, kind, sticker.index) || undefined}
                   aria-label={`${face} ${letters[kind][sticker.index]}`}
                   onClick={() => setPicked(sticker.index)}
-                  style={place}
-                  className={cn("aspect-square rounded-[4px] text-sm font-extrabold text-black/75 aria-invalid:ring-3 aria-invalid:ring-destructive aria-checked:ring-3 aria-checked:ring-foreground", sticker.index === buffer && "underline decoration-2", FOCUS)}
+                  style={{ ...place, color: BLD_INK }}
+                  // The theme's rim holds the pale stickers (white, yellow) on a light drawer; the ink is dark on every sticker.
+                  className={cn(
+                    "aspect-square rounded-[4px] font-extrabold inset-ring-1 inset-ring-[var(--rim)] aria-invalid:ring-3 aria-invalid:ring-destructive aria-checked:ring-3 aria-checked:ring-foreground",
+                    n > 3 ? "text-xs" : "text-sm",
+                    sticker.index === buffer && "underline decoration-2",
+                    FOCUS,
+                  )}
                 >
                   {letters[kind][sticker.index]}
                 </button>

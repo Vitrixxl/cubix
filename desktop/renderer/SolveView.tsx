@@ -9,12 +9,13 @@ import { call } from "./bridge";
 import { store as s } from "./store";
 import { Alg, Button, Empty, FOCUS, LABEL, NUMERIC, PenaltyToggles, Surface, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
-import { SolveAnalysisButton, SolveSteps, capitalised, colourLabel } from "./SolveAnalysis";
+import { PhaseSplits, SolveAnalysisButton, SolveSteps, capitalised, colourLabel } from "./SolveAnalysis";
 import { FACE_COLORS } from "../../src/shared/cubeAppearance";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
-import { fmtSolve, fmtTime } from "../../src/client/lib/format";
-import { puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzles";
+import { fmtSolveOf, fmtTime, type Solved } from "../../src/client/lib/format";
+import { ScrambleLines } from "./attempts";
+import { attemptMode, puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzles";
 import { Button as UiButton } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -35,6 +36,12 @@ export type ViewedSolve = StoredContext & {
   solution?: string | null;
   /** Blindfolded: the memorisation, when it was marked. */
   memo_ms?: number | null;
+  /** Timed in phases: when each phase but the last ended. */
+  splits?: number[] | null;
+  /** Fewest Moves' move count, Multi-Blind's cubes. */
+  moves?: number | null;
+  cubes_solved?: number | null;
+  cubes_attempted?: number | null;
   comment?: string | null;
   created_at?: string;
   displayDate?: string;
@@ -67,8 +74,10 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
     player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined });
   const [commenting, setCommenting] = useState(s.commenting);
   useEffect(() => setEditing(false), [solve.id]);
-  const recorded = useMemo(() => readSolution(solve.solution), [solve.solution]),
-    annotation = readAnnotation(solve.solution);
+  // Fewest Moves keeps the solution written, never turns recorded on a cube.
+  const fmc = solve.solve_mode === "fewest-moves",
+    recorded = useMemo(() => (fmc ? null : readSolution(solve.solution)), [solve.solution, fmc]),
+    annotation = fmc ? null : readAnnotation(solve.solution);
 
   const save = async () => {
     if (!draftText || solve.id === undefined) return;
@@ -82,7 +91,12 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
     }
   };
 
-  const solution = editing ? (
+  const solution = fmc ? (
+    <section className="flex flex-col gap-2" aria-label={tr("Solution")}>
+      <span className={LABEL}>{tr("Solution")}</span>
+      {solve.solution ? <Alg text={solve.solution} size={15} className="text-foreground/90" /> : <p className="text-sm text-muted-foreground">{tr("No solution")}</p>}
+    </section>
+  ) : editing ? (
     <AnnotationEditor value={draft} onChange={setDraft} valid={!!draftText} onCancel={() => setEditing(false)} onSave={save} />
   ) : (
     <section className="flex flex-col gap-2" aria-label={tr("Solution")} data-solution>
@@ -126,8 +140,9 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <header className="flex flex-col gap-1 pr-8">
           <span className={cn(NUMERIC, "text-5xl leading-none font-extrabold tracking-[-0.04em] md:text-6xl", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
-            {fmtSolve(solve.time_ms, solve.penalty as any)}
+            {fmtSolveOf(solve as Solved)}
           </span>
+          {fmc && <span className={cn(NUMERIC, "text-sm font-semibold")}>{fmtTime(solve.time_ms)}</span>}
           {solve.memo_ms != null && (
             <span className={cn(NUMERIC, "text-sm font-semibold")}>
               {tr("Memo {0} · execution {1}", { 0: fmtTime(solve.memo_ms), 1: fmtTime(solve.time_ms - solve.memo_ms) })}
@@ -137,20 +152,21 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
             {[solve.username, puzzleInfo(puzzleOf(solve)).label, solve.displayDate ?? (solve.created_at && new Date(solve.created_at).toLocaleString())].filter(Boolean).join(" · ")}
           </span>
         </header>
+        <PhaseSplits solve={solve} />
         {solve.scramble && (
           <section className="flex flex-col gap-2" aria-label={tr("Scramble")}>
             <span className={LABEL}>{tr("Scramble")}</span>
-            <Alg text={solve.scramble} size={15} className="text-foreground/90" />
+            {solve.solve_mode === "multi-blind" ? <ScrambleLines text={solve.scramble} size={15} /> : <Alg text={solve.scramble} size={15} className="text-foreground/90" />}
           </section>
         )}
         {/* A visitor sees no solution where none was recorded. */}
-        {(owner || recorded || annotation) && solution}
+        {(owner || recorded || annotation || fmc) && solution}
         {!owner && recorded && <SolveSteps scramble={solve.scramble} turns={recorded} />}
         {owner && solve.id !== undefined && commenting ? <CommentField solve={solve} onDone={() => setCommenting(false)} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>}
         {owner && solve.id !== undefined && !editing && (
           // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
           <div className="mt-auto flex flex-wrap items-center gap-1.5">
-            <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />
+            {!attemptMode(solve.solve_mode) && <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />}
             <UiButton variant="outline" onClick={() => setCommenting(true)} data-action="comment" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
               <MessageSquare />
               {tr("Comment")}

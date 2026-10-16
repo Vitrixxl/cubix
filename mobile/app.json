@@ -118,6 +118,12 @@
           "backgroundColor": "#0b0b0e",
           "imageWidth": 180
         }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "neverForLocation": true
+        }
       ]
     ]
   }

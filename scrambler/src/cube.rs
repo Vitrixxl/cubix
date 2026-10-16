@@ -259,9 +259,21 @@ struct Solver<'a> {
     // cubes[k]: the start after path[..k], known up to cubes[known]; phase 1's solutions share most of their turns.
     cubes: [Cube; 64],
     known: usize,
+    // The start searched (its turn k of `turned`, and whether it is the inverse), and the axes the written turns must
+    // not start and end on (3: any).
+    k: usize,
+    inverse: bool,
+    avoid: (usize, usize),
 }
 
 impl Solver<'_> {
+    /// Whether the turns written from path[..n] start and end on axes allowed (see `solve`'s output).
+    fn allowed(&self, n: usize) -> bool {
+        let axis = |m: u8| self.t.back[self.k][m as usize] as usize / 3 % 3;
+        let (first, last) = if self.inverse { (self.path[0], self.path[n - 1]) } else { (self.path[n - 1], self.path[0]) };
+        axis(first) != self.avoid.0 && axis(last) != self.avoid.1
+    }
+
     fn phase1(&mut self, twist: usize, flip: usize, slice: usize, depth: usize, n: usize, last: usize) -> bool {
         let t = self.t;
         let d = depth as u8;
@@ -302,6 +314,9 @@ impl Solver<'_> {
             return false;
         }
         if depth == 0 {
+            if n > 0 && !self.allowed(n) {
+                return false;
+            }
             self.n = n;
             return true;
         }
@@ -321,9 +336,20 @@ impl Solver<'_> {
 /// The turns reaching `c` from solved (face·3 + quarter, half or counter-clockwise turn), at most 21 when it can:
 /// the first solution found among c and its inverse, each seen with U, R and F on top. Deterministic: the same cube
 /// always gives the same turns (the daily scramble relies on it).
-pub fn solve(c: &Cube) -> Vec<u8> {
+pub fn solve(c: &Cube) -> Vec<u8> { solve_avoiding(c, (3, 3)) }
+
+/// The WCA's Fewest Moves scramble of `c`, padded with R' U' F before and after as TNoodle does (the edges of U flipped):
+/// its turns start off the F–B axis and end off the R–L axis, so none merges with the padding.
+pub fn fewest_moves(c: &Cube, out: &mut String) {
+    out.push_str("R' U' F ");
+    write(&solve_avoiding(c, (2, 1)), out);
+    out.push_str(" R' U' F");
+}
+
+/// `solve`, its first turn off the axis `avoid.0` and its last off `avoid.1` (U–D 0, R–L 1, F–B 2, 3 for any).
+fn solve_avoiding(c: &Cube, avoid: (usize, usize)) -> Vec<u8> {
     let t = tables();
-    let mut s = Solver { t, max: MAX_LENGTH, path: [0; 64], n: 0, cubes: [SOLVED; 64], known: 0 };
+    let mut s = Solver { t, max: MAX_LENGTH, path: [0; 64], n: 0, cubes: [SOLVED; 64], known: 0, k: 0, inverse: false, avoid };
     let mut starts = [SOLVED; 6];
     for k in 0..3 {
         let inv = t.turned[k].inverse();
@@ -336,10 +362,11 @@ pub fn solve(c: &Cube) -> Vec<u8> {
             for (v, start) in starts.iter().enumerate() {
                 s.cubes[0] = *start;
                 s.known = 0;
+                (s.k, s.inverse) = (v / 2, v % 2 == 1);
                 if !s.phase1(start.twist(), start.flip(), start.slice(), depth, 0, 6) {
                     continue;
                 }
-                let (k, inverse) = (v / 2, v % 2 == 1);
+                let (k, inverse) = (s.k, s.inverse);
                 let mut out = vec![0u8; s.n];
                 for i in 0..s.n {
                     let m = t.back[k][s.path[i] as usize];

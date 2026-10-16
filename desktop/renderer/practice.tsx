@@ -1,11 +1,13 @@
 /** The timer page and a running training: prompt, timer, session figures and the times list. */
-import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS, heldMoves } from "../../src/shared/crossTraining";
+import { CROSS_METHODS, CROSS_MOVES, CROSS_OPTIONS, CROSS_TARGET_LABELS, crossMask, hasSolutions, heldMoves } from "../../src/shared/crossTraining";
 import { heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type Metric } from "../../src/client/lib/practiceSummary";
-import { INSPECTION_DNF_MS, INSPECTION_MS, PracticeTimer, timerHint, worsePenalty, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
+import { followTimerDevice, INSPECTION_DNF_MS, INSPECTION_MS, inspectionExpired, PracticeTimer, timerHint, worsePenalty, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
 import type { Penalty } from "../../src/shared/types";
 import { stackmat } from "../../src/client/lib/stackmat";
+import { smartTimer } from "../../src/client/lib/bluetooth/timers";
+import { DevicesButton } from "./devices";
 import { dailyDay, isDailyEvent } from "../../src/client/lib/daily";
 import { TONE_TEXT } from "../../src/client/lib/tone";
 import { shortId, maskForStage, hintsForStage } from "../../src/client/lib/caseState";
@@ -16,20 +18,20 @@ import { LiveCube } from "./LiveCube";
 import { CaseStatus, ScrambleStatus, SmartScramble, useScrambleProgress } from "./SmartScramble";
 import { useLatestAnalysis, useSmartCase, useSmartSolve } from "./smartSolve";
 import { caseGoal, caseMatcher, goalReached, setupTurns } from "../../src/client/lib/smartTraining";
-import { SolveStrip } from "./SolveAnalysis";
+import { PhaseSplits, SolveStrip } from "./SolveAnalysis";
+import { PHASE_OPTIONS, phaseCount, phaseMeans, phaseNames } from "../../src/client/lib/phases";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SeenDiagram } from "./algorithms";
 import { VirtualList } from "./virtual";
 import { recommendedWhy } from "../../src/client/lib/trainingPicks";
 import { balancedColumns, FiguresBand, useWidth } from "./FiguresEditor";
 import {
   Ban,
-  Bluetooth,
-  BluetoothConnected,
-  BluetoothSearching,
   Box,
   CalendarCheck,
   CalendarDays,
   Check,
+  Download,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
@@ -52,7 +54,6 @@ import {
   Trash2,
   Trophy,
   Undo2,
-  Timer as TimerIcon,
   X,
 } from "lucide-react";
 import { store as s, timesAlwaysShown } from "./store";
@@ -62,7 +63,11 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Cube } from "./Cube";
-import { fmtTime, fmtSolve, parseTypedSolve, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
+import { fmtTime, fmtSolve, fmtSolveOf, parseTypedSolve, solveResult, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
+import { attemptMode } from "../../src/shared/puzzles";
+import { METRONOME_CHOICES, startMetronome } from "../../src/client/lib/metronome";
+import { MBLD_CHOICES, mbldLimitMs, scrambleList } from "../../src/client/lib/wca";
+import { FewestMoves, MultiBlindResult, ScrambleLines } from "./attempts";
 import {
   ActionToggle,
   Alg,
@@ -112,24 +117,25 @@ const typingInto = (e: KeyboardEvent) =>
  * its phase changes; the running time is drawn by `LiveDigits`. `manual` false: something else starts it (a connected
  * cube's first turn once scrambled), keys only stop it.
  */
-function useTimer(enabled: boolean, manual = true, { inspection = false, memo = false } = {}) {
+function useTimer(enabled: boolean, manual = true, { inspection = false, memo = false, phases = 1 } = {}) {
   const [snapshot, setSnapshot] = useState<TimerSnapshot>({ phase: "idle", elapsed: 0, startedAt: 0 });
   const enabledRef = useRef(enabled),
     manualRef = useRef(manual),
-    modesRef = useRef({ inspection, memo }),
+    modesRef = useRef({ inspection, memo, phases }),
     /** What a smart cube knows of a solve stopped now: its turns, and its penalty when the cube is not solved yet. */
     smartRef = useRef<() => { penalty?: "none" | "+2" | "dnf"; solution: string | null } | undefined>(() => undefined);
   enabledRef.current = enabled;
   manualRef.current = manual;
-  modesRef.current = { inspection, memo };
+  modesRef.current = { inspection, memo, phases };
   const [timer] = useState(() => new PracticeTimer({
     canStart: () => enabledRef.current,
     inspection: () => modesRef.current.inspection,
     memo: () => modesRef.current.memo,
-    onStop: (ms, penalty, memo) => {
+    phases: () => modesRef.current.phases,
+    onStop: (ms, penalty, memo, splits) => {
       const smart = smartRef.current();
       // An inspection's penalty and a smart cube's add up as the worse of the two.
-      void s.save(ms, worsePenalty(smart?.penalty, penalty), smart?.solution, memo);
+      void s.save(ms, worsePenalty(smart?.penalty, penalty), smart?.solution, memo, false, splits ? { splits } : undefined);
     },
     // Only this page draws the phase; the fade of the rest follows `s.running` (see the store), without drawing the app.
     onChange: snapshot => {
@@ -179,29 +185,19 @@ function useTimer(enabled: boolean, manual = true, { inspection = false, memo = 
       s.learningFrozen = false;
     };
   }, []);
-  // A Stackmat drives the timer as its pads are touched: both hands down hold, lifted they start, its stop stops with
-  // its own time; resetting it during a solve cancels the solve.
+  // A Stackmat or a smart timer drives the timer as its pads are touched (followTimerDevice).
   useEffect(() => {
-    let last: string | undefined;
-    return stackmat.subscribe(() => {
-      const packet = stackmat.snapshot.packet,
-        before = last;
-      last = packet?.status;
-      if (!packet || packet.status === before || !manualRef.current) return;
-      const phase = timer.snapshot.phase;
-      if (packet.status === " ") {
-        if (phase === "ready") timer.release();
-        else if (phase !== "running") timer.begin();
-      } else if (phase === "running") {
-        if (packet.status === "S") timer.finish(packet.ms);
-        else if (packet.status === "I") timer.reset();
-      } else if (packet.status === "C" || packet.status === "A") timer.arm();
-      else timer.cancelArming();
-    });
+    const stops = [stackmat, smartTimer].map((device) => followTimerDevice(timer, device, () => manualRef.current));
+    return () => stops.forEach((stop) => stop());
   }, [timer]);
   // A stopped timer rests like an idle one.
   const phase: Exclude<TimerPhase, "stopped"> = snapshot.phase === "stopped" ? "idle" : snapshot.phase;
-  return { phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, inspectedAt: snapshot.inspectedAt, memo: snapshot.memo, press, release, begin: timer.begin, finish: timer.finish, smart: smartRef };
+  return {
+    phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, inspectedAt: snapshot.inspectedAt, memo: snapshot.memo, splits: snapshot.splits,
+    // An inspection past 17 seconds: a DNF, no solve.
+    expired: inspectionExpired(snapshot),
+    press, release, begin: timer.begin, finish: timer.finish, smart: smartRef,
+  };
 }
 
 /** The side of the largest square inside an element's padding box, kept up to date as it resizes. */
@@ -345,7 +341,7 @@ export function Practice() {
   }, []);
   const { w, h } = useViewport(),
     mobile = isPhone(w),
-    // First-block training runs like the timer, on its own scrambles.
+    // Step training (the cross, an EOLine, a block…) runs like the timer, on its own scrambles.
     cross = s.crossTraining,
     training = s.page === "training" && !cross,
     // A recognition run never names its case, and is closed rather than stepped back.
@@ -358,7 +354,8 @@ export function Practice() {
     short = h <= 700;
   const Stage = mobile ? Surface : "div";
   const cubeLink = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status, () => smartCube.snapshot.status),
-    connectable = typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && !mobile && s.puzzle === "333",
+    // Not for Fewest Moves (written) nor Multi-Blind (one time for all its cubes).
+    connectable = !mobile && s.puzzle === "333" && (training || cross || !attemptMode(s.solveMode)),
     // A connected cube stands in the middle of the 3×3 timer, as it is in hand; the scramble follows it turn by turn,
     // and its preview stays at the top as the state to reach. The cube starts the timer itself, once scrambled.
     live = connectable && cubeLink === "on",
@@ -380,11 +377,17 @@ export function Practice() {
       !judging &&
       !roundOver &&
       (!pool || (!!pool.size && pool.has(s.training?.id))),
-    typing = s.page === "playground" && s.entry === "typing" && !round,
+    // Fewest Moves is written, not timed (`FewestMoves`); a Multi-Blind attempt is timed for all its cubes, then waits for
+    // the cubes solved (`MultiBlindResult`).
+    fmc = !training && !cross && s.solveMode === "fewest-moves",
+    multi = !training && !cross && s.solveMode === "multi-blind",
+    typing = s.page === "playground" && s.entry === "typing" && !round && !fmc,
     // Blindfolded solves have no inspection (it is part of the time) but split the memorisation from the execution.
     blind = !training && s.solveMode === "blindfolded",
+    // Phases are timed by hand on the timer alone: not in a round, nor on a smart cube, which times its own steps.
+    phases = !training && !blind && !fmc && !multi && !typing && !live && !round ? phaseCount(s.phases) : 1,
     // A round's attempts always have the WCA inspection, on screen.
-    timer = useTimer(enabled, !(live && (!training || liveCase)), { inspection: !training && !blind && !typing && (!!round || s.inspection !== "off"), memo: blind }),
+    timer = useTimer(enabled && !fmc && !s.mbldPending, !(live && (!training || liveCase)), { inspection: !training && !blind && !multi && !typing && (!!round || s.inspection !== "off"), memo: blind, phases }),
     stackmatLink = useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot.link, () => stackmat.snapshot.link),
     inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
   const [typed, setTyped] = useState(""),
@@ -393,12 +396,24 @@ export function Practice() {
   // While a solve runs everything else fades out and the digits glide to the middle of the screen, then back.
   const digitsRef = useRef<HTMLDivElement>(null),
     running = timer.phase === "running";
+  // The metronome ticks while a solve runs.
+  useEffect(() => (running && s.metronome ? startMetronome(s.metronome) : undefined), [running, s.metronome]);
+  // A Multi-Blind attempt stops at its time limit (H1b): the limit is its time.
+  useEffect(() => {
+    if (!running || !multi) return;
+    const limit = mbldLimitMs(scrambleList(s.scramble).length),
+      wait = setTimeout(() => timer.finish(limit), Math.max(0, limit - (performance.now() - timer.startedAt)));
+    return () => clearTimeout(wait);
+  }, [running, multi]);
   useLayoutEffect(() => {
     const digits = digitsRef.current;
     if (!digits) return;
-    if (!running) return void (digits.style.transform = "");
-    const r = digits.getBoundingClientRect();
-    digits.style.transform = `translate(${innerWidth / 2 - (r.left + r.width / 2)}px, ${innerHeight / 2 - (r.top + r.height / 2)}px)`;
+    // The hint shown while running (a phase's name, the memo) glides with the digits.
+    const moved = [digits, digits.closest(".timer")?.querySelector<HTMLElement>(".timer-hint")];
+    if (!running) return void moved.forEach((e) => e && (e.style.transform = ""));
+    const r = digits.getBoundingClientRect(),
+      shift = `translate(${innerWidth / 2 - (r.left + r.width / 2)}px, ${innerHeight / 2 - (r.top + r.height / 2)}px)`;
+    moved.forEach((e) => e && (e.style.transform = shift));
   }, [running]);
   useEffect(() => {
     setTyped("");
@@ -416,8 +431,8 @@ export function Practice() {
       : mobile
       ? text.length > 90 ? 15 : 18
       : text.length > 220 ? 15 : text.length > 120 ? (compact ? 17 : 19) : compact ? 21 : 26,
-    // The timer page never shows the cube: only a training's case does.
-    cubePane = training && ready,
+    // The timer page never shows the cube: only a training's case and a step do.
+    cubePane = (training && ready) || cross,
     cubeShown = cubePane && s.showCube,
     previewSize = mobile ? (h < 760 ? 0 : 84) : Math.round(Math.max(116, Math.min(196, h * 0.19))),
     // A case's setup as the cube can follow it: face turns only, its rotations folded in.
@@ -447,6 +462,10 @@ export function Practice() {
         : tr("Memo {0} · {1}", { 0: fmtTime(timer.memo), 1: mobile ? tr("Tap to stop") : tr("Any key to stop") })
       : blind && timer.phase === "idle" && timer.memo !== undefined && timer.elapsed > 0
       ? tr("Memo {0} · execution {1}", { 0: fmtTime(timer.memo), 1: fmtTime(timer.elapsed - timer.memo) })
+      : phases > 1 && timer.phase === "running"
+      ? phaseNames(s.phases, phases)[timer.splits?.length ?? 0]!
+      : timer.expired
+      ? tr("Over 17 s of inspection")
       : stackmatLink === "on" && timer.phase === "idle" && enabled
       ? tr("Both hands on the Stackmat, lift them to start")
       : timerHint(timer.phase, {
@@ -454,6 +473,8 @@ export function Practice() {
           unsaved: s.page === "playground" && s.entry === "casual",
           keyboard: !mobile,
         });
+  // A running solve's hint (a phase, the memo) stands over the last solve's notice.
+  const notice = running ? "" : s.notice;
   const last = s.solves.find((v) => v.id === s.lastSolve);
   // csTimer's keys on the last solve: Ctrl+1 no penalty, Ctrl+2 a +2, Ctrl+3 a DNF, Ctrl+Z deletes it (asked first).
   // Never in a field, but the typed time's while it is empty.
@@ -491,7 +512,7 @@ export function Practice() {
       <Cube
         setup={training ? s.training.setup : s.scramble}
         cubeSize={training ? c.cube_size ?? 3 : cubeSize}
-        mask={training ? maskForStage(c.stage) : undefined}
+        mask={training ? maskForStage(c.stage) : cross ? crossMask(s.crossTarget) : undefined}
         hints={training && (!recognition || s.recognitionBack) && hintsForStage(c.stage)}
         size={previewSize}
         replay={s.replay}
@@ -632,13 +653,15 @@ export function Practice() {
                   </span>
                 ) : progress ? (
                   <SmartScramble text={s.scramble} progress={progress} size={promptFont} />
+                ) : multi ? (
+                  <ScrambleLines text={s.scramble} size={Math.min(promptFont, 18)} />
                 ) : (
                   <Alg text={s.scramble} size={promptFont} />
                 )}
               </div>
               {showCube && <span data-no-timer>{showCube}</span>}
             </div>}
-            {cross && <CrossSolution font={Math.max(15, promptFont - 5)} toggle={solutionToggle} />}
+            {cross && hasSolutions(s.crossTarget) && <CrossSolution font={Math.max(15, promptFont - 5)} toggle={solutionToggle} />}
           </>
         )}
       </div>
@@ -661,23 +684,8 @@ export function Practice() {
     <ActionToggle action="times" pressed={timesColumn} icon={PanelRight} variant="outline" tip={tr("Session times · Alt+T")} className="aria-pressed:text-foreground" />
   );
   const replay = cubePane && hasCube && !mobile && !live && <Button action="replayCube" icon={RotateCcw} tip={tr("Replay the scramble on the cube")} />;
-  const connect = connectable && (
-    <Button
-      action="smartCube"
-      icon={cubeLink === "on" ? BluetoothConnected : cubeLink === "connecting" ? BluetoothSearching : Bluetooth}
-      tip={cubeLink === "on" ? tr("{0} connected · disconnect", { 0: smartCube.snapshot.name }) : cubeLink === "connecting" ? tr("Connecting… · cancel") : tr("Connect the virtual cube (development)")}
-      className={cn(cubeLink === "on" && "text-primary")}
-    />
-  );
-  // The Stackmat, experimental as the connected cube is and offered where it is; shown whenever it listens.
-  const stackmatButton = (connectable || stackmatLink !== "off") && (
-    <Button
-      action="stackmat"
-      icon={TimerIcon}
-      tip={stackmatLink === "on" ? tr("Stackmat connected · disconnect") : stackmatLink === "connecting" ? tr("Waiting for the Stackmat signal… · stop") : tr("Connect a Stackmat (experimental)")}
-      className={cn(stackmatLink === "on" && "text-primary", stackmatLink === "connecting" && "animate-pulse text-primary")}
-    />
-  );
+  // The devices (smart cube, smart timer, Stackmat): one button opens their dialog, lit while one is connected.
+  const connect = <DevicesButton />;
   // Phones keep four fixed figures; the desktop's timer shows the figures the player chose (FiguresEditor), a training
   // its own few.
   const [band, setBand] = useState<HTMLElement | null>(null),
@@ -692,9 +700,9 @@ export function Practice() {
   // The last solve's actions, once there is one; a round's attempts are judged as they end instead.
   const lastSolve = last && !round && (
     <div className="flex min-w-0 flex-1 gap-2" role="group" aria-label={tr("Last solve")}>
-      <ActionToggle action={"penalty:" + last.id + ":+2"} pressed={last.penalty === "+2"} disabled={s.saving} variant="outline" tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-warning")}>
+      {last.solve_mode !== "fewest-moves" && <ActionToggle action={"penalty:" + last.id + ":+2"} pressed={last.penalty === "+2"} disabled={s.saving} variant="outline" tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-warning")}>
         +2
-      </ActionToggle>
+      </ActionToggle>}
       <ActionToggle action={"penalty:" + last.id + ":dnf"} pressed={last.penalty === "dnf"} disabled={s.saving} variant="outline" tip={<>{tr("Did not finish")}<Kbd>Ctrl+3</Kbd></>} className={cn(LAST_SOLVE, "aria-pressed:text-destructive")}>
         {tr("DNF")}
       </ActionToggle>
@@ -720,15 +728,19 @@ export function Practice() {
   const head = (
     cross ? (
         <PageHead
-          title={mobile ? tr(CROSS_TARGET_LABELS[s.crossTarget]) : tr("Cross")}
+          // Below 1024 px the pills and the cube's replay take the title's room: it stays for screen readers.
+          title={mobile ? tr(CROSS_TARGET_LABELS[s.crossTarget]) : <span className="max-lg:sr-only">{tr("Steps")}</span>}
           puzzle={!mobile}
           lead={<ChangeTraining />}
-          sub={mobile && tr("{0} moves", { 0: s.crossMoves })}
+          sub={mobile && !!s.crossMoves && tr("{0} moves", { 0: s.crossMoves })}
           more={
             mobile && (
               <>
-                <MenuChoice label={tr("What to build")} action="crossTarget" value={s.crossTarget} options={crossTargetOptions} />
-                <MenuChoice label={tr("Moves")} action="crossMoves" value={String(s.crossMoves)} options={crossMoveOptions()} />
+                {/* The steps method by method, then the number of moves. */}
+                {CROSS_METHODS.map((method) => (
+                  <MenuChoice key={method} label={method} action="crossTarget" value={s.crossTarget} options={CROSS_OPTIONS.filter((o) => o.group === method)} />
+                ))}
+                {!!s.crossMoves && <MenuChoice label={tr("Moves")} action="crossMoves" value={String(s.crossMoves)} options={crossMoveOptions()} />}
               </>
             )
           }
@@ -736,8 +748,9 @@ export function Practice() {
           {/* The two choices as pills, their options in a menu. */}
           {!mobile && (
             <>
-              <SelectMenu action="crossTarget" caption="Build" value={s.crossTarget} options={crossTargetOptions} />
-              <SelectMenu action="crossMoves" caption="Moves" value={String(s.crossMoves)} options={crossMoveOptions()} />
+              {/* Below 1024 px their captions go too, the values said alone. */}
+              <SelectMenu action="crossTarget" caption="Step" value={s.crossTarget} options={CROSS_OPTIONS} className={NARROW_CAPTION} />
+              {!!s.crossMoves && <SelectMenu action="crossMoves" caption="Moves" value={String(s.crossMoves)} options={crossMoveOptions()} className={NARROW_CAPTION} />}
             </>
           )}
           {replay}
@@ -774,7 +787,7 @@ export function Practice() {
       ) : (
         mobile ? (
           // A round keeps its event and scramble: no sheet to change them meanwhile.
-          <PageHead title={tr("Timer")} puzzle={!round && "scramble"} more={!round && <MenuAction action="compSim" icon={Trophy}>{tr("Comp sim")}</MenuAction>}>
+          <PageHead title={tr("Timer")} puzzle={!round && "scramble"} more={!round && !attemptMode(s.solveMode) && <MenuAction action="compSim" icon={Trophy}>{tr("Comp sim")}</MenuAction>}>
             {!round && dailyButton}
           </PageHead>
         ) : (
@@ -785,15 +798,14 @@ export function Practice() {
               {/* A round keeps its inspection, scrambles and event: only the way out over its scramble. */}
               {!round && (
                 <>
-                  {!blind && !typing && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
+                  {!blind && !typing && !attemptMode(s.solveMode) && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
                   <TimerSettings />
                   <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
-                  <Button action="compSim" icon={Trophy} tip={tr("Comp sim · one WCA round of this event")} />
+                  {!attemptMode(s.solveMode) && <Button action="compSim" icon={Trophy} tip={tr("Comp sim · one WCA round of this event")} />}
                   {dailyButton}
                 </>
               )}
               {connect}
-              {stackmatButton}
               {timesToggle}
             </div>
           </InHead.Provider>
@@ -909,6 +921,8 @@ export function Practice() {
                 )}
                 {round && roundOver ? (
                   <RoundResult round={round} />
+                ) : fmc ? (
+                  <FewestMoves enabled={enabled && !!s.scramble} />
                 ) : typing ? (
                   <input
                     ref={typedRef}
@@ -944,12 +958,14 @@ export function Practice() {
                     data-tour="timer"
                     digitsRef={digitsRef}
                     startedAt={timer.startedAt}
-                    text={judging ? fmtSolve(judging.ms, judging.penalty) : timer.phase === "holding" || timer.phase === "ready" ? "0.000" : fmtTime(timer.elapsed)}
+                    text={judging ? fmtSolve(judging.ms, judging.penalty) : timer.phase === "holding" || timer.phase === "ready" ? "0.000" : timer.expired ? tr("DNF") : fmtTime(timer.elapsed)}
                     phase={timer.phase}
                     className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : live ? "text-[clamp(40px,min(calc(90cqw/var(--chars)),13cqh),104px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
                   />
                 )}
-                {judging ? (
+                {fmc ? null : s.mbldPending && multi ? (
+                  <MultiBlindResult key={s.mbldPending.ms} />
+                ) : judging ? (
                   // The judge signs the attempt: as timed (Enter), +2 or DNF; the next scramble then.
                   <div role="group" aria-label={tr("Sign the attempt")} className="mt-3 flex gap-2 md:mt-5" data-no-timer>
                     <Button action={"compSim:" + judging.penalty} variant="default" tip={<>{tr("As timed")}<Kbd>Enter</Kbd></>} className="min-w-20">{tr("OK")}</Button>
@@ -957,8 +973,8 @@ export function Practice() {
                     <Button action="compSim:+2" variant="outline" disabled={judging.penalty !== "none"} tip={<>{tr("+2 penalty")}<Kbd>Ctrl+2</Kbd></>} className="min-w-20">+2</Button>
                     <Button action="compSim:dnf" variant="outline" disabled={judging.penalty === "dnf"} tip={<>{tr("Did not finish")}<Kbd>Ctrl+3</Kbd></>} className="min-w-20">{tr("DNF")}</Button>
                   </div>
-                ) : !roundOver && <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-5 md:text-[15px]", s.notice && "font-medium text-success", mobile && h < 560 && !s.notice && "hidden", !(blind && running) && FADE)}>
-                  {s.notice ? (
+                ) : !roundOver && <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-5 md:text-[15px]", notice && "font-medium text-success", mobile && h < 560 && !notice && "hidden", !((blind || phases > 1) && running) && FADE)}>
+                  {notice ? (
                     <>
                       {training ? <Check className="size-4" /> : <Trophy className="size-4" />}
                       {said(s.notice)}
@@ -971,7 +987,7 @@ export function Practice() {
                       : tr("Type your time, then Enter: 1234 is 12.34")
                     : keyed(said(hint))}
                 </div>}
-                {s.practicePage() === "playground" && !round && <AverageWindow mobile={mobile} />}
+                {s.practicePage() === "playground" && !round && !attemptMode(s.solveMode) && <AverageWindow mobile={mobile} />}
                 {training && !mobile && last && <Verdict solve={last} />}
               </section>
             </div>
@@ -995,6 +1011,7 @@ export function Practice() {
             )}
           </Stage>
           {!mobile && live && !training && analysis && !running && <SolveStrip analysis={analysis} />}
+          {!mobile && !training && !running && last?.splits && <div className={cn("shrink-0", FADE)} data-no-timer aria-label={tr("Last solve phases")}><PhaseSplits solve={last} /></div>}
           {mobile ? <SessionPeek training={training} /> : chosen ? <FiguresBand actions={lastSolve} /> : training ? sessionFoot : (
             <div className="flex shrink-0 flex-col gap-3">
               {lastSolve && <div className={cn("flex gap-2", FADE)} data-no-timer>{lastSolve}</div>}
@@ -1078,6 +1095,8 @@ function SessionPeek({ training }: { training: boolean }) {
   const summary = practiceSummary(s.solves),
     figures: Metric[] = training
       ? [["Best", fmtTime(summary.best), "good"], ["Mean", fmtTime(summary.mean), ""]]
+      : attemptMode(s.solveMode)
+      ? s.metrics().slice(0, 3)
       : [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
   return (
     <button
@@ -1259,7 +1278,6 @@ function SessionBoard() {
   );
 }
 
-const crossTargetOptions = CROSS_TARGETS.map((t) => ({ id: t, label: CROSS_TARGET_LABELS[t] }));
 const crossMoveOptions = () => CROSS_MOVES[s.crossTarget].map((n) => ({ id: String(n), label: tr("{0} moves", { 0: n }) }));
 
 /** Optimal cross solutions under the scramble, held with white on the bottom and green in front (z2). */
@@ -1357,11 +1375,14 @@ function SessionName() {
     setText(null);
     void s.renameSession(text).catch(s.fail);
   };
+  const placeholder = sessionName({ at: current?.at }, s.event().label);
+  // A name longer than the panel's heading is cut: whole in its tooltip.
   return (
+    <Tip content={shown || placeholder}>
     <input
       aria-label={tr("Session name")}
       value={shown}
-      placeholder={sessionName({ at: current?.at }, s.event().label)}
+      placeholder={placeholder}
       maxLength={60}
       onChange={(e) => setText(e.target.value)}
       onBlur={commit}
@@ -1375,6 +1396,7 @@ function SessionName() {
       }}
       className={cn("-mx-1.5 h-8 min-w-12 truncate rounded-lg [field-sizing:content] bg-transparent px-1.5 text-lg font-extrabold placeholder:text-foreground hover:bg-muted focus:bg-muted", FOCUS)}
     />
+    </Tip>
   );
 }
 
@@ -1428,13 +1450,39 @@ function TimerSettings() {
         </DropdownMenuTrigger>
       </Tip>
       <DropdownMenuContent align="end" className="flex w-auto items-start">
-        <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
-        <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
-        <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
+        <div className="flex flex-col">
+          {/* Multi-Blind has its cubes in place of the scramble types (WCA scrambles only). */}
+          {s.solveMode === "multi-blind" ? (
+            <MenuChoice label="Cubes" action="mbldCubes" value={String(s.mbldCubes)} options={MBLD_CHOICES} />
+          ) : (
+            <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
+          )}
+          <DropdownMenuSeparator />
+          <MenuAction action="menu:scrambles" icon={Download}>{tr("Export")}</MenuAction>
+        </div>
+        {/* Fewest Moves is written, never timed: no entry, phases nor metronome. */}
+        {s.solveMode !== "fewest-moves" && (
+          <>
+            <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
+            <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
+            <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
+            {/* Blindfolded solves split their memorisation instead; Multi-Blind has no phases. */}
+            {s.solveMode !== "blindfolded" && !attemptMode(s.solveMode) && (
+              <>
+                <MenuChoice label="Phases" action="phases" value={s.phases} options={PHASE_OPTIONS} />
+                <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
+              </>
+            )}
+            <MenuChoice label="Metronome" action="metronome" value={String(s.metronome)} options={METRONOME_CHOICES} />
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
+/** A pill's caption hidden below 1024 px. */
+const NARROW_CAPTION = "max-lg:[&>span:first-child]:hidden";
 
 /** A solve as a small chip (a training's case, the average of five): tinted as the times list tints it. */
 const CHIP = cn(NUMERIC, "flex items-center gap-1 rounded-[10px] bg-muted select-none transition-colors hover:bg-accent", FOCUS);
@@ -1535,7 +1583,36 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
           />
         </div>
       )}
+      {!training && <PhaseTable className={bare ? "mt-2" : "px-3 pb-4"} />}
     </>
+  );
+}
+
+/** The session's phases (lib/phases), under its times: each one's Ao12 and mean. */
+function PhaseTable({ className }: { className?: string }) {
+  const rows = phaseMeans(s.solves, s.phases);
+  if (!rows) return null;
+  return (
+    <div className={cn("shrink-0 border-t border-border pt-2", className)}>
+      <Table aria-label={tr("Phases")} className={cn(NUMERIC, "text-xs")}>
+        <TableHeader>
+          <TableRow className="border-0 hover:bg-transparent">
+            <TableHead className="h-7 text-faint">{tr("Phases")}</TableHead>
+            <TableHead className="h-7 text-right text-faint">Ao12</TableHead>
+            <TableHead className="h-7 text-right text-faint">{tr("Mean")}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.label} className="border-0 hover:bg-transparent">
+              <TableCell className="py-1 text-muted-foreground">{said(r.label)}</TableCell>
+              <TableCell className="py-1 text-right">{fmtTime(r.ao12)}</TableCell>
+              <TableCell className="py-1 text-right font-semibold">{fmtTime(r.mean)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
@@ -1558,10 +1635,10 @@ const TimeRow = memo(
             <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-sm text-faint")}>{number}</span>
             <span className={cn(NUMERIC, "font-semibold", touch ? "text-base" : "text-[15px]", TONE_TEXT[tone])}>
               {/* The penalty always in view, a DNF with the time it stopped at, as csTimer prints it. */}
-              {v.penalty === "dnf" && v.time_ms ? `DNF(${fmtTime(v.time_ms)})` : fmtSolve(v.time_ms, v.penalty)}
+              {v.penalty === "dnf" && v.time_ms && !attemptMode(v.solve_mode) ? `DNF(${fmtTime(v.time_ms)})` : fmtSolveOf(v)}
             </span>
             {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
-            {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
+            {v.solution && v.solve_mode !== "fewest-moves" && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
             {caption && <span className="ml-auto truncate text-xs font-semibold text-faint">{caption}</span>}
           </button>
           <SolveActions solve={v} className={cn(touch && "hidden")} />
@@ -1571,7 +1648,7 @@ const TimeRow = memo(
   },
   (a, b) =>
     a.number === b.number && a.tone === b.tone && a.touch === b.touch && a.lang === b.lang && a.caption === b.caption &&
-    (["id", "time_ms", "penalty", "comment", "solution", "scramble"] as const).every((k) => a.solve[k] === b.solve[k]),
+    (["id", "time_ms", "penalty", "comment", "solution", "scramble", "moves", "cubes_solved"] as const).every((k) => a.solve[k] === b.solve[k]),
 );
 
 /**
@@ -1580,7 +1657,7 @@ const TimeRow = memo(
  */
 function AverageWindow({ mobile }: { mobile: boolean }) {
   const last = s.solves.slice(-5),
-    times = last.map((v) => effective(v.time_ms, v.penalty) ?? Infinity),
+    times = last.map((v) => solveResult(v) ?? Infinity),
     full = last.length === 5,
     fastest = full ? times.indexOf(Math.min(...times)) : -1,
     slowest = full ? times.lastIndexOf(Math.max(...times)) : -1,

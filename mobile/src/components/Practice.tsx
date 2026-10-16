@@ -4,9 +4,9 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
-import { effective, fmtSolve, fmtTime, parseTypedSolve, plural, typedSolveChars } from "../../../src/client/lib/format";
+import { fmtSolve, fmtTime, parseTypedSolve, plural, solveResult, typedSolveChars } from "../../../src/client/lib/format";
 import type { Metric } from "../../../src/client/lib/practiceSummary";
-import { timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
+import { inspectionExpired, timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
 import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
@@ -212,12 +212,14 @@ export function Hint({ children, notice, hidden }: { children: ReactNode; notice
 }
 
 /** The hint of a timer phase on a phone (src/client/lib/practiceTimer.ts). */
-export const timerHint = (timer: TimerApi, options?: { disabled?: string | false; unsaved?: boolean }) => sharedTimerHint(timer.phase, options);
+export const timerHint = (timer: TimerApi, options?: { disabled?: string | false; unsaved?: boolean }) =>
+  inspectionExpired(timer) && !options?.disabled ? tr("Over 17 s of inspection") : sharedTimerHint(timer.phase, options);
 
 /** The time of a timer at rest or running, sized to its area. */
 export function TimerDigits({ timer, area, max }: { timer: TimerApi; area: { width: number; height: number }; max?: number }) {
   const armed = timer.phase === "ready" || timer.phase === "holding";
-  const text = armed ? "0.000" : fmtTime(timer.elapsed, { blank: "0.000" });
+  // An inspection past 17 seconds: a DNF, no solve.
+  const text = armed ? "0.000" : inspectionExpired(timer) ? tr("DNF") : fmtTime(timer.elapsed, { blank: "0.000" });
   const size = digitsSize(area, text.length, max);
   return timer.phase === "running" ? <LiveDigits startedAt={timer.startedAt} size={size} /> : <Digits text={text} phase={timer.phase} size={size} />;
 }
@@ -255,7 +257,7 @@ export function SaveError({ timer }: { timer: TimerApi }) {
  */
 export function AverageWindow({ solves, hidden, large }: { solves: SolveDto[]; hidden?: boolean; /** Taller chips on a wider row (a tablet's timer). */ large?: boolean }) {
   const last = solves.slice(-5);
-  const times = last.map(v => effective(v.time_ms, v.penalty) ?? Infinity);
+  const times = last.map(v => solveResult(v) ?? Infinity);
   const full = last.length === 5;
   const fastest = full ? times.indexOf(Math.min(...times)) : -1, slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
   return <Fade hidden={!!hidden} className={cn("mt-6 w-full max-w-md flex-row gap-1.5", large && "max-w-xl")}>

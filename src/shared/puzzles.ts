@@ -2,10 +2,10 @@ export const CUBE_SIZES = [2, 3, 4, 5, 6, 7] as const;
 export type CubeSize = typeof CUBE_SIZES[number];
 
 import registry from "../../data/puzzles.json";
-export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx";
+export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock";
 export type PuzzleInput = CubeSize | PuzzleId;
-export type SolveMode = "standard" | "one-handed" | "blindfolded";
-export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "cross1-3" | "cross1-4" | "cross1-5" | `${"cross" | "xcross" | "xxcross"}-${number}` | "case";
+export type SolveMode = "standard" | "one-handed" | "blindfolded" | "fewest-moves" | "multi-blind";
+export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "cross1-3" | "cross1-4" | "cross1-5" | `${"cross" | "xcross" | "xxcross" | "eoline" | "eocross" | "fb" | "2x2x2" | "2x2x3"}-${number}` | "f2l-only" | "lsll" | "ll" | "zbll" | "sb" | "cmll" | "case";
 export interface PracticeFilter { solveMode?: SolveMode; scrambleType?: ScrambleType }
 export interface PracticeContext { puzzle: PuzzleId; solveMode: SolveMode; scrambleType: ScrambleType }
 export type LegacyScrambleType = "competition" | "random-moves";
@@ -14,13 +14,17 @@ export const normalizeScrambleType = (type: string): ScrambleType => (type === "
 export interface StoredContext { puzzle_id?: PuzzleId; cube_size?: CubeSize | null; solve_mode?: SolveMode; scramble_type?: ScrambleType | LegacyScrambleType; case_id?: string | null; mode?: string }
 export const PUZZLES = registry.puzzles as { id: PuzzleId; label: string; cubeSize: CubeSize | null; twisty: string; scrambles: ScrambleType[] }[];
 export const SOLVE_MODES = registry.solveModes as { id: SolveMode; label: string }[];
-/** WCA event ids: the puzzle ids, plus the one-handed and blindfolded events. */
-export type EventId = PuzzleId | "333oh" | "333bf" | "444bf" | "555bf";
+/** WCA event ids: the puzzle ids, plus the one-handed, blindfolded, fewest moves and multi-blind events. */
+export type EventId = PuzzleId | "333oh" | "333bf" | "444bf" | "555bf" | "333fm" | "333mbf";
 /** What the app offers to practise: one entry per WCA event, one-handed and blindfolded being events of their own. */
 export const EVENTS = registry.events as { id: EventId; label: string; puzzle: PuzzleId; solveMode: SolveMode }[];
-/** How a WCA round of an event is ranked: a mean of 3 on the 6×6 and the 7×7, a best of 3 blindfolded, an average of 5 otherwise. */
+/** How a WCA round of an event is ranked: a mean of 3 on the 6×6, the 7×7 and Fewest Moves, a best of 3 blindfolded, an average of 5 otherwise. */
 export type RoundFormat = "ao5" | "mo3" | "bo3";
-export const roundFormat = (event: string): RoundFormat => (event === "666" || event === "777" ? "mo3" : event.endsWith("bf") ? "bo3" : "ao5");
+export const roundFormat = (event: string): RoundFormat => (["666", "777", "333fm"].includes(event) ? "mo3" : event.endsWith("bf") ? "bo3" : "ao5");
+/** Fewest Moves and Multi-Blind: an attempt of their own (a written solution, several cubes), not a timed solve, and only WCA scrambles. */
+export const attemptMode = (mode: string | undefined) => mode === "fewest-moves" || mode === "multi-blind";
+/** The scramble types of a puzzle in a solve mode. */
+export const scrambleTypesOf = (puzzle: PuzzleInput, mode: string): ScrambleType[] => (attemptMode(mode) ? ["normal"] : puzzleInfo(puzzle).scrambles);
 export const SCRAMBLE_TYPES = [...registry.scrambles, { id: "case", label: "Algorithm case" }] as { id: ScrambleType; label: string }[];
 export const puzzleId = (value: PuzzleInput): PuzzleId => (typeof value === "number" ? String(value).repeat(3) : value) as PuzzleId;
 export const puzzleOf = (value: StoredContext): PuzzleId => value.puzzle_id ?? puzzleId(value.cube_size ?? 3);
@@ -49,7 +53,7 @@ export const eventLabelOf = (id: string) => {
 export const scrambleLabel = (type: ScrambleType) => SCRAMBLE_TYPES.find(s => s.id === type)?.label ?? type;
 export function validContext(context: PracticeContext, training = false): boolean {
   return isPuzzle(context.puzzle) && SOLVE_MODES.some(m => m.id === context.solveMode)
-    && (training ? context.scrambleType === "case" : puzzleInfo(context.puzzle).scrambles.includes(context.scrambleType));
+    && (training ? context.scrambleType === "case" : scrambleTypesOf(context.puzzle, context.solveMode).includes(context.scrambleType));
 }
 export const matchesPractice = (value: StoredContext, puzzle: PuzzleInput, filter: PracticeFilter = {}) => puzzleOf(value) === puzzleId(puzzle)
   && solveModeOf(value) === (filter.solveMode ?? "standard") && (!filter.scrambleType || scrambleTypeOf(value) === normalizeScrambleType(filter.scrambleType));

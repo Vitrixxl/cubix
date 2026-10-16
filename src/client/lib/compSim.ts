@@ -9,8 +9,8 @@ import { averageOf, best, bestAverage, fmtTime, mean, shortDate } from "./format
 /** Five attempts for an average of 5, three otherwise. */
 export const roundAttempts = (format: RoundFormat) => (format === "ao5" ? 5 : 3);
 
-/** The name of the round's session: "Comp sim · 15 Oct". */
-export const compSimName = (at = new Date().toISOString()) => msg("Comp sim · {0}", { 0: shortDate(at) });
+/** The name of the round's session, short enough for the times panel's heading: "Comp 15 Oct". */
+export const compSimName = (at = new Date().toISOString()) => msg("Comp {0}", { 0: shortDate(at) });
 
 /** A mean of 3: a DNF among them makes it one. */
 const meanOf3 = (times: readonly (number | null)[]) => (times.includes(null) ? null : mean([...times]));

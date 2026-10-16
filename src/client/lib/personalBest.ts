@@ -1,5 +1,5 @@
 import type { SolveDto } from "../../shared/types";
-import { best, effective, rollingAverages } from "./format";
+import { best, rollingAverages, solveResult } from "./format";
 import { msg } from "../i18n/msg";
 
 /**
@@ -24,7 +24,7 @@ export function beatenRecords(times: readonly (number | null)[]): RecordKind[] {
 /** The records beaten by `solveId` among every solve of its context, oldest first; later solves are ignored. */
 export function solveRecords(solves: readonly SolveDto[], solveId: number): RecordKind[] {
   const index = solves.findIndex(solve => solve.id === solveId);
-  return index < 0 ? [] : beatenRecords(solves.slice(0, index + 1).map(solve => effective(solve.time_ms, solve.penalty)));
+  return index < 0 ? [] : beatenRecords(solves.slice(0, index + 1).map(solveResult));
 }
 
 const LABELS: Record<RecordKind, string> = { single: "single", ao5: "Ao5", ao12: "Ao12" };

@@ -81,7 +81,7 @@ const pressable = (label: string) => renderer.root.findAll((n: any) => n.props.a
 
 test("the six ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
   const store = await mount();
-  expect(texts()).toEqual(expect.arrayContaining(["Cross", "Recognition", "Learned", "Whole sets", "Free practice", "BLD"]));
+  expect(texts()).toEqual(expect.arrayContaining(["Steps", "Recognition", "Learned", "Whole sets", "Free practice", "BLD"]));
   // No bar under the ways: each starts from its own card, without a line of settings.
   expect(pressable("Train")).toBeUndefined();
   expect(texts().some(t => t.includes("picked by hand") || t.includes(" s · "))).toBe(false);

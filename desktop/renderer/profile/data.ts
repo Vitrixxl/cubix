@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { store as s } from "../store";
 import { DUELS_KEY, type DuelRecord } from "../duelClient";
 import type { EventRecordDto } from "../../../src/shared/types";
+import { attemptMode } from "../../../src/shared/puzzles";
 import { achievementLists, activityOf, dayKey, type ActivitySolve, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
 
 /** Battles raced on this device, newest first. */
@@ -23,7 +24,8 @@ function profileData(p: any, achievements: any, learnedIds: ReadonlySet<string>,
     activeDays: (p.activeDays ?? 0) as number,
     timer,
     history,
-    ao5: (p.playground?.ao5 ?? []) as (number | null)[],
+    // Fewest Moves and Multi-Blind have no Ao5 (a mean of 3, a single).
+    ao5: (attemptMode(s.profileSolveMode) ? [] : p.playground?.ao5 ?? []) as (number | null)[],
     cases,
     trained: trainedIds.size,
     learned: cases.filter((c) => learnedIds.has(c.id)).length,

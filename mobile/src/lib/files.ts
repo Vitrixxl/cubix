@@ -10,6 +10,11 @@ import { api, local } from "../api";
  */
 export async function exportData(kind: "csv" | "json") {
   const { body, type, name } = exportFile(kind, await api.exportData(), local.current().username ?? "guest");
+  await saveFile(body, type, name);
+}
+
+/** A file made in the app (an export): written to the cache, then handed to Android's share sheet. */
+export async function saveFile(body: string, type: string, name: string) {
   const file = new File(Paths.cache, name);
   file.create({ overwrite: true });
   file.write(body);

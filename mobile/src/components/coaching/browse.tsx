@@ -1,9 +1,9 @@
 import { useAtomValue } from "jotai";
-import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, ExternalLink, MessageSquare, SearchX, SlidersHorizontal, Star, Timer, UserRoundX, Users } from "lucide-react-native";
+import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, SlidersHorizontal, Star, Timer, UserRoundX, Users } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FlatList, Linking, Pressable, ScrollView, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { plural } from "../../../../src/client/lib/format";
-import { wcaPersonUrl } from "../../../../src/client/lib/wca";
+import { wcaUrl } from "../../../../src/client/lib/wca";
 import { localFormat, locale, said, tr } from "../../../../src/client/i18n";
 import { EVENTS, eventInfo } from "../../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useLayout } from "../../hooks/useLayout";
 import { userAtom } from "../../state";
+import { openUrl } from "../../lib/social";
 import { useColors } from "../../theme";
 import { PushedBar } from "../AppBar";
 import { Chip } from "../Chips";
@@ -149,9 +150,9 @@ function CoachHead({ c }: { c: Coach }) {
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
           <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 shrink text-xl font-extrabold tracking-[-0.03em]">{c.username}</Text>
-          {c.wcaId ? <Pressable accessibilityRole="link" accessibilityLabel={tr("Open on the WCA")} onPress={() => void Linking.openURL(wcaPersonUrl(c.wcaId!))}
+          {c.wcaId ? <Pressable accessibilityRole="link" accessibilityLabel={tr("WCA")} hitSlop={8} onPress={() => openUrl(wcaUrl("persons/" + c.wcaId))}
             className="h-7 flex-row items-center gap-1 rounded-full bg-muted px-2.5 active:bg-accent">
-            <Text className="text-xs font-bold text-muted-foreground">WCA</Text><Icon as={ExternalLink} size={12} className="text-muted-foreground" />
+            <Text className="text-xs font-bold text-muted-foreground">WCA</Text>
           </Pressable> : null}
         </View>
         <Text numberOfLines={2} className="text-[13px] text-muted-foreground">{c.headline || tr("Speedcubing coach")}</Text>

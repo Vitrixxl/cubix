@@ -3,11 +3,12 @@ import { Ban, CalendarDays, ChevronLeft, ChevronRight, ListOrdered, MessageSquar
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { effective, fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
-import { practiceSummary, sessionExtremes, solveTone } from "../../../src/client/lib/practiceSummary";
+import { effective, fmtSolveOf, fmtTime, shortDate } from "../../../src/client/lib/format";
+import { practiceSummary, sessionExtremes, sessionMetrics, solveTone } from "../../../src/client/lib/practiceSummary";
 import { resumedSession, sessionName, type SessionSummary } from "../../../src/client/lib/sessions";
 import { TONE_TEXT } from "../../../src/client/lib/tone";
-import { contextKey, eventOf, type PracticeContext } from "../../../src/shared/puzzles";
+import { phaseMeans } from "../../../src/client/lib/phases";
+import { attemptMode, contextKey, eventOf, type PracticeContext } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -15,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { api, local, localChanged } from "../api";
 import { launchSessionId, setLaunchSession } from "../lib/launchSession";
 import { storage } from "../platform/storage";
-import { cubeSwitchLockedAtom } from "../state";
+import { cubeSwitchLockedAtom, phasesAtom } from "../state";
 import { useColors } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { Empty, Numeric } from "./layout";
@@ -131,6 +132,7 @@ function TimesBody({ solves, title, context, calendar, onCalendar, docked = fals
       </View>}
     {!calendar && <>
       {figures ?? <SessionFigures solves={solves} wide={tablet} />}
+      {context && <PhaseTable solves={solves} />}
       <View className="mx-5 h-px bg-border" />
       <List data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} getItemLayout={(_, index) => ({ length: ROW, offset: ROW * index, index })}
         className={docked ? "min-h-0 flex-1" : undefined} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
@@ -138,6 +140,26 @@ function TimesBody({ solves, title, context, calendar, onCalendar, docked = fals
         renderItem={({ item, index }) => <TimeRow solve={item} number={solves.length - index} tone={solveTone(item, extremes)} />} />
     </>}
   </>;
+}
+
+/** The session's phases (src/client/lib/phases): each one's Ao12 and mean, as the web's times panel shows them. */
+function PhaseTable({ solves }: { solves: SolveDto[] }) {
+  const phases = useAtomValue(phasesAtom);
+  const rows = useMemo(() => phaseMeans(solves, phases), [solves, phases]);
+  if (!rows) return null;
+  const cell = "w-20 text-right text-xs";
+  return <View accessibilityLabel={tr("Phases")} className="mx-5 gap-1">
+    <View className="flex-row">
+      <Text className="flex-1 text-xs font-bold text-muted-foreground">{tr("Phases")}</Text>
+      <Text className={cn(cell, "font-bold text-muted-foreground")}>Ao12</Text>
+      <Text className={cn(cell, "font-bold text-muted-foreground")}>{tr("Mean")}</Text>
+    </View>
+    {rows.map(r => <View key={r.label} className="flex-row">
+      <Text numberOfLines={1} className="flex-1 text-xs text-muted-foreground">{said(r.label)}</Text>
+      <Numeric className={cell}>{fmtTime(r.ao12)}</Numeric>
+      <Numeric className={cn(cell, "font-bold")}>{fmtTime(r.mean)}</Numeric>
+    </View>)}
+  </View>;
 }
 
 /** Sessions offered as pills; the others wait in the calendar. */
@@ -240,6 +262,9 @@ function SessionCalendar({ list, current, disabled, onPick }: { list: SessionSum
 /** The six figures of the session, each with its colour dot. */
 function SessionFigures({ solves, wide }: { solves: SolveDto[]; /** One row of six (a tablet's sheet). */ wide: boolean }) {
   const figures = useMemo(() => {
+    // Fewest Moves and Multi-Blind: their own figures, in moves or cubes.
+    if (attemptMode(solves[0]?.solve_mode))
+      return sessionMetrics(solves).map(([label, value, tone]) => [label, value, tone === "good" ? "bg-success" : tone === "accent" ? "bg-primary" : "bg-muted-foreground"] as const);
     const summary = practiceSummary(solves), times = summary.times, valid = times.filter((t): t is number => t !== null);
     return [
       ["Best", fmtTime(summary.best), "bg-success"], ["Ao5", fmtTime(summary.ao5), "bg-primary"], ["Ao12", fmtTime(summary.ao12), "bg-chart-2"],
@@ -275,10 +300,10 @@ const TimeRow = memo(function TimeRow({ solve, number, tone }: { solve: SolveDto
     </View>}>
     <SolveMenu solve={solve} className="h-11 flex-row items-center gap-3 rounded-xl bg-popover px-2.5 active:bg-muted/50">
       <Numeric className="w-6 text-right text-[13px] font-semibold text-muted-foreground">{number}</Numeric>
-      <Numeric className={cn("text-base font-bold", TONE_TEXT[tone], solve.penalty === "+2" && tone === "" && "text-warning")}>{fmtSolve(solve.time_ms, solve.penalty)}</Numeric>
-      {dnf && <Numeric className="text-xs text-muted-foreground">({fmtTime(effective(solve.time_ms, "none"))})</Numeric>}
+      <Numeric className={cn("text-base font-bold", TONE_TEXT[tone], solve.penalty === "+2" && tone === "" && "text-warning")}>{fmtSolveOf(solve)}</Numeric>
+      {dnf && !attemptMode(solve.solve_mode) && <Numeric className="text-xs text-muted-foreground">({fmtTime(effective(solve.time_ms, "none"))})</Numeric>}
       {solve.comment ? <Icon as={MessageSquare} size={14} className="text-muted-foreground" accessibilityLabel={tr("Comment")} /> : null}
-      {solve.solution ? <Icon as={Rotate3d} size={14} className="text-muted-foreground" accessibilityLabel={tr("Turned on a connected cube")} /> : null}
+      {solve.solution && solve.solve_mode !== "fewest-moves" ? <Icon as={Rotate3d} size={14} className="text-muted-foreground" accessibilityLabel={tr("Turned on a connected cube")} /> : null}
       <Numeric className="ml-auto text-xs text-muted-foreground">{hour(solve.created_at)}</Numeric>
     </SolveMenu>
   </ReanimatedSwipeable>;

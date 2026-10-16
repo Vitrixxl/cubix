@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { catalogSections, toggleSelection } from "../src/client/lib/practiceCatalog";
 import { practiceSummary, trainingSessionRows } from "../src/client/lib/practiceSummary";
 import { LaunchSessions } from "../src/client/lib/launchSessions";
-import { PracticeTimer, HOLD_DELAY_MS } from "../src/client/lib/practiceTimer";
+import { PracticeTimer, HOLD_DELAY_MS, inspectionExpired } from "../src/client/lib/practiceTimer";
 import { THEMES, buildTheme, luminance, themeTokens } from "../src/client/lib/theme";
 
 const cases = [
@@ -172,10 +172,24 @@ describe("a WCA inspection before the solve", () => {
       return stops;
     } finally { timer.dispose(); }
   };
-  test("no penalty within 15 seconds, +2 until 17, DNF after", async () => {
+  test("no penalty within 15 seconds, +2 until 17, a DNF after that never starts", async () => {
     expect(await started(15000)).toEqual([[9000, "none"]]);
     expect(await started(16500)).toEqual([[9000, "+2"]]);
-    expect(await started(17001)).toEqual([[9000, "dnf"]]);
+    expect(await started(17001)).toEqual([[0, "dnf"]]);
+  });
+  test("the attempt is a DNF as soon as the inspection passes 17 seconds", async () => {
+    const stops: [number, string][] = [];
+    const timer = new PracticeTimer({ canStart: () => true, inspection: () => true, now: () => 17001, onChange: () => {}, onStop: (ms, penalty) => stops.push([ms, penalty]) });
+    try {
+      // Begun 17 seconds ago (the press's own time stamp): its end is due at once.
+      timer.press(1);
+      timer.arm();
+      await Bun.sleep(HOLD_DELAY_MS + 20);
+      expect(stops).toEqual([[0, "dnf"]]);
+      expect(inspectionExpired(timer.snapshot)).toBe(true);
+      timer.release();
+      expect(timer.snapshot.phase).toBe("stopped");
+    } finally { timer.dispose(); }
   });
   test("a smart cube or a Stackmat starting during the inspection gets its penalty too", () => {
     let now = 0;

@@ -367,6 +367,8 @@ type wcaHistoryRow struct {
 	Event       string `json:"event"`
 	Round       string `json:"round"`
 	wcaRow
+	// The country they represented then, for the records (wcaSetBy).
+	Country string `json:"-"`
 }
 
 func wcaPersonResults(limit func() error, id string) (*wcaHistory, error) {
@@ -414,7 +416,7 @@ func wcaPersonResults(limit func() error, id string) (*wcaHistory, error) {
 		})
 		h.Results = make([]wcaHistoryRow, len(results))
 		for i, r := range results {
-			h.Results[i] = wcaHistoryRow{r.Comp, r.Event, r.Round, r.row()}
+			h.Results[i] = wcaHistoryRow{r.Comp, r.Event, r.Round, r.row(), r.Country}
 		}
 		return h, nil
 	})
@@ -793,7 +795,8 @@ type wcaRecordRow struct {
 }
 
 // wcaRecords: the region's records per event (the world's, a continent's or a country's), each with who holds it: the
-// value from the WCA, its holders the top of the region's ranking at that value.
+// value from the WCA, its holders the top of the region's ranking at that value. Someone who set it and has since
+// moved to another country is in the region's file with their best of any time, not the record (wcaSetBy).
 func wcaRecords(limit func() error, region string) ([]wcaRecordRow, error) {
 	return wcaMemo("records/"+region, 24*time.Hour, limit, func() ([]wcaRecordRow, error) {
 		var all struct {
@@ -839,7 +842,8 @@ func wcaRecords(limit func() error, region string) ([]wcaRecordRow, error) {
 			rows = append(rows, row)
 		}
 		// The rankings' files, six at a time.
-		holders := make([][]string, len(jobs))
+		// Per record, those ranked at its value or better.
+		holders := make([][]wcaRanked, len(jobs))
 		var wait sync.WaitGroup
 		var failed error
 		var mu sync.Mutex
@@ -858,9 +862,9 @@ func wcaRecords(limit func() error, region string) ([]wcaRecordRow, error) {
 					return
 				}
 				for _, it := range ranked.Items {
-					if it.Best == j.held.Best {
-						holders[i] = append(holders[i], it.ID)
-					} else if it.Best > j.held.Best && len(holders[i]) > 0 {
+					if it.Best <= j.held.Best {
+						holders[i] = append(holders[i], it)
+					} else if len(holders[i]) > 0 {
 						break
 					}
 				}
@@ -872,7 +876,9 @@ func wcaRecords(limit func() error, region string) ([]wcaRecordRow, error) {
 		}
 		ids := []string{}
 		for _, h := range holders {
-			ids = append(ids, h...)
+			for _, it := range h {
+				ids = append(ids, it.ID)
+			}
 		}
 		who, err := wcaWhoOf(limit, ids)
 		if err != nil {
@@ -884,14 +890,45 @@ func wcaRecords(limit func() error, region string) ([]wcaRecordRow, error) {
 		}
 		for i, j := range jobs {
 			j.held.Holders = []wcaWho{}
-			for _, id := range holders[i] {
-				if w := who[id]; in(w.Country) {
+			for _, it := range holders[i] {
+				if w := who[it.ID]; it.Best == j.held.Best && in(w.Country) {
 					j.held.Holders = append(j.held.Holders, w)
+				}
+			}
+			if len(j.held.Holders) == 0 {
+				if j.held.Holders, err = wcaSetBy(limit, holders[i], rows[j.row].Event, j.kind, j.held.Best, in, who); err != nil {
+					return nil, err
 				}
 			}
 		}
 		return rows, nil
 	})
+}
+
+// wcaSetBy: who of `ranked` (at the record's value or better in the region's file) set it there: a result of theirs
+// at that value, under a country of the region; named with that country. The first five asked, their results kept.
+func wcaSetBy(limit func() error, ranked []wcaRanked, event, kind string, best int, in func(country string) bool, who map[string]wcaWho) ([]wcaWho, error) {
+	out := []wcaWho{}
+	for _, it := range ranked[:min(len(ranked), 5)] {
+		history, err := wcaPersonResults(limit, it.ID)
+		if err == errWcaUnknown {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range history.Results {
+			value := r.Best
+			if kind == "average" {
+				value = r.Average
+			}
+			if r.Event == event && value == best && r.Country != "" && in(r.Country) {
+				out = append(out, wcaWho{it.ID, who[it.ID].Name, r.Country})
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 // wcaRoute: `GET /api/wca/…`, open to guests too:
