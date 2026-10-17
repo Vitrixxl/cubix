@@ -80,8 +80,9 @@ export const MBLD_CUBES = { min: 2, max: 40 };
 export const MBLD_CHOICES = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40].map((n) => ({ id: String(n), label: String(n) }));
 /** A stored count of cubes, 3 for anything not offered. */
 export const mbldCubes = (value: unknown) => (MBLD_CHOICES.some((c) => c.id === String(value)) ? Number(value) : 3);
-/** Scrambles numbered as on a WCA scramble sheet, one a line: "1. R U …". */
-export const numberedScrambles = (list: readonly string[]) => list.map((s, i) => `${i + 1}. ${s}`).join("\n");
+/** Scrambles numbered as on a WCA scramble sheet, one a line: "1. R U …"; a relay's (`parts`, its puzzles' names) each under its number, a line a puzzle. */
+export const numberedScrambles = (list: readonly string[], parts?: readonly string[]) =>
+  list.map((s, i) => (parts ? `${i + 1}.\n${s.split("\n").map((line, j) => `   ${parts[j] ?? ""}: ${line}`).join("\n")}` : `${i + 1}. ${s}`)).join("\n");
 /** The scrambles of a numbered list (`numberedScrambles`), without their numbers. */
 export const scrambleList = (text: string) => text.split("\n").map((line) => line.replace(/^\d+\.\s*/, "")).filter(Boolean);
 /**

@@ -381,6 +381,7 @@ export function Practice() {
     // the cubes solved (`MultiBlindResult`).
     fmc = !training && !cross && s.solveMode === "fewest-moves",
     multi = !training && !cross && s.solveMode === "multi-blind",
+    relay = !training && !!s.info()?.relay,
     typing = s.page === "playground" && s.entry === "typing" && !round && !fmc,
     // Blindfolded solves have no inspection (it is part of the time) but split the memorisation from the execution.
     blind = !training && s.solveMode === "blindfolded",
@@ -469,7 +470,7 @@ export function Practice() {
       : stackmatLink === "on" && timer.phase === "idle" && enabled
       ? tr("Both hands on the Stackmat, lift them to start")
       : timerHint(timer.phase, {
-          disabled: !enabled && (training ? "Select cases to begin" : "One moment…"),
+          disabled: !enabled && (training ? (s.trainingKind === "review" ? "Nothing left to review today" : "Select cases to begin") : "One moment…"),
           unsaved: s.page === "playground" && s.entry === "casual",
           keyboard: !mobile,
         });
@@ -653,8 +654,8 @@ export function Practice() {
                   </span>
                 ) : progress ? (
                   <SmartScramble text={s.scramble} progress={progress} size={promptFont} />
-                ) : multi ? (
-                  <ScrambleLines text={s.scramble} size={Math.min(promptFont, 18)} />
+                ) : multi || relay ? (
+                  <ScrambleLines text={s.scramble} size={Math.min(promptFont, 18)} puzzle={s.puzzle} />
                 ) : (
                   <Alg text={s.scramble} size={promptFont} />
                 )}

@@ -15,7 +15,7 @@ import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
 import { fmtSolveOf, fmtTime, type Solved } from "../../src/client/lib/format";
 import { ScrambleLines } from "./attempts";
-import { attemptMode, puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzles";
+import { attemptMode, puzzleInfo, puzzleOf, relayOf, type StoredContext } from "../../src/shared/puzzles";
 import { Button as UiButton } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -156,7 +156,7 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         {solve.scramble && (
           <section className="flex flex-col gap-2" aria-label={tr("Scramble")}>
             <span className={LABEL}>{tr("Scramble")}</span>
-            {solve.solve_mode === "multi-blind" ? <ScrambleLines text={solve.scramble} size={15} /> : <Alg text={solve.scramble} size={15} className="text-foreground/90" />}
+            {solve.solve_mode === "multi-blind" || relayOf(puzzleOf(solve)) ? <ScrambleLines text={solve.scramble} size={15} puzzle={puzzleOf(solve)} /> : <Alg text={solve.scramble} size={15} className="text-foreground/90" />}
           </section>
         )}
         {/* A visitor sees no solution where none was recorded. */}

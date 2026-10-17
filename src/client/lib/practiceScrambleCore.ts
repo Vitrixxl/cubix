@@ -1,5 +1,5 @@
 import { applyAlg, randomAuf, solved, uprightRotation } from "../../shared/cube";
-import { eventOf, puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
+import { eventOf, puzzleInfo, relayOf, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
 import { crossPattern, crossTrainingType, type PatternData } from "../../shared/crossTraining";
 import { msg } from "../i18n/msg";
@@ -34,7 +34,9 @@ export const competitionEvent = ({ puzzle, solveMode }: PracticeContext) => even
 export async function generatePracticeScramble(context: PracticeContext, engine: ScrambleEngine): Promise<string> {
   if (!validContext(context)) throw new Error(msg("Unsupported puzzle or scramble type."));
   const { puzzle, scrambleType: type } = context;
-  const size = puzzleInfo(puzzle).cubeSize;
+  const size = puzzleInfo(puzzle).cubeSize, relay = relayOf(puzzle);
+  // A relay: each of its puzzles' WCA scramble, one a line.
+  if (relay) return (await Promise.all(relay.map(p => engine.randomScrambleForEvent(p)))).join("\n");
   if (type === "normal") return engine.randomScrambleForEvent(competitionEvent(context));
   if (type.startsWith("2gen-") || type.startsWith("3gen-")) return moves(type.split("-")[1].toUpperCase().split(""), undefined, size === 2 ? 15 : 25);
   if (type === "half-turns") return moves(["R", "L", "U", "D", "F", "B"], ["2"], size === 2 ? 15 : 30);

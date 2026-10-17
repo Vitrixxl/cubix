@@ -3961,5 +3961,17 @@
  "Turn each corner to 12, one pin up at a time. Each corner dial is linked to the one behind it, so both sides finish together.": "Gira cada esquina a las 12, con un pin arriba cada vez. Cada esfera de esquina está unida a la de detrás, así que los dos lados terminan a la vez.",
  "Turning over": "Dar la vuelta",
  "Use pin settings to bring the four edge dials to the same time as the centre, then turn the whole cross to 12.": "Usa las posiciones de los pines para llevar las cuatro esferas de arista a la misma hora que el centro y luego gira toda la cruz a las 12.",
- "With one pin up, the wheel next to it turns that corner alone.": "Con un pin arriba, la rueda de al lado gira esa esquina sola."
+ "With one pin up, the wheel next to it turns that corner alone.": "Con un pin arriba, la rueda de al lado gira esa esquina sola.",
+ "2–4 relay": "Relevo 2–4",
+ "2–5 relay": "Relevo 2–5",
+ "2–7 relay": "Relevo 2–7",
+ "Come back tomorrow": "Vuelve mañana",
+ "due today": "para hoy",
+ "Left hand": "Mano izquierda",
+ "Nothing left to review today": "No queda nada que repasar hoy",
+ "Nothing to review today": "Nada que repasar hoy",
+ "Print": "Imprimir",
+ "Revision": "Repaso",
+ "The mirror of the other cases' algorithms that solve this one": "El espejo de los algoritmos de los otros casos que resuelven este",
+ "Revision trains the learned cases due today, so each one comes back just before you would forget it. A case you have never trained is due. Each attempt made when it is due moves it on: done well (no DNF, at most a fifth slower than the mean of its last 12 attempts) it comes back 1 day later, then 3, 7, 14, 30, 60 and 120 days; done badly it is due again at once, from 1 day. Attempts in the other trainings count too, but one made before the case is due changes nothing. A case done well leaves the session, until nothing is left to review today.": "Repaso entrena los casos aprendidos que tocan hoy, para que cada uno vuelva justo antes de que lo olvides. Un caso nunca entrenado toca. Cada intento hecho cuando toca lo hace avanzar: bien hecho (sin DNF, como mucho un quinto más lento que la media de sus 12 últimos intentos) vuelve 1 día después, luego 3, 7, 14, 30, 60 y 120 días; mal hecho, toca de nuevo enseguida, desde 1 día. Los intentos de los otros entrenamientos también cuentan, pero uno hecho antes de que el caso toque no cambia nada. Un caso bien hecho sale de la sesión, hasta que no queda nada que repasar hoy."
 }

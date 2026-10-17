@@ -4,7 +4,7 @@ import { effective, fmtTime, rollingAverages } from "./format";
 import { msg } from "../i18n/msg";
 
 /** Single-time goals in seconds, per puzzle, from casual to expert. */
-const SINGLE_GOALS: Record<PuzzleId, number[]> = {
+const SINGLE_GOALS: Partial<Record<PuzzleId, number[]>> = {
   "222": [15, 10, 7, 5, 3],
   "333": [60, 45, 30, 25, 20, 15, 12, 10],
   "444": [180, 120, 90, 60, 45],
@@ -18,7 +18,7 @@ const SINGLE_GOALS: Record<PuzzleId, number[]> = {
   clock: [20, 12, 8, 6],
 };
 /** Average-of-5 goals reuse the ladder without its hardest step. */
-const AVERAGE_GOALS: Record<PuzzleId, number[]> = Object.fromEntries(Object.entries(SINGLE_GOALS).map(([id, goals]) => [id, goals.slice(0, -1)])) as Record<PuzzleId, number[]>;
+const AVERAGE_GOALS: Partial<Record<PuzzleId, number[]>> = Object.fromEntries(Object.entries(SINGLE_GOALS).map(([id, goals]) => [id, goals.slice(0, -1)]));
 const ONE_HANDED_GOALS = [90, 60, 45, 30, 20];
 const BLINDFOLDED_GOALS = [300, 180, 120, 60];
 const VOLUME_GOALS = [1, 10, 100, 1000];
@@ -67,10 +67,10 @@ export function achievements(rows: SolveDto[], learned: readonly string[], { cas
     const timed = own.filter(s => !s.case_id);
     const series = (mode: string) => own.filter(s => fullScramble(s) && solveModeOf(s) === mode).map(s => ({ at: s.created_at, id: s.id, value: effective(s.time_ms, s.penalty) }));
     const standard = series("standard");
-    for (const goal of SINGLE_GOALS[puzzle])
+    for (const goal of SINGLE_GOALS[puzzle] ?? [])
       out.push(timeGoal(msg("{0}:single:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0}", { 0: seconds(goal) }), msg("Solve {0} in under {1} seconds on a full scramble.", { 0: group, 1: seconds(goal) }), "speed", group, goal, standard, puzzle));
     const ao5 = rollingAverages(standard.map(p => p.value), 5), averages = standard.map((point, i) => ({ ...point, value: ao5[i] ?? null }));
-    for (const goal of AVERAGE_GOALS[puzzle])
+    for (const goal of AVERAGE_GOALS[puzzle] ?? [])
       out.push(timeGoal(msg("{0}:ao5:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0} average", { 0: seconds(goal) }), msg("Average of 5 under {0} seconds on {1}.", { 0: seconds(goal), 1: group }), "average", group, goal, averages, puzzle));
     if (puzzle === "333") {
       const oneHanded = series("one-handed");

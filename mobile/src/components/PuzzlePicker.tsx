@@ -8,7 +8,8 @@ import { METRONOME_CHOICES } from "../../../src/client/lib/metronome";
 import { MBLD_CHOICES } from "../../../src/client/lib/wca";
 import { DEFAULT_FIGURES } from "../../../src/client/lib/practiceSummary";
 import { PHASE_OPTIONS } from "../../../src/client/lib/phases";
-import { attemptMode, EVENTS, eventInfo, scrambleLabel, scrambleTypesOf, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
+import { attemptMode, EVENTS, eventInfo, relayBars, relayOf, scrambleLabel, scrambleTypesOf, type EventId, type PuzzleId, type ScrambleType } from "../../../src/shared/puzzles";
+import Svg, { Rect } from "react-native-svg";
 import { crossTrainingType } from "../../../src/shared/crossTraining";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -36,6 +37,11 @@ const CODEPOINT: Record<string, number> = {
 /** The WCA glyph of a puzzle or event (any WCA event), `size` dp, in `color` (default: the text colour). */
 export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: string; size?: number; color?: string }) {
   const colors = useColors();
+  // A relay has no WCA glyph: a bar a puzzle (`relayBars`).
+  const relay = relayOf(puzzle as PuzzleId);
+  if (relay) return <Svg width={size} height={size} viewBox="0 0 300 300">
+    {relayBars(relay).map((b, i) => <Rect key={i} {...b} fill={color ?? colors.foreground} />)}
+  </Svg>;
   return <RNText style={{ fontFamily: "cubing-icons", fontSize: size, lineHeight: size * 1.1, color: color ?? colors.foreground, includeFontPadding: false }}>{String.fromCodePoint(CODEPOINT[puzzle] ?? 0xf106)}</RNText>;
 }
 

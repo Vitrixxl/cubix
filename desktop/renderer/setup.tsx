@@ -12,7 +12,7 @@ import { recommendedWhy, trainingPool, type Recommendation } from "../../src/cli
 import { groupBySet } from "../../src/client/lib/practiceCatalog";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { caseDetail, hintsForStage, maskForStage } from "../../src/client/lib/caseState";
-import { Brain, Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
+import { Brain, CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Pause, Play, RotateCcw, Rotate3d, Shuffle, SkipForward, Target, Timer, X, type LucideIcon } from "lucide-react";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import { algScene } from "../../src/client/lib/algPlayer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -77,6 +77,7 @@ function modeRows(sets: Sets): ModeRow[] {
     total = sets.reduce((n, x) => n + x.all.length, 0),
     chosen = recognitionSet(sets),
     free = s.freePicks.filter((id) => s.find(id)).length,
+    due = s.dueCases().length,
     words = bldWords();
   const rows: ModeRow[] = [
     // A step drawn by its number of moves shows it; a random state, a dash.
@@ -86,6 +87,7 @@ function modeRows(sets: Sets): ModeRow[] {
       count: chosen?.learned ?? 0, unit: chosen ? tr(chosen.set.label) : tr("cases"), share: chosen ? chosen.learned / chosen.all.length : 0,
       start: "trainingStart:recognition", ready: !!chosen?.learned,
     },
+    { id: "review", icon: CalendarClock, title: "Revision", count: due, unit: tr("due today"), start: "trainingStart:review", ready: !!due },
     { id: "learned", icon: GraduationCap, title: "Learned", count: learned, unit: tr(learned === 1 ? "case" : "cases"), start: "trainingStart:cases:practice", ready: !!pool.size },
     { id: "sets", icon: Layers, title: "Whole sets", count: whole, unit: tr(whole === 1 ? "case" : "cases"), share: total ? known / total : 0, start: "trainingStart:cases:practice", ready: !!pool.size },
     { id: "free", icon: Dices, title: "Free practice", count: free, unit: tr(free === 1 ? "case" : "cases"), start: "trainingStart:free", ready: !!free },
@@ -149,6 +151,9 @@ export function TrainingSetup() {
  */
 function ModeTile({ row, checked, onPick }: { row: ModeRow; checked: boolean; onPick: () => void }) {
   const phone = usePhone(),
+    { h } = useViewport(),
+    // A short window keeps every way in view: smaller tiles.
+    tight = !phone && h < 860,
     Icon = row.icon;
   return (
     <button
@@ -161,10 +166,10 @@ function ModeTile({ row, checked, onPick }: { row: ModeRow; checked: boolean; on
         run("trainingMode:" + row.id)(e);
         onPick();
       }}
-      className={cn(TILE, "group/card flex shrink-0 flex-col gap-3 p-4 md:flex-1 md:justify-center md:p-5")}
+      className={cn(TILE, "group/card flex shrink-0 flex-col p-4 md:flex-1 md:justify-center", tight ? "gap-2 md:px-5 md:py-2.5" : "gap-3 md:p-5")}
     >
       <span className="flex items-center gap-3 md:gap-4">
-        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-muted text-muted-foreground transition-colors group-hover/card:bg-accent", checked && "text-primary")}>
+        <span className={cn("flex shrink-0 items-center justify-center rounded-[14px] bg-muted text-muted-foreground transition-colors group-hover/card:bg-accent", tight ? "size-9" : "size-11", checked && "text-primary")}>
           <Icon className="size-5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-[-0.02em] md:text-xl">{tr(row.title)}</span>
@@ -193,6 +198,8 @@ function ModeHero({ mode, sets, phone = false }: { mode: ModeRow; sets: Sets; ph
           <HandCard learned={learned} />
           <CasesBar />
         </>
+      ) : mode.id === "review" ? (
+        <ReviewCard />
       ) : mode.id === "bld" ? (
         <BldCard phone={phone} />
       ) : mode.id === "sets" ? (
@@ -227,6 +234,35 @@ function CasesBar() {
         </Button>
       </div>
     </Surface>
+  );
+}
+
+/** Review: the learned cases due today, each back after more days every time it is done well (`caseDue`); its start. */
+function ReviewCard() {
+  const due = s.dueCases(),
+    shown = due.slice(0, 18).map((id) => s.find(id)).filter(Boolean);
+  return (
+    <Card title={tr("Revision")} className="min-h-0 flex-1">
+      {due.length ? (
+        <div className="flex min-h-0 flex-wrap content-start items-center gap-1.5 overflow-hidden">
+          {shown.map((c: any) => (
+            <Diagram key={c.id} c={c} size={44} />
+          ))}
+          {due.length > shown.length && <span className={cn(NUMERIC, "px-1 text-sm font-semibold text-faint")}>+{due.length - shown.length}</span>}
+        </div>
+      ) : (
+        <Empty icon={CalendarClock} title={tr("Nothing to review today")} className="py-6" />
+      )}
+      <div className="mt-auto flex flex-wrap items-center gap-2">
+        <span className="flex-1 text-sm text-muted-foreground">{due.length ? plural(due.length, "case") : tr("Come back tomorrow")}</span>
+        <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
+          {tr("Random AUF")}
+        </ActionToggle>
+        <Button action="trainingStart:review" variant="default" icon={Play} disabled={!due.length}>
+          {tr("Train")}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

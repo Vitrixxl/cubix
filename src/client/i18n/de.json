@@ -3961,5 +3961,17 @@
  "Turn each corner to 12, one pin up at a time. Each corner dial is linked to the one behind it, so both sides finish together.": "Dreh jede Ecke auf 12, immer mit einem Pin oben. Jedes Ecken-Zifferblatt ist mit dem dahinter verbunden, sodass beide Seiten zusammen fertig werden.",
  "Turning over": "Umdrehen",
  "Use pin settings to bring the four edge dials to the same time as the centre, then turn the whole cross to 12.": "Bring mit Pin-Stellungen die vier Kanten-Zifferblätter auf dieselbe Zeit wie das Zentrum und dreh dann das ganze Kreuz auf 12.",
- "With one pin up, the wheel next to it turns that corner alone.": "Mit einem Pin oben dreht das Rad daneben nur diese Ecke."
+ "With one pin up, the wheel next to it turns that corner alone.": "Mit einem Pin oben dreht das Rad daneben nur diese Ecke.",
+ "2–4 relay": "2–4-Staffel",
+ "2–5 relay": "2–5-Staffel",
+ "2–7 relay": "2–7-Staffel",
+ "Come back tomorrow": "Komm morgen wieder",
+ "due today": "heute fällig",
+ "Left hand": "Linke Hand",
+ "Nothing left to review today": "Heute ist nichts mehr zu wiederholen",
+ "Nothing to review today": "Heute nichts zu wiederholen",
+ "Print": "Drucken",
+ "Revision": "Wiederholung",
+ "The mirror of the other cases' algorithms that solve this one": "Die Spiegelung der Algorithmen anderer Fälle, die diesen lösen",
+ "Revision trains the learned cases due today, so each one comes back just before you would forget it. A case you have never trained is due. Each attempt made when it is due moves it on: done well (no DNF, at most a fifth slower than the mean of its last 12 attempts) it comes back 1 day later, then 3, 7, 14, 30, 60 and 120 days; done badly it is due again at once, from 1 day. Attempts in the other trainings count too, but one made before the case is due changes nothing. A case done well leaves the session, until nothing is left to review today.": "Wiederholung trainiert die gelernten Fälle, die heute fällig sind, damit jeder kurz bevor du ihn vergisst wiederkommt. Ein nie trainierter Fall ist fällig. Jeder Versuch, wenn der Fall fällig ist, bringt ihn weiter: gut gemacht (kein DNF, höchstens ein Fünftel langsamer als der Mittelwert seiner letzten 12 Versuche) kommt er 1 Tag später wieder, dann nach 3, 7, 14, 30, 60 und 120 Tagen; schlecht gemacht ist er sofort wieder fällig, ab 1 Tag. Versuche in den anderen Trainings zählen auch, aber einer vor der Fälligkeit ändert nichts. Ein gut gemachter Fall verlässt die Sitzung, bis heute nichts mehr zu wiederholen ist."
 }

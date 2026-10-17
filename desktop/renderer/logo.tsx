@@ -1,4 +1,4 @@
-import { eventInfo, PUZZLES } from "../../src/shared/puzzles";
+import { eventInfo, PUZZLES, relayBars, relayOf, type PuzzleId } from "../../src/shared/puzzles";
 import { tr } from "../../src/client/i18n";
 
 /** A sticker: a rounded square (x, y, width, height, radius) or a path. */
@@ -105,6 +105,9 @@ export function puzzleMark(puzzle = "222"): Mark {
   // An event (one-handed, blindfolded) has its own icon; otherwise the puzzle's.
   const shape = SHAPES[puzzle];
   if (shape) return { box: 300, flip: true, parts: shape[1].map((d, i) => ({ d, accent: shape[0].includes(i) })) };
+  // A relay: a bar a puzzle, the last one in the accent.
+  const relay = relayOf(puzzle as PuzzleId);
+  if (relay) return { box: 300, flip: false, parts: relayBars(relay).map((b, i, all) => ({ rect: [b.x, b.y, b.width, b.height, b.rx], accent: i === all.length - 1 })) };
   const n = PUZZLES.find((p) => p.id === (eventInfo(puzzle)?.puzzle ?? puzzle))?.cubeSize ?? 2,
     gap = n === 2 ? 1.5 : Math.max(0.7, 3 / n),
     cell = (18 - gap * (n - 1)) / n,

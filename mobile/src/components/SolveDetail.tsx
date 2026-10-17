@@ -5,7 +5,8 @@ import { fmtSolveOf } from "../../../src/client/lib/format";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../../src/client/lib/solution";
 import { mergeTurns, type PhaseId } from "../../../src/client/lib/solveAnalysis";
 import { FACE_COLORS } from "../../../src/shared/cubeAppearance";
-import { puzzleInfo, puzzleOf } from "../../../src/shared/puzzles";
+import { puzzleInfo, puzzleOf, relayOf } from "../../../src/shared/puzzles";
+import { ScrambleLines } from "./Attempts";
 import type { SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -91,7 +92,7 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
     <PhaseSplits solve={solve} />
     {solve.scramble ? <View className="gap-0.5" accessibilityLabel={tr("Scramble")}>
       <Label className="font-bold tracking-widest uppercase">{tr("Scramble")}</Label>
-      <Alg text={solve.scramble} size={14} selectable />
+      {relayOf(puzzleOf(solve)) ? <ScrambleLines text={solve.scramble} size={14} puzzle={puzzleOf(solve)} /> : <Alg text={solve.scramble} size={14} selectable />}
     </View> : null}
   </>;
   const stage = <>

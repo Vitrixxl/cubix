@@ -1,9 +1,9 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Brain, Check, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
+import { Brain, CalendarClock, Check, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
-import { recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
+import { dueCases, recommend, recommendedWhy, trainingPool, type Recommendation } from "../../../src/client/lib/trainingPicks";
 import { groupBySet } from "../../../src/client/lib/practiceCatalog";
 import { CROSS_METHODS, CROSS_MOVES, CROSS_OPTIONS, CROSS_TARGET_LABELS } from "../../../src/shared/crossTraining";
 import { puzzleInfo } from "../../../src/shared/puzzles";
@@ -76,7 +76,9 @@ export function useTrainingData() {
   // Nothing chosen: the training drills every learned case (`trainingPool`).
   const parts = chosen.length || !pool.length ? chosen : [tr("All learned cases")];
   const recognition = setRows.find(x => x.set.id === choice && x.learned) ?? setRows.find(x => x.learned);
-  return { puzzle, cases, learned, recommended, picks, hand, trainSets, setRows, pool, learnedPool, whole, parts, recognition, totalLearned: setRows.reduce((n, x) => n + x.learned, 0) };
+  // The learned cases due for review (spaced repetition, `caseDue`).
+  const due = useMemo(() => dueCases(cases, learned, [...stats.values()]), [cases, learned, stats]);
+  return { puzzle, cases, learned, recommended, picks, due, hand, trainSets, setRows, pool, learnedPool, whole, parts, recognition, totalLearned: setRows.reduce((n, x) => n + x.learned, 0) };
 }
 export type TrainingData = ReturnType<typeof useTrainingData>;
 
@@ -163,6 +165,8 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
           onPress={() => setSettings("recognition")} action={<StartChip onPress={() => start("recognition")} disabled={!chosen} />}>
           {chosen && <Bar ratio={chosen.learned / chosen.all.length} />}
         </ModeCard>
+        <ModeCard icon={CalendarClock} title={tr("Revision")} count={data.due.length} unit={tr("due today")} lit={data.due.length > 0}
+          onPress={() => data.due.length && start("review")} action={<StartChip onPress={() => start("review")} disabled={!data.due.length} />} />
         <ModeCard icon={GraduationCap} title={tr("Learned")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
           lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
           action={<StartChip onPress={() => start("cases")} disabled={!data.pool.length} />} />

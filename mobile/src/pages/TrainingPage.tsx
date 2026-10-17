@@ -91,7 +91,7 @@ function TrainingRoot() {
       ? kind === "cross" ? <CrossPractice key={solveMode} onBack={toSetup} />
         : kind === "recognition" ? <RecognitionRun key={puzzle} onBack={toSetup} />
         : kind === "bld" ? <BldRun onBack={toSetup} />
-        : <TrainingSession key={`${puzzle}:${solveMode}:${kind}`} free={kind === "free"} onBack={toSetup} />
+        : <TrainingSession key={`${puzzle}:${solveMode}:${kind}`} kind={kind} onBack={toSetup} />
       : setupMode === "learned" ? <LearnedSetup onBack={toList} onTrain={() => start("cases")} />
       : <TrainHome onOpen={setSetupMode} onStart={start} />}
   </SlideSwitch>;
@@ -102,7 +102,7 @@ function TrainingRoot() {
  * actions then Previous / Next case. The list icon pushes the session's screen. A tablet reads the case larger and
  * keeps the session in view: peeking above the bar (portrait), docked at the right (wide).
  */
-function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }) {
+function TrainingSession({ kind, onBack }: { kind: TrainingRun; onBack: () => void }) {
   const { height, tablet, wide } = useLayout();
   const puzzle = useAtomValue(puzzleAtom);
   const cube = puzzleInfo(puzzle).cubeSize;
@@ -111,7 +111,8 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
   const cases = useAtomValue(casesAtom);
   const data = useTrainingData();
   const freePicks = useAtomValue(freePicksAtom);
-  const selected = useMemo(() => free ? freePicks.filter(id => cases.some(c => c.id === id)) : data.pool, [free, freePicks, cases, data.pool]);
+  const free = kind === "free";
+  const selected = useMemo(() => free ? freePicks.filter(id => cases.some(c => c.id === id)) : kind === "review" ? data.due : data.pool, [free, kind, freePicks, cases, data.due, data.pool]);
   const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [useAuf, setUseAuf] = useAtom(randomAufAtom);
@@ -223,7 +224,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
         accessibilityLabel={currentLearned ? tr("{0} learned", { 0: current.c.name }) : tr("Mark {0} learned", { 0: current.c.name })}>{tr("Learned")}</Chip>
     </View>
   </> : <View className="items-start gap-2 py-4">
-    <Text className="text-xl font-extrabold tracking-tight">{free ? tr("Choose your cases") : tr("No learned case to train")}</Text>
+    <Text className="text-xl font-extrabold tracking-tight">{free ? tr("Choose your cases") : kind === "review" ? tr("Nothing to review today") : tr("No learned case to train")}</Text>
     <Chip icon={ListChecks} on accessibilityLabel={tr("Choose cases")} onPress={onBack}>{tr("Choose")}</Chip>
   </View>;
 
@@ -238,7 +239,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
       <Stage timer={timer} disabled={!current || saving || !!timer.saveError} running={running} prompt={prompt}
         readout={area => <>
           <TimerDigits timer={timer} area={area} />
-          <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !current && tr("Select cases to begin") })}</Hint>
+          <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !current && tr(kind === "review" ? "Nothing left to review today" : "Select cases to begin") })}</Hint>
           <SaveError timer={timer} />
           {!running && lastSolve && <Verdict solve={lastSolve} />}
         </>}

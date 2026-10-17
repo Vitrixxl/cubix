@@ -92,6 +92,41 @@ export function recommend(cases: readonly PoolCase[], learned: ReadonlySet<strin
   return [...best.values()].sort((a, b) => b.time / b.usual - a.time / a.usual).slice(0, limit);
 }
 
+/** Days until a case done well when due comes back, box after box (spaced repetition). */
+const REVIEW_DAYS = [1, 3, 7, 14, 30, 60, 120];
+/** The attempts a case's pace is the mean of, the latest. */
+const PACE = 12;
+/**
+ * When a case is due again, replayed from its attempts in order (`time` null for a DNF): an attempt made when due and
+ * done well (no DNF, at most a fifth slower than its pace) moves it up a box, due again that many days later from the
+ * start of its day; done badly, it goes back to the first box and is due again at once. An attempt before it is due
+ * changes nothing. A case never trained is due.
+ */
+export function caseDue(attempts: readonly { time: number | null; at: string }[]): string {
+  let box = 0, due = -Infinity;
+  const recent: number[] = [];
+  for (const { time, at } of attempts) {
+    const t = Date.parse(at), pace = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : Infinity;
+    if (t >= due) {
+      if (time === null || time > pace * 1.2) [box, due] = [0, t];
+      else {
+        const day = new Date(t);
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() + REVIEW_DAYS[Math.min(box, REVIEW_DAYS.length - 1)]!);
+        [box, due] = [box + 1, day.getTime()];
+      }
+    }
+    if (time !== null) recent.splice(0, recent.push(time) - PACE);
+  }
+  return new Date(Number.isFinite(due) ? due : 0).toISOString();
+}
+
+/** The learned cases due for review now (`caseDue`, never trained ones included), in catalogue order. */
+export function dueCases(cases: readonly PoolCase[], learned: ReadonlySet<string>, stats: readonly { caseId: string; dueAt?: string }[], now = Date.now()): string[] {
+  const due = new Map(stats.map((s) => [s.caseId, s.dueAt]));
+  return cases.filter((c) => learned.has(c.id) && Date.parse(due.get(c.id) ?? "1970-01-01T00:00:00Z") <= now).map((c) => c.id);
+}
+
 /** Why a case is recommended, in a few words. */
 export function recommendedWhy(r: Recommendation) {
   const days = r.lastAt ? Math.floor((Date.now() - Date.parse(r.lastAt)) / 86_400_000) : 0;

@@ -2,7 +2,9 @@ export const CUBE_SIZES = [2, 3, 4, 5, 6, 7] as const;
 export type CubeSize = typeof CUBE_SIZES[number];
 
 import registry from "../../data/puzzles.json";
-export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock";
+export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock" | RelayId;
+/** Relays: several cubes solved one after the other under one time, each on its own scramble. */
+export type RelayId = "r234" | "r2345" | "r234567";
 export type PuzzleInput = CubeSize | PuzzleId;
 export type SolveMode = "standard" | "one-handed" | "blindfolded" | "fewest-moves" | "multi-blind";
 export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "cross1-3" | "cross1-4" | "cross1-5" | `${"cross" | "xcross" | "xxcross" | "eoline" | "eocross" | "fb" | "2x2x2" | "2x2x3"}-${number}` | "f2l-only" | "lsll" | "ll" | "zbll" | "sb" | "cmll" | "case";
@@ -12,7 +14,23 @@ export type LegacyScrambleType = "competition" | "random-moves";
 /** Read old clients and saved preferences, but only persist the canonical type. */
 export const normalizeScrambleType = (type: string): ScrambleType => (type === "competition" || type === "random-moves" ? "normal" : type) as ScrambleType;
 export interface StoredContext { puzzle_id?: PuzzleId; cube_size?: CubeSize | null; solve_mode?: SolveMode; scramble_type?: ScrambleType | LegacyScrambleType; case_id?: string | null; mode?: string }
-export const PUZZLES = registry.puzzles as { id: PuzzleId; label: string; cubeSize: CubeSize | null; twisty: string; scrambles: ScrambleType[] }[];
+const ALL_PUZZLES = registry.puzzles as { id: PuzzleId; label: string; cubeSize: CubeSize | null; twisty: string; scrambles: ScrambleType[]; relay?: PuzzleId[] }[];
+/** The puzzles themselves: the relays are only events of the timer. */
+export const PUZZLES = ALL_PUZZLES.filter(p => !p.relay);
+/** The puzzles a relay goes through, in order; none for a puzzle of its own. */
+export const relayOf = (puzzle: PuzzleInput) => puzzleInfo(puzzle)?.relay;
+/**
+ * A relay's icon in a 300 box: a bar a puzzle, as tall as its size against the largest, side by side from the left
+ * (desktop/assets/icons/Puzzle<relay>.svg draws the same).
+ */
+export function relayBars(relay: readonly PuzzleId[]) {
+  const sizes = relay.map(p => puzzleInfo(p).cubeSize ?? 3), top = Math.max(...sizes), margin = 28, gap = sizes.length < 5 ? 16 : 12,
+    width = (300 - 2 * margin - gap * (sizes.length - 1)) / sizes.length;
+  return sizes.map((size, i) => {
+    const height = (300 - 2 * margin) * size / top;
+    return { x: margin + i * (width + gap), y: 300 - margin - height, width, height, rx: Math.min(width, height) * 0.12 };
+  });
+}
 export const SOLVE_MODES = registry.solveModes as { id: SolveMode; label: string }[];
 /** WCA event ids: the puzzle ids, plus the one-handed, blindfolded, fewest moves and multi-blind events. */
 export type EventId = PuzzleId | "333oh" | "333bf" | "444bf" | "555bf" | "333fm" | "333mbf";
@@ -28,8 +46,8 @@ export const scrambleTypesOf = (puzzle: PuzzleInput, mode: string): ScrambleType
 export const SCRAMBLE_TYPES = [...registry.scrambles, { id: "case", label: "Algorithm case" }] as { id: ScrambleType; label: string }[];
 export const puzzleId = (value: PuzzleInput): PuzzleId => (typeof value === "number" ? String(value).repeat(3) : value) as PuzzleId;
 export const puzzleOf = (value: StoredContext): PuzzleId => value.puzzle_id ?? puzzleId(value.cube_size ?? 3);
-export const puzzleInfo = (value: PuzzleInput) => PUZZLES.find(p => p.id === puzzleId(value))!;
-export const isPuzzle = (value: unknown): value is PuzzleId => PUZZLES.some(p => p.id === value);
+export const puzzleInfo = (value: PuzzleInput) => ALL_PUZZLES.find(p => p.id === puzzleId(value))!;
+export const isPuzzle = (value: unknown): value is PuzzleId => ALL_PUZZLES.some(p => p.id === value);
 export const solveModeOf = (value: StoredContext): SolveMode => value.solve_mode ?? "standard";
 export const scrambleTypeOf = (value: StoredContext): ScrambleType => normalizeScrambleType(value.scramble_type ?? (value.case_id || value.mode === "training" ? "case" : "normal"));
 export const contextOf = (value: StoredContext): PracticeContext => ({ puzzle: puzzleOf(value), solveMode: solveModeOf(value), scrambleType: scrambleTypeOf(value) });

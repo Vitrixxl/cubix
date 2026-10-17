@@ -1,4 +1,5 @@
-import { applyAlg, combineAuf, compensateAuf, solved, type CubeState } from "../../shared/cube";
+import { applyAlg, AUFS, combineAuf, compensateAuf, mirrorAlg, solved, type CubeState } from "../../shared/cube";
+import { caseGoal, goalReached } from "./smartTraining";
 import type { CaseDto, Stage } from "../../shared/types";
 import type { CubeMask } from "../../shared/cubeAppearance";
 import { isPolyPuzzle, type PolyPuzzle } from "../../shared/puzzleScene";
@@ -6,6 +7,32 @@ import { puzzleInfo, puzzleOf } from "../../shared/puzzles";
 import { caseContext } from "./practiceCatalog";
 
 const cache = new Map<string, CubeState>();
+
+/**
+ * A 3×3 last layer case's algorithms for the left hand: the mirror (`mirrorAlg`) of each algorithm of its set that
+ * solves it, with the turn of the top it needs first, those the case has already left out. Null for a case a mirror
+ * says nothing of (an F2L pair goes to the other slot; other puzzles).
+ */
+export function leftHandAlgs(c: CaseDto, set: readonly Pick<CaseDto, "algorithms">[]): { alg: string; pre_auf?: string }[] | null {
+  const goal = caseGoal(c);
+  if (!goal || goal === "f2l") return null;
+  const state = applyAlg(solved(3), c.setup),
+    own = new Set(c.algorithms.map((a) => a.alg)),
+    found = new Map<string, { alg: string; pre_auf?: string }>();
+  for (const other of set)
+    for (const { alg: original } of other.algorithms) {
+      let alg: string;
+      try {
+        alg = mirrorAlg(original);
+      } catch {
+        continue;
+      }
+      if (own.has(alg) || found.has(alg)) continue;
+      const pre = AUFS.find((u) => goalReached(applyAlg(state, u ? `${u} ${alg}` : alg), goal));
+      if (pre !== undefined) found.set(alg, pre ? { alg, pre_auf: pre } : { alg });
+    }
+  return [...found.values()];
+}
 
 /** Cube state showing the case (solved cube + setup). Memoised per case. */
 export function caseState(c: CaseDto): CubeState {

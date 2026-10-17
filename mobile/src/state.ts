@@ -252,6 +252,8 @@ export function perPuzzleAtom<T>(key: string, fallback: T) {
   });
 }
 export const learningFilterAtom = persisted<"all" | "learned" | "not-learned">("cubix.algs.learningFilter", "all");
+/** Whether a last layer case shows its algorithms for the left hand (`leftHandAlgs`), as on the web. */
+export const leftHandAtom = persisted<boolean>("cubix.algs.leftHand", false);
 
 // ---------------------------------------------------------------------------
 // Data
@@ -301,7 +303,7 @@ export const crossMovesAtom = atom(get => crossMovesFor(get(crossTargetAtom), ge
 /** Training opens on the choice of what to practise, then shows the timer for it (kept while switching tabs). */
 export const trainingStepAtom = atom<"setup" | "practice">("setup");
 /** What the training started drills: the learned cases' pool, free practice, cross scrambles, a recognition run or the blindfolded training. */
-export type TrainingRun = "cases" | "free" | "cross" | "recognition" | "bld";
+export type TrainingRun = "cases" | "review" | "free" | "cross" | "recognition" | "bld";
 export const trainingRunAtom = atom<TrainingRun>("cases");
 /** Mode highlighted on the setup screen before it starts; empty = the one trained last. */
 export const trainingSetupModeAtom = atom("");

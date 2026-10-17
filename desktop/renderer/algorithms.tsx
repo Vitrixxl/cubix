@@ -1,15 +1,18 @@
 /** The algorithms page: every set of the puzzle beside the chosen one's cases; a case in its dialog, opened from anywhere. */
 import { caseContext, catalogSections } from "../../src/client/lib/practiceCatalog";
-import { caseDetail, casePlayItem, displayAlg, moveCount, shortId } from "../../src/client/lib/caseState";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { caseDetail, casePlayItem, caseState, caseTitle, displayAlg, leftHandAlgs, maskForStage, moveCount, shortId } from "../../src/client/lib/caseState";
+import { createPortal } from "react-dom";
+import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
+import { viewForStage } from "../../src/shared/cubeDiagram";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, Grid3x3, LayoutGrid, PlayCircle, Search, SquareCheck, Timer, Video, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Search, SquareCheck, Timer, Video, X } from "lucide-react";
 import { methodSets, store as s } from "./store";
 import { METHODS, type SolvingMethod } from "../../src/shared/methods";
 import { stepSets } from "../../src/client/lib/course";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
+import { ActionToggle, Alg, Bar, plural, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
 import { Button as UiButton } from "@/components/ui/button";
 import { TimerStats } from "./stats";
 import { useWidth } from "./FiguresEditor";
@@ -79,6 +82,7 @@ const groupId = (set: string, group: string) => `group-${set}-${group}`.replace(
  * right, its groups as shelves of cases. A selection picks any cases to train or mark learned at once.
  */
 function Catalog({ mobile }: { mobile: boolean }) {
+  const [printing, setPrinting] = useState(false);
   const { sections, section } = currentSet();
   const learned = sections.reduce((sum, v) => sum + v.variants.reduce((n: number, set: any) => n + s.learnedIn(set.id), 0), 0);
   const total = s.cases().length;
@@ -164,6 +168,12 @@ function Catalog({ mobile }: { mobile: boolean }) {
             <UiButton variant="ghost" aria-pressed={!!picked} data-action="pick" onClick={() => setPicked(picked ? null : new Set())} className="text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground">
               <SquareCheck />
               {tr("Select")}</UiButton>
+            {!mobile && (
+              <UiButton variant="ghost" onClick={() => setPrinting(true)} className="text-muted-foreground">
+                <Printer />
+                {tr("Print")}</UiButton>
+            )}
+            {printing && <PrintSheet set={set} onDone={() => setPrinting(false)} />}
             <Button action={"train:" + set.id} icon={Timer} variant="default" className="ml-auto">
               {tr("Train all")} · {count}</Button>
           </div>
@@ -177,6 +187,38 @@ function Catalog({ mobile }: { mobile: boolean }) {
 
 /** Every set of the puzzle under its step, each with its ring of cases learned; the chosen one lists its groups, folded
  * and unfolded by a click on it again. */
+/**
+ * A set's algorithms as a sheet to print: each case seen as the catalogue draws it, its name and the algorithm the
+ * player uses (the first one else, or the first for the left hand when that is chosen). Printed alone, then gone.
+ */
+function PrintSheet({ set, onDone }: { set: any; onDone: () => void }) {
+  const cases = s.setCases(set.id),
+    alg = (c: any) => {
+      const mirrored = s.leftHand ? leftHandAlgs(c, cases)?.[0] : undefined;
+      return s.learnedAlgs[c.id]?.[0] ?? (mirrored ? displayAlg(mirrored) : c.algorithms?.[0] ? displayAlg(c.algorithms[0]) : "");
+    };
+  useEffect(() => {
+    addEventListener("afterprint", onDone, { once: true });
+    const frame = requestAnimationFrame(() => print());
+    return () => (cancelAnimationFrame(frame), removeEventListener("afterprint", onDone));
+  }, []);
+  return createPortal(
+    <div data-print-sheet className="fixed -left-[200vw] w-[180mm] bg-white text-black print:static">
+      <h1 className="mb-4 text-xl font-extrabold">{said(set.label)} · {plural(cases.length, "case")}</h1>
+      <div className="grid grid-cols-4 gap-x-4 gap-y-3">
+        {cases.map((c: any) => (
+          <div key={c.id} className="flex break-inside-avoid flex-col items-center gap-1 text-center">
+            {c.diagram ? <img src={"/assets/" + c.asset} width={64} height={64} alt={c.id} /> : <StaticCubeSvg state={caseState(c)} size={64} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} />}
+            <strong className="text-xs">{said(caseTitle(c))}</strong>
+            <span className="font-mono text-[10px] leading-snug">{alg(c)}</span>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function SetTree({ sections, active }: { sections: { stage: string; variants: any[] }[]; active: string }) {
   const list = useRef<HTMLDivElement>(null);
   // The set whose groups are folded; another set chosen opens unfolded.
@@ -718,19 +760,24 @@ function PrerenderedCase() {
  * tells it apart; or the player's times on it, figures and a chart. Phones stack it all in one column.
  */
 function CaseCard({ id }: { id: string }) {
-  const c = s.find(id),
+  const found = s.find(id),
+    // A last layer case's left-hand algorithms: the mirror of its stage's, played and listed in place of its own.
+    mirrored = useMemo(() => leftHandAlgs(found, s.cases("333").filter((v: any) => v.stage === found.stage)), [found]),
+    left = !!mirrored?.length && s.leftHand,
+    c = left ? { ...found, algorithms: mirrored } : found,
     phone = usePhone(),
     { h } = useViewport(),
     [tab, setTab] = useState(s.caseView),
     { index, count, to } = caseSteps(c),
     st = s.stat(c.id),
     learned = s.learned.has(c.id),
-    chosen: string[] = learned ? (s.learnedAlgs[c.id] ?? []) : [],
+    chosen: string[] = learned && !left ? (s.learnedAlgs[c.id] ?? []) : [],
     choices = useChoices(c.id, chosen),
     algs: any[] = c.algorithms,
     order = algs.map((_, i) => i).sort((a, b) => +chosen.includes(algs[b].alg) - +chosen.includes(algs[a].alg) || a - b),
     // The algorithm played: the one used, else the first.
-    [picked, pick] = useState(order[0] ?? 0),
+    [chosenIndex, pick] = useState(order[0] ?? 0),
+    picked = Math.min(chosenIndex, algs.length - 1),
     play = casePlayItem(c),
     name = caseDetail(c);
   // On the algorithms page the arrows are links: a crawler follows them from one case to the next.
@@ -776,11 +823,16 @@ function CaseCard({ id }: { id: string }) {
           { id: "statistics", label: "My times", count: st?.count ?? 0 },
         ]}
       />
+      {tab === "algorithms" && !!mirrored?.length && (
+        <ActionToggle action="leftHand" pressed={left} icon={FlipHorizontal2} variant="outline" tip={tr("The mirror of the other cases' algorithms that solve this one")}>
+          {tr("Left hand")}
+        </ActionToggle>
+      )}
     </div>
   );
   // Phones play it above the list: back up to it.
   const list = <AlgList c={c} order={order} chosen={chosen} picked={picked} pick={(i) => (pick(i), phone && document.querySelector("[data-alg-stage]")?.scrollIntoView({ block: "start", behavior: "smooth" }))} />,
-    stage = <AlgStage c={c} i={picked} mine={chosen.includes(algs[picked]?.alg)} choices={choices} cube={phone ? 200 : Math.max(120, Math.min(300, Math.min(800, h - 48) - 440))} phone={phone} />,
+    stage = <AlgStage c={c} i={picked} mine={chosen.includes(algs[picked]?.alg)} own={!left} choices={left ? null : choices} cube={phone ? 200 : Math.max(120, Math.min(300, Math.min(800, h - 48) - 440))} phone={phone} />,
     times = s.caseHistory && (
       <TimerStats
         data={s.caseHistory}
@@ -956,7 +1008,7 @@ function AlgList({ c, order, chosen, picked, pick }: { c: any; order: number[]; 
  * The algorithm picked, played large (the 3D player, its moves lit, the controls), then what tells it apart and
  * whether the player uses it. Other puzzles' algorithms that cannot be played are written large instead.
  */
-function AlgStage({ c, i, mine, choices, cube, phone }: { c: any; i: number; mine: boolean; choices: Choices; cube: number; phone: boolean }) {
+function AlgStage({ c, i, mine, own = true, choices, cube, phone }: { c: any; i: number; mine: boolean; own?: boolean; choices: Choices; cube: number; phone: boolean }) {
   const a = c.algorithms[i],
     item = casePlayItem(c),
     text = a ? displayAlg(a) : "",
@@ -978,7 +1030,7 @@ function AlgStage({ c, i, mine, choices, cube, phone }: { c: any; i: number; min
           <p className={cn(LABEL, "font-bold tracking-wide uppercase")}>{tr("Algorithm {0} of {1}", { 0: i + 1, 1: c.algorithms.length })}</p>
           <AlgFacts a={a} cube={onCube(c)} choices={choices} full />
         </div>
-        <ActionToggle
+        {own && <ActionToggle
           action={`learnAlg:${c.id}:${i}`}
           pressed={mine}
           icon={Check}
@@ -986,7 +1038,7 @@ function AlgStage({ c, i, mine, choices, cube, phone }: { c: any; i: number; min
           className={cn("text-muted-foreground aria-pressed:bg-success/15 aria-pressed:text-success", phone && "flex-1")}
         >
           {tr("I use it")}
-        </ActionToggle>
+        </ActionToggle>}
       </div>
     </section>
   );

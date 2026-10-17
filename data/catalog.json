@@ -142983,6 +142983,52 @@
     "scrambles": [
      "normal"
     ]
+   },
+   {
+    "id": "r234",
+    "label": "2–4 relay",
+    "cubeSize": null,
+    "twisty": "",
+    "scrambles": [
+     "normal"
+    ],
+    "relay": [
+     "222",
+     "333",
+     "444"
+    ]
+   },
+   {
+    "id": "r2345",
+    "label": "2–5 relay",
+    "cubeSize": null,
+    "twisty": "",
+    "scrambles": [
+     "normal"
+    ],
+    "relay": [
+     "222",
+     "333",
+     "444",
+     "555"
+    ]
+   },
+   {
+    "id": "r234567",
+    "label": "2–7 relay",
+    "cubeSize": null,
+    "twisty": "",
+    "scrambles": [
+     "normal"
+    ],
+    "relay": [
+     "222",
+     "333",
+     "444",
+     "555",
+     "666",
+     "777"
+    ]
    }
   ],
   "scrambles": [
@@ -143302,6 +143348,24 @@
     "id": "clock",
     "label": "Clock",
     "puzzle": "clock",
+    "solveMode": "standard"
+   },
+   {
+    "id": "r234",
+    "label": "2–4 relay",
+    "puzzle": "r234",
+    "solveMode": "standard"
+   },
+   {
+    "id": "r2345",
+    "label": "2–5 relay",
+    "puzzle": "r2345",
+    "solveMode": "standard"
+   },
+   {
+    "id": "r234567",
+    "label": "2–7 relay",
+    "puzzle": "r234567",
     "solveMode": "standard"
    }
   ]

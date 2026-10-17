@@ -10,7 +10,7 @@ import { ScrollView, View } from "react-native";
 import { useSetAtom } from "jotai";
 import { FMC_LIMIT_MS, fmcResult, readFmcSolution, type FmcResult } from "../../../src/client/lib/fewestMoves";
 import { mbldValue, numberedScrambles, scrambleList, wcaResult } from "../../../src/client/lib/wca";
-import { eventOf, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { eventOf, puzzleInfo, relayOf, scrambleLabel, type PracticeContext, type PuzzleId } from "../../../src/shared/puzzles";
 import { said, tr } from "../../../src/client/i18n";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -89,10 +89,12 @@ export function MultiBlindResult({ ms, cubes, onSave, onCancel, disabled }: { ms
 }
 
 /** A Multi-Blind attempt's scrambles, one a line, numbered. */
-export function ScrambleLines({ text, size }: { text: string; size: number }) {
+export function ScrambleLines({ text, size, puzzle }: { text: string; size: number; puzzle?: PuzzleId }) {
+  // A relay's scrambles are named by their puzzle.
+  const relay = puzzle && relayOf(puzzle);
   return <View className="gap-1.5">
     {scrambleList(text).map((scramble, i) => <View key={i} className="flex-row items-baseline gap-2">
-      <Numeric className="w-6 text-right text-muted-foreground" style={{ fontSize: size * 0.8 }}>{i + 1}.</Numeric>
+      <Numeric className={cn("text-right text-muted-foreground", relay ? "w-8" : "w-6")} style={{ fontSize: size * 0.8 }}>{relay?.[i] ? said(puzzleInfo(relay[i]).label) : `${i + 1}.`}</Numeric>
       <Alg text={scramble} size={size} className="flex-1" />
     </View>)}
   </View>;
@@ -111,7 +113,7 @@ export function ScrambleExportSheet({ open, onClose, context }: { open: boolean;
     // A Multi-Blind attempt's own scrambles are 3×3 blindfolded ones: one a line, as for the other events.
     const one = { ...context, solveMode: context.solveMode === "multi-blind" ? "blindfolded" as const : context.solveMode };
     void Promise.all(Array.from({ length: count }, () => generatePracticeScramble(one)))
-      .then(list => { if (live) setText(numberedScrambles(list)); }, error => toast({ title: (error as Error).message }));
+      .then(list => { if (live) setText(numberedScrambles(list, relayOf(context.puzzle)?.map(p => puzzleInfo(p).label))); }, error => toast({ title: (error as Error).message }));
     return () => { live = false; };
   }, [open, count, context]);
   const file = text && `${tr(event?.label ?? context.puzzle)}${kind}\n\n${text}\n`;

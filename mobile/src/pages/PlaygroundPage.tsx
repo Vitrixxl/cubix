@@ -11,7 +11,7 @@ import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMI
 import { mbldLimitMs, mbldValue, scrambleList } from "../../../src/client/lib/wca";
 import type { AddSolveBody } from "../../../src/client/api-client";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
-import { attemptMode, contextKey, eventOf, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { attemptMode, contextKey, eventOf, heldScramble, puzzleInfo, relayOf, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -279,7 +279,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
       ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
       : generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
       // A Multi-Blind attempt's scrambles scroll: many cubes outgrow the card.
-      : multi ? <ScrollView nestedScrollEnabled><ScrambleLines text={scramble} size={Math.min(promptFont, 16)} /></ScrollView>
+      : multi || relayOf(context.puzzle) ? <ScrollView nestedScrollEnabled><ScrambleLines text={scramble} size={Math.min(promptFont, 16)} puzzle={context.puzzle} /></ScrollView>
       : <Alg text={scramble} size={promptFont} />}
   </View>;
   const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool } from "../src/client/lib/trainingPicks";
+import { caseDue, dueCases, nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool } from "../src/client/lib/trainingPicks";
 import { algScene } from "../src/client/lib/algPlayer";
 import { caseWithAuf } from "../src/client/lib/caseState";
 import { AUFS, applyAlg, invertAlg, solved } from "../src/shared/cube";
@@ -98,4 +98,26 @@ test("a recognition's case shows other colours with each AUF and way it is held,
   expect(grey(1)).toBe(grey(0));
   // Each way of holding it comes up.
   expect(new Set([0, 0.3, 0.6, 0.9].map((n) => recognitionTurn(() => n)))).toEqual(new Set([0, 1, 2, 3]));
+});
+
+test("a case comes back later each time it is done well when due, at once when done badly", () => {
+  const at = (day: number, hour = 12) => new Date(2026, 0, day, hour).toISOString();
+  const midnight = (day: number) => new Date(2026, 0, day).toISOString();
+  expect(caseDue([])).toBe(new Date(0).toISOString());
+  expect(caseDue([{ time: 2000, at: at(1) }])).toBe(midnight(2));
+  // Done well again before it is due: nothing moves.
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: 1500, at: at(1, 18) }])).toBe(midnight(2));
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: 2000, at: at(2) }])).toBe(midnight(5));
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: 2000, at: at(2) }, { time: 2000, at: at(5) }])).toBe(midnight(12));
+  // A DNF, or much slower than its pace, when due: from the first box, due at once, then a day once done well.
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: null, at: at(2) }])).toBe(at(2));
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: 3000, at: at(2) }])).toBe(at(2));
+  expect(caseDue([{ time: 2000, at: at(1) }, { time: 3000, at: at(2) }, { time: 2000, at: at(2, 13) }])).toBe(midnight(3));
+});
+
+test("the cases due are the learned ones never trained or due by now", () => {
+  const cases = [{ id: "a", set: "pll" }, { id: "b", set: "pll" }, { id: "c", set: "pll" }, { id: "d", set: "pll" }];
+  const now = Date.parse("2026-01-10T12:00:00Z");
+  const stats = [{ caseId: "a", dueAt: "2026-01-09T00:00:00Z" }, { caseId: "b", dueAt: "2026-01-11T00:00:00Z" }];
+  expect(dueCases(cases, new Set(["a", "b", "c"]), stats, now)).toEqual(["a", "c"]);
 });

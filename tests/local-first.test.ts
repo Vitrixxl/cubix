@@ -3,7 +3,7 @@ import { createLocalClient } from "../src/client/local/client";
 import { createApiClient } from "../src/client/api-client";
 import { startApi, openDb } from "./backend";
 import { history } from "../src/client/local/stats";
-import type { SolveDto } from "../src/shared/types";
+import type { CaseStatsDto, SolveDto } from "../src/shared/types";
 import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
 import { cases } from "../src/client/local/catalog";
 import { puzzleOf } from "../src/shared/puzzles";
@@ -18,6 +18,8 @@ class Storage {
   removeItem(key: string) { this.values.delete(key); }
 }
 const cleanup: (()=>void)[] = [];
+/** A case's summary as the server makes it: when it is due for review is worked out on the device only. */
+const served = ({ dueAt: _, ...summary }: CaseStatsDto) => summary;
 afterEach(() => cleanup.splice(0).forEach(fn => fn()));
 function setup() {
   const db = openDb(); const server = startApi(db.path);
@@ -241,7 +243,7 @@ test("local WCA statistics match the server, and the embedded catalogue matches 
   for (let i=0;i<15;i++) await a.api.addSolve({caseId:"PLL Aa",timeMs:1000+i*100,penalty:i===4||i===5?"dnf":i===8?"+2":"none"});
   const local = await a.api.caseHistory("PLL Aa"); await a.local.sync();
   const server = await remote(auth.token).caseHistory("PLL Aa");
-  expect(local.summary).toEqual(server.summary); expect(local.ao5).toEqual(server.ao5); expect(local.ao12).toEqual(server.ao12);
+  expect(served(local.summary)).toEqual(server.summary); expect(local.ao5).toEqual(server.ao5); expect(local.ao12).toEqual(server.ao12);
   expect(await a.api.cases()).toEqual(await remote(null).cases()); expect(await a.api.sets()).toEqual(await remote(null).sets());
 });
 
@@ -406,7 +408,7 @@ test('niche training sessions, case statistics and modes survive guest import an
     expect((await b.api.caseHistory(c.id)).summary.best).toBe(1000);
     const local=await b.api.profile(auth.user.username,undefined,puzzle,context);
     const server=await remote(auth.token).stats(puzzle,context);
-    expect(local.trainingSolves).toBe(1);expect(local.cases.map(c=>c.summary)).toEqual(server);
+    expect(local.trainingSolves).toBe(1);expect(local.cases.map(c=>served(c.summary))).toEqual(server);
   }
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(puzzles.length*2);
 });

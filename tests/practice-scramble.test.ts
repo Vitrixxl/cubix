@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { scrambler } from "./scrambler";
 import { generatePracticeScramble as generate, type ScrambleEngine } from "../src/client/lib/practiceScrambleCore";
 import { applyAlg, colorOf, slotsFor, solved } from "../src/shared/cube";
-import { type PracticeContext, type ScrambleType, contextOf, validContext } from "../src/shared/puzzles";
+import { PUZZLES, type PracticeContext, type ScrambleType, contextOf, validContext } from "../src/shared/puzzles";
+import { numberedScrambles } from "../src/client/lib/wca";
 
 const generatePracticeScramble = (context: PracticeContext, engine: ScrambleEngine = scrambler) => generate(context, engine);
 
@@ -64,4 +65,14 @@ test("Normal uses the WCA event generator for every puzzle and solve mode", asyn
   await generatePracticeScramble({ puzzle: "333", solveMode: "one-handed", scrambleType: "normal" }, engine);
   expect(events.slice(-4)).toEqual(["333bf", "444bf", "555bf", "333oh"]);
   for (const scramble_type of ["competition", "random-moves"] as const) expect(contextOf({ scramble_type }).scrambleType).toBe("normal");
+});
+
+test("a relay scrambles each of its puzzles in turn, a line each, numbered on a sheet under its puzzles' names", async () => {
+  const asked: string[] = [];
+  const engine: ScrambleEngine = { ...scrambler, randomScrambleForEvent: async (event) => (asked.push(event), `${event} scramble`) };
+  expect(validContext({ puzzle: "r234", solveMode: "standard", scrambleType: "normal" })).toBe(true);
+  expect(await generatePracticeScramble({ puzzle: "r234", solveMode: "standard", scrambleType: "normal" }, engine)).toBe("222 scramble\n333 scramble\n444 scramble");
+  expect(asked).toEqual(["222", "333", "444"]);
+  expect(numberedScrambles(["R U\nR2 U2", "F\nB"], ["2×2", "3×3"])).toBe("1.\n   2×2: R U\n   3×3: R2 U2\n2.\n   2×2: F\n   3×3: B");
+  expect(PUZZLES.some((p) => p.id === "r234")).toBe(false);
 });

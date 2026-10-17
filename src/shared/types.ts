@@ -137,6 +137,8 @@ export interface CaseStatsDto {
   lastAt: string | null;
   /** Blindfolded: the mean memorisation, when solves have one. */
   memo?: number | null;
+  /** When the case is due for review (spaced repetition, `caseDue`); read on the device only. */
+  dueAt?: string;
 }
 
 export interface HistoryPoint {

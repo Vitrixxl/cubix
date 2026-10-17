@@ -3961,5 +3961,17 @@
  "Turn each corner to 12, one pin up at a time. Each corner dial is linked to the one behind it, so both sides finish together.": "Tourne chaque coin sur 12, un pin levé à la fois. Chaque cadran de coin est lié à celui de derrière, donc les deux côtés finissent ensemble.",
  "Turning over": "Retournement",
  "Use pin settings to bring the four edge dials to the same time as the centre, then turn the whole cross to 12.": "Utilise les réglages de pins pour amener les quatre cadrans d'arête à la même heure que le centre, puis tourne toute la croix sur 12.",
- "With one pin up, the wheel next to it turns that corner alone.": "Avec un pin levé, la molette à côté tourne ce coin seul."
+ "With one pin up, the wheel next to it turns that corner alone.": "Avec un pin levé, la molette à côté tourne ce coin seul.",
+ "2–4 relay": "Relais 2–4",
+ "2–5 relay": "Relais 2–5",
+ "2–7 relay": "Relais 2–7",
+ "Come back tomorrow": "Reviens demain",
+ "due today": "à revoir aujourd'hui",
+ "Left hand": "Main gauche",
+ "Nothing left to review today": "Plus rien à revoir aujourd'hui",
+ "Nothing to review today": "Rien à revoir aujourd'hui",
+ "Print": "Imprimer",
+ "Revision": "Révision",
+ "The mirror of the other cases' algorithms that solve this one": "Le miroir des algorithmes des autres cas qui résolvent celui-ci",
+ "Revision trains the learned cases due today, so each one comes back just before you would forget it. A case you have never trained is due. Each attempt made when it is due moves it on: done well (no DNF, at most a fifth slower than the mean of its last 12 attempts) it comes back 1 day later, then 3, 7, 14, 30, 60 and 120 days; done badly it is due again at once, from 1 day. Attempts in the other trainings count too, but one made before the case is due changes nothing. A case done well leaves the session, until nothing is left to review today.": "Révision entraîne les cas appris à revoir aujourd'hui, pour que chacun revienne juste avant que tu l'oublies. Un cas jamais entraîné est à revoir. Chaque essai fait quand il est dû le fait avancer : réussi (sans DNF, au plus un cinquième plus lent que la moyenne de ses 12 derniers essais), il revient 1 jour plus tard, puis 3, 7, 14, 30, 60 et 120 jours ; raté, il est à revoir tout de suite et repart de 1 jour. Les essais des autres entraînements comptent aussi, mais un essai fait avant que le cas soit dû ne change rien. Un cas réussi quitte la session, jusqu'à ce qu'il ne reste plus rien à revoir aujourd'hui."
 }

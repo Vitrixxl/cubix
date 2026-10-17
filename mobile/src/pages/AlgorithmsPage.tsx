@@ -1,13 +1,13 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import {
-  BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CirclePlay, Grid3x3, LayoutGrid, List, ListChecks, Plus, Search, SearchX, SlidersHorizontal, SquareCheckBig, Timer, Trash2, Video, X,
+  BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CirclePlay, FlipHorizontal2, Grid3x3, LayoutGrid, List, ListChecks, Plus, Search, SearchX, SlidersHorizontal, SquareCheckBig, Timer, Trash2, Video, X,
   type LucideIcon,
 } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { BackHandler, FlatList, Linking, PanResponder, Pressable, ScrollView, View } from "react-native";
 import { caseContext, groupBySet, groupCases, searchCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
-import { moveCount } from "../../../src/client/lib/caseState";
+import { leftHandAlgs, moveCount } from "../../../src/client/lib/caseState";
 import { algScene, polyAlgScene } from "../../../src/client/lib/algPlayer";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
@@ -35,7 +35,7 @@ import { useTourTarget } from "../tour";
 import { casePlayItem, displayAlg, maskForStage, shortId } from "../lib/caseState";
 import { storage } from "../platform/storage";
 import {
-  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, ownAlgsAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
+  casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, leftHandAtom, ownAlgsAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
   solveModeAtom, statsAtom, statsVersionAtom, type Route,
 } from "../state";
 import type { OwnAlgs as OwnAlgsByCase } from "../../../src/client/lib/bld";
@@ -843,7 +843,7 @@ function useChoices(id: string, chosen: string[]) {
 }
 
 /** An algorithm of a case: one of the catalogue's (`entry`, its number `index`) or one the player wrote (`own`). */
-type AlgItem = { key: string; text: string; alg: string; entry?: AlgEntry; index?: number; own?: boolean };
+type AlgItem = { key: string; text: string; alg: string; entry?: AlgEntry; index?: number; own?: boolean; mirrored?: boolean };
 
 /** The faces an algorithm turns (R U, R U F…) and whether it rotates the cube. */
 function turns(alg: string) {
@@ -888,12 +888,15 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   const setOwn = (next: OwnAlgs) => setOwnAll(all => ({ ...all, [c.id]: next }));
   const choices = useChoices(c.id, chosen);
   const play = casePlayItem(c), cube = !!play && !play.puzzle;
-  const items: AlgItem[] = [
+  // A last layer case's left-hand algorithms: the mirror of its stage's, listed and played in place of its own.
+  const mirrored = useMemo(() => leftHandAlgs(c, local.read.catalog("333").cases.filter(v => v.stage === c.stage)), [c]);
+  const [leftHand, setLeftHand] = useAtom(leftHandAtom), left = leftHand && !!mirrored?.length;
+  const items: AlgItem[] = left ? mirrored!.map((a, i) => ({ key: `m${i}`, text: displayAlg(a), alg: a.alg, index: i, mirrored: true })) : [
     ...c.algorithms.map((a, i) => ({ key: `a${i}`, text: displayAlg(a), alg: a.alg, entry: a, index: i })),
     ...own.algs.map(alg => ({ key: `own:${alg}`, text: alg, alg, own: true })),
   ];
   const usedOwn = learned ? own.used : [];
-  const isUsed = (item: AlgItem) => item.own ? usedOwn.includes(item.alg) : chosen.includes(item.alg);
+  const isUsed = (item: AlgItem) => !item.mirrored && (item.own ? usedOwn.includes(item.alg) : chosen.includes(item.alg));
   const used = items.filter(isUsed);
   const [shown, setShown] = useState<string | null>(null), [tapped, setTapped] = useState(false);
   const current = items.find(item => item.key === shown) ?? used[0] ?? items[0];
@@ -903,7 +906,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     void api.setLearned(c.id, algs.length + ownUsed.length > 0, algs).catch(() => { /* Reported by the sync indicator. */ });
   };
   // Choosing an algorithm makes it the one used.
-  const choose = (item: AlgItem) => { save(item.own ? [] : [item.alg], item.own ? [item.alg] : []); show(item); };
+  const choose = (item: AlgItem) => { if (!item.mirrored) save(item.own ? [] : [item.alg], item.own ? [item.alg] : []); show(item); };
   // "I use it" adds or drops one: several may be used, as on the web.
   const toggleUse = (item: AlgItem) => {
     const on = isUsed(item);
@@ -944,6 +947,11 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
         {on && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
       </Pressable>;
     })}
+    {tab === "algorithms" && !!mirrored?.length && <Pressable onPress={() => setLeftHand(v => !v)} accessibilityRole="switch" accessibilityState={{ checked: left }}
+      className="ml-auto h-11 flex-row items-center gap-1.5">
+      <Icon as={FlipHorizontal2} size={16} className={left ? "text-primary" : "text-muted-foreground"} />
+      <Text className={cn("text-[15px] font-bold", left ? "text-primary" : "text-muted-foreground")}>{tr("Left hand")}</Text>
+    </Pressable>}
   </View>;
   const head = <>{ident}{actions}{tabs}</>;
   const others = items.length - used.length;
@@ -953,7 +961,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   // A phone keeps under the player the algorithms used, if any, then the drawer's button: choosing one, adding one's
   // own and what each tells apart wait there.
   const algorithms = <View className="gap-1 px-4 pt-3 pb-4">
-    {current ? <AlgStage key={current.key} c={c} item={current} items={c.algorithms.length} used={isUsed(current)} choices={choices} autoplay={tapped} onUse={() => toggleUse(current)} /> : null}
+    {current ? <AlgStage key={current.key} c={c} item={current} items={left ? items.length : c.algorithms.length} used={isUsed(current)} choices={left ? null : choices} autoplay={tapped} onUse={() => toggleUse(current)} /> : null}
     {used.length > 0 && <Caption className="px-1 pt-3 pb-1">{tr("You use")}</Caption>}
     {used.map(item => <AlgRow key={item.key} item={item} cube={cube} used here={item.key === current?.key} onPress={() => show(item)} />)}
     {items.length > 0 && <Pressable onPress={() => setDrawer(true)} accessibilityRole="button"
@@ -984,7 +992,7 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
   if (tablet) {
     // A tablet keeps the player above the tabs, the case's key times over it and every algorithm listed (a tap plays
     // one, "I use it" keeps it); a wide screen puts the player beside them.
-    const stage = current ? <AlgStage key={current.key} c={c} item={current} items={c.algorithms.length} used={isUsed(current)} choices={choices} autoplay={tapped}
+    const stage = current ? <AlgStage key={current.key} c={c} item={current} items={left ? items.length : c.algorithms.length} used={isUsed(current)} choices={left ? null : choices} autoplay={tapped}
       onUse={() => toggleUse(current)} cube={Math.round(wide ? Math.min(220, height * 0.3) : Math.min(270, height * 0.24))} /> : null;
     const summary = history.summary;
     const keyTimes = count > 0 ? <View className="flex-row rounded-xl bg-muted/45 px-3 py-3">
@@ -1072,11 +1080,11 @@ function AlgStage({ c, item, items, used, choices, autoplay, onUse, cube: given 
         </Text>}
         <View className="min-w-0 flex-1"><AlgFacts item={item} cube={!!play && !play.puzzle} choices={choices} full /></View>
       </View>
-      <Pressable onPress={onUse} accessibilityRole="switch" accessibilityState={{ checked: used }}
+      {!item.mirrored && <Pressable onPress={onUse} accessibilityRole="switch" accessibilityState={{ checked: used }}
         className={cn("h-10 flex-row items-center gap-1.5 rounded-xl px-3", used ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
         <Icon as={Check} size={16} className={used ? "text-success" : "text-muted-foreground"} />
         <Text className={cn("text-sm font-bold", used ? "text-success" : "text-muted-foreground")}>{tr("I use it")}</Text>
-      </Pressable>
+      </Pressable>}
     </View>
   </View>;
 }

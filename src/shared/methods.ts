@@ -213,6 +213,10 @@ function bigCube(size: 4 | 5 | 6 | 7): SolvingMethod[] {
 }
 
 export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
+  // A relay is solved puzzle by puzzle: no method of its own.
+  r234: [],
+  r2345: [],
+  r234567: [],
   "333": [
     {
       id: "beginner", name: "Beginner", level: "beginner",

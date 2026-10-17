@@ -16,6 +16,7 @@ import { download, store as s } from "./store";
 import { Alg, Digits, Segmented, said } from "./base";
 import { NUMERIC } from "./ui";
 import { tr } from "../../src/client/i18n";
+import { puzzleInfo, relayOf, type PuzzleId } from "../../src/shared/puzzles";
 
 /** Minutes and seconds left, as a countdown shows them: 59:07. */
 const countdown = (ms: number) => {
@@ -116,14 +117,15 @@ export function MultiBlindResult() {
   );
 }
 
-/** A Multi-Blind attempt's scrambles, one a line, numbered. */
-export function ScrambleLines({ text, size }: { text: string; size: number }) {
+/** A Multi-Blind attempt's scrambles, one a line, numbered; a relay's (`puzzle`), each named by its puzzle. */
+export function ScrambleLines({ text, size, puzzle }: { text: string; size: number; puzzle?: string }) {
+  const relay = puzzle ? relayOf(puzzle as PuzzleId) : undefined;
   return (
     <ol className="flex flex-col gap-1.5">
       {scrambleList(text).map((scramble, i) => (
         <li key={i} className="flex items-baseline gap-3">
-          <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-muted-foreground")} style={{ fontSize: size * 0.8 }}>
-            {i + 1}.
+          <span className={cn(NUMERIC, "shrink-0 text-right text-muted-foreground", relay ? "w-9" : "w-7")} style={{ fontSize: size * 0.8 }}>
+            {relay?.[i] ? said(puzzleInfo(relay[i]).label) : `${i + 1}.`}
           </span>
           <Alg text={scramble} size={size} />
         </li>
@@ -146,7 +148,7 @@ export function ScrambleExport() {
     // A Multi-Blind attempt's own scrambles are 3×3 blindfolded ones: one a line, as for the other events.
     const context = s.context();
     void Promise.all(Array.from({ length: count }, () => call("scramble", context) as Promise<string>))
-      .then((list) => live && setText(numberedScrambles(list)))
+      .then((list) => live && setText(numberedScrambles(list, relayOf(context.puzzle as PuzzleId)?.map((p) => puzzleInfo(p).label))))
       .catch(s.fail);
     return () => void (live = false);
   }, [count]);

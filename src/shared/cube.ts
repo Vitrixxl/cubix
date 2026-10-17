@@ -228,6 +228,28 @@ export function reorientAlgY2(alg: string): string {
     .join(" ");
 }
 
+const MIRROR_MOVE_MAP: Record<string, string> = { R: "L", L: "R", r: "l", l: "r" };
+const MIRROR_KEEPS_DIRECTION = new Set(["M", "x"]);
+
+/**
+ * An algorithm seen in a mirror standing on the M slice (left and right swapped): R and L swap, and every turn goes the
+ * other way but M and x, which turn the same way as the mirrored R and L. It solves the mirrored case.
+ */
+export function mirrorAlg(alg: string): string {
+  return expandAlg(alg)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => {
+      const prefix = /^(\d+)(?=[UDFBRL])/.exec(token)?.[1] ?? "";
+      const match = TOKEN_RE.exec(token.slice(prefix.length));
+      if (!match) throw new Error(`Unknown move token: "${token}" in "${alg}"`);
+      const letter = match[1];
+      const mapped = `${prefix}${MIRROR_MOVE_MAP[letter] ?? letter}${match[2] ?? ""}${match[3] ?? ""}${match[4] ?? ""}${match[5] ?? ""}`;
+      return MIRROR_KEEPS_DIRECTION.has(letter) ? mapped : invertToken(mapped);
+    })
+    .join(" ");
+}
+
 // ---------------------------------------------------------------------------
 // Applying moves
 // ---------------------------------------------------------------------------
