@@ -27,12 +27,12 @@ export function activityOf(profile: { playground?: { history?: Timed[] }; cases?
 /** The latest date of the activity, or null without any. */
 export const latestOf = (activity: readonly ActivitySolve[]) => activity.reduce<string | null>((max, v) => (!max || v.at > max ? v.at : max), null);
 
-/** Consecutive active days: the run reaching today (or yesterday, still alive) and the longest one. */
-export function streaks(activity: readonly ActivitySolve[]) {
+/** Consecutive active days: the run reaching today (or yesterday, still alive), the longest one, and whether today is in it. */
+export function streaks(activity: readonly { at: string }[]) {
   const days = new Set(activity.map((v) => dayKey(new Date(v.at))));
   const today = new Date();
-  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate()), practised = days.has(dayKey(d));
+  if (!practised) d.setDate(d.getDate() - 1);
   let current = 0;
   while (days.has(dayKey(d))) {
     current++;
@@ -48,7 +48,7 @@ export function streaks(activity: readonly ActivitySolve[]) {
     previous = t;
     longest = Math.max(longest, run);
   }
-  return { current, longest };
+  return { current, longest, today: practised };
 }
 
 /** Per stage of the cases: how many there are, how many are learned and how many were trained. */

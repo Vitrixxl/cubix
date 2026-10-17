@@ -9,6 +9,7 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases, sets } from "./catalog";
 import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
+import { dayKey, streaks } from "../lib/profile";
 import { sessionSummaries } from "../lib/sessions";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
 import { resultFields } from "../lib/format";
@@ -462,6 +463,8 @@ export function createLocalClient(options: {
       return sessionSummaries(ordered().filter(s => !s.case_id && matchesPractice(s,cubeSize,filter)), workspace.sessions, own.map(s => s.id)).reverse();
     }),
     achievements: () => derived("achievements", () => achievements(ordered(), learnedIds(), { cases, sets })),
+    /** The days in a row with a solve (`streaks`), for the reminders: read again each day. */
+    streak: () => derived("streak" + dayKey(new Date()), () => streaks(ordered().map(s => ({ at: s.created_at })))),
     /** A solve of any session, by its id. */
     solve: (id: number) => { const solve = data().solves[id]; return solve && !solve.deleted ? solve : null; },
   };

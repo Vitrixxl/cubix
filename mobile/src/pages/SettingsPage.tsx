@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, BookOpen, Check, CircleHelp, Coffee, Download, Languages, LogIn, LogOut, Monitor, Moon, Pencil, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
+import { Bell, BookA, BookOpen, Check, CircleHelp, Coffee, Download, Languages, LogIn, LogOut, Monitor, Moon, Pencil, Sun, Trash2, Upload, type LucideIcon } from "lucide-react-native";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { LEGAL_DOCUMENTS } from "../../../src/client/lib/legal";
@@ -24,7 +24,7 @@ import { useLayout } from "../hooks/useLayout";
 import { exportData } from "../lib/files";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
-import { colorModeAtom, guestModeAtom, guidesAtom, notationAtom, themeAtom, userAtom } from "../state";
+import { colorModeAtom, guestModeAtom, guidesAtom, notationAtom, remindersAtom, themeAtom, userAtom } from "../state";
 import { said, tr } from "../../../src/client/i18n";
 
 /**
@@ -49,7 +49,7 @@ export function SettingsPage() {
     <View className="min-w-0 flex-1">
       {head}
       <ScrollView className="flex-1" contentContainerClassName="flex-row gap-3 px-7 pb-4" showsVerticalScrollIndicator={false}>
-        <View className="flex-1 gap-2.5"><Appearance /><LanguageChoice /></View>
+        <View className="flex-1 gap-2.5"><Appearance /><LanguageChoice /><RemindersGroup /></View>
         <View className="flex-1 gap-2.5"><Data /></View>
       </ScrollView>
     </View>
@@ -68,6 +68,7 @@ export function SettingsPage() {
       <Account />
       <Appearance />
       <LanguageChoice />
+      <RemindersGroup />
       <View className="flex-row gap-3">
         <View className="flex-1 gap-2.5"><Data /></View>
         <View className="flex-1 gap-2.5"><Help /></View>
@@ -82,6 +83,7 @@ export function SettingsPage() {
       <Account />
       <Appearance />
       <LanguageGroup />
+      <RemindersGroup />
       <Data />
       <Help />
       <Legal />
@@ -182,6 +184,15 @@ function Appearance() {
         })}
       </View>
     </View>
+  </Group>;
+}
+
+/** The day's reminders, on or off (`lib/reminders`). */
+function RemindersGroup() {
+  const [on, setOn] = useAtom(remindersAtom);
+  return <Group title={tr("Reminders")}>
+    <ChoiceRow first icon={Bell} title={tr("The cases to review and the streak at stake")} value={on ? "on" : "off"} onChange={id => setOn(id === "on")}
+      options={[{ id: "on", label: tr("Once a day") }, { id: "off", label: tr("Never") }]} />
   </Group>;
 }
 

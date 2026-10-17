@@ -9,7 +9,7 @@ import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtValue, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
-import { periodFigures, singleRecords, solveTone, timerFigures, type PeriodFigure } from "../../src/client/lib/practiceSummary";
+import { periodFigures, periodSpread, singleRecords, SPREAD_LABEL, solveTone, timerFigures, type PeriodFigure, type SpreadFigure } from "../../src/client/lib/practiceSummary";
 import { Back, Button, Choice, Empty, MenuChoice, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
 import { InHead, MoreMenu, StatCard, Stats, dots, useViewport } from "./base";
 import { TONE_TEXT } from "../../src/client/lib/tone";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { tr } from "../../src/client/i18n";
+import { msg } from "../../src/client/i18n/msg";
 import { said } from "./base";
 import { VirtualList } from "./virtual";
 
@@ -166,6 +167,9 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
   const [solveRange, setSolveRange] = useState<ChartRange>([0, history.length - 1]);
   const [sessionRange, setSessionRange] = useState<ChartRange>([0, Math.max(0, sessions.length - 1)]);
   const [metric, setMetric] = useState<SessionMetric>("mean");
+  // The curve, or how the period's times spread beside the solves before it (Multi-Blind's points have no spread).
+  const [view, setView] = useState("curve");
+  const spread = view === "spread" && s.profileSolveMode !== "multi-blind";
   const viewport = useViewport(),
     narrow = viewport.w < 1100,
     // A short window keeps the curve as a tab of its own, beside the list, the figures and the records.
@@ -187,7 +191,7 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
   // Long periods draw the Ao50: the Ao5 would hide the trend under its noise.
   const long = solveRange[1] - solveRange[0] > 300;
   const sessionLabel = (x: any) => (x ? (x.name ? `${x.name} · ${shortDate(x.at)}` : sessionName(x, event)) : "");
-  const chart = perSession ? (
+  const chart = spread ? <SpreadChart history={history} range={range} /> : perSession ? (
     <HistoryChart
       history={sessions.map((x) => ({ time: x[metric], at: x.at, displayDate: sessionLabel(x) }))}
       averages={[]}
@@ -215,7 +219,12 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
     />
   );
   const blind = history.some((v) => v.memoMs != null);
-  const legend = perSession
+  const legend = spread
+    ? [
+        ["size-2.5 rounded-[3px] bg-chart-1", "this period"],
+        ["size-2.5 rounded-[3px] border border-dashed border-muted-foreground", msg("the solves before")],
+      ]
+    : perSession
     ? [
         ["h-0.5 w-4 bg-chart-1", METRIC_LEGEND[metric]],
         ["size-2 rounded-full bg-success", "best session"],
@@ -242,8 +251,9 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
   );
   const chartCard = (
     <Surface className={cn(CARD, "pb-3")} aria-label={tr("Chart")}>
-      <CardHead title={perSession ? "One value per session" : "All solves"}>
-        {perSession && <SelectMenu action="sessionMetric" label="Figure per session" variant="ghost" onChange={(id) => setMetric(id as SessionMetric)} value={metric} options={[...SESSION_METRICS]} className={stacked ? "ml-auto" : undefined} />}
+      <CardHead title={spread ? "Spread" : perSession ? "One value per session" : "All solves"}>
+        {s.profileSolveMode !== "multi-blind" && <Segmented label={tr("Chart")} value={view} onChange={setView} action="statsView:" options={[{ id: "curve", label: tr("Curve") }, { id: "spread", label: tr("Spread") }]} className="shrink-0 bg-muted/60" />}
+        {perSession && !spread && <SelectMenu action="sessionMetric" label="Figure per session" variant="ghost" onChange={(id) => setMetric(id as SessionMetric)} value={metric} options={[...SESSION_METRICS]} className={stacked ? "ml-auto" : undefined} />}
         {!stacked && legendRow}
       </CardHead>
       {stacked && legendRow}
@@ -284,6 +294,63 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
         {figures}
         {records}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The period's times as columns, the as many solves just before it dashed behind them, and the four figures of both: the
+ * gap in mint when the period is faster or steadier.
+ */
+function SpreadChart({ history, range }: { history: any[]; range: ChartRange }) {
+  const spread = useMemo(() => periodSpread(history, range), [history, range]);
+  const max = Math.max(1, ...spread.now, ...spread.before),
+    edge = (i: number) => fmtTime(spread.from + i * spread.width),
+    sparse = spread.now.length > 9;
+  const value = (f: SpreadFigure, v: number | null) => (v == null ? "–" : f.id === "dnf" ? Math.round(v * 100) + " %" : fmtTime(v));
+  return (
+    <div className="flex min-h-40 flex-1 flex-col gap-3">
+      <div className="grid shrink-0 grid-cols-4 gap-3">
+        {spread.figures.map((f) => {
+          const gap = f.now != null && f.before != null && Number.isFinite(f.now - f.before) ? f.now - f.before : null;
+          return (
+            <div key={f.id} className="min-w-0 rounded-[12px] bg-muted/50 px-3 py-2">
+              <span className="block truncate text-xs font-semibold text-muted-foreground">{tr(SPREAD_LABEL[f.id])}</span>
+              <span className={cn(NUMERIC, "flex items-baseline gap-2 whitespace-nowrap")}>
+                <b className="text-lg font-extrabold">{value(f, f.now)}</b>
+                {gap != null && Math.abs(gap) > 1e-9 && (
+                  <small className={cn("text-xs font-bold", gap < 0 ? "text-success" : "text-destructive")}>{f.id === "dnf" ? (gap < 0 ? "−" : "+") + Math.round(Math.abs(gap) * 100) + " %" : signed(gap)}</small>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <figure className="flex min-h-0 flex-1 flex-col gap-1" data-slot="spread-chart">
+        <figcaption className="sr-only">{tr("How the times of the period spread")}</figcaption>
+        <div className="flex min-h-0 flex-1 items-end gap-1 border-b border-border">
+          {spread.now.map((n, i) => {
+            const before = spread.before[i]!,
+              range = `${edge(i)} – ${i === spread.now.length - 1 ? "…" : edge(i + 1)}`,
+              line = `${range} · ${plural(n, "solve")}${spread.beforeCount ? ` · ${tr("before")} ${before}` : ""}`;
+            return (
+              <Tip key={i} content={<span className={NUMERIC}>{line}</span>} side="top">
+                <div role="img" aria-label={line} className="group/bar relative flex h-full min-w-0 flex-1 items-end justify-center">
+                  {!!before && <i className="absolute inset-x-0 bottom-0 rounded-t-[5px] border-2 border-b-0 border-dashed border-muted-foreground/50" style={{ height: `${(before / max) * 100}%` }} />}
+                  <i className="relative w-[64%] rounded-t-[5px] bg-chart-1 transition-opacity group-hover/bar:opacity-80" style={{ height: `${(n / max) * 100}%`, minHeight: n ? 3 : 0 }} />
+                </div>
+              </Tip>
+            );
+          })}
+        </div>
+        <div className="flex shrink-0 gap-1" aria-hidden="true">
+          {spread.now.map((_, i) => (
+            <span key={i} className={cn(NUMERIC, "min-w-0 flex-1 truncate text-center text-[11px] font-semibold text-muted-foreground")}>
+              {!sparse || i % 2 === 0 ? edge(i) : ""}
+            </span>
+          ))}
+        </div>
+      </figure>
     </div>
   );
 }

@@ -216,3 +216,41 @@ export function singleRecords(history: readonly Timed[]) {
   });
   return out.reverse();
 }
+
+/** One figure of a period against the one before it: the mean, the median, the spread (standard deviation) or the DNF rate. */
+export type SpreadFigure = { id: "mean" | "median" | "deviation" | "dnf"; now: number | null; before: number | null };
+export const SPREAD_LABEL: Record<SpreadFigure["id"], string> = { mean: msg("Mean"), median: msg("Median"), deviation: msg("Deviation"), dnf: "DNF" };
+/** A round bucket width: 1, 2 or 5 times a power of ten, the smallest giving at most `most` buckets over `span`. */
+const roundWidth = (span: number, most: number) => {
+  for (let unit = 1; ; unit *= 10) for (const step of [1, 2, 5]) if (span / (step * unit) <= most) return step * unit;
+};
+const deviation = (list: readonly number[]) => {
+  if (list.length < 2) return null;
+  const m = list.reduce((a, b) => a + b, 0) / list.length;
+  return Math.sqrt(list.reduce((a, b) => a + (b - m) ** 2, 0) / (list.length - 1));
+};
+
+/**
+ * How the times of the solves [a, b] spread, beside as many solves just before them (fewer at the start): buckets of a
+ * round width from `from`, the fastest and slowest 2 % folded into the first and last (`now[i]`, `before[i]` solves in
+ * bucket i), and the figures of both.
+ */
+export function periodSpread(history: readonly Timed[], [a, b]: [number, number], most = 14) {
+  const times = history.map((v) => v.time), now = times.slice(a, b + 1), before = times.slice(Math.max(0, a - now.length), a);
+  const done = (list: readonly (number | null)[]) => list.filter((t): t is number => t != null);
+  const finished = [...done(now), ...done(before)].sort((x, y) => x - y);
+  const low = finished[Math.floor(finished.length * 0.02)] ?? 0, high = finished[Math.ceil(finished.length * 0.98) - 1] ?? low;
+  const width = roundWidth(Math.max(1, high - low), most - 1), from = Math.floor(low / width) * width;
+  const count = Math.max(1, Math.floor((high - from) / width) + 1);
+  const bucket = (list: readonly number[]) => {
+    const out = new Array<number>(count).fill(0);
+    for (const t of list) out[Math.max(0, Math.min(count - 1, Math.floor((t - from) / width)))]!++;
+    return out;
+  };
+  const figures = (list: readonly (number | null)[]) => ({ mean: mean([...list]), median: done(list).length ? median(done(list)) : null, deviation: deviation(done(list)), dnf: list.length ? (list.length - done(list).length) / list.length : null });
+  const n = figures(now), p = before.length ? figures(before) : null;
+  return {
+    from, width, now: bucket(done(now)), before: bucket(done(before)), beforeCount: before.length,
+    figures: (["mean", "median", "deviation", "dnf"] as const).map((id): SpreadFigure => ({ id, now: n[id], before: p?.[id] ?? null })),
+  };
+}

@@ -32,6 +32,8 @@ import { compSimName, roundRecord } from "../../src/client/lib/compSim";
 import type { Penalty, SolveDto } from "../../src/shared/types";
 import "./dev/devTools";
 import { toast } from "sonner";
+import { REMINDED_KEY, REMINDERS_KEY, remindersDue } from "../../src/client/lib/reminders";
+import { dayKey } from "../../src/client/lib/profile";
 import { tn, tr } from "../../src/client/i18n";
 import { ask } from "./confirm";
 import { msg } from "../../src/client/i18n/msg";
@@ -347,6 +349,23 @@ export class Store {
     id: eventOf(p as PuzzleId, mode as SolveMode)?.id ?? p,
     label: eventLabel(p as PuzzleId, mode as SolveMode),
   });
+  /** Today's reminders (`lib/reminders`) as one notice, once a day: its button opens the first one. Looked at with each
+   * snapshot's figures until shown, so that a sign-in or the first sync brings them. */
+  remind(streak: { current: number; today: boolean }) {
+    if (!this.ready || this.overlay || this.running) return;
+    const [first, second] = remindersDue(this.reminders, this.prefs[REMINDED_KEY], { due: this.dueCases().length, streak });
+    if (!first) return;
+    this.pref(REMINDED_KEY, dayKey(new Date()));
+    toast(tr(first.title), {
+      description: second && tr(second.title),
+      duration: 15000,
+      action: { label: tr(first.action), onClick: () => void this.action(first.id === "review" ? "trainingStart:review" : "nav:playground") },
+    });
+  }
+  /** Whether the app reminds of the day's review and of a streak at stake (the settings). */
+  get reminders(): boolean {
+    return this.prefs[REMINDERS_KEY] ?? true;
+  }
   pref(key: string, value: any) {
     this.prefs[key] = value;
     void call("preference", key, value).catch(this.fail);
@@ -711,6 +730,7 @@ export class Store {
         this.xp = xp;
         this.unlocked = { count: unlocked, total };
         this.xpOwner = String(this.user.id);
+        this.remind(v.progress.streak);
       }
       if (v.caseHistory) this.caseHistory = v.caseHistory;
       this.smartAnalysis = v.analysis ?? (this.page === "profile" || this.page === "training" ? this.smartAnalysis : null);
@@ -1341,6 +1361,9 @@ export class Store {
           }
           this.revealed = !this.revealed;
           if (this.revealed && this.crossTraining && hasSolutions(this.crossTarget)) void this.loadCrossSolutions();
+          break;
+        case "reminders":
+          this.pref(REMINDERS_KEY, arg === "on");
           break;
         case "leftHand":
           this.pref("cubix.algs.leftHand", !this.leftHand);

@@ -109,6 +109,20 @@ function Settings() {
           <LanguagePicker className="w-40" />
         </SettingRow>
       </SettingGroup>
+      <SettingGroup title={tr("Reminders")}>
+        <SettingRow label={tr("The cases to review and the streak at stake")}>
+          <Choice
+            prefix="reminders:"
+            label={tr("Reminders")}
+            value={s.reminders ? "on" : "off"}
+            className="bg-muted"
+            options={[
+              { id: "on", label: tr("Once a day") },
+              { id: "off", label: tr("Never") },
+            ]}
+          />
+        </SettingRow>
+      </SettingGroup>
       {!s.user.isGuest && <AccountData />}
       <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legal documents")}>
         {[...LEGAL_DOCUMENTS, { path: "/privacy#cookies", label: "Cookies" }].map(({ path, label }) => (

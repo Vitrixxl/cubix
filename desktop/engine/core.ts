@@ -194,7 +194,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       // The XP and achievements unlocked on every snapshot, for the account menu and the bar that fills when XP is earned,
       // which names the achievements that brought it.
       jobs.progress = Promise.resolve(local.read.achievements()).then(({ xp, unlocked, total, achievements }) => ({
-        xp, unlocked, total, earned: achievements.filter(a => a.unlocked).map(a => [a.id, a.title, a.xp ?? 0]),
+        xp, unlocked, total, earned: achievements.filter(a => a.unlocked).map(a => [a.id, a.title, a.xp ?? 0]), streak: local.read.streak(),
       }));
       if (onProfile || (ahead && !q.known?.achievements)) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {

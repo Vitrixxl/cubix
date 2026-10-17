@@ -28,6 +28,7 @@ import { introductionAtom, journeyAtom } from "./src/journey";
 import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
+import { Reminders } from "./src/components/Reminders";
 import { XpGain } from "./src/components/XpGain";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { profileAchievementsAtom, profileDataAtom } from "./src/profile";
@@ -216,6 +217,7 @@ function Shell() {
     <SyncIndicator hidden={running} />
     <XpGain />
     <Toast />
+    <Reminders />
     </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;
 }
 

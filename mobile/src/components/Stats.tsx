@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, ChevronRight, ListOrdered, MessageSquare, Ro
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { effective, fmtValue, plural, rollingAverages, shortDate } from "../../../src/client/lib/format";
-import { periodFigures, singleRecords, type PeriodFigure } from "../../../src/client/lib/practiceSummary";
+import { periodFigures, periodSpread, singleRecords, SPREAD_LABEL, type PeriodFigure, type SpreadFigure } from "../../../src/client/lib/practiceSummary";
 import { sessionName } from "../../../src/client/lib/sessions";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { CaseHistoryDto, HistoryPoint, SessionSummary } from "../../../src/shared/types";
@@ -122,6 +122,9 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
   const [sessionRange, setSessionRange] = useState<Range>([0, Math.max(0, sessions.length - 1)]);
   const [metric, setMetric] = useState<Metric>("mean");
   const [records, setRecords] = useState(false);
+  // The curve, or how the period's times spread beside the solves before it (Multi-Blind's points have no spread).
+  const [view, setView] = useState<"curve" | "spread">("curve");
+  const spreads = shownMode() !== "multi-blind", spread = spreads && view === "spread";
   // The solves of the period: per session, those of its sessions.
   const range: Range = useMemo(() => {
     if (!perSession) return solveRange;
@@ -170,8 +173,14 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
     {/* The curve: every solve and its rolling average, or one value per session; its period under it. */}
     <View className="min-h-48 flex-1 gap-1.5 rounded-3xl bg-card p-3.5">
       <View className="flex-row items-center justify-between gap-2">
-        <Text className="text-base font-bold tracking-[-0.015em]">{perSession ? tr("Per session") : tr("All solves")}</Text>
-        {perSession
+        {spreads ? <PillSeg<"curve" | "spread"> label={tr("Chart")} value={view} onChange={setView} options={[{ id: "curve", label: tr("Curve") }, { id: "spread", label: tr("Spread") }]} className="h-9" />
+          : <Text className="text-base font-bold tracking-[-0.015em]">{perSession ? tr("Per session") : tr("All solves")}</Text>}
+        {spread
+          ? <View className="flex-row flex-wrap items-center gap-x-3">
+            <Legend swatch="size-2.5 rounded-[3px] bg-primary" label={tr("this period")} />
+            <Legend swatch="size-2.5 rounded-[3px] border border-dashed border-muted-foreground" label={tr("before")} />
+          </View>
+          : perSession
           ? <MetricChoice value={metric} onChange={setMetric} />
           : <View className="flex-row flex-wrap items-center gap-x-3">
             <Legend swatch="size-2 rounded-full bg-primary" label={tr("solve")} />
@@ -179,7 +188,8 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
             <Legend swatch="size-2 rounded-full bg-success" label={tr("record")} />
           </View>}
       </View>
-      {perSession
+      {spread ? <SpreadChart history={history} range={range} />
+        : perSession
         ? <HistoryChart history={sessions.map(x => ({ time: x[metric], at: x.at }))} averages={[]} range={sessionRange} onRange={setSessionRange} mode={shownMode()}
           marks={(() => { let best = -1; sessions.forEach((x, i) => { if (x[metric] != null && (best < 0 || x[metric]! < sessions[best]![metric]!)) best = i; }); return best < 0 ? [] : [best]; })()}
           label={i => `${sessionLabel(sessions[i] ?? null)} · ${plural(sessions[i]?.count ?? 0, "solve")}`} />
@@ -211,6 +221,40 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
     {board}
     <View className="w-[380px] rounded-[26px] bg-popover px-4 pt-2 pb-4">{list(docked, setDocked, true)}</View>
   </View> : board;
+}
+
+/** The period's times as columns, as many solves just before it dashed behind them, and the four figures of both (the gap in mint when better). */
+function SpreadChart({ history, range }: { history: HistoryPoint[]; range: Range }) {
+  const spread = useMemo(() => periodSpread(history, range, 10), [history, range]);
+  const max = Math.max(1, ...spread.now, ...spread.before), edge = (i: number) => fmtTime(spread.from + i * spread.width);
+  const value = (f: SpreadFigure, v: number | null) => (v == null ? "–" : f.id === "dnf" ? Math.round(v * 100) + " %" : fmtTime(v));
+  return <View className="min-h-0 flex-1 gap-2">
+    <View className="flex-row gap-1.5">
+      {spread.figures.map(f => {
+        const gap = f.now != null && f.before != null && Number.isFinite(f.now - f.before) && Math.abs(f.now - f.before) > 1e-9 ? f.now - f.before : null;
+        return <View key={f.id} className="min-w-0 flex-1 rounded-xl bg-muted/50 px-2 py-1.5">
+          <Text numberOfLines={1} className="text-[11px] font-semibold text-muted-foreground">{tr(SPREAD_LABEL[f.id])}</Text>
+          <Numeric numberOfLines={1} adjustsFontSizeToFit className="text-[15px] font-extrabold">{value(f, f.now)}</Numeric>
+          <Numeric numberOfLines={1} className={cn("text-[11px] font-bold", gap == null ? "text-muted-foreground" : gap < 0 ? "text-success" : "text-destructive")}>
+            {gap == null ? " " : f.id === "dnf" ? (gap < 0 ? "−" : "+") + Math.round(Math.abs(gap) * 100) + " %" : signed(gap)}
+          </Numeric>
+        </View>;
+      })}
+    </View>
+    <View className="min-h-0 flex-1 flex-row items-end gap-1 border-b border-border">
+      {spread.now.map((n, i) => {
+        const before = spread.before[i]!;
+        return <View key={i} accessible accessibilityRole="image" accessibilityLabel={`${edge(i)} · ${plural(n, "solve")}${spread.beforeCount ? ` · ${tr("before")} ${before}` : ""}`}
+          className="h-full min-w-0 flex-1 items-center justify-end">
+          {!!before && <View className="absolute inset-x-0 bottom-0 rounded-t-[5px] border-2 border-b-0 border-dashed border-muted-foreground/50" style={{ height: `${(before / max) * 100}%` }} />}
+          <View className="w-[64%] rounded-t-[5px] bg-primary" style={{ height: `${(n / max) * 100}%`, minHeight: n ? 3 : 0 }} />
+        </View>;
+      })}
+    </View>
+    <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
+      {spread.now.map((_, i) => <Numeric key={i} numberOfLines={1} className="min-w-0 flex-1 text-center text-[10px] text-muted-foreground">{i % 2 === 0 ? edge(i) : ""}</Numeric>)}
+    </View>
+  </View>;
 }
 
 function Legend({ swatch, label }: { swatch: string; label: string }) {

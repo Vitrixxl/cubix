@@ -8,6 +8,7 @@ import type { TimeEntry } from "../../src/client/lib/format";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
 import { pageUrl, readRoute } from "../../src/client/lib/route";
 import { api, authToken, local } from "./api";
+import { REMINDERS_KEY } from "../../src/client/lib/reminders";
 import { storage } from "./platform/storage";
 import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossSolveMode, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 
@@ -284,6 +285,8 @@ export const statsAtom = atom(get => {
 // ---------------------------------------------------------------------------
 export const selectedCaseIdsAtom = perPuzzleAtom<string[]>("cubix.training.selectionByCube", []);
 export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true);
+/** Whether the app reminds of the day's review and of a streak at stake (`lib/reminders`). */
+export const remindersAtom = persisted<boolean>(REMINDERS_KEY, true);
 /** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
