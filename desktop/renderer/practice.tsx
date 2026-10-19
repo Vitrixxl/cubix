@@ -31,6 +31,7 @@ import {
   CalendarCheck,
   CalendarDays,
   Check,
+  ChevronDown,
   Download,
   ChevronUp,
   ChevronLeft,
@@ -39,7 +40,6 @@ import {
   Eye,
   EyeOff,
   History,
-  Hourglass,
   LayoutList,
   ListChecks,
   ListOrdered,
@@ -61,13 +61,15 @@ import { sessionName } from "../../src/client/lib/sessions";
 import { attemptTexts, roundAttempts, roundResult, versusRecord } from "../../src/client/lib/compSim";
 import { Button as UiButton } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Cube } from "./Cube";
 import { fmtTime, fmtSolve, fmtSolveOf, parseTypedSolve, solveResult, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
 import { attemptMode } from "../../src/shared/puzzles";
 import { METRONOME_CHOICES, startMetronome } from "../../src/client/lib/metronome";
 import { MBLD_CHOICES, mbldLimitMs, scrambleList } from "../../src/client/lib/wca";
-import { FewestMoves, MultiBlindResult, ScrambleLines } from "./attempts";
+import { drawSheet, FewestMoves, MultiBlindResult, ScrambleLines } from "./attempts";
 import {
   ActionToggle,
   Alg,
@@ -795,19 +797,8 @@ export function Practice() {
           // The desktop's timer has no title: its controls stand at the top right, beside the scramble.
           <InHead.Provider value={true}>
             <div className={cn("flex shrink-0 flex-wrap items-center justify-end gap-1.5", FADE)} data-no-timer>
-              {/* The WCA inspection on the page itself, its state in view: blindfolded and typed solves have none. */}
-              {/* A round keeps its inspection, scrambles and event: only the way out over its scramble. */}
-              {!round && (
-                <>
-                  {!blind && !typing && !attemptMode(s.solveMode) && <SelectMenu action="inspection" caption="Inspection" icon={<Hourglass />} value={s.inspection} options={INSPECTIONS} />}
-                  <TimerSettings />
-                  <Button action="next" icon={Shuffle} tip={tr("New scramble · Alt+N")} />
-                  {!attemptMode(s.solveMode) && <Button action="compSim" icon={Trophy} tip={tr("Comp sim · one WCA round of this event")} />}
-                  {dailyButton}
-                </>
-              )}
-              {connect}
-              {timesToggle}
+              {/* One button for the timer's settings and tools; blindfolded and typed solves have no inspection. */}
+              <TimerSettings inspection={!blind && !typing && !attemptMode(s.solveMode)} round={!!round} times={timesColumn} />
             </div>
           </InHead.Provider>
         )
@@ -1021,7 +1012,7 @@ export function Practice() {
           )}
         </div>
         {timesColumn && (
-          <aside aria-label={tr("Session times")} data-tour="session" className={cn("flex w-64 shrink-0 flex-col overflow-hidden rounded-[26px] bg-card xl:w-68", training && "w-72 xl:w-80", FADE)}>
+          <aside aria-label={tr("Times")} data-tour="session" className={cn("flex w-64 shrink-0 flex-col overflow-hidden rounded-[26px] bg-card xl:w-68", training && "w-72 xl:w-80", FADE)}>
             {training ? <SessionBoard /> : <Times closable />}
           </aside>
         )}
@@ -1105,7 +1096,7 @@ function SessionPeek({ training }: { training: boolean }) {
       data-action="times"
       onClick={run("times")}
       className={cn("flex h-16 shrink-0 items-center gap-4 rounded-[20px] bg-card px-5 text-left transition-colors active:bg-muted", FOCUS, FADE)}
-      aria-label={tr("Session times")}
+      aria-label={tr("Times")}
       data-tour="session"
     >
       {figures.map(([label, value, tone]) => (
@@ -1440,45 +1431,77 @@ function SessionMenu() {
   );
 }
 
-/** The desktop timer's settings in one menu: the scramble and, beside it, how times are entered (side by side, the
- * 3×3's many scrambles fit a 800 px high window without scrolling). */
-function TimerSettings() {
-  return (
-    <DropdownMenu>
-      <Tip content={tr("Settings")}>
-        <DropdownMenuTrigger render={<UiButton variant="outline" size="icon" data-action="menu:timer" aria-label={tr("Settings")} />}>
-          <SlidersHorizontal />
-        </DropdownMenuTrigger>
-      </Tip>
-      <DropdownMenuContent align="end" className="flex w-auto items-start">
-        <div className="flex flex-col">
-          {/* Multi-Blind has its cubes in place of the scramble types (WCA scrambles only). */}
-          {s.solveMode === "multi-blind" ? (
-            <MenuChoice label="Cubes" action="mbldCubes" value={String(s.mbldCubes)} options={MBLD_CHOICES} />
-          ) : (
-            <MenuChoice label="Scramble" action="scrambleType" value={s.scrambleChoice()} options={s.scrambleOptions()} />
-          )}
-          <DropdownMenuSeparator />
-          <MenuAction action="menu:scrambles" icon={Download}>{tr("Export")}</MenuAction>
-        </div>
-        {/* Fewest Moves is written, never timed: no entry, phases nor metronome. */}
-        {s.solveMode !== "fewest-moves" && (
-          <>
-            <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
-            <MenuChoice label="Entry" action="entry" value={s.entry} options={TIME_ENTRIES} />
-            <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
-            {/* Blindfolded solves split their memorisation instead; Multi-Blind has no phases. */}
-            {s.solveMode !== "blindfolded" && !attemptMode(s.solveMode) && (
-              <>
-                <MenuChoice label="Phases" action="phases" value={s.phases} options={PHASE_OPTIONS} />
-                <DropdownMenuSeparator orientation="vertical" className="mx-1.5 my-0 h-auto w-px self-stretch" />
-              </>
-            )}
-            <MenuChoice label="Metronome" action="metronome" value={String(s.metronome)} options={METRONOME_CHOICES} />
-          </>
+/** The desktop timer's settings and tools behind one button: each setting named beside its value, then the timer's
+ * actions spelled out with their shortcut. A round keeps its event, inspection and scrambles: their controls stay,
+ * greyed, and ask to leave it. */
+function TimerSettings({ inspection, round, times }: { inspection: boolean; round: boolean; times: boolean }) {
+  const timed = s.solveMode !== "fewest-moves",
+    dailyDone = !!s.dailyDone[`${dailyDay()}:${s.event().id}`],
+    item = "w-full justify-start",
+    locked = (action: string) => (round ? "compSim:end" : action),
+    dim = round && "opacity-50",
+    context = `${s.puzzle}:${s.solveMode}:${s.scrambleType}`,
+    row = (label: string, action: string, value: string, options: { id: string; label: string }[]) => (
+      <div key={action} className="grid grid-cols-[6.5rem_1fr] items-center">
+        <span className="pl-2 text-sm font-semibold text-muted-foreground">{tr(label)}</span>
+        {round ? (
+          <Button action="compSim:end" variant="ghost" className={cn("w-full justify-between", dim)}>
+            <span className="truncate">{said(options.find((o) => o.id === value)?.label ?? value)}</span>
+            <ChevronDown className="text-muted-foreground" />
+          </Button>
+        ) : (
+          <SelectMenu action={action} label={tr(label)} value={value} options={options} variant="ghost" className="w-full justify-between" />
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </div>
+    );
+  // The export's scrambles drawn a moment after the timer settles on an event: there before they are asked for.
+  useEffect(() => {
+    if (round) return;
+    const id = setTimeout(drawSheet, 1000);
+    return () => clearTimeout(id);
+  }, [context, round]);
+  return (
+    <Popover>
+      <Tip content={tr("Settings")}>
+        <PopoverTrigger render={<UiButton variant="outline" size="icon" data-action="menu:timer" aria-label={tr("Settings")} />}>
+          <SlidersHorizontal />
+        </PopoverTrigger>
+      </Tip>
+      <PopoverContent align="end" className="w-80 gap-0 p-2">
+        {inspection && row("Inspection", "inspection", s.inspection, INSPECTIONS)}
+        {/* Multi-Blind has its cubes in place of the scramble types (WCA scrambles only). */}
+        {s.solveMode === "multi-blind" ? row("Cubes", "mbldCubes", String(s.mbldCubes), MBLD_CHOICES) : row("Scramble", "scrambleType", s.scrambleChoice(), s.scrambleOptions())}
+        {/* Fewest Moves is written, never timed: no entry, phases nor metronome; blindfolded solves split their
+         * memorisation instead and Multi-Blind has no phases. */}
+        {timed && row("Entry", "entry", s.entry, TIME_ENTRIES)}
+        {timed && s.solveMode !== "blindfolded" && !attemptMode(s.solveMode) && row("Phases", "phases", s.phases, PHASE_OPTIONS)}
+        {timed && row("Metronome", "metronome", String(s.metronome), METRONOME_CHOICES)}
+        <Separator className="my-2" />
+        <div className="flex flex-col gap-0.5">
+          <Button action={locked("next")} icon={Shuffle} variant="ghost" className={cn(item, dim)}>
+            {tr("Next scramble")}
+            <Kbd className="ml-auto">Alt+N</Kbd>
+          </Button>
+          <Button action={locked("menu:scrambles")} icon={Download} variant="ghost" className={cn(item, dim)}>{tr("Export")}</Button>
+          {/* Pressed while a round runs: pressed again, it asks to leave it. */}
+          {!attemptMode(s.solveMode) && (
+            <ActionToggle action={round ? "compSim:end" : "compSim"} variant="default" pressed={round} icon={Trophy} className={cn(item, "text-foreground")}>
+              {tr("Comp sim")}
+            </ActionToggle>
+          )}
+          {isDailyEvent(s.event().id) && (
+            <ActionToggle action={locked("daily")} variant="default" pressed={!!s.dailyEvent()} icon={dailyDone ? CalendarCheck : CalendarDays} className={cn(item, "text-foreground", dailyDone && "text-success", dim)}>
+              {tr("Daily scramble")}
+            </ActionToggle>
+          )}
+          <DevicesButton className={item}>{tr("Devices")}</DevicesButton>
+          <ActionToggle action="times" variant="default" pressed={times} icon={PanelRight} className={cn(item, "text-foreground")}>
+            {tr("Times")}
+            <Kbd className="ml-auto">Alt+T</Kbd>
+          </ActionToggle>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

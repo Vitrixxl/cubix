@@ -11,7 +11,7 @@ import { AVERAGE_SIZES, averageFigure, DEFAULT_FIGURES, figureLabel, FIGURE_LIMI
 import { mbldLimitMs, mbldValue, scrambleList } from "../../../src/client/lib/wca";
 import type { AddSolveBody } from "../../../src/client/api-client";
 import { INSPECTION_DNF_MS, INSPECTION_MS } from "../../../src/client/lib/practiceTimer";
-import { attemptMode, contextKey, eventOf, heldScramble, puzzleInfo, relayOf, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
+import { attemptMode, contextKey, eventOf, puzzleInfo, relayOf, scrambleLabel, type PracticeContext } from "../../../src/shared/puzzles";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -41,7 +41,6 @@ import { AppBar, SectionTabs } from "../components/AppBar";
 import { Caption, inspectionAtom, Pill, scrambleExportAtom, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
 import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar, PillAction } from "../components/SolveMenus";
-import { ScrambleCube } from "../components/ScrambleCube";
 import { Sheet, SheetInput } from "../components/Sheet";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
@@ -283,15 +282,10 @@ function TimerSession({ context }: { context: PracticeContext }) {
       : <Alg text={scramble} size={promptFont} />}
   </View>;
   const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;
-  // The scrambled puzzle over the scramble's buttons, as small as a short phone needs.
-  const cubeSide = Math.round(Math.min(tablet ? 150 : 96, height * 0.13));
-  const visual = <View className="items-center gap-1">
-    {scramble && !loading && !generationError ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={heldScramble(context.scrambleType)} size={cubeSide}
-      still={timer.phase !== "idle" && timer.phase !== "stopped"} /> : null}
-    <View className="flex-row">
-      <IconButton icon={Shuffle} label={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
-      <IconButton icon={Copy} label={tr("Copy the scramble")} disabled={!scramble || loading} onPress={copyScramble} />
-    </View>
+  // The scramble's buttons beside it.
+  const visual = <View className="flex-row">
+    <IconButton icon={Shuffle} label={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
+    <IconButton icon={Copy} label={tr("Copy the scramble")} disabled={!scramble || loading} onPress={copyScramble} />
   </View>;
 
   // Fewest Moves and Multi-Blind show their own figures (a mean of 3, the best result).

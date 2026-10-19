@@ -104,7 +104,7 @@ function Stage({ figures = 3, kicker, className }: { figures?: number; kicker?: 
 }
 
 /**
- * The timer (practice.tsx): on the desktop the scramble with its pills and buttons on the right, the digits, the last
+ * The timer (practice.tsx): on the desktop the scramble with its settings button on the right, the digits, the last
  * five, the penalties and the four figures along the foot, the session beside; on a phone the title and the puzzle,
  * the stage as one card with its tools under it, the figures in a bar.
  */
@@ -185,9 +185,7 @@ export function TimerSkeleton({ phone, training }: { phone: boolean; training?: 
                     <Bone className="h-9 w-2/3" />
                   </div>
                 )}
-                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  {["w-[151px]", "w-28", "w-36", "w-9", "w-11", "w-9", "w-9", "w-11"].map((w, i) => <Bone key={i} className={cn("h-9", w)} />)}
-                </div>
+                <Bone className="size-9 shrink-0" />
               </div>
             )}
             {digits}

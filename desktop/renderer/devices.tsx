@@ -21,7 +21,7 @@ const useTimerDevice = () => useSyncExternalStore(smartTimer.subscribe, () => sm
 const useStackmat = () => useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot, () => stackmat.snapshot);
 
 /** The button beside the scramble: lit while a device is connected, pulsing while one connects. */
-export function DevicesButton() {
+export function DevicesButton({ className, children }: { className?: string; children?: React.ReactNode }) {
   const links: Link[] = [useCube().status, useTimerDevice().link, useStackmat().link],
     on = links.includes("on"),
     connecting = links.includes("connecting");
@@ -29,9 +29,12 @@ export function DevicesButton() {
     <Button
       action="devices"
       icon={on ? BluetoothConnected : connecting ? BluetoothSearching : Bluetooth}
-      tip={tr("Devices")}
-      className={cn(on && "text-primary", connecting && "animate-pulse text-primary")}
-    />
+      tip={children ? undefined : tr("Devices")}
+      variant={children ? "ghost" : undefined}
+      className={cn(on && "text-primary", connecting && "animate-pulse text-primary", className)}
+    >
+      {children}
+    </Button>
   );
 }
 

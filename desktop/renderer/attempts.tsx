@@ -2,21 +2,22 @@
  * The timer's WCA attempts that are not a single timed solve: Fewest Moves (an hour to write a solution) and the cubes
  * solved of a Multi-Blind attempt; the numbered scrambles of a Multi-Blind attempt; the scrambles to export.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Download, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button as UiButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { FMC_LIMIT_MS, fmcResult, readFmcSolution } from "../../src/client/lib/fewestMoves";
-import { mbldValue, numberedScrambles, scrambleList, wcaResult } from "../../src/client/lib/wca";
+import { mbldValue, scrambleList, wcaResult } from "../../src/client/lib/wca";
+import { scramblesFile } from "../../src/client/lib/exportData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { call } from "./bridge";
 import { download, store as s } from "./store";
 import { Alg, Digits, Segmented, said } from "./base";
 import { NUMERIC } from "./ui";
 import { tr } from "../../src/client/i18n";
-import { puzzleInfo, relayOf, type PuzzleId } from "../../src/shared/puzzles";
+import { contextKey, puzzleInfo, relayOf, type PracticeContext, type PuzzleId } from "../../src/shared/puzzles";
 
 /** Minutes and seconds left, as a countdown shows them: 59:07. */
 const countdown = (ms: number) => {
@@ -134,41 +135,78 @@ export function ScrambleLines({ text, size, puzzle }: { text: string; size: numb
   );
 }
 
-const COUNTS = [5, 12, 25, 50, 100];
+const COUNTS = [5, 12, 25, 50, 100],
+  FORMATS = ["txt", "csv", "json"] as const;
 
-/** Scrambles of the timer's event and scramble type to take away, numbered as a WCA sheet: to copy or download. */
+/** A hundred scrambles of each context, drawn ahead (the timer's settings draw them as they open): the export shows any
+ * count at once. A sheet shown is dropped, the next export has new ones. */
+const sheets = new Map<string, Promise<string[]>>();
+export function drawSheet() {
+  const context = s.context(),
+    key = contextKey(context as PracticeContext);
+  if (!sheets.has(key)) {
+    // A Multi-Blind attempt's own scrambles are 3×3 blindfolded ones: one a line, as for the other events.
+    const sheet = Promise.all(Array.from({ length: COUNTS.at(-1)! }, () => call("scramble", context) as Promise<string>));
+    sheets.set(key, sheet);
+    sheet.catch(() => sheets.delete(key));
+  }
+  return { key, sheet: sheets.get(key)! };
+}
+
+/** Strings (a key, followed by its colon, in the accent; a value or a quoted cell as is), a line's number and
+ * punctuation. */
+const TOKENS = /("(?:[^"\\]|\\.)*")(\s*:)?|^ *\d+(?:\.|(?=,))|[{}[\],:]/gm;
+/** The export's text coloured as code in one pass of `TOKENS`, no parser nor library: 100 scrambles within a millisecond. */
+function highlight(text: string) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(TOKENS)) {
+    if (m[1] && !m[2]) continue;
+    parts.push(text.slice(last, m.index), <span key={m.index} className={m[2] || /\d/.test(m[0]) ? "text-primary" : "text-faint"}>{m[0]}</span>);
+    last = m.index + m[0].length;
+  }
+  parts.push(text.slice(last));
+  return parts;
+}
+
+/** Scrambles of the timer's event and scramble type to take away, as a WCA sheet, a table or JSON: to copy or download. */
 export function ScrambleExport() {
   const [count, setCount] = useState(12),
-    [text, setText] = useState<string | null>(null),
-    event = s.event().label,
-    kind = s.scrambleType !== "normal" ? " · " + s.label("scrambles", s.scrambleType) : "";
+    [format, setFormat] = useState<(typeof FORMATS)[number]>("txt"),
+    [list, setList] = useState<string[] | null>(null),
+    kind = s.scrambleType !== "normal" ? " · " + s.label("scrambles", s.scrambleType) : "",
+    parts = relayOf(s.puzzle as PuzzleId)?.map((p) => puzzleInfo(p).label);
   useEffect(() => {
     let live = true;
-    setText(null);
-    // A Multi-Blind attempt's own scrambles are 3×3 blindfolded ones: one a line, as for the other events.
-    const context = s.context();
-    void Promise.all(Array.from({ length: count }, () => call("scramble", context) as Promise<string>))
-      .then((list) => live && setText(numberedScrambles(list, relayOf(context.puzzle as PuzzleId)?.map((p) => puzzleInfo(p).label))))
-      .catch(s.fail);
-    return () => void (live = false);
-  }, [count]);
-  const file = text && `${event}${kind}\n\n${text}\n`;
+    const { key, sheet } = drawSheet();
+    sheet.then((l) => live && setList(l), s.fail);
+    return () => {
+      live = false;
+      sheets.delete(key);
+    };
+  }, []);
+  const file = list && scramblesFile(format, list.slice(0, count), s.event().label + kind, parts),
+    text = file?.body ?? null,
+    shown = useMemo(() => text && highlight(text), [text]);
   return (
     <div className="flex min-h-0 flex-col gap-4">
-      <Segmented label={tr("Scrambles")} value={String(count)} options={COUNTS.map((n) => ({ id: String(n), label: String(n) }))} onChange={(id) => setCount(Number(id))} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Segmented label={tr("Scrambles")} value={String(count)} options={COUNTS.map((n) => ({ id: String(n), label: String(n) }))} onChange={(id) => setCount(Number(id))} />
+        <Segmented label={tr("Format")} value={format} options={FORMATS.map((id) => ({ id, label: id.toUpperCase() }))} onChange={(id) => setFormat(id as typeof format)} />
+      </div>
       <div className="max-h-[50vh] min-h-32 overflow-y-auto rounded-[12px] bg-muted p-3 font-mono text-sm whitespace-pre-wrap select-text">
-        {text ?? <Skeleton className="h-24 w-full" />}
+        {shown ?? <Skeleton className="h-24 w-full" />}
       </div>
       <div className="flex justify-end gap-2">
         <UiButton
           variant="outline"
           disabled={!file}
-          onClick={() => void navigator.clipboard?.writeText(file!).then(() => toast.success(tr("Copied")), () => {})}
+          onClick={() => void navigator.clipboard?.writeText(text!).then(() => toast.success(tr("Copied")), () => {})}
         >
           <Copy />
           {tr("Copy")}
         </UiButton>
-        <UiButton disabled={!file} onClick={() => download(file!, "text/plain", `qbix-scrambles-${s.event().id}.txt`)}>
+        <UiButton disabled={!file} onClick={() => download(file!.body, file!.type, `qbix-scrambles-${s.event().id}.${format}`)}>
           <Download />
           {tr("Download")}
         </UiButton>

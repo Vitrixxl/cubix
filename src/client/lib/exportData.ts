@@ -4,6 +4,7 @@
  */
 import { eventOf, type PuzzleId, type SolveMode } from "../../shared/puzzles";
 import { phaseTimes } from "./phases";
+import { numberedScrambles } from "./wca";
 
 type ExportedSolve = { created_at: string; puzzle_id?: string | null; solve_mode?: string | null; time_ms: number; penalty: string; case_id?: string | null; scramble?: string | null; comment?: string | null; splits?: number[] | null };
 
@@ -33,4 +34,17 @@ export function exportFile(kind: "csv" | "json", data: { solves: readonly Export
   return kind === "csv"
     ? { body: solvesCsv(data.solves), type: "text/csv", name: `qbix-${username}-solves-${date}.csv` }
     : { body: JSON.stringify(data, null, 2), type: "application/json", name: `qbix-${username}-${date}.json` };
+}
+
+/**
+ * Scrambles to take away (the timer's Export) as a numbered sheet, a table or JSON: a relay's scramble (a line a puzzle)
+ * split by `parts`, its puzzles' names.
+ */
+export function scramblesFile(kind: "txt" | "csv" | "json", list: readonly string[], event: string, parts?: readonly string[]) {
+  const split = (x: string) => (parts ? x.split("\n") : [x]);
+  if (kind === "csv")
+    return { body: [["#", ...(parts ?? ["Scramble"])], ...list.map((x, i) => [i + 1, ...split(x)])].map((row) => row.map(cell).join(",")).join("\n") + "\n", type: "text/csv" };
+  if (kind === "json")
+    return { body: JSON.stringify({ event, scrambles: parts ? list.map((x) => Object.fromEntries(split(x).map((line, j) => [parts[j], line]))) : list }, null, 2) + "\n", type: "application/json" };
+  return { body: `${event}\n\n${numberedScrambles(list, parts)}\n`, type: "text/plain" };
 }
