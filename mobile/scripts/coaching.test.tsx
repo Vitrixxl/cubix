@@ -26,8 +26,8 @@ for (const [path, names] of [
   ["../src/components/ui/skeleton", ["Skeleton"]], ["../src/components/Sheet", ["Sheet", "SheetInput", "SheetScrollView"]],
   ["../src/components/PuzzlePicker", ["ChoiceButton", "SheetChoice", "PuzzleIcon"]], ["../src/components/Chips", ["Chip", "ChipMenu"]], ["../src/components/AppBar", ["AppBar", "PushedBar", "SectionTabs"]],
   ["../src/components/ui/dropdown-menu", ["DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuLabel", "DropdownMenuSeparator", "DropdownMenuTrigger"]], ["../src/components/coaching/CoachingMessages", ["CoachingMessages"]],
-  ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "HeadButton", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface"]],
-] as const) mock.module(path, () => Object.fromEntries(names.map(name => [name, name])));
+  ["../src/components/layout", ["BackButton", "Bar", "Empty", "Figure", "HeadButton", "Label", "ListSkeleton", "Numeric", "Page", "PageHead", "SearchField", "SectionHead", "Segmented", "Surface", "lazyPage"]],
+] as const) mock.module(path, () => Object.fromEntries(names.map(name => [name, name === "lazyPage" ? () => "LazyPage" : name])));
 mock.module("../src/components/Confirm", () => ({ ask: async () => true }));
 mock.module("../src/components/tournaments/format", () => ({ day: () => "Thu 8 Oct", time: () => "18:00", relative: () => "now" }));
 const toastAtom = atom<{ title: string; description?: string } | null>(null);

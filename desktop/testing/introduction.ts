@@ -206,7 +206,7 @@ try {
     await page.keyboard.press("Alt+" + key);
     await page.waitForURL(url => url.pathname.startsWith(pathname));
   }
-  await page.locator('[data-action="nav:profile"]').first().click();
+  await act(page, "nav:profile");
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await page.goBack(); await page.waitForURL("**/profile?*");
   await page.goForward(); await page.waitForURL("**/algorithms?*");

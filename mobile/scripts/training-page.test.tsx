@@ -79,13 +79,13 @@ const texts = () => renderer.root.findAll((n: any) => n.type === "Text" || n.typ
 const chip = (label: string) => renderer.root.findAll((n: any) => n.type === "Chip" && (n.props.accessibilityLabel === label || n.props.children === label))[0];
 const pressable = (label: string) => renderer.root.findAll((n: any) => n.props.accessibilityLabel === label && typeof n.props.onPress === "function")[0];
 
-test("the six ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
+test("the seven ways of training, each with its count and one action; Train drills the recommended cases and the whole sets picked, learned ones only", async () => {
   const store = await mount();
-  expect(texts()).toEqual(expect.arrayContaining(["Steps", "Recognition", "Learned", "Whole sets", "Free practice", "BLD"]));
+  expect(texts()).toEqual(expect.arrayContaining(["Steps", "Recognition", "Learned", "Revision", "Whole sets", "Free practice", "BLD"]));
   // No bar under the ways: each starts from its own card, without a line of settings.
   expect(pressable("Train")).toBeUndefined();
   expect(texts().some(t => t.includes("picked by hand") || t.includes(" s · "))).toBe(false);
-  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(6);
+  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(7);
   // The whole sets are chosen in their drawer.
   expect(chip("OLL, 3 learned")).toBeUndefined();
   await act(() => pressable("Whole sets")!.props.onPress());
