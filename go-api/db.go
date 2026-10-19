@@ -20,16 +20,21 @@ var queryIndexesSQL string
 
 var bg = context.Background()
 
-// Conn is the one SQLite connection. A transaction runs on it too: `Begin`
+// Conn is an SQLite connection: the writer, or one of the readers (Db.Read). A transaction runs on it too: `Begin`
 // issues BEGIN, and every helper keeps taking the same *Conn.
 type Conn struct {
 	conn  *sql.Conn
 	stmts map[string]*sql.Stmt
 }
 
-// Exec is Connection::execute: the number of rows changed.
+// Exec is Connection::execute: the number of rows changed. One statement, prepared once per connection: its text is
+// a constant (values go in `args`), else the cache grows with every new text.
 func (c *Conn) Exec(query string, args ...any) (int64, error) {
-	res, err := c.conn.ExecContext(bg, query, args...)
+	stmt, err := c.prepare(query)
+	if err != nil {
+		return 0, err
+	}
+	res, err := stmt.ExecContext(bg, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -87,10 +92,34 @@ func (c *Conn) prepare(query string) (*sql.Stmt, error) {
 	return s, nil
 }
 
-// Db owns the connection: every Call runs alone, one after the other.
+// Db owns the writer connection: every Call runs alone, one after the other. Reads run beside it, each on one of the
+// read-only connections (Read).
 type Db struct {
-	mu sync.Mutex
-	c  *Conn
+	mu      sync.Mutex
+	c       *Conn
+	readers chan *Conn
+}
+
+// dbReaders: how many reads run at once beside the writer.
+const dbReaders = 4
+
+// dbTuning: every connection's page cache (8 MB at most) and temporary tables and sorts in memory. No mmap: mapped,
+// the database counted in full against the container's 1 GB at each of the five connections.
+const dbTuning = "PRAGMA cache_size=-8000; PRAGMA temp_store=MEMORY;"
+
+// Read is Call on a read-only connection (query_only: any write fails), beside the writer and the other reads. In WAL
+// mode it sees everything committed before it starts.
+func (d *Db) Read(fn func(c *Conn) error) error {
+	c := <-d.readers
+	defer func() { d.readers <- c }()
+	return fn(c)
+}
+
+// dbRead is Read for a closure returning a value.
+func dbRead[T any](d *Db, fn func(c *Conn) (T, error)) (T, error) {
+	c := <-d.readers
+	defer func() { d.readers <- c }()
+	return fn(c)
 }
 
 // Call is Db::call: fn has the connection to itself until it returns.
@@ -117,18 +146,33 @@ func dbOpen(path string) (*Db, error) {
 	if err != nil {
 		return nil, internal(err)
 	}
-	pool.SetMaxOpenConns(1)
-	pool.SetMaxIdleConns(1)
+	pool.SetMaxOpenConns(1 + dbReaders)
+	pool.SetMaxIdleConns(1 + dbReaders)
 	pool.SetConnMaxLifetime(0)
-	raw, err := pool.Conn(bg)
-	if err != nil {
-		return nil, internal(err)
+	open := func(pragmas string) (*Conn, error) {
+		raw, err := pool.Conn(bg)
+		if err != nil {
+			return nil, internal(err)
+		}
+		c := &Conn{conn: raw, stmts: map[string]*sql.Stmt{}}
+		return c, c.ExecBatch(pragmas)
 	}
-	db := &Conn{conn: raw, stmts: map[string]*sql.Stmt{}}
+	db, err := open(dbTuning)
+	if err != nil {
+		return nil, toApiError(err)
+	}
 	if err := dbMigrate(db); err != nil {
 		return nil, toApiError(err)
 	}
-	return &Db{c: db}, nil
+	readers := make(chan *Conn, dbReaders)
+	for range dbReaders {
+		reader, err := open("PRAGMA busy_timeout=5000; PRAGMA query_only=1; " + dbTuning)
+		if err != nil {
+			return nil, toApiError(err)
+		}
+		readers <- reader
+	}
+	return &Db{c: db, readers: readers}, nil
 }
 
 func dbMigrate(db *Conn) error {
@@ -153,19 +197,12 @@ func dbMigrate(db *Conn) error {
 	if err := db.ExecBatch("DROP TABLE IF EXISTS chat_messages; DROP TABLE IF EXISTS friendships;"); err != nil {
 		return err
 	}
+	// Their indexes on (user_id) and (user_id,cube_size,created_at) went with query-indexes.sql's, which cover them.
 	for _, table := range []string{"sessions", "solves"} {
 		if err := addColumnIfMissing(db, table, "user_id", "TEXT REFERENCES users(id)"); err != nil {
 			return err
 		}
-		if err := db.ExecBatch(fmt.Sprintf("CREATE INDEX IF NOT EXISTS idx_%s_owner ON %s(user_id)", table, table)); err != nil {
-			return err
-		}
-	}
-	for _, table := range []string{"sessions", "solves"} {
 		if err := addColumnIfMissing(db, table, "cube_size", "INTEGER NOT NULL DEFAULT 3 CHECK(cube_size BETWEEN 2 AND 7)"); err != nil {
-			return err
-		}
-		if err := db.ExecBatch(fmt.Sprintf("CREATE INDEX IF NOT EXISTS idx_%s_cube ON %s(user_id,cube_size,created_at)", table, table)); err != nil {
 			return err
 		}
 	}

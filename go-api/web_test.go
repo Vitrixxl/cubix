@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"io"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -49,6 +51,17 @@ func TestWebPageWithoutBrotli(t *testing.T) {
 			t.Errorf("%q: %d %q", encoding, w.Code, w.Body.String())
 		}
 	}
+	// A revisit with the page's ETag gets 304, without the page.
+	r := httptest.NewRequest("GET", "/timer", nil)
+	r.Header.Set("Accept-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	r.Header.Set("If-None-Match", w.Header().Get("ETag"))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != 304 || w.Body.Len() != 0 {
+		t.Errorf("revisit: %d %q", w.Code, w.Body.String())
+	}
 }
 
 func TestWebLocalizedCaseNotIndexed(t *testing.T) {
@@ -77,6 +90,36 @@ func TestWebLocalizedCaseNotIndexed(t *testing.T) {
 			if got := w.Header().Get("X-Robots-Tag"); w.Code != 200 || got != want {
 				t.Errorf("%s %s: %d %q, want %q", method, path, w.Code, got, want)
 			}
+		}
+	}
+}
+
+// API answers past a kilobyte go gzipped to a client that takes gzip; the others go as they are.
+func TestApiAnswersGzipped(t *testing.T) {
+	big := M{"text": strings.Repeat("x", 2000)}
+	for _, c := range []struct {
+		accept  string
+		value   any
+		gzipped bool
+	}{{"br, gzip", big, true}, {"", big, false}, {"gzip", M{"ok": true}, false}} {
+		r := httptest.NewRequest("GET", "/api/stats", nil)
+		r.Header.Set("Accept-Encoding", c.accept)
+		w := httptest.NewRecorder()
+		writeResult(w, r, c.value, nil)
+		body := w.Body.Bytes()
+		if gzipped := w.Header().Get("Content-Encoding") == "gzip"; gzipped != c.gzipped {
+			t.Fatalf("%q: gzipped %v", c.accept, gzipped)
+		} else if gzipped {
+			zr, err := gzip.NewReader(w.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if body, err = io.ReadAll(zr); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if string(body) != encodeJSON(c.value) {
+			t.Fatalf("%q: %q", c.accept, body)
 		}
 	}
 }

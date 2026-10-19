@@ -507,7 +507,7 @@ func apiDispatch(state *AppState, w http.ResponseWriter, r *http.Request) {
 	if actor != nil {
 		setActor(r, *actor)
 	}
-	writeResult(w, value, err)
+	writeResult(w, r, value, err)
 }
 
 func apiHandle(state *AppState, r *http.Request, bytes []byte) (*ActivityActor, any, error) {
@@ -591,7 +591,7 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		}
 		// A solve shared by its link: what it was, by whom, for anyone holding the link.
 		if id, ok := strings.CutPrefix(path, "shared/"); ok && id != "" && !strings.Contains(id, "/") {
-			return dbCall(state.db, func(db *Conn) (any, error) { return sharedSolve(db, id) })
+			return dbRead(state.db, func(db *Conn) (any, error) { return sharedSolve(db, id) })
 		}
 		// The WCA's rankings, records, competitions and people, proxied and cached (wca.go).
 		if rest, ok := strings.CutPrefix(path, "wca/"); ok {
@@ -607,7 +607,12 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 	var caller *ApiCaller
 	var value any
 	var routeErr error
-	err := state.db.Call(func(db *Conn) error {
+	// GET routes only read: they run on a read-only connection, beside the writer (a stray write fails there).
+	call := state.db.Call
+	if method == "GET" {
+		call = state.db.Read
+	}
+	err := call(func(db *Conn) error {
 		var err error
 		// Looked up before the route runs, so a sign-out still names its account.
 		if caller, err = newApiCaller(db, token); err != nil {
@@ -648,6 +653,9 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 type ApiCaller struct {
 	tokenHash *string
 	user      M
+	// solves: the account's solves, counted at its first new solve of the request and kept up to date after, so a
+	// sync push of a hundred solves counts once.
+	solves *int64
 }
 
 func newApiCaller(db *Conn, authorization string) (*ApiCaller, error) {
@@ -770,19 +778,37 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if err != nil {
 			return nil, err
 		}
-		rows, err := dbAll(db, "SELECT id,case_id,time_ms,penalty,created_at FROM solves WHERE case_id IS NOT NULL AND user_id=? AND puzzle_id=? AND solve_mode=? ORDER BY case_id,created_at,id", uid, filter.puzzle, filter.solveMode)
+		// The puzzle's whole training history: scanned into times, without a map per solve.
+		stmt, err := db.prepare("SELECT case_id,time_ms,penalty,created_at FROM solves WHERE case_id IS NOT NULL AND user_id=? AND puzzle_id=? AND solve_mode=? ORDER BY case_id,created_at,id")
 		if err != nil {
 			return nil, err
 		}
+		rows, err := stmt.QueryContext(bg, uid, filter.puzzle, filter.solveMode)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
 		out := []any{}
-		for start := 0; start < len(rows); {
-			id := str(rows[start]["case_id"])
-			end := start
-			for end < len(rows) && str(rows[end]["case_id"]) == id {
-				end++
+		var id, lastAt string
+		var times []*float64
+		for rows.Next() {
+			var caseID, penalty, at string
+			var ms float64
+			if err := rows.Scan(&caseID, &ms, &penalty, &at); err != nil {
+				return nil, err
 			}
-			out = append(out, statsSummary(id, rows[start:end]))
-			start = end
+			if caseID != id && len(times) > 0 {
+				out = append(out, statsSummary(id, times, lastAt))
+				times = nil
+			}
+			id, lastAt = caseID, at
+			times = append(times, statsEffectiveMs(ms, penalty))
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		if len(times) > 0 {
+			out = append(out, statsSummary(id, times, lastAt))
 		}
 		return out, nil
 	case is("GET", "cases", "*", "stats"):
@@ -994,16 +1020,24 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if !apiUserAllow("solves:"+uid, 1000, 60) {
 			return nil, apiErr(429, "Too many solves at once. Try again in a minute.")
 		}
-		// ponytail: counts the account's index on every solve, milliseconds near the cap; keep a counter if it shows.
-		count, err := dbOne(db, "SELECT count(*) n FROM solves WHERE user_id=?", uid)
-		if err != nil {
-			return nil, err
+		// ponytail: counts the account's index once per request, milliseconds near the cap; a stored counter if it shows.
+		if caller.solves == nil {
+			count, err := dbOne(db, "SELECT count(*) n FROM solves WHERE user_id=?", uid)
+			if err != nil {
+				return nil, err
+			}
+			n, _ := asInt(count["n"])
+			caller.solves = &n
 		}
-		if n, _ := asInt(count["n"]); n >= apiMaxSolves {
+		if *caller.solves >= apiMaxSolves {
 			return nil, apiErr(409, "This account holds 200,000 solves, the most it can keep. Delete old ones to add more.")
 		}
-		return apiSolveRow(dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,splits,moves,cubes_solved,cubes_attempted,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
+		row, err := apiSolveRow(dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,splits,moves,cubes_solved,cubes_attempted,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
 			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, splits, moves, solved, attempted, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType))
+		if err == nil {
+			*caller.solves++
+		}
+		return row, err
 	case is("PATCH", "solves", "*"):
 		// Either field may be edited on its own; the other keeps its value.
 		var penalty *string
@@ -1033,7 +1067,11 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		}
 		return shareSolve(db, uid, parts[1])
 	case is("DELETE", "solves", "*"):
-		return apiSolveRow(dbRequired(db, "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *", "Unknown solve", parts[1], uid))
+		row, err := apiSolveRow(dbRequired(db, "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *", "Unknown solve", parts[1], uid))
+		if err == nil && caller.solves != nil {
+			*caller.solves--
+		}
+		return row, err
 	case is("PUT", "journey"):
 		return journeyPut(db, uid, body)
 	case is("PUT", "learning-group-order"):

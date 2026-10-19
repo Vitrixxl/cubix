@@ -158,24 +158,34 @@ func dailyCancellable(db *Conn, day, event, user, at string) bool {
 // dailyHistory: the account's results on an event, newest first, each with its rank in that day's field (the verified
 // field when `verified`, then only its verified results), over the last 120 days.
 func dailyHistory(db *Conn, event, user string, verified bool) ([]M, error) {
-	q := "SELECT day,time_ms,penalty,verified FROM daily_results WHERE event=? AND user_id=? AND day>=?"
+	only := ""
 	if verified {
-		q += " AND verified=1"
+		only = " AND verified=1"
 	}
-	rows, err := dbAll(db, q+" ORDER BY day DESC", event, user, dailyDay(time.Now().Add(-120*24*time.Hour)))
+	// The fields of every day the account took part in, in one read. ponytail: a stored rank per result if the
+	// history grows past months of large fields.
+	rows, err := dbAll(db, "SELECT day,user_id,time_ms,penalty,verified FROM daily_results WHERE event=?1"+only+
+		" AND day IN (SELECT day FROM daily_results WHERE event=?1 AND user_id=?2 AND day>=?3"+only+") ORDER BY day DESC",
+		event, user, dailyDay(time.Now().Add(-120*24*time.Hour)))
 	if err != nil {
 		return nil, err
 	}
-	out := make([]M, 0, len(rows))
+	times := map[string][]*float64{}
+	var own []M
 	for _, row := range rows {
-		// ponytail: one field read per day shown; a stored rank per result if the history grows past months.
-		_, times, err := dailyField(db, str(row["day"]), event, verified)
-		if err != nil {
-			return nil, err
-		}
 		ms, _ := asFloat(row["time_ms"])
-		place := dailyPlace(times, statsEffectiveMs(ms, str(row["penalty"])), true)
-		place["day"], place["timeMs"], place["penalty"], place["verified"], place["total"] = row["day"], row["time_ms"], row["penalty"], truthy(row["verified"]), len(times)
+		day := str(row["day"])
+		times[day] = append(times[day], statsEffectiveMs(ms, str(row["penalty"])))
+		if eqStr(row["user_id"], user) {
+			own = append(own, row)
+		}
+	}
+	out := make([]M, 0, len(own))
+	for _, row := range own {
+		field := times[str(row["day"])]
+		ms, _ := asFloat(row["time_ms"])
+		place := dailyPlace(field, statsEffectiveMs(ms, str(row["penalty"])), true)
+		place["day"], place["timeMs"], place["penalty"], place["verified"], place["total"] = row["day"], row["time_ms"], row["penalty"], truthy(row["verified"]), len(field)
 		out = append(out, place)
 	}
 	return out, nil

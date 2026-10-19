@@ -1,12 +1,13 @@
 package main
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 type ApiError struct {
@@ -40,12 +41,21 @@ func toApiError(err error) *ApiError {
 
 // writeJSON answers `Json(value)` with a status.
 func writeJSON(w http.ResponseWriter, status int, v any) {
-	body := encodeJSON(v)
+	writeJSONBytes(w, status, jsonBytes(v))
+}
+
+func writeJSONBytes(w http.ResponseWriter, status int, body []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(status)
-	_, _ = io.WriteString(w, body)
+	_, _ = w.Write(body)
 }
+
+// gzipWriters: a gzip writer holds a few hundred kilobytes of state; the answers share them.
+var gzipWriters = sync.Pool{New: func() any {
+	w, _ := gzip.NewWriterLevel(nil, gzip.BestSpeed)
+	return w
+}}
 
 // writeError is ApiError::into_response.
 func writeError(w http.ResponseWriter, err error) {
@@ -57,11 +67,25 @@ func writeError(w http.ResponseWriter, err error) {
 	writeJSON(w, status, M{"error": e.Message})
 }
 
-// writeResult writes a handler's `Result<Value>`.
-func writeResult(w http.ResponseWriter, v any, err error) {
+// writeResult writes a handler's `Result<Value>`: gzipped, past a kilobyte, for a client that takes gzip.
+func writeResult(w http.ResponseWriter, r *http.Request, v any, err error) {
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, 200, v)
+	body := jsonBytes(v)
+	h := w.Header()
+	h.Add("Vary", "accept-encoding")
+	if len(body) <= 1024 || !webAccepts(r, "gzip") {
+		writeJSONBytes(w, 200, body)
+		return
+	}
+	h.Set("Content-Type", "application/json")
+	h.Set("Content-Encoding", "gzip")
+	w.WriteHeader(200)
+	zw := gzipWriters.Get().(*gzip.Writer)
+	zw.Reset(w)
+	_, _ = zw.Write(body)
+	_ = zw.Close()
+	gzipWriters.Put(zw)
 }

@@ -33,7 +33,7 @@ func TestRollingMatchesSortedWindows(t *testing.T) {
 			rows[i] = M{"id": int64(i), "time_ms": *time, "penalty": "none", "created_at": "2026-01-01"}
 		}
 	}
-	if encodeJSON(statsSummary("case", rows)) != encodeJSON(statsHistory("case", rows)["summary"]) {
+	if encodeJSON(statsSummary("case", times, "2026-01-01")) != encodeJSON(statsHistory("case", rows)["summary"]) {
 		t.Fatal("summary differs from history's")
 	}
 }

@@ -6,9 +6,11 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const adminDataUnknown = "Unknown account"
@@ -182,13 +184,67 @@ func adminDataPurgeLegacy(db *Conn) error {
 	return tx.Commit()
 }
 
+// adminDataTotalsCache: the overview's counts, read again at most every adminDataTotalsMs however often the
+// administration's page asks (twice a second while requests come in).
+type adminDataTotalsCache struct {
+	mu   sync.Mutex
+	at   int64
+	data M
+}
+
+const adminDataTotalsMs = 10_000
+
 func adminDataOverview(state *AppState) (any, error) {
-	state.traffic.log.settle()
 	liveIPs := state.traffic.liveIPs()
 	started := state.traffic.started
 	dropped := state.traffic.log.droppedCount()
+	totals, err := adminDataTotals(state)
+	if err != nil {
+		return nil, err
+	}
+	// The cached counts stay as they are: the answer is a copy.
+	data := maps.Clone(totals)
+	ips := maps.Clone(totals["ips"].(M))
+	ips["live"] = liveIPs
+	data["ips"] = ips
+	var build, commit any
+	if n, ok := releaseBuildNumber(); ok {
+		build = n
+	}
+	if c, ok := releaseCommit(); ok {
+		commit = c
+	}
+	data["server"] = M{
+		"now":       accountsNow(),
+		"startedAt": started,
+		"uptimeMs":  accountsNow() - started,
+		"version":   version,
+		"build":     build,
+		"commit":    commit,
+		"db":        totals["db"],
+		"log": M{
+			"retentionDays":    activityRetentionDays,
+			"maxRows":          activityMaxRows,
+			"maxImportantRows": activityMaxImportantRows,
+			"trafficDays":      activityTrafficDays,
+			"dropped":          dropped,
+		},
+	}
+	delete(data, "db")
+	return data, nil
+}
+
+// adminDataTotals: the overview's counts, from the cache while they are recent.
+func adminDataTotals(state *AppState) (M, error) {
+	cache := &state.adminTotals
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	if cache.data != nil && accountsNow()-cache.at < adminDataTotalsMs {
+		return cache.data, nil
+	}
+	state.traffic.log.settle()
 	days := activityLastDays(30)
-	data, err := dbCall(state.db, func(db *Conn) (M, error) {
+	data, err := dbRead(state.db, func(db *Conn) (M, error) {
 		today, week, month := days[29], days[23], days[0]
 		dayStart := accountsNow() / accountsDayMs * accountsDayMs
 		var failed error
@@ -279,31 +335,7 @@ func adminDataOverview(state *AppState) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	data["ips"].(M)["live"] = liveIPs
-	var build, commit any
-	if n, ok := releaseBuildNumber(); ok {
-		build = n
-	}
-	if c, ok := releaseCommit(); ok {
-		commit = c
-	}
-	data["server"] = M{
-		"now":       accountsNow(),
-		"startedAt": started,
-		"uptimeMs":  accountsNow() - started,
-		"version":   version,
-		"build":     build,
-		"commit":    commit,
-		"db":        data["db"],
-		"log": M{
-			"retentionDays":    activityRetentionDays,
-			"maxRows":          activityMaxRows,
-			"maxImportantRows": activityMaxImportantRows,
-			"trafficDays":      activityTrafficDays,
-			"dropped":          dropped,
-		},
-	}
-	delete(data, "db")
+	cache.data, cache.at = data, accountsNow()
 	return data, nil
 }
 
@@ -385,7 +417,7 @@ func adminDataRequests(state *AppState, query *adminDataQuery) (any, error) {
 		filter = "WHERE " + strings.Join(clauses, " AND ")
 	}
 	state.traffic.log.settle()
-	return dbCall(state.db, func(db *Conn) (any, error) {
+	return dbRead(state.db, func(db *Conn) (any, error) {
 		// Counting stops past the cap: a broad filter over the whole log stays cheap.
 		row, err := dbOne(db, fmt.Sprintf("SELECT count(*) n FROM (SELECT 1 FROM request_log l %s LIMIT ?)", filter), append(slices.Clone(args), adminDataCountCap+1)...)
 		if err != nil {
@@ -441,7 +473,7 @@ func adminDataIps(state *AppState, query *adminDataQuery) (any, error) {
 		user = text
 	}
 	state.traffic.log.settle()
-	return dbCall(state.db, func(db *Conn) (any, error) {
+	return dbRead(state.db, func(db *Conn) (any, error) {
 		since := activityDay(accountsNow() - (days-1)*accountsDayMs)
 		scope := "day>=?1 AND instr(ip,?2)>0 AND (?3 IS NULL OR ip IN (SELECT ip FROM traffic_daily_users WHERE day>=?1 AND user_id IN (SELECT id FROM users WHERE id=?3 OR username=?3 COLLATE NOCASE)))"
 		totals, err := dbOne(db, "SELECT count(DISTINCT ip) ips,coalesce(sum(requests),0) requests,coalesce(sum(errors),0) errors,coalesce(sum(limited),0) limited FROM traffic_daily WHERE "+scope, since, q, user)
@@ -459,15 +491,14 @@ func adminDataIps(state *AppState, query *adminDataQuery) (any, error) {
 		// The accounts seen from the page's IPs, at most 20 each, in one query.
 		users := map[string][]any{}
 		if len(rows) > 0 {
-			args := []any{since}
-			for _, row := range rows {
-				args = append(args, str(row["ip"]))
+			ips := make([]string, len(rows))
+			for i, row := range rows {
+				ips[i] = str(row["ip"])
 			}
-			marks := strings.Repeat("?,", len(rows))
-			seen, err := dbAll(db, fmt.Sprintf(`SELECT ip,id,username,isGuest FROM (SELECT t.ip,u.id,u.username,(0) isGuest,
+			seen, err := dbAll(db, `SELECT ip,id,username,isGuest FROM (SELECT t.ip,u.id,u.username,(0) isGuest,
                     row_number() OVER (PARTITION BY t.ip ORDER BY u.username) n
-                    FROM (SELECT DISTINCT ip,user_id FROM traffic_daily_users WHERE day>=?1 AND ip IN (%s)) t JOIN users u ON u.id=t.user_id)
-                    WHERE n<=20 ORDER BY ip,n`, marks[:len(marks)-1]), args...)
+                    FROM (SELECT DISTINCT ip,user_id FROM traffic_daily_users WHERE day>=?1 AND ip IN (SELECT value FROM json_each(?2))) t JOIN users u ON u.id=t.user_id)
+                    WHERE n<=20 ORDER BY ip,n`, since, encodeJSON(ips))
 			if err != nil {
 				return nil, err
 			}
@@ -501,10 +532,10 @@ func adminDataUserRows(db *Conn, filter, order string, args ...any) ([]M, error)
           (SELECT count(*) FROM solves s WHERE s.user_id=u.id AND s.created_at>=%[2]s) solves7d,
           (SELECT count(*) FROM learned_cases l WHERE l.user_id=u.id AND l.learned=1) learnedCases,
           (SELECT count(*) FROM duel_games d WHERE d.player1_id=u.id)+(SELECT count(*) FROM duel_games d WHERE d.player2_id=u.id) duels,
-          (SELECT count(*) FROM auth_tokens t WHERE t.user_id=u.id AND t.expires_at>%[3]d) activeSessions,
-          %[4]s lastSolveAt
-        FROM users u %[5]s ORDER BY %[6]s`,
-		adminDataMs("u.created_at"), adminDataWeekAgo, accountsNow(), adminDataMs("(SELECT max(s.created_at) FROM solves s WHERE s.user_id=u.id)"), filter, order)
+          (SELECT count(*) FROM auth_tokens t WHERE t.user_id=u.id AND t.expires_at>unixepoch('subsec')*1000) activeSessions,
+          %[3]s lastSolveAt
+        FROM users u %[4]s ORDER BY %[5]s`,
+		adminDataMs("u.created_at"), adminDataWeekAgo, adminDataMs("(SELECT max(s.created_at) FROM solves s WHERE s.user_id=u.id)"), filter, order)
 	rows, err := dbAll(db, sql, args...)
 	if err != nil {
 		return nil, err
@@ -557,7 +588,7 @@ func adminDataUsers(state *AppState, query *adminDataQuery) (any, error) {
 		kind = "0"
 	}
 	state.traffic.log.settle()
-	return dbCall(state.db, func(db *Conn) (any, error) {
+	return dbRead(state.db, func(db *Conn) (any, error) {
 		counts, err := dbOne(db, `SELECT count(*) "all",count(*) registered,0 guests FROM users`)
 		if err != nil {
 			return nil, err
@@ -591,7 +622,7 @@ func adminDataUsers(state *AppState, query *adminDataQuery) (any, error) {
 
 func adminDataUser(state *AppState, id string) (any, error) {
 	state.traffic.log.settle()
-	return dbCall(state.db, func(db *Conn) (any, error) {
+	return dbRead(state.db, func(db *Conn) (any, error) {
 		users, err := adminDataUserRows(db, "WHERE u.id=?", "u.id", id)
 		if err != nil {
 			return nil, err

@@ -16,8 +16,6 @@
       solution TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
-    CREATE INDEX IF NOT EXISTS idx_solves_case ON solves(case_id, created_at);
-    CREATE INDEX IF NOT EXISTS idx_solves_session ON solves(session_id);
     CREATE TABLE IF NOT EXISTS learned_cases (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -702,15 +702,22 @@ func coachingHoursOn(day coachingDay, openings []coachingWindow, changes []coach
 
 // coachingBusy: the coach's sessions still to come or under way, which no new booking may overlap.
 func coachingBusy(db *Conn, coach string, from int64) ([][2]int64, error) {
-	rows, err := dbAll(db, "SELECT starts_at,ends_at FROM coach_bookings WHERE coach_id=? AND status='booked' AND ends_at>?", coach, from)
+	busy, err := coachingBusyOf(db, []string{coach}, from)
+	return busy[coach], err
+}
+
+// coachingBusyOf is coachingBusy for several coaches, in one query.
+func coachingBusyOf(db *Conn, coaches []string, from int64) (map[string][][2]int64, error) {
+	rows, err := dbAll(db, "SELECT coach_id,starts_at,ends_at FROM coach_bookings WHERE coach_id IN (SELECT value FROM json_each(?)) AND status='booked' AND ends_at>?", encodeJSON(coaches), from)
 	if err != nil {
 		return nil, err
 	}
-	out := make([][2]int64, 0, len(rows))
+	out := map[string][][2]int64{}
 	for _, r := range rows {
 		s, _ := asInt(r["starts_at"])
 		e, _ := asInt(r["ends_at"])
-		out = append(out, [2]int64{s, e})
+		coach := str(r["coach_id"])
+		out[coach] = append(out[coach], [2]int64{s, e})
 	}
 	return out, nil
 }
@@ -1015,15 +1022,23 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 		if err != nil {
 			return nil, err
 		}
+		ids := make([]string, len(rows))
+		for i, row := range rows {
+			ids[i] = str(row["user_id"])
+		}
+		busy, err := coachingBusyOf(db, ids, at)
+		if err != nil {
+			return nil, err
+		}
+		practice, err := coachingPractices(db, ids, 1)
+		if err != nil {
+			return nil, err
+		}
 		list := []any{}
-		for _, row := range rows {
+		for i, row := range rows {
 			slots := [][2]int64{}
 			if coachingFlag(row["accepting"]) {
-				busy, err := coachingBusy(db, str(row["user_id"]), at)
-				if err != nil {
-					return nil, err
-				}
-				slots = coachingFreeSlots(row, busy, at, coachingHorizonDays)
+				slots = coachingFreeSlots(row, busy[ids[i]], at, coachingHorizonDays)
 			}
 			value := coachingDto(row, false)
 			value["nextSlot"] = nil
@@ -1031,9 +1046,7 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 				value["nextSlot"] = slots[0][0]
 			}
 			value["openSlots"] = len(slots)
-			if value["practice"], err = coachingPractice(db, str(row["user_id"]), 1); err != nil {
-				return nil, err
-			}
+			value["practice"] = practice[ids[i]]
 			list = append(list, value)
 		}
 		return list, nil
@@ -1884,7 +1897,7 @@ func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_ = os.Remove(path)
 	}
-	writeResult(w, sent, err)
+	writeResult(w, r, sent, err)
 }
 
 // coachingMedia is `GET /api/coaching/media/{id}`: a picture or a video of a conversation, for its two parties only.
@@ -1953,7 +1966,7 @@ func coachingSetAvatar(state *AppState, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	value, err := coachingReplaceAvatar(state, r.Method == http.MethodDelete, headerText(r, "Authorization"), bytes)
-	writeResult(w, value, err)
+	writeResult(w, r, value, err)
 }
 
 func coachingReplaceAvatar(state *AppState, remove bool, authorization string, bytes []byte) (any, error) {
@@ -2175,36 +2188,77 @@ func coachingHistory(db *Conn, id string) (any, error) {
 // and their timer solves per puzzle (the `top` most solved) with the best single and the last Ao5. A best time they
 // gave at sign-up stands while no solve beats it.
 func coachingPractice(db *Conn, id string, top int64) (any, error) {
+	practices, err := coachingPractices(db, []string{id}, top)
+	return practices[id], err
+}
+
+// coachingPractices is coachingPractice for each of `ids`, in four queries however many they are.
+func coachingPractices(db *Conn, ids []string, top int64) (map[string]M, error) {
 	monthAgo := ""
 	if at := accountsNow() - 30*accountsDayMs; at >= coachingMinMs && at <= coachingMaxMs {
 		monthAgo = coachingTimestamp(at)
 	}
-	totals, err := dbRequired(db, `SELECT count(*) solves, count(DISTINCT CASE WHEN created_at>=?2 THEN substr(created_at,1,10) END) active_days, max(created_at) last_at
-         FROM solves WHERE user_id=?1`, "Unknown person", id, monthAgo)
+	list := encodeJSON(ids)
+	out := make(map[string]M, len(ids))
+	for _, id := range ids {
+		out[id] = M{"solves": int64(0), "activeDays": int64(0), "lastAt": nil, "learned": int64(0)}
+	}
+	totals, err := dbAll(db, `SELECT user_id,count(*) solves, count(DISTINCT CASE WHEN created_at>=?2 THEN substr(created_at,1,10) END) active_days, max(created_at) last_at
+         FROM solves WHERE user_id IN (SELECT value FROM json_each(?1)) GROUP BY user_id`, list, monthAgo)
 	if err != nil {
 		return nil, err
 	}
-	declared, err := journeyDeclaredBests(db, id)
+	for _, r := range totals {
+		p := out[str(r["user_id"])]
+		p["solves"], p["activeDays"], p["lastAt"] = r["solves"], r["active_days"], r["last_at"]
+	}
+	learned, err := dbAll(db, "SELECT user_id,count(*) n FROM learned_cases WHERE user_id IN (SELECT value FROM json_each(?)) AND learned=1 GROUP BY user_id", list)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbAll(db, "SELECT puzzle_id,count(*) solves,min("+statsEffectiveMsSQL+") best FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' GROUP BY puzzle_id ORDER BY solves DESC LIMIT ?", id, top)
+	for _, r := range learned {
+		out[str(r["user_id"])]["learned"] = r["n"]
+	}
+	profiles, err := dbAll(db, "SELECT user_id,value FROM personal_entries WHERE user_id IN (SELECT value FROM json_each(?)) AND key='profile'", list)
 	if err != nil {
 		return nil, err
 	}
-	puzzles := []M{}
+	declared := map[string]map[string]float64{}
+	for _, r := range profiles {
+		declared[str(r["user_id"])] = journeyBests(r["value"])
+	}
+	// Each puzzle's count and best, with its last five times (latest first), the most solved first.
+	rows, err := dbAll(db, `SELECT user_id,puzzle_id,count(*) solves,min(`+statsEffectiveMsSQL+`) best,
+         (SELECT json_group_array(e ORDER BY created_at DESC,id DESC) FROM (SELECT `+statsEffectiveMsSQL+` e,created_at,id FROM solves r
+           WHERE r.user_id=s.user_id AND r.puzzle_id=s.puzzle_id AND r.case_id IS NULL AND r.solve_mode='standard' ORDER BY r.created_at DESC,r.id DESC LIMIT 5)) last
+         FROM solves s WHERE user_id IN (SELECT value FROM json_each(?)) AND case_id IS NULL AND solve_mode='standard'
+         GROUP BY user_id,puzzle_id ORDER BY user_id,solves DESC`, list)
+	if err != nil {
+		return nil, err
+	}
+	puzzles := map[string][]M{}
+	seen := map[string]int64{}
 	for _, row := range rows {
-		puzzle := str(row["puzzle_id"])
-		if !practiceIsPuzzle(puzzle) {
+		id, puzzle := str(row["user_id"]), str(row["puzzle_id"])
+		if seen[id]++; seen[id] > top || !practiceIsPuzzle(puzzle) {
 			continue
 		}
-		last, err := coachingRecent(db, id, puzzle, 5)
+		values, err := parseJSONText(row["last"], "[]")
 		if err != nil {
 			return nil, err
 		}
+		times, _ := values.([]any)
+		last := []*float64{}
+		for _, v := range times {
+			if f, ok := asFloat(v); ok {
+				last = append(last, &f)
+			} else {
+				last = append(last, nil)
+			}
+		}
 		var best any
 		b, hasBest := asFloat(row["best"])
-		d, hasDeclared := declared[puzzle]
+		d, hasDeclared := declared[id][puzzle]
 		switch {
 		case hasBest && hasDeclared:
 			best = min(b, d)
@@ -2217,35 +2271,31 @@ func coachingPractice(db *Conn, id string, top int64) (any, error) {
 		if len(last) == 5 {
 			ao5 = statsAverage(last)
 		}
-		puzzles = append(puzzles, M{"puzzle": puzzle, "solves": row["solves"], "best": best, "ao5": ao5})
+		puzzles[id] = append(puzzles[id], M{"puzzle": puzzle, "solves": row["solves"], "best": best, "ao5": ao5})
 	}
-	// Puzzles known from sign-up but never timed here still show their best.
-	names := make([]string, 0, len(declared))
-	for puzzle := range declared {
-		names = append(names, puzzle)
-	}
-	sort.Strings(names)
-	for _, puzzle := range names {
-		listed := false
-		for _, p := range puzzles {
-			if p["puzzle"] == puzzle {
-				listed = true
-				break
+	for _, id := range ids {
+		shown := append([]M{}, puzzles[id]...)
+		// Puzzles known from sign-up but never timed here still show their best.
+		names := make([]string, 0, len(declared[id]))
+		for puzzle := range declared[id] {
+			names = append(names, puzzle)
+		}
+		sort.Strings(names)
+		for _, puzzle := range names {
+			listed := false
+			for _, p := range shown {
+				if p["puzzle"] == puzzle {
+					listed = true
+					break
+				}
+			}
+			if int64(len(shown)) < top && !listed {
+				shown = append(shown, M{"puzzle": puzzle, "solves": 0, "best": declared[id][puzzle], "ao5": nil})
 			}
 		}
-		if int64(len(puzzles)) < top && !listed {
-			puzzles = append(puzzles, M{"puzzle": puzzle, "solves": 0, "best": declared[puzzle], "ao5": nil})
-		}
+		out[id]["puzzles"] = shown
 	}
-	var learned any = int64(0)
-	row, err := dbOne(db, "SELECT count(*) n FROM learned_cases WHERE user_id=? AND learned=1", id)
-	if err != nil {
-		return nil, err
-	}
-	if row != nil {
-		learned = row["n"]
-	}
-	return M{"solves": totals["solves"], "activeDays": totals["active_days"], "lastAt": totals["last_at"], "learned": learned, "puzzles": puzzles}, nil
+	return out, nil
 }
 
 // coachingCoached: whether the student has a session with the coach, past or to come, that was not cancelled: coaches

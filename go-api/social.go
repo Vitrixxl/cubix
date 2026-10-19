@@ -413,25 +413,58 @@ func socialAttachment(matchID, tournamentID any) any {
 	return nil
 }
 
-// socialMessageDto: a message, with its card as it stands now when it carries one (the tournament as the account `uid`
-// sees it; "" for none).
-func socialMessageDto(db *Conn, row M, uid string) (M, error) {
-	value := M{"id": row["id"], "senderId": row["sender_id"], "sender": socialPerson(row["sender_id"], row["username"], row["avatar"]), "body": row["body"], "createdAt": row["created_at"]}
-	if m, ok := asInt(row["match_id"]); ok {
-		card, err := tournamentMatchCard(db, m)
+// socialMessageDtos: messages, each with its card as it stands now when it carries one (the tournament as the account
+// `uid` sees it; "" for none). The cards of a whole page take two queries.
+func socialMessageDtos(db *Conn, rows []M, uid string) ([]M, error) {
+	var matchIDs, tournamentIDs []int64
+	for _, row := range rows {
+		if m, ok := asInt(row["match_id"]); ok {
+			matchIDs = append(matchIDs, m)
+		}
+		if t, ok := asInt(row["tournament_id"]); ok {
+			tournamentIDs = append(tournamentIDs, t)
+		}
+	}
+	matches := map[int64]any{}
+	if len(matchIDs) > 0 {
+		list, err := tournamentMatchList(db, "WHERE m.id IN (SELECT value FROM json_each(?))", encodeJSON(matchIDs))
 		if err != nil {
 			return nil, err
 		}
-		value["match"] = card
+		for _, m := range list {
+			id, _ := asInt(idx(m, "id"))
+			matches[id] = m
+		}
 	}
-	if t, ok := asInt(row["tournament_id"]); ok {
-		card, err := tournamentTournamentCard(db, t, uid)
+	tournaments := map[int64]any{}
+	if len(tournamentIDs) > 0 {
+		sql, args := tournamentSQL("")+" WHERE t.id IN (SELECT value FROM json_each(?1))", []any{encodeJSON(tournamentIDs)}
+		if uid != "" {
+			sql, args = tournamentSQL(tournamentMine)+" WHERE t.id IN (SELECT value FROM json_each(?1))", append(args, uid)
+		}
+		list, err := dbAll(db, sql, args...)
 		if err != nil {
 			return nil, err
 		}
-		value["tournament"] = card
+		for _, t := range list {
+			id, _ := asInt(t["id"])
+			if tournaments[id], err = tournamentDto(db, t, uid); err != nil {
+				return nil, err
+			}
+		}
 	}
-	return value, nil
+	out := make([]M, len(rows))
+	for i, row := range rows {
+		value := M{"id": row["id"], "senderId": row["sender_id"], "sender": socialPerson(row["sender_id"], row["username"], row["avatar"]), "body": row["body"], "createdAt": row["created_at"]}
+		if m, ok := asInt(row["match_id"]); ok {
+			value["match"] = matches[m]
+		}
+		if t, ok := asInt(row["tournament_id"]); ok {
+			value["tournament"] = tournaments[t]
+		}
+		out[i] = value
+	}
+	return out, nil
 }
 
 // SocialCard: what a message holds besides words: a battle or a tournament (0 for none); its words may then be empty.
@@ -459,10 +492,11 @@ func socialPost(db *Conn, state *AppState, conversation M, user M, body string, 
 	if err != nil {
 		return nil, err
 	}
-	message, err := socialMessageDto(db, row, "")
+	messages, err := socialMessageDtos(db, []M{row}, "")
 	if err != nil {
 		return nil, err
 	}
+	message := messages[0]
 	var title any
 	if group, ok := asInt(conversation["group_id"]); ok {
 		r, err := dbOne(db, "SELECT name FROM social_groups WHERE id=?", group)
@@ -826,13 +860,13 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		if err != nil {
 			return nil, err
 		}
-		out := make([]any, len(rows))
-		for i, r := range rows {
-			message, err := socialMessageDto(db, r, uid)
-			if err != nil {
-				return nil, err
-			}
-			out[len(rows)-1-i] = message
+		messages, err := socialMessageDtos(db, rows, uid)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]any, len(messages))
+		for i, message := range messages {
+			out[len(messages)-1-i] = message
 		}
 		return out, nil
 	case is("POST", "conversations", "*", "messages"):

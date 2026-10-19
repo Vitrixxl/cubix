@@ -467,7 +467,7 @@ func releasePublish(state *AppState, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	value, err := releaseStoreUpdate(state, r, body)
-	writeResult(w, value, err)
+	writeResult(w, r, value, err)
 }
 
 func releaseStoreUpdate(state *AppState, r *http.Request, body any) (any, error) {

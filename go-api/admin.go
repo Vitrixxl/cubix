@@ -233,7 +233,7 @@ func adminDispatch(state *AppState, w http.ResponseWriter, r *http.Request) {
 	if cookie != "" {
 		w.Header().Set("Set-Cookie", cookie)
 	}
-	writeJSON(w, 200, value)
+	writeResult(w, r, value, nil)
 }
 
 // adminRespond answers an admin request, with the `Set-Cookie` header to send if any.

@@ -91,10 +91,13 @@ func (h *LiveHub) notifySync(user string, cursor int64) {
 	}
 }
 
-// wsUpgrader accepts any origin, as axum's WebSocketUpgrade does.
+// wsUpgrader accepts any origin, as axum's WebSocketUpgrade does. Sockets mostly idle: a message larger than the read
+// buffer is read in several passes, and write buffers are lent only while a message goes out.
 func wsUpgrader(readBuffer int) *websocket.Upgrader {
-	return &websocket.Upgrader{ReadBufferSize: readBuffer, CheckOrigin: func(*http.Request) bool { return true }}
+	return &websocket.Upgrader{ReadBufferSize: readBuffer, WriteBufferPool: &wsWriteBuffers, CheckOrigin: func(*http.Request) bool { return true }}
 }
+
+var wsWriteBuffers sync.Pool
 
 // wsMessage is one item of a socket's stream (axum's `socket.recv()`): a text or binary message, a ping or a
 // pong (kind websocket.PingMessage / PongMessage, already answered), or the error that ends the stream.
@@ -150,7 +153,7 @@ func wsClose(conn *websocket.Conn, code int, reason string) {
 	_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason))
 }
 
-var liveUpgrader = wsUpgrader(16384)
+var liveUpgrader = wsUpgrader(1024)
 
 // livePing: how often the server pings each socket (CUBIX_PING_SECONDS, 30 by default). A socket that sends nothing,
 // not even a pong, for three of these is gone.
@@ -462,7 +465,7 @@ func (c *liveClient) auth(body any) bool {
 			wsClose(c.conn, 1008, "Invalid message")
 			return false
 		}
-		user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsAuth(db, "Bearer "+token) })
+		user, err := dbRead(state.db, func(db *Conn) (M, error) { return accountsAuth(db, "Bearer "+token) })
 		if err != nil || user == nil {
 			liveClose(c.conn)
 			return false
@@ -492,7 +495,7 @@ func (c *liveClient) auth(body any) bool {
 		}
 		uid := c.uid()
 		// The current cursor lets a reconnecting device pull immediately if it fell behind.
-		cursor, err := dbCall(state.db, func(db *Conn) (int64, error) { return syncCursor(db, uid) })
+		cursor, err := dbRead(state.db, func(db *Conn) (int64, error) { return syncCursor(db, uid) })
 		if err != nil {
 			liveClose(c.conn)
 			return false
@@ -525,7 +528,7 @@ func (c *liveClient) stream() bool {
 		return true
 	}
 	auth, after := c.token, c.delivered
-	page, err := dbCall(c.state.db, func(db *Conn) (M, error) {
+	page, err := dbRead(c.state.db, func(db *Conn) (M, error) {
 		user, err := accountsSignedIn(db, auth)
 		if err != nil {
 			return nil, err

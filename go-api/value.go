@@ -35,14 +35,19 @@ func decodeJSON(data []byte) (any, error) {
 
 // encodeJSON writes a value as serde_json's to_string: compact, without HTML escaping.
 func encodeJSON(v any) string {
+	return string(jsonBytes(v))
+}
+
+// jsonBytes is encodeJSON as bytes: a response body goes out without a copy into a string.
+func jsonBytes(v any) []byte {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
 	if err := enc.Encode(v); err != nil {
 		internal(err)
-		return "null"
+		return []byte("null")
 	}
-	return strings.TrimSuffix(b.String(), "\n")
+	return bytes.TrimSuffix(b.Bytes(), []byte("\n"))
 }
 
 // get is Value::get: the member of an object, if it is one and has it.

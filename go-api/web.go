@@ -159,28 +159,35 @@ func webPage(dir string, db *Db, w http.ResponseWriter, r *http.Request) {
 		extension = ".br"
 	}
 	for _, name := range names {
-		page, err := os.ReadFile(filepath.Join(dir, "pages", language, name+".html"+extension))
+		file, err := os.Open(filepath.Join(dir, "pages", language, name+".html"+extension))
 		if err != nil {
 			continue
 		}
+		defer file.Close()
+		info, err := file.Stat()
+		if err != nil {
+			break
+		}
+		var page io.ReadSeeker = file
 		h := w.Header()
 		h.Set("Content-Type", "text/html; charset=utf-8")
 		h.Set("Vary", "accept-encoding")
 		if accepted == "" {
-			unpacked, err := gzip.NewReader(bytes.NewReader(page))
+			unpacked, err := gzip.NewReader(file)
 			if err != nil {
 				break
 			}
-			if page, err = io.ReadAll(unpacked); err != nil {
+			text, err := io.ReadAll(unpacked)
+			if err != nil {
 				break
 			}
+			page = bytes.NewReader(text)
 		} else {
 			h.Set("Content-Encoding", accepted)
 		}
-		w.WriteHeader(200)
-		if r.Method != "HEAD" {
-			_, _ = w.Write(page)
-		}
+		// Pages are revalidated (no-cache): an unchanged one answers 304, by its Last-Modified or this ETag.
+		h.Set("ETag", fmt.Sprintf(`"%x-%x-%s"`, info.Size(), info.ModTime().UnixNano(), accepted))
+		http.ServeContent(w, r, "", info.ModTime(), page)
 		return
 	}
 	// A language's address with no page but an English one (a case, written in English alone): the app for a person,
@@ -203,7 +210,7 @@ func webSharedPage(dir string, db *Db, path string, w http.ResponseWriter, r *ht
 	if db == nil || page != "s" && page != "solve" || id == "" || strings.Contains(id, "/") {
 		return false
 	}
-	solve, err := dbCall(db, func(c *Conn) (any, error) { return sharedSolve(c, id) })
+	solve, err := dbRead(db, func(c *Conn) (any, error) { return sharedSolve(c, id) })
 	if err != nil {
 		return false
 	}
@@ -252,16 +259,23 @@ func webSharedPage(dir string, db *Db, path string, w http.ResponseWriter, r *ht
 
 // webAccepted: br, else gzip, when the request's Accept-Encoding names it.
 func webAccepted(r *http.Request) string {
-	accepted := headerText(r, "Accept-Encoding")
 	for _, encoding := range []string{"br", "gzip"} {
-		for _, a := range strings.Split(accepted, ",") {
-			name, _, _ := strings.Cut(a, ";")
-			if strings.TrimSpace(name) == encoding {
-				return encoding
-			}
+		if webAccepts(r, encoding) {
+			return encoding
 		}
 	}
 	return ""
+}
+
+// webAccepts: whether the request's Accept-Encoding names `encoding`.
+func webAccepts(r *http.Request, encoding string) bool {
+	for _, a := range strings.Split(headerText(r, "Accept-Encoding"), ",") {
+		name, _, _ := strings.Cut(a, ";")
+		if strings.TrimSpace(name) == encoding {
+			return true
+		}
+	}
+	return false
 }
 
 // webServeDir is tower-http's ServeDir: the request's path under `dir`, `index.html` for a directory.

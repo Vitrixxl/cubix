@@ -47,7 +47,8 @@ var wcaEvents = []string{"333", "222", "444", "555", "666", "777", "333bf", "333
 var wcaContinents = map[string]string{"africa": "_Africa", "asia": "_Asia", "europe": "_Europe", "north-america": "_North America", "oceania": "_Oceania", "south-america": "_South America"}
 
 const (
-	wcaBudget = 16 << 20
+	// Room for two world rankings and what is read around them.
+	wcaBudget = 48 << 20
 	wcaPage   = 50
 )
 

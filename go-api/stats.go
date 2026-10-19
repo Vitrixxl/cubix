@@ -123,15 +123,16 @@ func statsHistory(caseID string, solves []M) M {
 		}
 		entries[i] = M{"id": s["id"], "time": times[i], "timeMs": s["time_ms"], "penalty": s["penalty"], "comment": s["comment"], "at": s["created_at"], "best": best, "sessionId": s["session_id"]}
 	}
-	return M{"summary": statsSummaryOf(caseID, solves, times, ao5, ao12), "history": entries, "ao5": ao5, "ao12": ao12}
+	var lastAt any
+	if len(solves) > 0 {
+		lastAt = solves[len(solves)-1]["created_at"]
+	}
+	return M{"summary": statsSummaryOf(caseID, lastAt, times, ao5, ao12), "history": entries, "ao5": ao5, "ao12": ao12}
 }
 
-func statsSummary(caseID string, solves []M) M {
-	times := make([]*float64, len(solves))
-	for i, s := range solves {
-		times[i] = statsEffective(s)
-	}
-	return statsSummaryOf(caseID, solves, times, statsRolling(times, 5), statsRolling(times, 12))
+// statsSummary: a case's summary from its effective times, oldest first, the last made at `lastAt`.
+func statsSummary(caseID string, times []*float64, lastAt any) M {
+	return statsSummaryOf(caseID, lastAt, times, statsRolling(times, 5), statsRolling(times, 12))
 }
 
 func last(values []*float64) *float64 {
@@ -141,7 +142,7 @@ func last(values []*float64) *float64 {
 	return values[len(values)-1]
 }
 
-func statsSummaryOf(caseID string, solves []M, times, ao5, ao12 []*float64) M {
+func statsSummaryOf(caseID string, lastAt any, times, ao5, ao12 []*float64) M {
 	var worst, mean *float64
 	sum, count := 0.0, 0
 	for _, t := range times {
@@ -159,12 +160,8 @@ func statsSummaryOf(caseID string, solves []M, times, ao5, ao12 []*float64) M {
 		m := sum / float64(count)
 		mean = &m
 	}
-	var lastAt any
-	if len(solves) > 0 {
-		lastAt = solves[len(solves)-1]["created_at"]
-	}
 	return M{
-		"caseId": caseID, "count": len(solves), "best": statsMinimum(times), "worst": worst, "mean": mean,
+		"caseId": caseID, "count": len(times), "best": statsMinimum(times), "worst": worst, "mean": mean,
 		"ao5": last(ao5), "ao12": last(ao12), "bestAo5": statsMinimum(ao5), "bestAo12": statsMinimum(ao12),
 		"last": last(times), "lastAt": lastAt,
 	}

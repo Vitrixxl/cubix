@@ -221,7 +221,7 @@ func tournamentMatchList(db *Conn, sql string, args ...any) ([]any, error) {
 			ids = append(ids, strconv.FormatInt(id, 10))
 		}
 	}
-	rows, err := dbAll(db, fmt.Sprintf("SELECT * FROM match_solves WHERE match_id IN (%s) ORDER BY match_id,number", strings.Join(ids, ",")))
+	rows, err := dbAll(db, "SELECT * FROM match_solves WHERE match_id IN (SELECT value FROM json_each(?)) ORDER BY match_id,number", "["+strings.Join(ids, ",")+"]")
 	if err != nil {
 		return nil, err
 	}
@@ -338,25 +338,6 @@ func tournamentAnnounce(db *Conn, state *AppState, row M, status string) error {
 	}
 	socialNotify(db, state, users, "match", M{"match": row["id"], "status": status, "players": players, "tournament": row["tournament_name"], "round": row["round"], "group": row["group_name"], "groupId": row["group_id"]})
 	return nil
-}
-
-// tournamentMatchCard: a battle as its card in a conversation shows it.
-func tournamentMatchCard(db *Conn, id int64) (M, error) {
-	row, err := tournamentMatchRow(db, id)
-	if err != nil {
-		return nil, err
-	}
-	return tournamentMatchDto(db, row, false)
-}
-
-// tournamentTournamentCard: a tournament as its card in a conversation shows it, for the account `uid` when known
-// ("" otherwise).
-func tournamentTournamentCard(db *Conn, id int64, uid string) (M, error) {
-	t, err := tournamentRow(db, id)
-	if err != nil {
-		return nil, err
-	}
-	return tournamentDto(db, t, uid)
 }
 
 // tournamentFinish closes a match: its winner (a seat), whether it was given rather than raced; a tournament's goes on.
@@ -584,18 +565,19 @@ func tournamentDto(db *Conn, t M, uid string) (M, error) {
 	return value, nil
 }
 
+// tournamentMine: `tournamentSQL`'s columns for the account ?2: whether it is registered, and its match to play.
+const tournamentMine = `,EXISTS(SELECT 1 FROM tournament_players p WHERE p.tournament_id=t.id AND p.user_id=?2) registered,
+      (SELECT id FROM matches m WHERE m.tournament_id=t.id AND m.status IN ('ready','live') AND (m.player_a=?2 OR m.player_b=?2)) my_match`
+
 // tournamentList: the tournaments of a group, or every account's (group 0): the coming and running ones first, by
 // date, then the past.
 func tournamentList(db *Conn, group int64, uid string) (any, error) {
-	// Whether the account is registered, and its match to play, read with each tournament.
-	mine := `,EXISTS(SELECT 1 FROM tournament_players p WHERE p.tournament_id=t.id AND p.user_id=?2) registered,
-      (SELECT id FROM matches m WHERE m.tournament_id=t.id AND m.status IN ('ready','live') AND (m.player_a=?2 OR m.player_b=?2)) my_match`
 	// Every account's tournaments come with those of the account's groups.
 	scope := "(t.group_id IS NULL OR t.group_id IN (SELECT group_id FROM group_members WHERE user_id=?2 AND role!='invited'))"
 	if group != 0 {
 		scope = "t.group_id IS ?1"
 	}
-	rows, err := dbAll(db, tournamentSQL(mine)+" WHERE "+scope+` ORDER BY CASE WHEN t.status IN ('open','running') THEN 0 ELSE 1 END,
+	rows, err := dbAll(db, tournamentSQL(tournamentMine)+" WHERE "+scope+` ORDER BY CASE WHEN t.status IN ('open','running') THEN 0 ELSE 1 END,
           CASE WHEN t.status IN ('open','running') THEN t.starts_at ELSE -t.starts_at END LIMIT 100`, optID(group), uid)
 	if err != nil {
 		return nil, err

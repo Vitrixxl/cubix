@@ -36,6 +36,9 @@ type AppState struct {
 	attempts   map[string]*attempt
 	admin      *Admin
 	traffic    *Traffic
+
+	// adminTotals: the administration overview's counts, kept a few seconds (admin_data.go).
+	adminTotals adminDataTotalsCache
 }
 
 // handler is an axum handler with its state.

@@ -235,3 +235,41 @@ func TestLossyDecodingMatchesRust(t *testing.T) {
 		}
 	}
 }
+
+// The coaches' list reads every coach's practice at once: what each one alone would show.
+func TestCoachingPracticesBatched(t *testing.T) {
+	db := testCoachingDb(t)
+	err := db.Call(func(c *Conn) error {
+		if err := c.ExecBatch(`INSERT INTO solves(user_id,puzzle_id,time_ms,penalty,created_at) VALUES
+			('c','333',9000,'none','2026-01-01T00:00:01.000Z'),('c','333',8000,'none','2026-01-01T00:00:02.000Z'),
+			('c','333',10000,'+2','2026-01-01T00:00:03.000Z'),('c','333',11000,'dnf','2026-01-01T00:00:04.000Z'),
+			('c','333',7000,'none','2026-01-01T00:00:05.000Z'),('c','333',9500,'none','2026-01-01T00:00:06.000Z'),
+			('c','222',3000,'none','2026-01-01T00:00:07.000Z');
+			INSERT INTO personal_entries(user_id,key,value) VALUES('s','profile','{"bests":{"444":40000}}');`); err != nil {
+			return err
+		}
+		got, err := coachingPractices(c, []string{"c", "s"}, 1)
+		if err != nil {
+			return err
+		}
+		// The most solved puzzle, its best single and the Ao5 of its last five (9500, 7000, DNF, 12000, 8000).
+		p := got["c"]["puzzles"].([]M)
+		if !eqInt(got["c"]["solves"], 7) || got["c"]["lastAt"] != "2026-01-01T00:00:07.000Z" || len(p) != 1 || p[0]["puzzle"] != "333" ||
+			!eqInt(p[0]["solves"], 6) || p[0]["best"] != 7000.0 || *p[0]["ao5"].(*float64) != 29500.0/3 {
+			t.Fatal("coach", got["c"])
+		}
+		if !reflect.DeepEqual(got["s"]["puzzles"], []M{{"puzzle": "444", "solves": 0, "best": 40000.0, "ao5": nil}}) || !eqInt(got["s"]["solves"], 0) {
+			t.Fatal("student", got["s"])
+		}
+		for _, id := range []string{"c", "s"} {
+			alone, err := coachingPractice(c, id, 1)
+			if err != nil || encodeJSON(alone) != encodeJSON(got[id]) {
+				t.Fatal("alone", id, alone, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

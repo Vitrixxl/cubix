@@ -188,23 +188,16 @@ func journeyPut(db *Conn, uid string, body any) (any, error) {
 	return row, nil
 }
 
-// journeyDeclaredBests: the best singles a player gave at setup, by puzzle, in milliseconds.
-func journeyDeclaredBests(db *Conn, uid string) (map[string]float64, error) {
-	entry, err := dbOne(db, "SELECT value FROM personal_entries WHERE user_id=? AND key='profile'", uid)
-	if err != nil {
-		return nil, err
-	}
+// journeyBests: the best singles a player gave at setup, by puzzle, in milliseconds, from their profile entry's value.
+func journeyBests(entry any) map[string]float64 {
 	out := map[string]float64{}
-	if entry == nil {
-		return out, nil
-	}
-	text, ok := asStr(entry["value"])
+	text, ok := asStr(entry)
 	if !ok {
-		return out, nil
+		return out
 	}
 	value, err := decodeJSON([]byte(text))
 	if err != nil {
-		return out, nil
+		return out
 	}
 	bests, _ := asObject(idx(value, "bests"))
 	for k, v := range bests {
@@ -212,5 +205,5 @@ func journeyDeclaredBests(db *Conn, uid string) (map[string]float64, error) {
 			out[k] = f
 		}
 	}
-	return out, nil
+	return out
 }
