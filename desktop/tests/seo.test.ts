@@ -29,10 +29,10 @@ test("every page built ahead of time is found by the address the API is given", 
   expect(new Set(urls).size).toBe(urls.length);
   expect(urls).toContain("/algorithms/OLL%2021?puzzle=333");
   expect(urls.some((u) => u.includes("4x4%20OLL"))).toBe(false);
-  expect(pages.find((p) => p.url === "/timer?puzzle=333")!.files).toEqual(["timer@333.html", "timer.html"]);
+  expect(pages.find((p) => p.url === "/timer?puzzle=333")!.files).toEqual(["timer.html"]);
   expect(pageFile("/learn/cfop?puzzle=333&step=2")).toBe("learn/cfop@333~2.html");
   expect(pageFile("/algorithms/OLL%2021")).toBe("algorithms/OLL 21.html");
-  expect(pages.find((p) => p.url === "/algorithms/OLL%2021?puzzle=333")!.files).toEqual(["algorithms/OLL 21@333.html", "algorithms/OLL 21.html"]);
+  expect(pages.find((p) => p.url === "/algorithms/OLL%2021?puzzle=333")!.files).toEqual(["algorithms/OLL 21.html"]);
   // Each one is a page for search engines, its address the one it is built for.
   for (const { url } of pages) {
     const { pathname, search } = new URL(url, "https://x");

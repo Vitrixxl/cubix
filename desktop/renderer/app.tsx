@@ -1,7 +1,6 @@
 import { createElement, lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
-import { MotionConfig } from "motion/react";
-import { store as s, TIMES_OPEN_WIDTH } from "./store";
+import { catalogDetails, store as s, TIMES_OPEN_WIDTH } from "./store";
 import { language, onLanguage, preferred, setLanguage } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
@@ -56,10 +55,12 @@ const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentT
   return (props: any) => createElement(ready ?? Lazy, props);
 };
 const RELOADED = "cubix.reloadedForUpdate";
+/** A part that reads the cases' algorithms, which come apart from the app's code (`catalogDetails`), with them. */
+const detailed = <M,>(load: () => Promise<M>) => () => Promise.all([load(), catalogDetails()]).then(([module]) => module);
 /** Each page's code, all fetched once the first page is drawn (`later`). */
 const CODE = {
-  algorithms: () => import("./algorithms"),
-  profile: () => import("./profile"),
+  algorithms: detailed(() => import("./algorithms")),
+  profile: detailed(() => import("./profile")),
   duel: () => import("./duel"),
   coaching: () => import("./coaching/page"),
   community: () => import("./community/page"),
@@ -67,8 +68,8 @@ const CODE = {
   match: () => import("./tournaments/match"),
   daily: () => import("./daily"),
   wca: () => import("./wca/page"),
-  training: () => import("./setup"),
-  learn: () => import("./learn"),
+  training: detailed(() => import("./setup")),
+  learn: detailed(() => import("./learn")),
 };
 /**
  * What a link opens, fetched ahead (prefetch.ts): for the pages that read the server, their list (read only, at most
@@ -102,8 +103,8 @@ const WcaPage = later(CODE.wca, (m) => m.WcaPage);
 const TrainingSetup = later(CODE.training, (m) => m.TrainingSetup);
 const RecognitionPractice = later(CODE.training, (m) => m.RecognitionPractice);
 const Learn = later(CODE.learn, (m) => m.Learn);
-const Overlays = later(() => import("./overlays"), (m) => m.Overlays);
-const CaseDialog = later(() => import("./algorithms"), (m) => m.CaseDialog);
+const Overlays = later(detailed(() => import("./overlays")), (m) => m.Overlays);
+const CaseDialog = later(CODE.algorithms, (m) => m.CaseDialog);
 /** Whether a case's dialog was opened yet: its part of the app loads then, and stays for the next. */
 let caseOpened = false;
 const FloatingCall = later(() => import("./coaching/floating"), (m) => m.FloatingCall);
@@ -258,7 +259,7 @@ function App() {
   if (route.page === "onboarding") return <TooltipProvider delay={TIP_DELAY}><Suspense fallback={<PageSkeleton />}><Shown /><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
   return (
     <TooltipProvider delay={TIP_DELAY}>
-      <MotionConfig reducedMotion="user">
+      <>
         <div data-app-shell="" data-running={s.running ? "" : undefined} className="group/app flex h-svh min-h-0 flex-col overflow-hidden">
           {/* A battle or a tournament under way takes the whole window. */}
           {!mobile && !arena && <Header />}
@@ -315,7 +316,7 @@ function App() {
         {(caseOpened ||= !!(s.caseDialog || (s.page === "algorithms" && s.caseId))) && <Suspense fallback={<CaseDialogSkeleton phone={mobile} />}><CaseDialog /></Suspense>}
         <ErrorNotification message={said(s.error)} />
         {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
-      </MotionConfig>
+      </>
     </TooltipProvider>
   );
 }

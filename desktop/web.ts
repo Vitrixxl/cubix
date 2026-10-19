@@ -7,7 +7,7 @@
  *   /build/*               bundles, fonts and the scrambler (scrambler/) with a content hash in their name, immutable
  *   /assets/*              icons, case diagrams and the mouse pointers (scripts/build-cursors.ts)
  */
-import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, rename, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
 import { brotliCompress, gzip as gzipCompress, constants } from "node:zlib";
@@ -36,6 +36,30 @@ export const tailwind: BunPlugin = {
       const candidates = compiler.features & Features.Utilities ? scanner.scan() : [];
       return { contents: compiler.build(candidates), loader: "css" };
     });
+  },
+};
+
+/** What a case holds that nothing reads at start-up: a megabyte and a half of the catalogue. */
+const DETAILS = ["algorithms", "setups_alt", "notes"];
+/**
+ * The catalogue split in two for the app and its engine: the cases without their `DETAILS` (still with an empty list of
+ * algorithms) where they start (store.ts, seo.ts, src/client/local/catalog.ts), the `DETAILS` alone in
+ * src/client/local/catalogDetails.ts, a chunk of its own fetched by what reads them. Other importers get it whole.
+ */
+const catalogSplit: BunPlugin = {
+  name: "catalog",
+  setup(build) {
+    build.onResolve({ filter: /[\\/]catalog\.json$/ }, ({ path, importer }) => {
+      const part = /[\\/]catalogDetails\.ts$/.test(importer) ? "details" : /[\\/](store|seo)\.ts$|[\\/]local[\\/]catalog\.ts$/.test(importer) ? "index" : null;
+      // A path of each part's own: Bun takes two modules of one path for the same, whatever their namespace.
+      return part ? { path: `${resolve(dirname(importer), path)}?${part}`, namespace: `catalog-${part}` } : undefined;
+    });
+    type Catalog = { cases: Record<string, unknown>[] };
+    const split = (namespace: string, part: (catalog: Catalog) => unknown) =>
+      build.onLoad({ filter: /./, namespace }, async ({ path }) => ({ contents: `export default ${JSON.stringify(part(await Bun.file(path.replace(/\?\w+$/, "")).json()))}`, loader: "js" }));
+    const keep = (c: Record<string, unknown>, details: boolean) => Object.fromEntries(Object.entries(c).filter(([key]) => DETAILS.includes(key) === details || (details && key === "id")));
+    split("catalog-index", (catalog) => ({ ...catalog, cases: catalog.cases.map((c) => ({ ...keep(c, false), algorithms: [] })) }));
+    split("catalog-details", (catalog) => ({ cases: catalog.cases.map((c) => keep(c, true)) }));
   },
 };
 
@@ -83,7 +107,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
     },
   };
   const bundle = async (entrypoint: string, define: Record<string, string> = {}, splitting = false): Promise<Bundle> => {
-    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, splitting, naming, plugins: [tailwind, linked], metafile: true, define: { ...production, ...define } });
+    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, splitting, naming, plugins: [tailwind, linked, catalogSplit], metafile: true, define: { ...production, ...define } });
     if (!result.success) throw new AggregateError(result.logs, `Build failed: ${entrypoint}`);
     const url = (output: { path: string }) => "/" + relative(out, output.path).replaceAll("\\", "/");
     const entry = result.outputs.find((output) => output.kind === "entry-point" && output.path.endsWith(".js"))!;
@@ -93,7 +117,8 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const wasm = await readFile("scrambler/scrambler.wasm");
   const scrambler = `/build/scrambler-${new Bun.CryptoHasher("sha256").update(wasm).digest("hex").slice(0, 8)}.wasm`;
   await writeFile(join(out, scrambler), wasm);
-  const { entry: worker } = await bundle("desktop/renderer/worker.ts", { CUBIX_SCRAMBLER: JSON.stringify(scrambler) });
+  // Split: the catalogue's details (catalogSplit) are a chunk of their own.
+  const { entry: worker, files: engine } = await bundle("desktop/renderer/worker.ts", { CUBIX_SCRAMBLER: JSON.stringify(scrambler) }, true);
   // Split: the app and the administration (/admin) are chunks of their own, each page loads only its own code.
   const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker) }, true);
   // Each language's dictionary, a chunk of its own (src/client/i18n).
@@ -105,9 +130,11 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // one after the other as each is read; the engine's bridge and the i18n start with them (main.tsx).
   const start = chunks(app, ["desktop/renderer/app.tsx", "desktop/renderer/bridge.ts", "src/client/i18n/index.ts"]).filter((path) => path !== app.entry);
   const styles = app.files.filter((path) => path.endsWith(".css"));
+  // The app and the landing page draw in Bricolage alone (globals.css): Geist is only the first launch's (firstLaunch.ts).
+  const face = preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage"))));
   // Before anything is drawn: whether this device shows the pages written ahead of time, and which app it loads, the
   // desktop one or the phone one (boot.ts writes either's tags).
-  const desktopHead = [...[...styles, CURSORS].map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
+  const desktopHead = [...[...styles, CURSORS].map((href) => `<link rel="stylesheet" href="${href}" />`), ...face, ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
   let phoneHead = await phone;
   if (phoneHead instanceof Error) {
     // In development the desktop app is still served, everywhere, while mobile/ does not build.
@@ -131,8 +158,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // without the app's chunks loaded ahead.
   await writeFile(join(out, "admin.html"), html);
   const pages = await buildPages(out);
-  // The landing page draws in the app's face alone.
-  await landing(out, bundle, preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage")))), pages, [app.entry, ...start, ...styles]);
+  await landing(out, bundle, face, pages, [app.entry, ...start, ...styles]);
   await legal(out, bundle);
   if (devTools) {
     // Outside the precache: the page is only served by the development server (desktop/dev.ts).
@@ -147,14 +173,16 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // service worker controls a first visit. Case diagrams are kept once shown; dictionaries, the device's one.
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
   const cursors = (await readdir(join(out, "assets/cursors"))).filter((name) => /\.(png|css)$/.test(name)).map((name) => `/assets/cursors/${name}`);
-  // The administration is never used offline.
-  const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
+  // The administration is never used offline, nor a coach's private notes (their editor, coaching/notes.tsx).
+  const shell = app.files.filter((path) => !/^(admin|notes)-/.test(basename(path)) && !Object.values(dictionaries).includes(path));
   // The app's own page, without any page written in it: the one every address opens offline (sw.ts). Either app's
   // files: the desktop one's bundles, or the phone one's, those its page loads and its workers (mobile/public).
   const precache = {
     shared: ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", boot, firstLaunch, ...cursors],
-    desktop: [worker, ...shell, ...fonts.values(), ...icons, scrambler],
-    phone: phoneHead ? [...new Set([...phoneHead.matchAll(/(?:href|src)="(\/phone\/[^"]+)"/g)].map((match) => match[1]!)), "/phone/scrambler.js", "/phone/scan.js"] : [],
+    // Once each: the catalogue's details are both the engine's and the app's, and addAll refuses a request twice.
+    desktop: [...new Set([...engine, ...shell, ...fonts.values(), ...icons, scrambler])],
+    // Its pages loaded on first use (mobile/App.tsx `lazyPage`) too, in the chunks beside the one it starts with.
+    phone: phoneHead ? [...new Set([...[...phoneHead.matchAll(/(?:href|src)="(\/phone\/[^"]+)"/g)].map((match) => match[1]!), ...(await readdir(join(out, "phone/_expo/static/js/web"))).filter((name) => name.endsWith(".js")).map((name) => `/phone/_expo/static/js/web/${name}`)]), "/phone/scrambler.js", "/phone/scan.js"] : [],
   };
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
@@ -183,29 +211,46 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
   const { DEFAULT_THEME, themeTokens } = await import("../src/client/lib/theme");
   const { LANGUAGES, setLanguage } = await import("../src/client/i18n");
   // Split: the dictionaries load only in their language.
-  const { files: outputs, entry } = await bundle("desktop/renderer/landing/main.tsx", {}, true);
+  const { files: outputs, entry, meta } = await bundle("desktop/renderer/landing/main.tsx", {}, true);
+  // The texts its code can show: the strings written in it, the dictionaries aside.
+  const ts = await import("typescript");
+  const written = new Set<string>();
+  const visit = (node: import("typescript").Node): void => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) written.add(node.text);
+    ts.forEachChild(node, visit);
+  };
+  for (const [file, { entryPoint }] of Object.entries(meta.outputs))
+    if (file.endsWith(".js") && !/i18n\/\w+\.json$/.test(entryPoint ?? "")) visit(ts.createSourceFile(file, await readFile(join(out, "build", file), "utf8"), ts.ScriptTarget.Latest));
+  const html = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
   // One page per language, English at the root (landing.html), the others at /fr/, /es/…, served as directories.
   for (const { id } of LANGUAGES) {
     await setLanguage(id, false);
     const file = join(out, id === "en" ? "landing.html" : `${id}/index.html`);
+    const body = renderToString(createElement(Landing));
+    // Its texts in its language, in the page (landing/main.tsx): it is drawn by React at once, not once the whole
+    // dictionary, the app's, is fetched. Those its code writes, and any shown in the page.
+    const words = id === "en" ? [] : Object.entries<string>(JSON.parse(await readFile(`src/client/i18n/${id}.json`, "utf8")))
+      .filter(([key, value]) => written.has(key) || body.includes(html(value)));
+    const dictionary = words.length ? `<script type="application/json" id="dictionary">${JSON.stringify(Object.fromEntries(words)).replace(/</g, "\\u003c")}</script>` : "";
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, landingDocument({
       language: id,
-      body: renderToString(createElement(Landing)),
+      body,
       theme: themeTokens(DEFAULT_THEME, "dark"),
       styles: [...outputs.filter((path) => path.endsWith(".css")), CURSORS],
       scripts: [entry],
       app,
-    }).replace("</head>", `  ${preloads.join("\n    ")}\n  </head>`));
+    }).replace("</head>", `  ${[...preloads, dictionary].join("\n    ")}\n  </head>`));
   }
   await setLanguage("en", false);
   await writeFile(join(out, "robots.txt"), robots());
   await writeFile(join(out, "sitemap.xml"), sitemap(pages));
   await writeFile(join(out, "llms.txt"), llms());
   await writeFile(join(out, "llms-full.txt"), llmsFull());
-  // Screenshots and the social image, taken by desktop/scripts/landing-shots.ts (the image build has no sharp).
+  // Screenshots and the social image, taken by desktop/scripts/landing-shots.ts (the image build has no sharp); the
+  // social image at the root only, where the pages name it.
   await cp("desktop/assets/landing", join(out, "assets/landing"), { recursive: true });
-  await cp("desktop/assets/landing/og.png", join(out, "og.png"));
+  await rename(join(out, "assets/landing/og.png"), join(out, "og.png"));
 }
 
 /** The legal notice, the privacy policy and the terms of use, each written to HTML in French, then hydrated. */
@@ -262,7 +307,7 @@ async function exportPhone(out: string): Promise<string> {
     ":root .r-1loqt21{cursor:var(--cursor-pointer)}:root .r-7q8q6z{cursor:var(--cursor-default)}.cursor-default{cursor:var(--cursor-default)}</style>"].join("\n");
 }
 
-/** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */
+/** Fonts fetched with the stylesheet rather than once it is read. */
 const preloads = (fonts: Map<string, string>) => [...fonts.values()].map((href) => `<link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin />`);
 
 const brotli = promisify(brotliCompress), gzip = promisify(gzipCompress);

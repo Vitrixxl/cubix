@@ -83,6 +83,14 @@ for (const c of catalog.cases) {
   if (list) list.push(c);
   else casesBySet.set(c.set, [c]);
 }
+let details: Promise<void> | undefined;
+/** The cases' algorithms, other setups and notes, outside the start-up bundle (desktop/web.ts `catalogSplit`): fetched
+ * by the pages that read them (app.tsx), the page in view drawn again once they are there (a trained case's video). */
+export const catalogDetails = () =>
+  (details ??= import("../../src/client/local/catalogDetails").then(({ addDetails }) => {
+    addDetails(catalog.cases);
+    store.emit();
+  }));
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; hints?: boolean; setup?: string; puzzle?: PolyPuzzle }
 /** Whether every word typed starts a word of the case (shared with the phone app). */
@@ -308,12 +316,13 @@ export class Store {
     if (this.held) return;
     this.held = true;
     const flush = () => {
+      if (!this.held) return;
       this.held = false;
       this.listeners.forEach((fn) => fn());
     };
-    // No frame is drawn in a hidden tab.
-    if (document.hidden) setTimeout(flush);
-    else requestAnimationFrame(flush);
+    // The next frame, or 50 ms at most: a hidden tab draws no frame, and a frame asked for may never come.
+    requestAnimationFrame(flush);
+    setTimeout(flush, 50);
   }
   /** Cross training: timer solves on scrambles whose `crossTarget` takes `crossMoves` turns. */
   get crossTraining() {

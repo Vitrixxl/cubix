@@ -597,5 +597,5 @@ function Tour() {
 }
 
 export function Introduction() {
-  return s.overlay === "tour" ? <Tour /> : null;
+  return s.overlay === "tour" ? <MotionConfig reducedMotion="user"><Tour /></MotionConfig> : null;
 }

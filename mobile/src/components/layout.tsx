@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Search, X, type LucideIcon } from "lucide-react-native";
-import { Children, useEffect, useRef, type ReactNode } from "react";
-import { Animated, Pressable, TextInput, View, type ViewProps } from "react-native";
+import { Children, lazy, Suspense, useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { Animated, Platform, Pressable, TextInput, View, type ViewProps } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -190,6 +190,29 @@ export function ListSkeleton({ rows = 6, className }: { rows?: number; className
       </View>
     </View>)}
   </View>;
+}
+
+const RELOADED = "cubix.reloadedForUpdate";
+/**
+ * A page loaded on first use, off the way to the timer: a chunk of its own on the web (Metro splits at `import()`), an
+ * empty page while it comes (`fallback`); on the phone it is there at once. A web tab left open across a deploy may no
+ * longer find it on the server: the page loads again, once, to get the new version (as the desktop app's parts do).
+ */
+export function lazyPage<P extends object>(load: () => Promise<ComponentType<P>>, fallback: ReactNode = <View className="flex-1" />) {
+  const web = Platform.OS === "web";
+  const Page: ComponentType<any> = lazy(() => load().then(
+    (page) => {
+      if (web) sessionStorage.removeItem(RELOADED);
+      return { default: page };
+    },
+    (error: unknown) => {
+      if (!web || sessionStorage.getItem(RELOADED)) throw error;
+      sessionStorage.setItem(RELOADED, "1");
+      location.reload();
+      return new Promise<never>(() => {});
+    },
+  ));
+  return (props: P) => <Suspense fallback={fallback}><Page {...props} /></Suspense>;
 }
 
 /** A section title: a small heading, an optional muted count, then the section's own controls on the right. */

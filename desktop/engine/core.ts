@@ -92,12 +92,18 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     prefetchScramble(context);
     return ready;
   }
+  // The cases' algorithms, other setups and notes, a chunk of their own on the web (desktop/web.ts `catalogSplit`):
+  // fetched from the launch, awaited by what reads them (a trained case's, an analysis, an algorithm learned).
+  const details = import('../../src/client/local/catalogDetails').then(({ addDetails }) => addDetails(cases));
+  details.catch(() => {});
   // Smart cube solves, analysed once each: the analysis page, and the cases they went through as attempts of those cases.
   const smart = createSmartDigests({ storage, cases: cases as unknown as CatalogCase[], changed: () => emit({ event: 'changed' }) });
+  const digestsOf = (...args: Parameters<typeof smart.digests>) => details.then(() => smart.digests(...args));
   const caseSvg = (size: number, setup: string, stage: CaseDto['stage']) =>
     renderToStaticMarkup(createElement(StaticCubeSvg, { state: applyAlg(solved(size), setup), size: 300, mask: maskForStage(stage), view: viewForStage(stage) }));
   const trainingHistories = new Map<string, TrainingHistory>();
-  function training(action: string, puzzle: PuzzleId, ids: string[], useAuf: boolean, solveMode: string) {
+  async function training(action: string, puzzle: PuzzleId, ids: string[], useAuf: boolean, solveMode: string) {
+    await details;
     const key = `${puzzle}:${solveMode}`;
     const chosen = new Set(ids), pool = cases.filter(c => chosen.has(c.id));
     const before = trainingHistories.get(key) ?? EMPTY_TRAINING_HISTORY;
@@ -180,7 +186,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       // The training's own figures (its recommendations) are the training's alone.
       const source: CaseSource = isCaseSource(q.caseSource) && context.puzzle === '333' && (!['playground', 'training'].includes(q.page) || q.caseId) ? q.caseSource : 'training';
       const inSolves = source === 'training' ? null : Promise.all([
-        local.api.solves('playground', Infinity, '333', { solveMode: context.solveMode }).then(timer => smart.digests(timer, context.solveMode)),
+        local.api.solves('playground', Infinity, '333', { solveMode: context.solveMode }).then(timer => digestsOf(timer, context.solveMode)),
         local.api.solves('training', Infinity, '333', { solveMode: context.solveMode }),
       ]);
       const jobs: Record<string, Promise<unknown>> = {
@@ -204,7 +210,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       if (onProfile || (ahead && !q.known?.achievements)) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {
         const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
-        jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => smart.digests(timer, mode)))
+        jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => digestsOf(timer, mode)))
           .then(digests => smart.analysis(digests, mode));
       }
       if (q.caseId) {
@@ -214,7 +220,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
           : Promise.resolve(displayed(training, undefined, q.known?.caseHistory));
       }
       if (q.advance) {
-        if (!lastAdvance || lastAdvance.key !== q.advanceKey) lastAdvance = { key: q.advanceKey, promise: trainingMode ? Promise.resolve({ training: training('next', context.puzzle, q.selected, q.randomAuf, context.solveMode) }) : takeScramble(context).then(scramble => ({ scramble })) };
+        if (!lastAdvance || lastAdvance.key !== q.advanceKey) lastAdvance = { key: q.advanceKey, promise: trainingMode ? training('next', context.puzzle, q.selected, q.randomAuf, context.solveMode).then(value => ({ training: value })) : takeScramble(context).then(scramble => ({ scramble })) };
         jobs[trainingMode ? 'training' : 'scramble'] = lastAdvance.promise.then(v => v[trainingMode ? 'training' : 'scramble']);
       }
       if (!trainingMode) prefetchScramble(context);
@@ -232,7 +238,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'dailyScramble') return await daily(req.args[0], req.args[1]);
     if (req.method === 'crossSolutions') return crossSolutions(req.args[0], req.args[1]);
     // A smart cube solve, split into its steps and its cases: here, off the page, after the solve was saved.
-    if (req.method === 'analyseSolve') return analyseSolve(req.args[0], cases as unknown as CatalogCase[]);
+    if (req.method === 'analyseSolve') return details.then(() => analyseSolve(req.args[0], cases as unknown as CatalogCase[]));
     if (req.method === 'training') return training(req.args[0], req.args[1], req.args[2], req.args[3], req.args[4]);
     if (req.method === 'trainingCase') {
       const [c, useAuf] = req.args, size = puzzleInfo(c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3)).cubeSize;
@@ -261,6 +267,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'sync') { await local.retry(); return local.status(); }
     // A solve of any session, by its id: a smart cube solve opened from a case it went through.
     if (req.method === 'solveById') return local.read.solve(req.args[0]);
+    // An algorithm learned is checked against its case's.
+    if (req.method === 'setLearned') await details;
     if (methods.has(req.method)) return await (local.api as any)[req.method](...req.args);
     throw new Error('Unknown engine method');
   }

@@ -129,14 +129,14 @@ export function pageFile(path: string) {
 
 /**
  * Every page built ahead of time, by address: each puzzle's timer, algorithms, courses and trainer, every course step
- * and every case (a big cube's copies of the 3×3 cases aside). The 3×3's pages but its course steps, and every case, also
- * answer without a puzzle (`/timer`, `/algorithms/OLL%2021`).
+ * and every case (a big cube's copies of the 3×3 cases aside). The 3×3's pages but its course steps, and every case, are
+ * written without their puzzle (`timer.html`, `algorithms/OLL 21.html`): the API finds them so with it or without.
  */
 export function prerenderedPages(): { url: string; files: string[] }[] {
   const pages: { url: string; files: string[] }[] = [];
   const add = (url: string, bare = false) => {
     const file = pageFile(url);
-    pages.push({ url, files: bare && !file.includes("~") ? [file, file.replace(/@\w+\.html$/, ".html")] : [file] });
+    pages.push({ url, files: [bare && !file.includes("~") ? file.replace(/@\w+\.html$/, ".html") : file] });
   };
   for (const puzzle of PUZZLES) {
     const main = puzzle === "333";

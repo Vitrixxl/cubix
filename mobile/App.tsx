@@ -3,7 +3,7 @@ import "./global.css";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
 import { Provider, getDefaultStore, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { Suspense, useEffect } from "react";
+import { Suspense, memo, useEffect } from "react";
 import { AppState, BackHandler, Keyboard, Linking, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
@@ -14,7 +14,7 @@ import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { GuidesSheet } from "./src/components/GuidesDialog";
 import { DeviceNotices, DevicesSheet } from "./src/components/Devices";
 import { NotationSheet } from "./src/components/Notation";
-import { Fade } from "./src/components/layout";
+import { Fade, lazyPage } from "./src/components/layout";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { PageStack } from "./src/components/PageStack";
 import { SessionSheet } from "./src/components/PuzzlePicker";
@@ -68,18 +68,27 @@ function renderPage(route: Route) {
     case "duel": return <DuelPage />;
     case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
     case "assisted": return <AssistedPage method={route.method} />;
-    case "solve": { const { SolvePage } = require("./src/pages/SolvePage") as typeof import("./src/pages/SolvePage"); return <SolvePage id={route.id} step={route.step} comment={route.comment} />; }
-    case "analysis": { const { AnalysisPage } = require("./src/pages/AnalysisPage") as typeof import("./src/pages/AnalysisPage"); return <AnalysisPage />; }
-    case "daily": { const { DailyPage } = require("./src/pages/DailyPage") as typeof import("./src/pages/DailyPage"); return <DailyPage day={route.day} />; }
-    case "settings": { const { SettingsPage } = require("./src/pages/SettingsPage") as typeof import("./src/pages/SettingsPage"); return <SettingsPage />; }
-    // The social pages load on first use: none of them is on the way to the timer.
-    case "community": { const { CommunityPage } = require("./src/pages/CommunityPage") as typeof import("./src/pages/CommunityPage"); return <CommunityPage view={route.view} />; }
-    case "tournaments": { const { TournamentsPage } = require("./src/pages/TournamentsPage") as typeof import("./src/pages/TournamentsPage"); return <TournamentsPage view={route.view} />; }
-    case "wca": { const { WcaPage } = require("./src/pages/WcaPage") as typeof import("./src/pages/WcaPage"); return <WcaPage view={route.view} />; }
-    case "match": { const { MatchPage } = require("./src/pages/MatchPage") as typeof import("./src/pages/MatchPage"); return <MatchPage id={route.id} />; }
-    case "coaching": { const { CoachingPage } = require("./src/pages/CoachingPage") as typeof import("./src/pages/CoachingPage"); return <CoachingPage view={route.view} />; }
+    case "solve": return <SolvePage id={route.id} step={route.step} comment={route.comment} />;
+    case "analysis": return <AnalysisPage />;
+    case "daily": return <DailyPage day={route.day} />;
+    case "settings": return <SettingsPage />;
+    case "community": return <CommunityPage view={route.view} />;
+    case "tournaments": return <TournamentsPage view={route.view} />;
+    case "wca": return <WcaPage view={route.view} />;
+    case "match": return <MatchPage id={route.id} />;
+    case "coaching": return <CoachingPage view={route.view} />;
   }
 }
+// These pages load on first use: none of them is on the way to the timer.
+const SolvePage = lazyPage(() => import("./src/pages/SolvePage").then(m => m.SolvePage));
+const AnalysisPage = lazyPage(() => import("./src/pages/AnalysisPage").then(m => m.AnalysisPage));
+const DailyPage = lazyPage(() => import("./src/pages/DailyPage").then(m => m.DailyPage));
+const SettingsPage = lazyPage(() => import("./src/pages/SettingsPage").then(m => m.SettingsPage));
+const CommunityPage = lazyPage(() => import("./src/pages/CommunityPage").then(m => m.CommunityPage));
+const TournamentsPage = lazyPage(() => import("./src/pages/TournamentsPage").then(m => m.TournamentsPage));
+const WcaPage = lazyPage(() => import("./src/pages/WcaPage").then(m => m.WcaPage));
+const MatchPage = lazyPage(() => import("./src/pages/MatchPage").then(m => m.MatchPage));
+const CoachingPage = lazyPage(() => import("./src/pages/CoachingPage").then(m => m.CoachingPage));
 
 export function App() {
   return <GestureHandlerRootView style={{ flex: 1 }}>
@@ -131,7 +140,9 @@ function Session() {
   return <Shell />;
 }
 
-function Shell() {
+// Memoised: a solve or a sync bumps the statistics' version, read below in ProfileWarmup only, and draws neither the
+// shell nor the page again.
+const Shell = memo(function Shell() {
   const introduction = useAtomValue(introductionAtom);
   const closeIntroduction = useSetAtom(introductionAtom);
   const insets = useSafeAreaInsets();
@@ -182,14 +193,6 @@ function Shell() {
   // A tab opens on the page it showed last; every tab opens on every puzzle (as on the web).
   const openTab = useSetAtom(openTabAtom);
   const active = route.page;
-  // New solves or a sync make the profile stale: compute it again in the background, so opening it later costs
-  // nothing. Never on the timer pages, where a busy JS thread would delay the next start and skew its time.
-  const statsVersion = useAtomValue(statsVersionAtom);
-  const timing = running || active === "playground" || active === "training" || active === "duel";
-  useEffect(() => {
-    if (timing) return;
-    return afterFirstFrames(() => { store.get(profileDataAtom); }, () => { store.get(profileAchievementsAtom); });
-  }, [store, statsVersion, timing]);
   // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
   useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);
@@ -199,6 +202,7 @@ function Shell() {
     <View style={{ flex: 1 }} pointerEvents={introduction ? "none" : "auto"} accessibilityElementsHidden={!!introduction} importantForAccessibility={introduction ? "no-hide-descendants" : "auto"}>
     <LiveConnection />
     <ScramblerHost />
+    <ProfileWarmup timing={running || active === "playground" || active === "training" || active === "duel"} />
     <KeyboardAvoidingView behavior="padding" className="flex-1">
       <View className="min-h-0 flex-1" style={{ paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
         {/* Nothing suspends; the boundary only guards against a future async atom. */}
@@ -219,15 +223,28 @@ function Shell() {
     <Toast />
     <Reminders />
     </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;
+});
+
+/**
+ * New solves or a sync make the profile stale: computed again in the background, so opening it later costs nothing.
+ * Never on the timer pages, where a busy JS thread would delay the next start and skew its time.
+ */
+function ProfileWarmup({ timing }: { timing: boolean }) {
+  const store = useStore();
+  const statsVersion = useAtomValue(statsVersionAtom);
+  useEffect(() => {
+    if (timing) return;
+    return afterFirstFrames(() => { store.get(profileDataAtom); }, () => { store.get(profileAchievementsAtom); });
+  }, [store, statsVersion, timing]);
+  return null;
 }
 
 /** The call under way, floating over the app away from its page; its module (and WebRTC) loads with the first call. */
 function FloatingCall() {
   const inCall = useSocial(() => coaching.inCall);
-  if (!inCall) return null;
-  const { FloatingCall: Floating } = require("./src/components/coaching/call/Floating") as typeof import("./src/components/coaching/call/Floating");
-  return <Floating />;
+  return inCall ? <Floating /> : null;
 }
+const Floating = lazyPage(() => import("./src/components/coaching/call/Floating").then(m => m.FloatingCall), null);
 
 /** The tab bar, with a dot where something waits on the social side: unread coaching messages; unread messages,
  * friend requests and group invitations. */

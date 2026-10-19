@@ -83,7 +83,7 @@ export function onLanguage(listener: () => void) {
   listeners.add(listener);
   return () => void listeners.delete(listener);
 }
-/** For tests: a dictionary given directly. */
+/** A dictionary given directly: tests', and the landing page's own texts (landing/main.tsx). */
 export function provide(language: Language, dictionary: Dictionary) {
   dictionaries[language] = dictionary;
 }

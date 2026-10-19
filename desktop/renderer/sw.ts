@@ -22,7 +22,8 @@ const DICTIONARIES = Object.values(CUBIX_DICTIONARIES);
 const PHONE_FILE = /^\/phone\/(_expo\/static|assets)\//;
 /** Registered by the phone app (boot.ts): its shell, never the desktop app's bundles. */
 const PHONE_APP = new URLSearchParams(worker.location.search).get("app") === "phone";
-const fresh = (urls: string[]) => urls.map((url) => new Request(url, { cache: "no-cache" }));
+/** The files to install, asked again of the server but those named after their content, the same file for good. */
+const fresh = (urls: string[]) => urls.map((url) => (/^\/build\//.test(url) || PHONE_FILE.test(url) ? url : new Request(url, { cache: "no-cache" })));
 
 worker.addEventListener("install", (event) => {
   event.waitUntil((async () => {

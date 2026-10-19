@@ -8,7 +8,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { AppBar, SectionTabs } from "../components/AppBar";
 import { Docked, Pane } from "../components/chat/kit";
-import { Empty, ListSkeleton, Numeric, Segmented } from "../components/layout";
+import { Empty, lazyPage, ListSkeleton, Numeric, Segmented } from "../components/layout";
 import { Apply } from "../components/coaching/apply";
 import { BookPage, CoachList, CoachPage } from "../components/coaching/browse";
 import { CoachProfile, Dashboard, StudentsView } from "../components/coaching/coach";
@@ -19,6 +19,9 @@ import { Schedule } from "../components/coaching/schedule";
 import { Sessions } from "../components/coaching/sessions";
 import { useLayout } from "../hooks/useLayout";
 import { tr } from "../../../src/client/i18n";
+
+/** A call, loaded on first use with WebRTC. */
+const CallView = lazyPage(() => import("../components/coaching/call/CallView").then(m => m.CallView));
 
 /**
  * The coaching page, the Me section's Coaching tab (desktop/renderer/coaching/page.tsx). Players find a coach, book one
@@ -42,8 +45,7 @@ export function CoachingPage({ view: path = "" }: { view?: string }) {
     // Coach-only sections send others back to the list of coaches.
     else if (me && !c.isCoach && COACH_SECTIONS.some(([id]) => id === view)) nav.go("coaches", true);
   }, [me, view]);
-  // The call loads on first use, with WebRTC.
-  if (view === "call" && arg) { const { CallView } = require("../components/coaching/call/CallView") as typeof import("../components/coaching/call/CallView"); return <CallView id={arg} />; }
+  if (view === "call" && arg) return <CallView id={arg} />;
   const coach = view === "coach" && arg ? sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} docked={wide} /> : null;
   if (coach && !wide) return coach;
   if (view === "messages" && arg && !wide) return <CoachingMessages conversationId={Number(arg)} />;
