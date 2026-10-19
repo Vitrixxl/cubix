@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect, useState, type ReactNode } from "react";
+import { memo, useEffect, useState, type ReactNode } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import { useLayout } from "../hooks/useLayout";
 import { useReducedMotion } from "../hooks/useReducedMotion";
@@ -33,7 +33,7 @@ type Stack = { route: Route; screens: Screen[]; slide: Slide; progress: Animated
  * Renders the current route. Tabs swap in the same commit, without waiting for an animation or rendering two pages.
  * Inside a tab, both pages stay mounted only while they move.
  */
-export function PageStack({ route, render }: { route: Route; render: (route: Route) => ReactNode }) {
+export const PageStack = memo(function PageStack({ route, render }: { route: Route; render: (route: Route) => ReactNode }) {
   const kind = useAtomValue(lastNavigationAtom);
   const reduced = useReducedMotion();
   const window = useLayout();
@@ -85,7 +85,7 @@ export function PageStack({ route, render }: { route: Route; render: (route: Rou
       </Animated.View>;
     })}
   </View>;
-}
+});
 
 const styles = StyleSheet.create({
   stack: { flex: 1, minHeight: 0, overflow: "hidden" },

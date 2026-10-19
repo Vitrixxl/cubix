@@ -1,6 +1,6 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookA, Box, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lightbulb, ListFilter, Lock, Play, Timer, type LucideIcon } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import {
@@ -737,7 +737,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   const index = piece ? all.indexOf(piece) : -1;
   const alg = piece ? piece.algs[choice] ?? piece.algs[0] ?? "" : "";
   const learning = !!piece && !piece.learned, open = learning || revealed;
-  const select = (key: string | undefined) => { setPick(key); setOpen(false); setChoice(0); };
+  const select = useCallback((key: string | undefined) => { setPick(key); setOpen(false); setChoice(0); }, []);
   // The first case has nothing before it, the last nothing after it: two cases never lead to the same one both ways.
   const go = (by: number) => { const to = all[index + by]; if (to) select(to.key); };
   const use = (p: Piece, a: string) => {
@@ -883,7 +883,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
                 <Numeric className={cn("text-[13px]", known === pieces.length ? "text-success" : "text-muted-foreground")}>{known} / {pieces.length}</Numeric>
               </View>
               <View className="flex-row flex-wrap gap-1.5">
-                {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={50} onPress={() => select(p.key)} />)}
+                {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={50} onSelect={select} />)}
               </View>
             </View>;
           })}
@@ -918,7 +918,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
               <Numeric className={cn("text-[13px]", known === pieces.length ? "text-success" : "text-muted-foreground")}>{known} / {pieces.length}</Numeric>
             </View>}
             <View className="flex-row flex-wrap gap-1.5">
-              {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tileSize} onPress={() => select(p.key)} />)}
+              {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tileSize} onSelect={select} />)}
             </View>
           </View>;
         })}
@@ -928,13 +928,14 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }:
   </>;
 }
 
-/** A piece to pick: its diagram, faded while to learn; the one on the workbench outlined. */
-function PieceTile({ p, here, puzzle, step, size, onPress }: { p: Piece; here: boolean; puzzle: PuzzleId; step: MethodStep; size: number; onPress: () => void }) {
-  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: here }} accessibilityLabel={`${said(p.name)} · ${p.learned ? tr("Learned") : tr("To learn")}`}
+/** A piece to pick: its diagram, faded while to learn; the one on the workbench outlined. Memoised: a tap draws again
+ * the two tiles whose outline moves, not the grid. */
+const PieceTile = memo(function PieceTile({ p, here, puzzle, step, size, onSelect }: { p: Piece; here: boolean; puzzle: PuzzleId; step: MethodStep; size: number; onSelect: (key: string) => void }) {
+  return <Pressable onPress={() => onSelect(p.key)} accessibilityRole="button" accessibilityState={{ selected: here }} accessibilityLabel={`${said(p.name)} · ${p.learned ? tr("Learned") : tr("To learn")}`}
     className={cn("items-center rounded-2xl border-2 p-1", here ? "border-primary bg-card" : p.learned ? "border-transparent bg-card" : "border-transparent")}>
     <View style={{ opacity: p.learned || here ? 1 : 0.45 }}><PieceDiagram piece={p} puzzle={puzzle} step={step} size={size} /></View>
   </Pressable>;
-}
+});
 
 /** A course completed: what was done, then where to go from here. */
 function Finished({ puzzle, method, onTimer, onMethods }: { puzzle: PuzzleId; method: SolvingMethod; onTimer: () => void; onMethods: () => void }) {

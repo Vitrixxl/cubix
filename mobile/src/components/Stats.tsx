@@ -40,6 +40,8 @@ const METRICS: { id: Metric; label: string }[] = [{ id: "mean", label: "Mean" },
 type Preset = "all" | "90" | "30" | "last";
 type Sort = "newest" | "oldest" | "fastest" | "slowest";
 const DAY = 86_400_000;
+/** No rolling average under the sessions' chart. */
+const NONE: (number | null)[] = [];
 /** A difference of times, signed: "−0.240", "+1.450". */
 const signed = (ms: number) => (ms < 0 ? "−" : "+") + fmtTime(Math.abs(ms));
 const hourOf = (iso: string) => new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
@@ -112,8 +114,9 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
     // Each solve's session: its own when the summaries have it, its day's otherwise (lib/sessions groups them so).
     const byId = new Map<number, SessionSummary>(), byDay = new Map<string, SessionSummary>();
     for (const x of sessions) x.id != null ? byId.set(x.id, x) : byDay.set(x.at.slice(0, 10), x);
+    const records = singleRecords(history);
     return {
-      ao50: rollingAverages(times, 50), ao100: rollingAverages(times, 100), records: singleRecords(history),
+      ao50: rollingAverages(times, 50), ao100: rollingAverages(times, 100), records, marks: records.map(r => r.index),
       session: history.map(v => (v.sessionId != null && byId.get(v.sessionId)) || byDay.get(v.at.slice(0, 10)) || null),
     };
   }, [history, sessions]);
@@ -121,6 +124,13 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
   const [solveRange, setSolveRange] = useState<Range>([0, history.length - 1]);
   const [sessionRange, setSessionRange] = useState<Range>([0, Math.max(0, sessions.length - 1)]);
   const [metric, setMetric] = useState<Metric>("mean");
+  // The charts' series and marks keep their identity from one render to the next: the chart draws its dots again only
+  // when they change.
+  const sessionChart = useMemo(() => {
+    let best = -1;
+    sessions.forEach((x, i) => { if (x[metric] != null && (best < 0 || x[metric]! < sessions[best]![metric]!)) best = i; });
+    return { history: sessions.map(x => ({ time: x[metric], at: x.at })), marks: best < 0 ? [] : [best] };
+  }, [sessions, metric]);
   const [records, setRecords] = useState(false);
   // The curve, or how the period's times spread beside the solves before it (Multi-Blind's points have no spread).
   const [view, setView] = useState<"curve" | "spread">("curve");
@@ -193,11 +203,10 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
       </View>
       {spread ? <SpreadChart history={history} range={range} />
         : perSession
-        ? <HistoryChart history={sessions.map(x => ({ time: x[metric], at: x.at }))} averages={[]} range={sessionRange} onRange={setSessionRange} mode={shownMode()}
-          marks={(() => { let best = -1; sessions.forEach((x, i) => { if (x[metric] != null && (best < 0 || x[metric]! < sessions[best]![metric]!)) best = i; }); return best < 0 ? [] : [best]; })()}
+        ? <HistoryChart history={sessionChart.history} averages={NONE} range={sessionRange} onRange={setSessionRange} mode={shownMode()} marks={sessionChart.marks}
           label={i => `${sessionLabel(sessions[i] ?? null)} · ${plural(sessions[i]?.count ?? 0, "solve")}`} />
         : <HistoryChart history={history} averages={long ? derived.ao50 : data.ao5} range={solveRange} onRange={setSolveRange} mode={shownMode()} points dnfs
-          marks={derived.records.map(r => r.index)} label={i => `#${i + 1} · ${sessionLabel(derived.session[i] ?? null) || shortDate(history[i]!.at)}`} />}
+          marks={derived.marks} label={i => `#${i + 1} · ${sessionLabel(derived.session[i] ?? null) || shortDate(history[i]!.at)}`} />}
       <PeriodBar items={perSession ? sessions : history} range={perSession ? sessionRange : solveRange} onRange={perSession ? setSessionRange : setSolveRange}
         lastSession={perSession || !derived.session.at(-1) ? null : derived.session.indexOf(derived.session.at(-1)!)} count={range[1] - range[0] + 1} />
     </View>

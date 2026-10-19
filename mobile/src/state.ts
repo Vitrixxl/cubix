@@ -265,9 +265,22 @@ export const casesAtom = atom<CaseDto[]>(get => local.read.catalog(get(puzzleAto
 export const setsAtom = atom(get => local.read.catalog(get(puzzleAtom)).sets);
 /** bump to refetch stats */
 export const statsVersionAtom = atom(0);
+/**
+ * The last reading of a derived atom, kept while a new one holds the same: a solve or a sync that changed nothing here
+ * keeps its identity, and nothing reading it draws again.
+ */
+function steady<T>(equal: (a: T, b: T) => boolean) {
+  let last: T | undefined;
+  return (next: T) => last !== undefined && equal(last, next) ? last : (last = next);
+}
+const steadyLearned = steady<string[]>((a, b) => a.length === b.length && a.every((id, i) => id === b[i]));
+const steadyStats = steady<Map<string, CaseStatsDto>>((a, b) => a.size === b.size && [...a].every(([id, x]) => {
+  const y = b.get(id);
+  return !!y && Object.keys(x).length === Object.keys(y).length && (Object.keys(x) as (keyof CaseStatsDto)[]).every(key => x[key] === y[key]);
+}));
 /** Case IDs are unique across puzzles and sets; learning is independent of timed solves.
  * Marks live in the local-first workspace, so they sync across devices; writing toggles one case. */
-export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return local.learned(); }, (_get, _set, caseId: string) => {
+export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return steadyLearned(local.learned()); }, (_get, _set, caseId: string) => {
   void api.setLearned(caseId, !local.learned().includes(caseId)).catch(() => { /* Reported by the sync indicator. */ });
 });
 /** Last deleted solve, so the open lists update without refetching every timer tick. */
@@ -277,7 +290,7 @@ export const updatedSolveAtom = atom<SolveDto | null>(null);
 export const statsAtom = atom(get => {
   get(statsVersionAtom);
   const list = local.read.stats(get(puzzleAtom), { solveMode: get(solveModeAtom) });
-  return new Map<string, CaseStatsDto>(list.map(s => [s.caseId, s]));
+  return steadyStats(new Map<string, CaseStatsDto>(list.map(s => [s.caseId, s])));
 });
 
 // ---------------------------------------------------------------------------

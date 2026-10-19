@@ -64,11 +64,16 @@ export const ScrambleCube = memo(function ScrambleCube({ puzzle, cubeSize, scram
   useEffect(() => {
     if (!scene) { setShapes([]); return; }
     const start = performance.now();
-    let frame = 0;
+    let frame = 0, drawn = -Infinity;
     const draw = () => {
-      seconds.current = staticRef.current ? scene.duration : (performance.now() - start) / 1000;
-      setShapes(scene.shapes(seconds.current, orientation.current));
-      if (seconds.current < scene.duration) frame = requestAnimationFrame(draw);
+      const now = performance.now(), elapsed = staticRef.current ? scene.duration : (now - start) / 1000;
+      // About 30 pictures a second, the last one always: each is an SVG built on the JS thread.
+      if (elapsed >= scene.duration || now - drawn >= 30) {
+        drawn = now;
+        seconds.current = elapsed;
+        setShapes(scene.shapes(elapsed, orientation.current));
+      }
+      if (elapsed < scene.duration) frame = requestAnimationFrame(draw);
     };
     draw();
     return () => cancelAnimationFrame(frame);

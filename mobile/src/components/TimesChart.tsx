@@ -145,8 +145,30 @@ export const HistoryChart = memo(function HistoryChart({ history, averages, rang
       });
       return d;
     };
-    return { single: path(history.map(v => v.time)), average: path(averages) };
-  }, [history, averages, first, last, W, H, scale]);
+    // The dots: every time (`points`), or the ones no line reaches. One path, at most one dot per pixel: a long history
+    // draws as many dots as the chart has pixels, not one shape per solve.
+    const seen = new Set<number>(), r = points ? (last - first >= 300 ? 1.2 : 1.8) : 2.5;
+    let dots = "";
+    for (let i = first; i <= last; i++) {
+      const time = history[i]!.time;
+      if (time == null || !(points || last - first < 39 || (history[i - 1]?.time == null && history[i + 1]?.time == null))) continue;
+      const cx = x(i), cy = y(time), pixel = Math.round(cx) * 100000 + Math.round(cy);
+      if (seen.has(pixel)) continue;
+      seen.add(pixel);
+      dots += `M${(cx - r).toFixed(1)} ${cy.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
+    }
+    return { single: points ? "" : path(history.map(v => v.time)), average: path(averages), dots };
+  }, [history, averages, first, last, W, H, scale, points]);
+  // Everything but the tip and the selection, built again only when the data, the period or the size change: a tap or
+  // a drag draws two shapes again, never the solves.
+  const layer = useMemo(() => <>
+    {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={colors.border} strokeWidth={1} />)}
+    {!points && <Path d={paths.single} fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />}
+    <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={2} strokeLinejoin="round" />
+    <Path d={paths.dots} fill={colors.primary} fillOpacity={points ? 0.75 : 1} />
+    {marks?.map(i => i >= first && i <= last && history[i]?.time != null ? <Circle key={"m" + i} cx={x(i)} cy={y(history[i]!.time!)} r={3.5} fill={colors.variables["--success"]} /> : null)}
+    {dnfs && span < 300 && history.slice(first, last + 1).map((v, i) => v.time == null ? <SvgText key={"x" + i} x={x(first + i)} y={11} fill={colors.variables["--destructive"]} fontSize={12} fontWeight="800" textAnchor="middle">×</SvgText> : null)}
+  </>, [paths, colors, points, marks, dnfs]);
   const fraction = (px: number) => W ? clamp((px / W * 800 - 6) / 788, 0, 1) : 0;
   const index = (f: number) => clamp(Math.round(first + f * span), first, last);
   const onGrant = (e: GestureResponderEvent) => { gesture.current = { x: e.nativeEvent.locationX, moved: false }; };
@@ -170,7 +192,6 @@ export const HistoryChart = memo(function HistoryChart({ history, averages, rang
   };
   const cancel = () => { gesture.current = null; setDrag(null); };
   const selection = drag ? [index(Math.min(drag.start, drag.end)), index(Math.max(drag.start, drag.end))] : null;
-  const visible = history.slice(first, last + 1);
   const point = hover != null ? history[hover] : null;
   const value = point ? point.time ?? averages[hover!] : null;
   const onLayout = (e: LayoutChangeEvent) => { const { width, height: h } = e.nativeEvent.layout; setSize(s => s.w === width && s.h === h ? s : { w: width, h }); };
@@ -184,15 +205,7 @@ export const HistoryChart = memo(function HistoryChart({ history, averages, rang
         onResponderGrant={onGrant} onResponderMove={onMove} onResponderRelease={onRelease} onResponderTerminate={cancel}
         accessibilityLabel={tr("Solve times: tap a point to read it, drag across the chart to zoom into a period")}>
         {W > 0 && H > 0 && <Svg width={W} height={H}>
-          {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={colors.border} strokeWidth={1} />)}
-          {points
-            ? visible.map((v, i) => v.time != null ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={visible.length > 300 ? 1.2 : 1.8} fill={colors.primary} fillOpacity={0.75} /> : null)
-            : <Path d={paths.single} fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />}
-          <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={2} strokeLinejoin="round" />
-          {!points && visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
-            ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={2.5} fill={colors.primary} /> : null)}
-          {marks?.map(i => i >= first && i <= last && history[i]?.time != null ? <Circle key={"m" + i} cx={x(i)} cy={y(history[i]!.time!)} r={3.5} fill={colors.variables["--success"]} /> : null)}
-          {dnfs && span < 300 && visible.map((v, i) => v.time == null ? <SvgText key={"x" + i} x={x(first + i)} y={11} fill={colors.variables["--destructive"]} fontSize={12} fontWeight="800" textAnchor="middle">×</SvgText> : null)}
+          {layer}
           {hover != null && <Line x1={x(hover)} x2={x(hover)} y1={0} y2={H} stroke={colors.mutedForeground} strokeDasharray="3 3" />}
           {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={colors.primary} stroke={colors.card} strokeWidth={2} />}
           {selection && <Rect x={x(selection[0]!)} y={0} width={Math.max(1, x(selection[1]!) - x(selection[0]!))} height={H} fill={colors.primary} fillOpacity={0.12} stroke={colors.primary} strokeWidth={1} />}

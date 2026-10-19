@@ -3,7 +3,7 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
+import { BackHandler, Pressable, Text as RNText, TextInput, View, type GestureResponderEvent, type TextStyle } from "react-native";
 import { fmtSolve, fmtTime, parseTypedSolve, plural, solveResult, typedSolveChars } from "../../../src/client/lib/format";
 import type { Metric } from "../../../src/client/lib/practiceSummary";
 import { inspectionExpired, timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
@@ -189,7 +189,10 @@ export const Digits = memo(function Digits({ text, phase, size, color }: { text:
   </Text>;
 });
 
-/** Only this text re-renders on animation frames, never the page. */
+/**
+ * Only this text re-renders on animation frames, never the page. To the millisecond, as on the web; drawn like
+ * `Digits` while running, but with plain styles, so no class is resolved on each frame.
+ */
 export const LiveDigits = memo(function LiveDigits({ startedAt, size, color }: { startedAt: number; size: number; color?: string }) {
   const [text, setText] = useState(() => fmtTime(performance.now() - startedAt));
   useEffect(() => {
@@ -198,7 +201,19 @@ export const LiveDigits = memo(function LiveDigits({ startedAt, size, color }: {
     tick();
     return () => cancelAnimationFrame(frame);
   }, [startedAt]);
-  return <Digits text={text} phase="running" size={size} color={color} />;
+  const colors = useColors();
+  const styles = useMemo(() => {
+    const font: TextStyle = { fontFamily: "Bricolage", fontWeight: "600", fontVariant: ["tabular-nums"] };
+    return {
+      head: { ...font, textAlign: "center", fontSize: size, lineHeight: Math.round(size * 1.08), letterSpacing: -size * 0.04, includeFontPadding: false, color: color ?? colors.variables["--timer"] } satisfies TextStyle,
+      tail: { ...font, fontSize: size * 0.62, letterSpacing: -size * 0.62 * 0.03, color: color ?? colors.variables["--timer-ms"] } satisfies TextStyle,
+    };
+  }, [size, color, colors]);
+  const dot = text.indexOf(".");
+  return <RNText accessibilityRole="timer" numberOfLines={1} style={styles.head}>
+    {dot < 0 ? text : text.slice(0, dot + 1)}
+    {dot < 0 ? null : <RNText style={styles.tail}>{text.slice(dot + 1)}</RNText>}
+  </RNText>;
 });
 
 /** The hint under the digits (translated), or the praise of a new record in its place. */

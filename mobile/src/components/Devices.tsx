@@ -59,12 +59,16 @@ function MacQuestion({ name, guess, wrong }: { name: string; guess?: string; wro
 
 const level = (battery?: number) => (battery === undefined ? "" : ` · ${battery}%`);
 
+/** One field of a device's state: the sheet, always mounted, draws again when it changes, never on each packet. */
+const useField = <S, K extends keyof S>(device: { subscribe: (listener: () => void) => () => void; snapshot: S }, key: K) =>
+  useSyncExternalStore(device.subscribe, () => device.snapshot[key]);
+
 export function DevicesSheet() {
   const [open, setOpen] = useAtom(devicesAtom);
-  const cube = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot),
-    timer = useSyncExternalStore(smartTimer.subscribe, () => smartTimer.snapshot),
-    mat = useSyncExternalStore(stackmat.subscribe, () => stackmat.snapshot);
-  const request = cube.macRequest;
+  const cube = { status: useField(smartCube, "status"), name: useField(smartCube, "name"), battery: useField(smartCube, "battery"), error: useField(smartCube, "error") },
+    timer = { link: useField(smartTimer, "link"), name: useField(smartTimer, "name"), error: useField(smartTimer, "error") },
+    mat = { link: useField(stackmat, "link") };
+  const request = useField(smartCube, "macRequest");
   return <Sheet open={open} onClose={() => setOpen(false)} title={tr("Devices")}>
     <View className="gap-2">
       <Row icon={Box} label={tr("Cube")} link={cube.status} onPress={toggleCube}

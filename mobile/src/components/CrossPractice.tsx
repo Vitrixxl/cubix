@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { api } from "../api";
+import { api, local } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
@@ -83,8 +83,8 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
       setLastSolveId(solve.id);
       bumpStats(v => v + 1);
-      // Records span every launch, unlike the listed session.
-      const message = recordMessage(solveRecords((await api.solves("playground", Infinity, context.puzzle, context)).reverse(), solve.id));
+      // Records span every launch, unlike the listed session: the context's solves as kept, oldest first, uncopied.
+      const message = recordMessage(solveRecords(local.read.solves("playground", context.puzzle, context), solve.id));
       if (message) showNotice(message);
       void generateNext();
     } finally { setSaving(false); }
