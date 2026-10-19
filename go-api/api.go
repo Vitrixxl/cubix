@@ -554,7 +554,7 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		return wcaAuthStart(state, trafficKey(state.traffic.ip(peerIP(r), r.Header)).String(), token, body)
 	}
 	if method == "POST" && path == "auth/wca/finish" {
-		return wcaAuthFinish(body)
+		return wcaAuthFinish(state, token, body)
 	}
 	// The account deleted by its owner: everything it holds goes at once (admin_data::purge).
 	if method == "POST" && path == "account/delete" {

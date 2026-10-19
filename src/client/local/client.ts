@@ -1,5 +1,6 @@
 import { PUZZLES, isPuzzle, puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { ImportedSolve } from "../lib/timerImport";
+import type { WcaReturn } from "../lib/wcaAuth";
 import { readSolution, SOLUTION_MAX } from "../lib/solution";
 import { cleanSplits } from "../lib/phases";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
@@ -599,9 +600,9 @@ export function createLocalClient(options: {
     authConfig: () => options.remote(null).authConfig(),
     google: async (credential: string) => authenticate(await options.remote(null).google(credential)),
     devLogin: async (username: string) => authenticate(await options.remote(null).devLogin(username)),
-    /** Back from the WCA's sign-in: signed in, or the account as it is now linked (lib/wcaAuth.ts). */
-    wcaFinish: async (ticket: string) => {
-      const v = await options.remote(null).wcaFinish(ticket);
+    /** Back from the WCA's sign-in: signed in, or the account as it is now linked, which only its own token links (lib/wcaAuth.ts). */
+    wcaFinish: async (back: WcaReturn) => {
+      const v = await options.remote(options.getToken()).wcaFinish(back);
       if ("token" in v) return authenticate(v);
       write("user", { ...current(), ...v.user }); notify();
       return v;

@@ -27,7 +27,7 @@ import { bluetoothCube } from "../../src/client/lib/bluetooth/cubes";
 import { effective, INSPECTIONS, type Inspection } from "../../src/client/lib/format";
 import { metronomeBpm } from "../../src/client/lib/metronome";
 import { mbldCubes, mbldValue, numberedScrambles, scrambleList, wcaUrl } from "../../src/client/lib/wca";
-import { takeWcaTicket } from "../../src/client/lib/wcaAuth";
+import { takeWcaTicket, type WcaReturn } from "../../src/client/lib/wcaAuth";
 import type { AddSolveBody } from "../../src/client/api-client";
 import { compSimName, roundRecord } from "../../src/client/lib/compSim";
 import type { Penalty, SolveDto } from "../../src/shared/types";
@@ -634,9 +634,9 @@ export class Store {
   }
   /** Back from the WCA's sign-in (lib/wcaAuth.ts): signed in with it, or the WCA ID it vouches for put on the profile,
    * whose page opens. */
-  async finishWca(ticket: string) {
+  async finishWca(back: WcaReturn) {
     try {
-      const v = await call("wcaFinish", ticket);
+      const v = await call("wcaFinish", back);
       if (v.token) return await this.opened(v);
       this.user = v.user;
       const profile = journeyProfile(this.journey);

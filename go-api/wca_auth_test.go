@@ -40,9 +40,10 @@ func TestWcaSignIn(t *testing.T) {
 	}
 	state := &AppState{db: db, attempts: map[string]*attempt{}}
 
-	// Start, come back with `code`, redeem the ticket.
-	signIn := func(token, code string, link bool) (any, error) {
-		value, err := wcaAuthStart(state, "ip", token, M{"origin": "https://qbix.test", "back": "/profile?tab=wca", "link": link})
+	// Start, come back with `code`, redeem the ticket: with `finisher`'s token and nonce (the starter's when empty).
+	const nonce = "nonce-of-this-page"
+	signInAs := func(token, code string, link bool, finisher, finisherNonce string) (any, error) {
+		value, err := wcaAuthStart(state, "ip", token, M{"origin": "https://qbix.test", "back": "/profile?tab=wca", "link": link, "nonce": nonce})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -57,12 +58,13 @@ func TestWcaSignIn(t *testing.T) {
 			t.Fatal(w.Code, back)
 		}
 		ticket := back.Query().Get("wcaAuth")
-		value, err = wcaAuthFinish(M{"ticket": ticket})
-		if _, again := wcaAuthFinish(M{"ticket": ticket}); again == nil {
+		value, err = wcaAuthFinish(state, finisher, M{"ticket": ticket, "nonce": finisherNonce})
+		if _, again := wcaAuthFinish(state, finisher, M{"ticket": ticket, "nonce": finisherNonce}); again == nil {
 			t.Fatal("a ticket redeemed twice")
 		}
 		return value, err
 	}
+	signIn := func(token, code string, link bool) (any, error) { return signInAs(token, code, link, token, nonce) }
 
 	// A first sign-in creates the account, a second opens it again; a WCA account without a WCA ID signs in too.
 	first, err := signIn("", "feliks", false)
@@ -89,6 +91,18 @@ func TestWcaSignIn(t *testing.T) {
 	if _, err := dbCall(db, func(c *Conn) (any, error) { return c.Exec("UPDATE users SET wca_user_id=NULL,wca_id=NULL") }); err != nil {
 		t.Fatal(err)
 	}
+	// A ticket sent to another page (another nonce), a link finished by another account: nothing opened nor linked.
+	if v, err := signInAs("", "feliks", false, "", "another-page-nonce"); err == nil {
+		t.Fatal("a ticket redeemed by another page", v)
+	}
+	if _, err := signInAs("Bearer "+str(other["token"]), "feliks", true, "Bearer "+str(idx(first, "token")), nonce); err == nil || toApiError(err).Status != 403 {
+		t.Fatal("a link finished by another account", err)
+	}
+	if v, _ := dbCall(db, func(c *Conn) (M, error) {
+		return dbOne(c, "SELECT wca_user_id FROM users WHERE wca_user_id IS NOT NULL")
+	}); v != nil {
+		t.Fatal("linked before its account finished", v)
+	}
 	linked, err := signIn("Bearer "+str(other["token"]), "feliks", true)
 	if err != nil || idx(linked, "wcaId") != "2009ZEMD01" || idx(linked, "token") != nil || idx(linked, "user").(M)["id"] != idx(other, "user").(M)["id"] {
 		t.Fatal(linked, err)
@@ -114,7 +128,9 @@ func TestWcaSignIn(t *testing.T) {
 	})
 
 	// Never back to another site; nothing without the WCA set up.
-	for _, body := range []M{{"origin": "https://qbix.test", "back": "//evil.test"}, {"origin": "https://qbix.test", "back": "https://evil.test"}, {"origin": "javascript:x", "back": "/"}} {
+	for _, body := range []M{{"origin": "https://qbix.test", "back": "//evil.test"}, {"origin": "https://qbix.test", "back": "https://evil.test"}, {"origin": "javascript:x", "back": "/"},
+		{"origin": "https://qbix.test", "back": "/\t/evil.test"}, {"origin": "https://qbix.test", "back": "/\x00/evil.test"}, {"origin": "https://qbix.test", "back": "/ /evil.test"}, {"origin": "https://qbix.test", "back": "/\\evil.test"}} {
+		body["nonce"] = nonce
 		if _, err := wcaAuthStart(state, "ip", "", body); err == nil {
 			t.Fatal(body)
 		}
@@ -123,11 +139,14 @@ func TestWcaSignIn(t *testing.T) {
 	wcaCallback(state, w, httptest.NewRequest("GET", "/api/auth/wca/callback?code=feliks&state=forged", nil))
 	if back, _ := url.Parse(w.Header().Get("Location")); back.Path != "/" {
 		t.Fatal(back)
-	} else if _, err := wcaAuthFinish(M{"ticket": back.Query().Get("wcaAuth")}); err == nil {
+	} else if _, err := wcaAuthFinish(state, "", M{"ticket": back.Query().Get("wcaAuth"), "nonce": nonce}); err == nil {
 		t.Fatal("a forged state signed in")
 	}
+	if len(wcaAuth.done) != 0 {
+		t.Fatal("a forged state kept", len(wcaAuth.done))
+	}
 	t.Setenv("CUBIX_WCA_CLIENT_SECRET", "")
-	if _, err := wcaAuthStart(state, "ip", "", M{"origin": "https://qbix.test", "back": "/"}); err == nil || toApiError(err).Status != 404 {
+	if _, err := wcaAuthStart(state, "ip", "", M{"origin": "https://qbix.test", "back": "/", "nonce": nonce}); err == nil || toApiError(err).Status != 404 {
 		t.Fatal(err)
 	}
 }

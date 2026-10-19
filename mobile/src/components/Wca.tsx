@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { api, local } from "../api";
 import { openUrl } from "../lib/social";
-import { leaveForWca } from "../../../src/client/lib/wcaAuth";
+import { leaveForWca, type WcaReturn } from "../../../src/client/lib/wcaAuth";
 import { toastAtom } from "./Toast";
 import { Sheet } from "./Sheet";
 
@@ -42,9 +42,9 @@ async function linkWithWca(): Promise<string | undefined> {
 
 /** Back from the WCA's sign-in (lib/wcaAuth.ts): signed in with it, or the WCA ID it vouches for put on the profile;
  * why it failed, if it did. */
-export async function finishWca(ticket: string): Promise<string | undefined> {
+export async function finishWca(back: WcaReturn): Promise<string | undefined> {
   try {
-    const v = await api.wcaFinish(ticket);
+    const v = await api.wcaFinish(back);
     if ("token" in v) return;
     return v.wcaId ? saveWcaId(v.wcaId) : tr("Your WCA account has no WCA ID yet: it comes with a first competition.");
   } catch (e) {

@@ -1,6 +1,7 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
 import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto, LearningGroupOrderDto } from "../shared/types";
 import type { JourneyEntryDto } from "./lib/journey";
+import type { WcaReturn } from "./lib/wcaAuth";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -99,9 +100,9 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     /** Signs in with Google's ID token (the `credential` of Google Identity Services), creating the account the first time. */
     google: (credential: string) => request<AuthDto>("/auth/google", "POST", { credential }, undefined, true),
     /** The WCA's sign-in page (`link`: for the account signed in), the WCA sending the browser back to `back` on `origin` (lib/wcaAuth.ts). */
-    wcaStart: (body: { origin: string; back: string; link: boolean }) => request<{ url: string }>("/auth/wca/start", "POST", body, undefined, true),
+    wcaStart: (body: { origin: string; back: string; link: boolean; nonce: string }) => request<{ url: string }>("/auth/wca/start", "POST", body, undefined, true),
     /** What the WCA's sign-in came back with: a session, or the WCA ID it linked to the account. */
-    wcaFinish: (ticket: string) => request<AuthDto | { user: UserDto; wcaId: string | null }>("/auth/wca/finish", "POST", { ticket }, undefined, true),
+    wcaFinish: (back: WcaReturn) => request<AuthDto | { user: UserDto; wcaId: string | null }>("/auth/wca/finish", "POST", back, undefined, true),
     /** Signs into any username, created if missing: dev and test servers only (a 404 elsewhere). */
     devLogin: (username: string) => request<AuthDto>("/auth/dev", "POST", { username }, undefined, true),
     logout: () => request<{ ok: boolean }>("/auth/logout", "POST", undefined, undefined, true),
