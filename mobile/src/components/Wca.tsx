@@ -1,10 +1,11 @@
 /**
  * The player's WCA ID (src/client/lib/wca.ts), as on the web (desktop/renderer/profile/wca.tsx): the pill beside the
- * name opens their page in the WCA pages (WcaPage); a WCA ID not given yet is typed in a sheet first, the person found
- * shown before it is linked.
+ * name opens their page in the WCA pages (WcaPage). Where the WCA's sign-in is set up, the WCA says which ID is theirs
+ * (lib/wcaAuth.ts, on the web app only); elsewhere it is typed in a sheet, the person found shown before it is linked.
  */
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useSetAtom } from "jotai";
+import { Platform, Pressable, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
 import { PROFILE_KEY, journeyProfile, type JourneyProfile } from "../../../src/client/lib/journey";
 import { wcaIdOf, wcaUrl, type WcaPerson } from "../../../src/client/lib/wca";
@@ -15,10 +16,43 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { api, local } from "../api";
 import { openUrl } from "../lib/social";
+import { leaveForWca } from "../../../src/client/lib/wcaAuth";
+import { toastAtom } from "./Toast";
 import { Sheet } from "./Sheet";
 
-/** Links `id` to the player's profile (none: unlinks it), then opens their page; why it failed, if it did. */
+/** Whether the WCA's sign-in is set up: asked once. */
+let wcaSignIn: Promise<boolean> | undefined;
+const wcaConfigured = () => (wcaSignIn ??= api.authConfig().then((c) => !!c.wca, () => ((wcaSignIn = undefined), false)));
+
+/** Links `id` to the player's profile (none: unlinks it), then opens their page; through the WCA's sign-in where it is
+ * set up, which brings the ID back (`finishWca`); why it failed, if it did. */
 export async function linkWca(id?: string): Promise<string | undefined> {
+  return id && (await wcaConfigured()) ? linkWithWca() : saveWcaId(id);
+}
+
+/** Leaves for the WCA's sign-in, to link the WCA account it opens (the web app only); why it could not, if so. */
+async function linkWithWca(): Promise<string | undefined> {
+  if (Platform.OS !== "web") return tr("To link your WCA account, open Qbix on the web.");
+  try {
+    await leaveForWca(api.wcaStart, true);
+  } catch (e) {
+    return said((e as Error).message);
+  }
+}
+
+/** Back from the WCA's sign-in (lib/wcaAuth.ts): signed in with it, or the WCA ID it vouches for put on the profile;
+ * why it failed, if it did. */
+export async function finishWca(ticket: string): Promise<string | undefined> {
+  try {
+    const v = await api.wcaFinish(ticket);
+    if ("token" in v) return;
+    return v.wcaId ? saveWcaId(v.wcaId) : tr("Your WCA account has no WCA ID yet: it comes with a first competition.");
+  } catch (e) {
+    return said((e as Error).message);
+  }
+}
+
+async function saveWcaId(id?: string): Promise<string | undefined> {
   const profile = journeyProfile(local.read.journey());
   if (!profile) return;
   const { wcaId: _, ...rest } = profile;
@@ -32,10 +66,16 @@ export async function linkWca(id?: string): Promise<string | undefined> {
 
 /** The pill beside the name: the player's WCA page, or the sheet to link their WCA ID. */
 export function WcaPill({ profile }: { profile: JourneyProfile }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false), toast = useSetAtom(toastAtom);
+  const press = async () => {
+    if (profile.wcaId) return openUrl(wcaUrl("persons/" + profile.wcaId));
+    if (!(await wcaConfigured())) return setOpen(true);
+    const failed = await linkWithWca();
+    if (failed) toast({ title: failed, error: true });
+  };
   return <>
     <Pressable accessibilityRole="button" accessibilityLabel={profile.wcaId ? `WCA ${profile.wcaId}` : tr("WCA ID")} hitSlop={10}
-      onPress={() => (profile.wcaId ? openUrl(wcaUrl("persons/" + profile.wcaId)) : setOpen(true))}
+      onPress={() => void press()}
       className="h-6 flex-row items-center rounded-full bg-muted px-2.5 active:bg-accent">
       <Text className="text-xs font-bold text-muted-foreground">WCA</Text>
     </Pressable>

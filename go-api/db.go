@@ -300,6 +300,12 @@ func dbMigrate(db *Conn) error {
 		func() error {
 			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users(google_sub) WHERE google_sub IS NOT NULL")
 		},
+		// The WCA's sign-in: an account's WCA account, and the WCA ID it vouches for (wca_auth.go).
+		func() error { return addColumnIfMissing(db, "users", "wca_user_id", "TEXT") },
+		func() error { return addColumnIfMissing(db, "users", "wca_id", "TEXT") },
+		func() error {
+			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wca ON users(wca_user_id) WHERE wca_user_id IS NOT NULL")
+		},
 		func() error { return adminDataPurgeLegacy(db) },
 		// A shared solve was once its solve's token, read live: each becomes a copy (shared_solves), its link kept.
 		func() error {

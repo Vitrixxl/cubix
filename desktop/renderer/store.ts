@@ -26,7 +26,8 @@ import { announceDevice, webBluetooth, type DeviceNotice } from "../../src/clien
 import { bluetoothCube } from "../../src/client/lib/bluetooth/cubes";
 import { effective, INSPECTIONS, type Inspection } from "../../src/client/lib/format";
 import { metronomeBpm } from "../../src/client/lib/metronome";
-import { mbldCubes, mbldValue, numberedScrambles, scrambleList } from "../../src/client/lib/wca";
+import { mbldCubes, mbldValue, numberedScrambles, scrambleList, wcaUrl } from "../../src/client/lib/wca";
+import { takeWcaTicket } from "../../src/client/lib/wcaAuth";
 import type { AddSolveBody } from "../../src/client/api-client";
 import { compSimName, roundRecord } from "../../src/client/lib/compSim";
 import type { Penalty, SolveDto } from "../../src/shared/types";
@@ -557,6 +558,7 @@ export class Store {
       this.learnedAlgs = v.learnedAlgs ?? {};
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
+      const wcaTicket = takeWcaTicket();
       const route = readRoute(window.location.pathname, window.location.search);
       if (route) this.applyRoute(route);
       // The account's setup is in `init` already: the app shows without waiting for its first snapshot.
@@ -565,6 +567,7 @@ export class Store {
       if (this.user.isGuest && !this.prefs[WELCOMED] && !this.overlay && document.documentElement.hasAttribute("data-direct")) this.overlay = "signin";
       this.ready = true;
       this.emit();
+      if (wcaTicket) void this.finishWca(wcaTicket);
       // The scramble is asked with the first snapshot, not after it; once shown, one ahead for every event and type.
       // The first scramble shown, the app is ready: a first launch's screen goes (firstLaunch.ts).
       const scrambled = (this.scramble ? Promise.resolve() : this.nextScramble()).finally(() => { this.drawAllAhead(); appReady(); });
@@ -627,7 +630,25 @@ export class Store {
   /** Signs in with Google's credential (`google`) or a username on a dev server (`devLogin`), the account created the
    * first time; this device's times join it. Throws the API's message. */
   async authenticate(method: "google" | "devLogin", value: string) {
-    const v = await call(method, value);
+    await this.opened(await call(method, value));
+  }
+  /** Back from the WCA's sign-in (lib/wcaAuth.ts): signed in with it, or the WCA ID it vouches for put on the profile,
+   * whose page opens. */
+  async finishWca(ticket: string) {
+    try {
+      const v = await call("wcaFinish", ticket);
+      if (v.token) return await this.opened(v);
+      this.user = v.user;
+      const profile = journeyProfile(this.journey);
+      if (!v.wcaId) return void toast(tr("Your WCA account has no WCA ID yet: it comes with a first competition."));
+      if (profile) await this.updateJourney({ [PROFILE_KEY]: { ...profile, wcaId: v.wcaId } });
+      go(wcaUrl("persons/" + v.wcaId));
+    } catch (e) {
+      this.fail(e);
+    }
+  }
+  /** An account opened on this device: the guest's state left behind. */
+  private async opened(v: { user: any }) {
     this.user = v.user;
     this.journey = {};
     this.introducedAccount = "";

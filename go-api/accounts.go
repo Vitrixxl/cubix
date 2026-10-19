@@ -21,7 +21,8 @@ func accountsDigest(token string) string {
 }
 
 func accountsPublic(user M) M {
-	return M{"id": user["id"], "username": user["username"], "isGuest": false, "createdAt": user["created_at"]}
+	// Its WCA ID only as the WCA's sign-in vouches for it (wca_auth.go).
+	return M{"id": user["id"], "username": user["username"], "isGuest": false, "createdAt": user["created_at"], "wcaId": user["wca_id"]}
 }
 
 // accountsRandomToken: 256 random bits in hexadecimal: session and admin tokens.
@@ -124,8 +125,8 @@ func accountsIssue(db *Conn, user M) (M, error) {
 }
 
 // accountsOpen signs into the account `find` names (`SELECT * FROM users WHERE …`), created first under `username` (or
-// the first free name it starts) and `googleSub` when there is none.
-func accountsOpen(db *Conn, find string, key any, username string, googleSub any) (M, error) {
+// the first free name it starts) when there is none, `key` in its `column` (google_sub, wca_user_id; none for "").
+func accountsOpen(db *Conn, find string, key any, username string, column string) (M, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -148,8 +149,13 @@ func accountsOpen(db *Conn, find string, key any, username string, googleSub any
 			name = username[:min(len(username), 20)] + strconv.Itoa(n)
 		}
 		id := newUUID()
-		if _, err := db.Exec("INSERT INTO users(id,username,google_sub) VALUES(?,?,?)", id, name, googleSub); err != nil {
+		if _, err := db.Exec("INSERT INTO users(id,username) VALUES(?,?)", id, name); err != nil {
 			return nil, err
+		}
+		if column != "" {
+			if _, err := db.Exec("UPDATE users SET "+column+"=? WHERE id=?", key, id); err != nil {
+				return nil, err
+			}
 		}
 		if user, err = dbRequired(db, "SELECT * FROM users WHERE id=?", "Unknown account", id); err != nil {
 			return nil, err

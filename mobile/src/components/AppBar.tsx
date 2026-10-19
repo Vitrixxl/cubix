@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { ChevronDown, ChevronLeft, X } from "lucide-react-native";
+import { ChevronDown, ChevronLeft, UserRound, X } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -7,14 +7,15 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useLayout } from "../hooks/useLayout";
 import { Segmented } from "./layout";
-import { cubeSwitchLockedAtom, eventAtom, goBackAtom, replaceRouteAtom, routeAtom, SECTION_PAGES, tabOf, type SectionPage, type Tab } from "../state";
+import { cubeSwitchLockedAtom, eventAtom, goBackAtom, openTabAtom, replaceRouteAtom, routeAtom, SECTION_PAGES, tabOf, userAtom, type SectionPage, type Tab } from "../state";
+import { useTourTarget } from "../tour";
 import { coaching, community, useSocial } from "../lib/social";
 import { eventInfo } from "../../../src/shared/puzzles";
 import { said, tr } from "../../../src/client/i18n";
 import { PuzzleIcon, sessionSheetAtom } from "./PuzzlePicker";
 
 /** The section names, as the bottom bar and the app bar show them. */
-export const SECTION_LABELS: Record<Tab, string> = { timer: "Timer", learn: "Learn", algorithms: "Algs", social: "Social", me: "Me" };
+export const SECTION_LABELS: Record<Tab, string> = { timer: "Timer", learn: "Learn", algorithms: "Algs", challenges: "Challenges", social: "Social", me: "Profile" };
 
 /** What waits on a page of a section: unread messages, friend requests and invitations, unread coaching messages. */
 export function useWaiting() {
@@ -53,6 +54,19 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
     <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]", narrow && "text-2xl", tablet && "text-[40px]")}>{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
     {children}
     {puzzle && <PuzzleChip scramble={scramble} />}
+    <ProfileButton />
+  </View>;
+}
+
+/** The way to the player's profile, the only one: their initials, a guest's figure; the tour's last step points at it. */
+function ProfileButton() {
+  const user = useAtomValue(userAtom), openTab = useSetAtom(openTabAtom), tour = useTourTarget("tab:me");
+  return <View {...tour}>
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Profile")} onPress={() => openTab("me")}
+      className="size-10 items-center justify-center rounded-full bg-muted active:bg-muted/70">
+      {user && !user.isGuest ? <Text className="text-sm font-bold text-primary">{user.username.slice(0, 2).toUpperCase()}</Text>
+        : <Icon as={UserRound} size={18} className="text-muted-foreground" />}
+    </Pressable>
   </View>;
 }
 
@@ -74,7 +88,7 @@ export function SectionTabs() {
   if (tabs.length < 2) return null;
   const count = (list: SectionPage[]) => list.reduce((n, page) => n + (waiting[page.id] ?? 0), 0);
   return <View className="border-b border-border">
-    {/* Three tabs at most: they hold on one row. */}
+    {/* Four tabs at most: they hold on one row. */}
     <View className={cn("flex-row gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
       {tabs.map(tab => {
         const here = tab === open, n = count(tab.pages);

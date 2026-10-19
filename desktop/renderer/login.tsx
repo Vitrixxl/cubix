@@ -1,8 +1,8 @@
 /**
  * The sign-in dialog, over the page in view (`s.askSignIn`, or the address /login): the pages of an account
  * (`ACCOUNT_PAGES`) ask for it, the rest of the app is used without one, on this device.
- * Sign in with Google (Google Identity Services, its button drawn by Google in a frame); the account is created the
- * first time. Dev and test servers also take a bare username (`dev` of /api/auth/config). Times this device already
+ * Sign in with Google (Google Identity Services, its button drawn by Google in a frame) or the WCA (its own page, then
+ * back: lib/wcaAuth.ts); the account is created the first time. Dev and test servers also take a bare username (`dev` of /api/auth/config). Times this device already
  * holds outside any account join the account either way (see `importGuest` in src/client/local/client.ts).
  */
 import { useEffect, useRef, useState } from "react";
@@ -20,11 +20,12 @@ import { said } from "./base";
 import { legalPath } from "./legal/paths";
 import { go } from "./navigation";
 import { loadGsi } from "../../src/client/lib/googleSignIn";
+import { leaveForWca } from "../../src/client/lib/wcaAuth";
 
-type AuthConfig = { google: string | null; dev: boolean };
+type AuthConfig = { google: string | null; wca?: boolean; dev: boolean };
 /** Asked once a page; asked again after a failure (offline). */
 let config: Promise<AuthConfig> | undefined;
-const authConfig = () => (config ??= (call("authConfig") as Promise<AuthConfig>).catch((e) => ((config = undefined), Promise.reject(e))));
+export const authConfig = () => (config ??= (call("authConfig") as Promise<AuthConfig>).catch((e) => ((config = undefined), Promise.reject(e))));
 /** Google's callback, set at its single `initialize`: the dialog open now. */
 let onCredential = (_credential: string) => {};
 let initialized = "";
@@ -77,6 +78,12 @@ function SignIn() {
       </div>
       <div className="flex flex-col gap-3">
         {settings?.google && <GoogleButton id={settings.google} busy={pending} onError={setError} />}
+        {settings?.wca && (
+          <Button type="button" variant="outline" data-action="login:wca" disabled={pending} className="w-full text-foreground"
+            onClick={() => (setPending(true), leaveForWca((body) => call("wcaStart", body), false).catch((reason: Error) => (setPending(false), setError(reason.message))))}>
+            {tr("Continue with the WCA")}
+          </Button>
+        )}
         {/* A guest uses the app on this device; after an ended session, that signs the account out here. */}
         <Button type="button" variant="secondary" data-action="login:guest" onClick={() => (expired ? void s.action("guest") : s.closeOverlay())} className="w-full">
           {tr("Without an account")}

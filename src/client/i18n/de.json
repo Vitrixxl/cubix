@@ -1238,7 +1238,6 @@
  "never seen": "nie gesehen",
  "never seen in your solves": "nie in deinen Solves gesehen",
  "never trained": "nie trainiert",
- "New scramble · Alt+N": "Neuer Scramble · Alt+N",
  "New session": "Neue Session",
  "No": "Nein",
  "No Ao5 in the last ten weeks.": "Keine Ao5 in den letzten zehn Wochen.",
@@ -3989,5 +3988,12 @@
  "Spread, above the chart, shows how the times of the chosen period fall: one column per range of times, and, dashed behind it, the same number of solves just before the period. The mean, the median, the deviation (how far your times stray from the mean: the lower, the steadier) and the DNF rate compare both, the gap in green when the period does better. Pick Last session, 30 days or drag across the curve first to compare that stretch with the one before it.": "Verteilung, über dem Diagramm, zeigt, wie sich die Zeiten des gewählten Zeitraums verteilen: eine Säule je Zeitspanne und, gestrichelt dahinter, ebenso viele Solves direkt vor dem Zeitraum. Mittelwert, Median, Abweichung (wie weit deine Zeiten vom Mittelwert abweichen: je niedriger, desto konstanter) und DNF-Quote vergleichen beide, der Unterschied in Grün, wenn der Zeitraum besser ist. Wähle zuerst Letzte Session, 30 Tage oder ziehe über die Kurve, um diesen Abschnitt mit dem davor zu vergleichen.",
  "The cases to review and the streak at stake": "Die zu wiederholenden Fälle und die gefährdete Serie",
  "the solves before": "die Solves davor",
- "this period": "dieser Zeitraum"
+ "this period": "dieser Zeitraum",
+ "Continue with the WCA": "Weiter mit der WCA",
+ "The WCA refused the sign-in. Try again.": "Die WCA hat die Anmeldung abgelehnt. Versuch es noch einmal.",
+ "The WCA sign-in expired. Try again.": "Die WCA-Anmeldung ist abgelaufen. Versuch es noch einmal.",
+ "The WCA sign-in was cancelled.": "Die WCA-Anmeldung wurde abgebrochen.",
+ "This WCA account is linked to another Qbix account.": "Dieses WCA-Konto ist mit einem anderen Qbix-Konto verknüpft.",
+ "To link your WCA account, open Qbix on the web.": "Um dein WCA-Konto zu verknüpfen, öffne Qbix im Web.",
+ "Your WCA account has no WCA ID yet: it comes with a first competition.": "Dein WCA-Konto hat noch keine WCA-ID: Sie kommt mit dem ersten Wettkampf."
 }

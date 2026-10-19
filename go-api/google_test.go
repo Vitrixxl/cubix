@@ -65,11 +65,11 @@ func TestLegacyAccountsPurged(t *testing.T) {
 		if users["n"] != int64(0) || solves["n"] != int64(0) || legacy {
 			t.Fatal(users, solves, legacy)
 		}
-		if _, err := accountsOpen(c, "google_sub=?", "42", "sam", "42"); err != nil {
+		if _, err := accountsOpen(c, "google_sub=?", "42", "sam", "google_sub"); err != nil {
 			t.Fatal(err)
 		}
-		again, _ := accountsOpen(c, "google_sub=?", "42", "other", "42")
-		other, _ := accountsOpen(c, "google_sub=?", "43", "sam", "43")
+		again, _ := accountsOpen(c, "google_sub=?", "42", "other", "google_sub")
+		other, _ := accountsOpen(c, "google_sub=?", "43", "sam", "google_sub")
 		if idx(again, "user").(M)["username"] != "sam" || idx(other, "user").(M)["username"] != "sam2" {
 			t.Fatal(again, other)
 		}

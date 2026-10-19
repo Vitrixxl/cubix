@@ -40,21 +40,21 @@ afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timin
 
 test("tab presses navigate synchronously, including consecutive taps", async () => {
   const navigate = mock();
-  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ me: 2 }} onNavigate={navigate} /></Provider>); });
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ social: 2 }} onNavigate={navigate} /></Provider>); });
   const press = (label: string) => renderer.root.findAllByType("Pressable" as any).find(n => n.props.accessibilityLabel === label)!.props.onPress();
   await act(() => {
-    press("Me");
-    expect(navigate.mock.calls).toEqual([["me"]]);
+    press("Challenges");
+    expect(navigate.mock.calls).toEqual([["challenges"]]);
     press("Algs");
-    expect(navigate.mock.calls).toEqual([["me"], ["algorithms"]]);
+    expect(navigate.mock.calls).toEqual([["challenges"], ["algorithms"]]);
   });
 });
 
 test("the five sections, the current one named, with a dot where something waits", async () => {
   await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ social: 2 }} onNavigate={() => {}} /></Provider>); });
   const tabs = renderer.root.findAllByType("Pressable" as any);
-  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Learn", "Algs", "Social", "Me"]);
-  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, "2 unread", null]);
+  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Learn", "Algs", "Challenges", "Social"]);
+  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, null, "2 unread"]);
 });
 
 test("switching tabs shows only the destination immediately and settles the guided tour", async () => {

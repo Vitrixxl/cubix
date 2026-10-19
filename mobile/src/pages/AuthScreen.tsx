@@ -22,6 +22,7 @@ import { guestModeAtom } from "../state";
 import { useColors } from "../theme";
 import { language, said, tr } from "../../../src/client/i18n";
 import { loadGsi } from "../../../src/client/lib/googleSignIn";
+import { leaveForWca } from "../../../src/client/lib/wcaAuth";
 
 /** A labelled field with its hint or its error under it. */
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
@@ -93,18 +94,18 @@ const PROMISES = [
  * tablet the welcome takes the top (the promises side by side) and the form a card at the bottom; on a wide screen
  * they share the screen side by side.
  */
-export function AuthScreen({ initialUsername = "" }: { initialUsername?: string }) {
+export function AuthScreen({ initialUsername = "", initialError = "" }: { initialUsername?: string; initialError?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tablet, wide, width, height } = useLayout();
   const setGuest = useSetAtom(guestModeAtom);
   const [username, setUsername] = useState(initialUsername);
-  const [dev, setDev] = useState(false), [google, setGoogle] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [dev, setDev] = useState(false), [google, setGoogle] = useState<string | null>(null), [wca, setWca] = useState(false);
+  const [error, setError] = useState(initialError);
   const [busy, setBusy] = useState(false);
   // Shown while no session is open: a known account means its session ended (an expired token).
   const [expired] = useState(() => !local.current().isGuest), [kept] = useState(localData);
-  useEffect(() => { api.authConfig().then(c => { setDev(c.dev); setGoogle(Platform.OS === "web" ? c.google : null); }, () => {}); }, []);
+  useEffect(() => { api.authConfig().then(c => { setDev(c.dev); setGoogle(Platform.OS === "web" ? c.google : null); setWca(Platform.OS === "web" && !!c.wca); }, () => {}); }, []);
   const signIn = async (open: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true); setError("");
@@ -123,6 +124,11 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
   const form = <>
     {expired ? <Alert>{tr("Your session has ended. Sign in again.")}</Alert> : null}
     {google ? <GoogleButton id={google} busy={busy} onCredential={credential => void signIn(() => api.google(credential))} onError={setError} /> : null}
+    {/* The WCA's own page, then back here (lib/wcaAuth.ts; App.tsx's Session finishes it). */}
+    {wca ? <Button variant="outline" size="lg" className="h-13 rounded-2xl" disabled={busy}
+      onPress={() => { setBusy(true); leaveForWca(api.wcaStart, false).catch((e: Error) => { setBusy(false); setError(said(e.message)); }); }}>
+      <Text className="text-base font-extrabold">{tr("Continue with the WCA")}</Text>
+    </Button> : null}
     {error ? <Alert variant="destructive">{said(error)}</Alert> : null}
     {dev ? <>
       <Field label={tr("Dev sign-in")}>
@@ -133,7 +139,7 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
       <Button size="lg" className="h-13 rounded-2xl" disabled={busy || !username.trim()} onPress={() => void submit()}>
         <Text className="text-base font-extrabold">{busy ? tr("Signing in…") : tr("Sign in")}</Text>
       </Button>
-    </> : !google && <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
+    </> : !google && !wca && <Text className="text-center text-sm text-muted-foreground">{tr("To sign in, open Qbix on the web.")}</Text>}
     {/* Without an account, an ended session too: it signs the account out of this device. */}
     <>
       <View className="flex-row items-center gap-3" importantForAccessibility="no-hide-descendants">
@@ -147,7 +153,7 @@ export function AuthScreen({ initialUsername = "" }: { initialUsername?: string 
         {!expired && <Text className="text-xs text-muted-foreground">{kept ? tr("Your times on this device will be kept.") : tr("Your times stay on this device.")}</Text>}
       </View>
     </>
-    {google ? <Consent /> : null}
+    {google || wca ? <Consent /> : null}
   </>;
   const scroll = { bottomOffset: 24, style: { flex: 1 }, keyboardShouldPersistTaps: "handled", showsVerticalScrollIndicator: false } as const;
   if (tablet) return <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>

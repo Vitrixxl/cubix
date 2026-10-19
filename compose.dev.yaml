@@ -14,6 +14,8 @@ services:
       # Sign in to any seeded account by its username; Google too once .env has a client ID.
       CUBIX_DEV_LOGIN: "1"
       CUBIX_GOOGLE_CLIENT_ID: "${CUBIX_GOOGLE_CLIENT_ID:-}"
+      CUBIX_WCA_CLIENT_ID: "${CUBIX_WCA_CLIENT_ID:-}"
+      CUBIX_WCA_CLIENT_SECRET: "${CUBIX_WCA_CLIENT_SECRET:-}"
     volumes:
       - data:/var/lib/cubix
     init: true

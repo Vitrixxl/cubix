@@ -1445,12 +1445,12 @@ function TimerSettings({ inspection, round, times }: { inspection: boolean; roun
       <div key={action} className="grid grid-cols-[6.5rem_1fr] items-center">
         <span className="pl-2 text-sm font-semibold text-muted-foreground">{tr(label)}</span>
         {round ? (
-          <Button action="compSim:end" variant="ghost" className={cn("w-full justify-between", dim)}>
+          <Button action="compSim:end" variant="ghost" className={cn("w-full justify-end", dim)}>
             <span className="truncate">{said(options.find((o) => o.id === value)?.label ?? value)}</span>
             <ChevronDown className="text-muted-foreground" />
           </Button>
         ) : (
-          <SelectMenu action={action} label={tr(label)} value={value} options={options} variant="ghost" className="w-full justify-between" />
+          <SelectMenu action={action} label={tr(label)} value={value} options={options} variant="ghost" className="w-full justify-end" />
         )}
       </div>
     );

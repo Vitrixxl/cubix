@@ -96,8 +96,9 @@ Le générateur a une graine fixe : chaque `--reset` redonne les mêmes données
 d'aujourd'hui. Le site local (sources de `desktop/renderer`, port 5181) garde son propre
 stockage navigateur, séparé du compte de production.
 
-En production, on se connecte uniquement avec Google (`CUBIX_GOOGLE_CLIENT_ID`, l'ID client
-OAuth web). En dev (`CUBIX_DEV_LOGIN=1`), le dialogue de connexion ajoute une « Dev sign-in » :
+En production, on se connecte avec Google (`CUBIX_GOOGLE_CLIENT_ID`, l'ID client
+OAuth web) ou la WCA (`CUBIX_WCA_CLIENT_ID` et `CUBIX_WCA_CLIENT_SECRET`, voir `.env.example`), qui
+lie aussi un WCA ID vérifié au profil. En dev (`CUBIX_DEV_LOGIN=1`), le dialogue de connexion ajoute une « Dev sign-in » :
 un simple nom d'utilisateur, créé s'il n'existe pas.
 
 | Accès | Identifiant | Jeton |

@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { live, startServer, signIn, desktopContext } from "./app";
+import { act, live, startServer, signIn, desktopContext } from "./app";
 import { TOUR_STEPS, tourSteps } from "../../src/client/lib/journey";
 
 const SHOTS = "artifacts/onboarding";
@@ -128,7 +128,7 @@ try {
   assert.equal(new URL(page.url()).searchParams.get("puzzle") ?? "333", "333");
 
   // The profile keeps the figures and the practice: no journey or goal panel any more.
-  await page.locator('[data-action="nav:profile"]').first().click();
+  await act(page, "nav:profile");
   await page.locator('[data-tour="profile-overview"]').waitFor();
   assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
 
@@ -143,9 +143,9 @@ try {
   await page.keyboard.press("Escape"); await page.locator(".journey-tour").waitFor({ state: "detached" });
   assert.equal(await page.locator("[data-app-shell]").evaluate((n: HTMLElement) => n.inert), false);
 
-  // Phones: the card docks at the top or bottom, the whole tour from the guides, in the account menu beside the Me section's pages.
+  // Phones: the card docks at the top or bottom, the whole tour from the guides, in the account menu beside the social section's pages.
   await page.setViewportSize({ width: 360, height: 640 });
-  await page.locator('[data-action="nav:profile"]:visible').first().click();
+  await page.locator('[data-action="nav:community"]:visible').first().click();
   await page.locator('[data-action="menu:account"]:visible').first().click();
   await page.getByRole("menuitem", { name: "Guides" }).click();
   await page.getByRole("button", { name: "Replay tour", exact: true }).click();
@@ -200,8 +200,8 @@ try {
 
   // Routing: shortcuts, deep links, reload and history.
   // The sections in their groups, in the order of their shortcuts.
-  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:learn", "nav:algorithms", "nav:duel", "nav:profile"]);
-  await page.locator('[data-action="nav:profile"]').first().click(); await page.waitForURL("**/profile*");
+  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:learn", "nav:algorithms", "nav:duel", "nav:community"]);
+  await act(page, "nav:profile"); await page.waitForURL("**/profile*");
   for (const [key, pathname] of [["1", "/timer"], ["2", "/learn"], ["3", "/training"], ["4", "/algorithms"], ["5", "/duel"], ["6", "/tournaments"], ["7", "/community"], ["8", "/coaching"], ["9", "/profile/analysis"]]) {
     await page.keyboard.press("Alt+" + key);
     await page.waitForURL(url => url.pathname.startsWith(pathname));

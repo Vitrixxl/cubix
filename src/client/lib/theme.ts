@@ -82,12 +82,12 @@ const TINT = { surface: 9, ink: 6 };
 const SURFACES = ["background", "card", "sidebar", "popover", "muted", "secondary", "accent", "input"];
 /**
  * By day, never a grey: each surface is the theme's pale accent (the night's) on white, [percent of it, percent of the
- * deep accent darkening it]. Cards and popovers the lightest, the page under them, the filled controls a deeper sand of
- * the hue, what is chosen or hovered (`accent`) the brightest tint.
+ * deep accent darkening it]. The page the lightest (popovers lighter still), the cards a sand of the hue over it, the
+ * filled controls a deeper sand, what is chosen or hovered (`accent`) the brightest tint.
  */
 const LIGHT_SURFACES: Record<string, [number, number]> = {
-  background: [26, 3], card: [16, 0], sidebar: [16, 0], popover: [8, 0],
-  muted: [30, 9], secondary: [30, 9], input: [30, 9], accent: [45, 0],
+  background: [16, 0], card: [26, 3], sidebar: [26, 3], popover: [8, 0],
+  muted: [32, 10], secondary: [32, 10], input: [32, 10], accent: [45, 0],
 };
 const INKS = ["foreground", "muted-foreground", "faint", "timer-ink"];
 

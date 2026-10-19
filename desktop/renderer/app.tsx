@@ -20,7 +20,7 @@ import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
 import { bindNavigation, go, readRoute, type AppRoute } from "./navigation";
-import { onIntent } from "./prefetch";
+import { onIntent, thrifty } from "./prefetch";
 import { preloadAll } from "./preload";
 import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
 import { sharedSolveId } from "../../src/client/lib/sharedSolve";
@@ -117,6 +117,12 @@ function App() {
   useLayoutEffect(() => {
     if (s.ready && route) s.applyRoute(route);
   }, [location.pathname, location.search, s.ready]);
+  // The WCA pages read ahead a moment after the app is ready, so that they open at once (never on a thrifty network).
+  useEffect(() => {
+    if (!s.ready || thrifty()) return;
+    const id = setTimeout(() => void CODE.wca().then((m) => m.warmWca()), 3000);
+    return () => clearTimeout(id);
+  }, [s.ready]);
   // Signing in is a dialog over a page. The address /login opens it over the page it names (`redirect`), else the
   // timer; a page of an account opens it for a guest, who stays on the page they were on.
   const account = (path: string) => { const url = new URL(path, "https://x"), r = readRoute(url.pathname, url.search); return !!r && accountOnly(r); };

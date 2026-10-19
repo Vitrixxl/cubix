@@ -3,7 +3,7 @@ import "./global.css";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
 import { Provider, getDefaultStore, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { Suspense, memo, useEffect } from "react";
+import { Suspense, memo, useEffect, useState } from "react";
 import { AppState, BackHandler, Keyboard, Linking, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
@@ -27,7 +27,9 @@ import { Introduction } from "./src/components/Introduction";
 import { introductionAtom, journeyAtom } from "./src/journey";
 import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
-import { Toast } from "./src/components/Toast";
+import { Toast, toastAtom } from "./src/components/Toast";
+import { finishWca } from "./src/components/Wca";
+import { takeWcaTicket } from "../src/client/lib/wcaAuth";
 import { Reminders } from "./src/components/Reminders";
 import { XpGain } from "./src/components/XpGain";
 import { ProfilePage } from "./src/pages/AccountPage";
@@ -118,6 +120,16 @@ function Session() {
   const setHasToken = useSetAtom(hasTokenAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
   const signedIn = useAtomValue(signedInAtom);
+  const setGuest = useSetAtom(guestModeAtom), toast = useSetAtom(toastAtom), [wcaFailed, setWcaFailed] = useState("");
+  // Back from the WCA's sign-in (the web app): signed in with it, or its WCA ID put on the profile; why not, if so.
+  useEffect(() => {
+    const ticket = takeWcaTicket();
+    if (ticket) void finishWca(ticket).then(failed => {
+      if (!failed) return setGuest(false);
+      setWcaFailed(failed);
+      toast({ title: failed, error: true });
+    });
+  }, [setGuest, toast]);
   useEffect(() => {
     const refresh = () => { setUser(local.current()); setHasToken(!!authToken.get()); bumpStats(v => v + 1); };
     refresh();
@@ -136,7 +148,7 @@ function Session() {
   useEffect(() => attachSocial(account), [account?.id, account?.isGuest]);
   // Without an account, the app opens once the player chose to go on without one (never over an ended session).
   const guest = useAtomValue(guestModeAtom) && (!user || user.isGuest);
-  if (!signedIn && !guest) return <AuthScreen key={user?.id ?? "none"} initialUsername={user && !user.isGuest ? user.username : ""} />;
+  if (!signedIn && !guest) return <AuthScreen key={(user?.id ?? "none") + wcaFailed} initialUsername={user && !user.isGuest ? user.username : ""} initialError={wcaFailed} />;
   return <Shell />;
 }
 
@@ -162,6 +174,8 @@ const Shell = memo(function Shell() {
     ...PUZZLES.map(puzzle => () => { local.read.catalog(puzzle.id); }),
     () => { store.get(profileDataAtom); },
     () => { store.get(profileAchievementsAtom); },
+    // The WCA pages as they first open, read from the server.
+    () => { (require("./src/pages/WcaPage") as typeof import("./src/pages/WcaPage")).warmWca(journeyProfile(store.get(journeyAtom))?.wcaId); },
   ), [store]);
   // Then the diagrams of the current puzzle's cases, so the algorithm list and selector open without geometry work.
   const cases = useAtomValue(casesAtom);

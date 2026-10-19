@@ -18,7 +18,7 @@ import { eventInfo } from "../../../src/shared/puzzles";
 import { journeyProfile } from "../../../src/client/lib/journey";
 import {
   CONTINENTS, WCA_EVENTS, WCA_TABS, competitionsPath, countriesByName, countryName, flagOf, historyOf, monthLabel, rankingPath, readWcaView, recordReach, regionLabel, wcaAttempts, wcaDates, wcaEventLabel,
-  wcaMonths, wcaPersonUrl, wcaRanks, wcaResult, wcaRound, wcaRows, wcaUrl,
+  loadWca, prefetchWca, wcaAnswer, wcaMonths, wcaPersonUrl, wcaRanks, wcaResult, wcaRound, wcaRows, wcaUrl,
   type CompetitionFilter, type WcaCompetition, type WcaCompetitionInfo, type WcaCompetitionList, type WcaCountry, type WcaHistory, type WcaPerson, type WcaRanking, type WcaRecord,
   type WcaRecordRow, type WcaResult, type WcaRound, type WcaTab, type WcaWho,
 } from "../../../src/client/lib/wca";
@@ -37,22 +37,25 @@ import { profileDataAtom } from "../profile";
 import { openUrl } from "../lib/social";
 import { guestModeAtom, replaceRouteAtom, signedInAtom } from "../state";
 
-/** What the API answered, by path, for the next time a page shows it. */
-const answers = new Map<string, unknown>();
+/** The WCA's answers through the API, kept (src/client/lib/wca.ts) for the next time a page shows them. */
+const fetchWca = (path: string) => api.wca<any>(path);
+/** The WCA pages as they first open, read ahead (App.tsx). @public */
+export const warmWca = (own?: string) => prefetchWca(fetchWca, own);
 function useWca<T>(path: string | null): { data?: T; error?: string } {
-  const [state, setState] = useState<{ path: string | null; data?: T; error?: string }>({ path, data: path ? (answers.get(path) as T) : undefined });
+  const [state, setState] = useState<{ path: string | null; data?: T; error?: string }>({ path, data: path ? wcaAnswer<T>(path) : undefined });
   useEffect(() => {
     if (!path) return;
-    if (answers.has(path)) { setState({ path, data: answers.get(path) as T }); return; }
+    const known = wcaAnswer<T>(path);
+    if (known !== undefined) { setState({ path, data: known }); return; }
     let live = true;
     setState({ path });
-    api.wca<T>(path).then(
-      data => { if (answers.size > 300) answers.clear(); answers.set(path, data); if (live) setState({ path, data }); },
+    loadWca<T>(fetchWca, path).then(
+      data => { if (live) setState({ path, data }); },
       (e: Error) => { if (live) setState({ path, error: said(e.message) }); },
     );
     return () => { live = false; };
   }, [path]);
-  return state.path === path ? state : { data: path ? (answers.get(path) as T) : undefined };
+  return state.path === path ? state : { data: path ? wcaAnswer<T>(path) : undefined };
 }
 const useCountries = () => useWca<WcaCountry[]>("countries").data;
 const useOwnId = () => journeyProfile(useAtomValue(journeyAtom))?.wcaId;
@@ -231,8 +234,8 @@ function Competitions() {
     </Head>
     <Filters line>
       <Pill label={f.status === "past" ? "Past" : "Upcoming"} swap accessibilityLabel="When" onPress={() => update({ status: f.status === "past" ? "upcoming" : "past", month: "" })} />
-      <Pill icon={f.country ? <Text>{flagOf(f.country)}</Text> : <Icon as={Globe} size={15} />} label={f.country ? countryName(f.country, countries) : "Anywhere"} bare accessibilityLabel="Region" onPress={() => setSheet("country")} />
-      <Pill icon={<Icon as={CalendarDays} size={15} />} label={f.month ? monthLabel(f.month) : "Any month"} bare={!f.month} accessibilityLabel="Month" onPress={() => setSheet("month")} />
+      <Pill icon={f.country ? <Text>{flagOf(f.country)}</Text> : <Icon as={Globe} size={15} />} label={f.country ? countryName(f.country, countries) : "Anywhere"} accessibilityLabel="Region" onPress={() => setSheet("country")} />
+      <Pill icon={<Icon as={CalendarDays} size={15} />} label={f.month ? monthLabel(f.month) : "Any month"} accessibilityLabel="Month" onPress={() => setSheet("month")} />
     </Filters>
     {searching ? <SearchField value={text} onChangeText={setText} placeholder="Name" autoFocus className="mx-4 mb-2" /> : null}
     {!data?.items.length ? <Missing error={error} empty={!!data && tr("No competition")} />

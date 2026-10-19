@@ -1,7 +1,7 @@
 /**
  * The player's WCA ID (src/client/lib/wca.ts): a button beside the name opens their page in the WCA pages
- * (wca/page.tsx), their records beside the Qbix ones; a WCA ID not given yet is typed in a dialog first, the person
- * found shown before it is linked.
+ * (wca/page.tsx), their records beside the Qbix ones. Where the WCA's sign-in is set up, the WCA says which ID is theirs
+ * (lib/wcaAuth.ts); elsewhere it is typed in a dialog, the person found shown before it is linked.
  */
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,8 @@ import { wcaIdOf, wcaUrl, type WcaPerson } from "../../../src/client/lib/wca";
 import { Modal, Tip, said } from "../ui";
 import { Button as UiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authConfig } from "../login";
+import { leaveForWca } from "../../../src/client/lib/wcaAuth";
 
 /** A person's page in the app's WCA pages (wca/page.tsx), which links on to the WCA's own. */
 export function WcaLink({ id }: { id: string }) {
@@ -25,18 +27,23 @@ export function WcaLink({ id }: { id: string }) {
   );
 }
 
-/** Links `id` to the player's profile (none: unlinks it), then opens their page. */
+/** Links `id` to the player's profile (none: unlinks it), then opens their page; through the WCA's sign-in where it is
+ * set up, which brings the ID back (store.finishWca). */
 export async function linkWca(id?: string) {
   const profile = journeyProfile(s.journey);
   if (!profile) return;
   const { wcaId: _, ...rest } = profile;
   try {
+    if (id && (await authConfig()).wca) return await linkWithWca();
     await s.updateJourney({ [PROFILE_KEY]: id ? { ...rest, wcaId: id } : rest });
     if (id) go(wcaUrl("persons/" + id));
   } catch (reason) {
     toast.error(said((reason as Error).message));
   }
 }
+
+/** Leaves for the WCA's sign-in, to link the WCA account it opens. */
+export const linkWithWca = () => leaveForWca((body) => call("wcaStart", body), true).catch((reason: Error) => void toast.error(said(reason.message)));
 
 /** The button beside the name: the player's WCA page, or the way to link their WCA ID. */
 export function WcaButton() {
@@ -47,7 +54,7 @@ export function WcaButton() {
     <>
       <Tip content="World Cube Association">
         <UiButton variant="ghost" size="sm" data-action="wca:open" aria-label={profile.wcaId ? `WCA ${profile.wcaId}` : tr("WCA ID")}
-          onClick={() => (profile.wcaId ? go(wcaUrl("persons/" + profile.wcaId)) : setOpen(true))} className="ml-auto shrink-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground">
+          onClick={async () => (profile.wcaId ? go(wcaUrl("persons/" + profile.wcaId)) : (await authConfig().catch(() => null))?.wca ? void linkWithWca() : setOpen(true))} className="ml-auto shrink-0 bg-muted text-muted-foreground hover:bg-accent hover:text-foreground">
           WCA
         </UiButton>
       </Tip>

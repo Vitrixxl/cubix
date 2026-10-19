@@ -90,12 +90,11 @@ export function FigureBox({
         onDragStart={onDragStart}
         onDrag={(e) => onDrag((e as PointerEvent).clientX, (e as PointerEvent).clientY)}
         onDragEnd={onDragEnd}
-        // Lifted while dragged: above the others, on the popover's colour, with a shadow.
+        // Lifted while dragged: above the others, with a shadow; rounded as its card, so nothing shows past its corners.
         whileDrag={{
           zIndex: 10,
           scale: 1.03,
-          backgroundColor: "var(--popover)",
-          borderRadius: 8,
+          borderRadius: 20,
           boxShadow: "0 8px 24px rgb(0 0 0 / 0.3)",
         }}
         transition={{ type: "spring", stiffness: 500, damping: 40 }}

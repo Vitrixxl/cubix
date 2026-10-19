@@ -161,10 +161,21 @@ func journeyPut(db *Conn, uid string, body any) (any, error) {
 			return nil, validation()
 		}
 	}
-	// Their WCA ID, as they gave it: 2009ZEMD01.
+	// Their WCA ID: 2009ZEMD01. Once the WCA's sign-in is set up, only the one it vouches for (wca_auth.go), any other
+	// left out rather than refused (a device's queued change must still go through); before, as they gave it.
 	if id, ok := get(v, "wcaId"); ok {
-		if s, ok := asStr(id); !ok || !wcaID.MatchString(s) {
+		s, ok := asStr(id)
+		if !ok || !wcaID.MatchString(s) {
 			return nil, validation()
+		}
+		if wcaConfigured() {
+			user, err := dbOne(db, "SELECT wca_id FROM users WHERE id=?", uid)
+			if err != nil {
+				return nil, err
+			}
+			if object, ok := v.(M); ok && str(idx(user, "wca_id")) != s {
+				delete(object, "wcaId")
+			}
 		}
 	}
 	// Separate statements keep the change-feed trigger's REPLACE policy effective on updates.

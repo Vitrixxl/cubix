@@ -441,7 +441,7 @@ func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (an
 			return nil, err
 		}
 		return dbCall(state.db, func(db *Conn) (M, error) {
-			return accountsOpen(db, "username=? COLLATE NOCASE", username, username, nil)
+			return accountsOpen(db, "username=? COLLATE NOCASE", username, username, "")
 		})
 	}
 	credential, err := apiString(body, "credential", 1, 4096)
@@ -457,7 +457,7 @@ func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (an
 		return nil, err
 	}
 	return dbCall(state.db, func(db *Conn) (M, error) {
-		return accountsOpen(db, "google_sub=?", claims.Sub, accountsName(claims.Name), claims.Sub)
+		return accountsOpen(db, "google_sub=?", claims.Sub, accountsName(claims.Name), "google_sub")
 	})
 }
 
@@ -549,6 +549,13 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 	if method == "POST" && (path == "auth/google" || path == "auth/dev") {
 		return apiAuthRequest(state, r, path, body)
 	}
+	// The WCA's sign-in (wca_auth.go): its page asked, then its outcome redeemed.
+	if method == "POST" && path == "auth/wca/start" {
+		return wcaAuthStart(state, trafficKey(state.traffic.ip(peerIP(r), r.Header)).String(), token, body)
+	}
+	if method == "POST" && path == "auth/wca/finish" {
+		return wcaAuthFinish(body)
+	}
 	// The account deleted by its owner: everything it holds goes at once (admin_data::purge).
 	if method == "POST" && path == "account/delete" {
 		user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, token) })
@@ -568,13 +575,13 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 		switch path {
 		case "health":
 			return M{"ok": true}, nil
-		// What the sign-in dialog offers: Google with this client ID, and the dev sign-in.
+		// What the sign-in dialog offers: Google with this client ID, the WCA, and the dev sign-in.
 		case "auth/config":
 			var google any
 			if id := os.Getenv("CUBIX_GOOGLE_CLIENT_ID"); id != "" {
 				google = id
 			}
-			return M{"google": google, "dev": os.Getenv("CUBIX_DEV_LOGIN") == "1"}, nil
+			return M{"google": google, "wca": wcaConfigured(), "dev": os.Getenv("CUBIX_DEV_LOGIN") == "1"}, nil
 		case "mobile/release":
 			return releaseInfo(), nil
 		case "moves":

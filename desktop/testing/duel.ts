@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { signIn, startServer, desktopContext } from "./app";
+import { act, signIn, startServer, desktopContext } from "./app";
 
 const SHOTS = "artifacts/duel";
 await mkdir(SHOTS, { recursive: true });
@@ -134,7 +134,7 @@ try {
   // Leaving: the opponent is told; the finished battle is in the profile.
   await a.locator('[data-action="duel:leave"]').click();
   await b.waitForSelector(".duel-side.theirs.gone");
-  await a.locator('[data-action="nav:profile"]').first().click();
+  await act(a, "nav:profile");
   // The overview's "Battles" counts them and opens their page.
   await a.waitForFunction(() => /[1-9]/.test(document.querySelector('[data-action="profileMode:duels"]')?.textContent ?? ""));
   assert.ok(await fits(a), "the overview fits the window");

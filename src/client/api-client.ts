@@ -94,10 +94,14 @@ export function createApiClient(origin: string, options: { getToken: () => strin
       };
     },
     me: () => request<UserDto>("/auth/me", "GET", undefined, undefined, true),
-    /** Google's client ID (null: no Google sign-in), and whether the dev sign-in is open (dev and test servers). */
-    authConfig: () => request<{ google: string | null; dev: boolean }>("/auth/config", "GET", undefined, undefined, true),
+    /** Google's client ID (null: no Google sign-in), whether the WCA's sign-in is set up, and whether the dev sign-in is open (dev and test servers). */
+    authConfig: () => request<{ google: string | null; wca?: boolean; dev: boolean }>("/auth/config", "GET", undefined, undefined, true),
     /** Signs in with Google's ID token (the `credential` of Google Identity Services), creating the account the first time. */
     google: (credential: string) => request<AuthDto>("/auth/google", "POST", { credential }, undefined, true),
+    /** The WCA's sign-in page (`link`: for the account signed in), the WCA sending the browser back to `back` on `origin` (lib/wcaAuth.ts). */
+    wcaStart: (body: { origin: string; back: string; link: boolean }) => request<{ url: string }>("/auth/wca/start", "POST", body, undefined, true),
+    /** What the WCA's sign-in came back with: a session, or the WCA ID it linked to the account. */
+    wcaFinish: (ticket: string) => request<AuthDto | { user: UserDto; wcaId: string | null }>("/auth/wca/finish", "POST", { ticket }, undefined, true),
     /** Signs into any username, created if missing: dev and test servers only (a 404 elsewhere). */
     devLogin: (username: string) => request<AuthDto>("/auth/dev", "POST", { username }, undefined, true),
     logout: () => request<{ ok: boolean }>("/auth/logout", "POST", undefined, undefined, true),

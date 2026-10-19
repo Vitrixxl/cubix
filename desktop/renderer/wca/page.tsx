@@ -20,7 +20,7 @@ import { eventInfo } from "../../../src/shared/puzzles";
 import { journeyProfile } from "../../../src/client/lib/journey";
 import {
   CONTINENTS, WCA_EVENTS, WCA_TABS, competitionsPath, countriesByName, countryName, flagOf, historyOf, monthLabel, rankingPath, readWcaView, recordReach, regionLabel, wcaAttempts, wcaDates, wcaEventLabel,
-  wcaFormat, wcaMonths, wcaPersonUrl, wcaResult, wcaRound, wcaRows, wcaUrl,
+  loadWca, prefetchWca, wcaAnswer, wcaFormat, wcaMonths, wcaPersonUrl, wcaResult, wcaRound, wcaRows, wcaUrl,
   type CompetitionFilter, type WcaCompetition, type WcaCompetitionInfo, type WcaCompetitionList, type WcaCountry, type WcaHistory, type WcaPerson, type WcaRanking, type WcaRecord,
   type WcaRecordRow, type WcaResult, type WcaRound, type WcaTab, type WcaWho,
 } from "../../../src/client/lib/wca";
@@ -33,27 +33,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-/** What the API answered, by path, for the next time a page shows it (going back to a list, to a person). */
-const answers = new Map<string, unknown>();
+/** The WCA's answers through the API, kept (src/client/lib/wca.ts) for the next time a page shows them. */
+const fetchWca = (path: string) => call("wca", path) as Promise<any>;
+/** The WCA pages as they first open, read ahead (app.tsx). */
+export const warmWca = () => prefetchWca(fetchWca, ownId());
 /** The WCA's answer to `path` (none for null), or why there is none. */
 function useWca<T>(path: string | null): { data?: T; error?: string } {
-  const [state, setState] = useState<{ path: string | null; data?: T; error?: string }>({ path, data: path ? (answers.get(path) as T) : undefined });
+  const [state, setState] = useState<{ path: string | null; data?: T; error?: string }>({ path, data: path ? wcaAnswer<T>(path) : undefined });
   useEffect(() => {
     if (!path) return;
-    if (answers.has(path)) return setState({ path, data: answers.get(path) as T });
+    const known = wcaAnswer<T>(path);
+    if (known !== undefined) return setState({ path, data: known });
     let live = true;
     setState({ path });
-    call("wca", path).then(
-      (data: T) => {
-        if (answers.size > 300) answers.clear();
-        answers.set(path, data);
-        if (live) setState({ path, data });
-      },
+    loadWca<T>(fetchWca, path).then(
+      (data) => live && setState({ path, data }),
       (reason: Error) => live && setState({ path, error: said(reason.message) }),
     );
     return () => void (live = false);
   }, [path]);
-  return state.path === path ? state : { data: path ? (answers.get(path) as T) : undefined };
+  return state.path === path ? state : { data: path ? wcaAnswer<T>(path) : undefined };
 }
 const useCountries = () => useWca<WcaCountry[]>("countries").data;
 const ownId = () => journeyProfile(s.journey)?.wcaId;
@@ -145,9 +144,9 @@ function EventMenu({ value, onChange, events = WCA_EVENTS }: { value: string; on
 
 /**
  * A region (or a country) picked in a searchable list: the world and the continents first, unless `anywhere` replaces
- * them. `compact`, the flag (or the globe) alone on the button, its name in the tooltip.
+ * them.
  */
-function RegionPicker({ value, onChange, anywhere, compact = false }: { value: string; onChange: (region: string) => void; anywhere?: string; compact?: boolean }) {
+function RegionPicker({ value, onChange, anywhere }: { value: string; onChange: (region: string) => void; anywhere?: string }) {
   const countries = useCountries(),
     [open, setOpen] = useState(false),
     pick = (region: string) => (setOpen(false), onChange(region)),
@@ -158,15 +157,12 @@ function RegionPicker({ value, onChange, anywhere, compact = false }: { value: s
       {said(name)}
     </CommandItem>
   );
-  const trigger = (
-    <PopoverTrigger render={<UiButton variant="secondary" size={compact ? "icon" : "default"} data-action="wca:region" aria-label={compact ? `${tr("Region")} · ${said(label)}` : tr("Region")} className="max-w-56" />}>
-      {value.length === 2 ? <span aria-hidden="true">{flagOf(value)}</span> : <Globe />}
-      {!compact && <span className="truncate">{said(label)}</span>}
-    </PopoverTrigger>
-  );
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      {compact ? <Tip content={said(label)}>{trigger}</Tip> : trigger}
+      <PopoverTrigger render={<UiButton variant="secondary" data-action="wca:region" aria-label={tr("Region")} className="max-w-56" />}>
+        {value.length === 2 ? <span aria-hidden="true">{flagOf(value)}</span> : <Globe />}
+        <span className="truncate">{said(label)}</span>
+      </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0">
         <Command>
           <CommandInput placeholder={tr("Region")} />
@@ -294,25 +290,23 @@ function Competitions() {
     { data, error } = useWca<WcaCompetitionList>(competitionsPath(f, f.page)),
     months = wcaMonths(f.status === "past"),
     [searching, setSearching] = useState(!!f.q);
-  // The filters hold on one line: the region and the month as their mark (the month's value once picked), the name's
-  // field opened by its magnifier and closed again when left empty.
+  // The filters hold on one line, each named by its value: the region, the month, the name's field opened by its
+  // button and closed again when left empty.
   return (
     <Frame
       tab="competitions"
       tools={
         <>
           <Segmented label="When" value={f.status} options={[{ id: "upcoming", label: "Upcoming" }, { id: "past", label: "Past" }]} onChange={(status) => update({ status: status as "upcoming" | "past", month: "" })} action="wca:status:" />
-          <RegionPicker value={f.country} onChange={(country) => update({ country })} anywhere="Anywhere" compact />
-          <SelectMenu action="wca:month" label="Month" value={f.month} onChange={(month) => update({ month })} variant="secondary" icon={<CalendarDays />} bare={!f.month}
+          <RegionPicker value={f.country} onChange={(country) => update({ country })} anywhere="Anywhere" />
+          <SelectMenu action="wca:month" label="Month" value={f.month} onChange={(month) => update({ month })} variant="secondary" icon={<CalendarDays />}
             options={[{ id: "", label: "Any month" }, ...months.map((id) => ({ id, label: monthLabel(id) }))]} />
           {searching || f.q ? (
             <div onBlur={(e) => !(e.target as HTMLInputElement).value && setSearching(false)}>
               <SearchField value={f.q} onChange={(q) => update({ q })} placeholder="Name" label="Find a competition by name" delay={400} action="wca:find" autoFocus={!f.q} className="w-44" />
             </div>
           ) : (
-            <Tip content={tr("Find a competition by name")}>
-              <UiButton variant="secondary" size="icon" aria-label={tr("Find a competition by name")} data-action="wca:search" onClick={() => setSearching(true)}><Search /></UiButton>
-            </Tip>
+            <UiButton variant="secondary" data-action="wca:search" onClick={() => setSearching(true)}><Search />{tr("Name")}</UiButton>
           )}
         </>
       }

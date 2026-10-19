@@ -102,8 +102,8 @@ try {
     await learnStep(page, 2);
     await shot(page, "cfop-oll");
     if (!before) {
-      // The notation is in the account's menu: the header's on a desktop, beside the Me section's pages on phones.
-      if (width < 700) await act(page, "nav:profile");
+      // The notation is in the account's menu: the header's on a desktop, beside the social section's pages on phones.
+      if (width < 700) await act(page, "nav:community");
       await act(page, "notation");
       await page.waitForTimeout(700);
       await shot(page, "notation");
@@ -128,7 +128,7 @@ try {
       for (let i = 0; i < 3 && (await page.locator('[role="dialog"]').count()); i++) await close(page);
     }
     if (!before) {
-      if (width < 700) await act(page, "nav:profile");
+      if (width < 700) await act(page, "nav:community");
       await act(page, "help");
       await act(page, "guidePage:notationGuide");
       await page.waitForTimeout(600);

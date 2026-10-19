@@ -426,7 +426,8 @@ function reveal(element: HTMLElement) {
 }
 function read(step: number, st: (typeof TOUR_STEPS)[number]): Spot {
   const vw = innerWidth, vh = innerHeight;
-  const nav = [...document.querySelectorAll<HTMLElement>(`[data-action="nav:${st.target}"]`)].find(shown);
+  // A section's tab, or what leads to the page (the profile: the account's button).
+  const nav = [...document.querySelectorAll<HTMLElement>(`[data-action="nav:${st.target}"], [data-tour="nav:${st.target}"]`)].find(shown);
   const inner = [...document.querySelectorAll<HTMLElement>(`[data-tour="${st.inner}"]`)].filter(shown);
   if (inner[0]) reveal(inner[0]);
   const navBox = nav ? clip(grow(nav.getBoundingClientRect(), 3), vw, vh) : null;

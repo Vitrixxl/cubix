@@ -24,15 +24,15 @@ export const TIP_DELAY = 400;
 type Page = [page: string, label: string, shortcut: string];
 /**
  * The five sections, each with its pages: the timer (and the analysis of the smart cube solves), learning (the courses
- * and the drills), the algorithms, the challenges (duels, tournaments, the daily scramble, the WCA) and the player's own pages (profile, messages,
- * coaching). The Alt shortcuts follow their order.
+ * and the drills), the algorithms, the challenges (duels, tournaments, the daily scramble, the WCA) and the social pages
+ * (messages, community, coaching). The profile is the account menu's alone. The Alt shortcuts follow their order.
  */
 export const SECTIONS: { id: string; label: string; short: string; icon: LucideIcon; pages: Page[] }[] = [
   { id: "timer", label: "Timer", short: "Timer", icon: Timer, pages: [["playground", "Timer", "Alt+1"], ["analysis", "Analysis", "Alt+9"]] },
   { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["learn", "Courses", "Alt+2"], ["training", "Training", "Alt+3"]] },
   { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+4"]] },
   { id: "compete", label: "Challenges", short: "Challenges", icon: Swords, pages: [["duel", "Duel", "Alt+5"], ["tournaments", "Tournaments", "Alt+6"], ["daily", "Daily", ""], ["wca", "WCA", ""]] },
-  { id: "me", label: "Me", short: "Me", icon: UserRound, pages: [["profile", "Profile", ""], ["community", "Messages", "Alt+7"], ["people", "Community", ""], ["coaching", "Coaching", "Alt+8"]] },
+  { id: "social", label: "Social", short: "Social", icon: Users, pages: [["community", "Messages", "Alt+7"], ["people", "Community", ""], ["coaching", "Coaching", "Alt+8"]] },
 ];
 
 /** The route the app shows: the store's once started, the address's before (the store then still holds its defaults). */
@@ -145,6 +145,8 @@ export function AccountMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         data-action="menu:account"
+        // The way to the profile: the tour's last step points at it (introduction.tsx).
+        data-tour="nav:profile"
         aria-label={guest ? tr("Account") : tr("{0} · account", { 0: s.user.username })}
         render={<UiButton variant="secondary" size="icon" className="shrink-0 font-bold text-primary" />}
       >
@@ -382,11 +384,13 @@ export const SectionBar = memo(function SectionBar() {
   );
 });
 
-/** Phones, above the page: the current section's pages; in the player's own section, their account's menu beside them. */
+/** Phones, above the page: the current section's pages; in the social section and on the profile, the account's menu
+ * beside them (the way to the profile). */
 export const PhoneTop = memo(function PhoneTop() {
   useShell();
-  const top = "shrink-0 px-4 pt-[max(env(safe-area-inset-top),0.75rem)]";
-  if (currentSection()?.id !== "me") return <SectionTabs className={top} />;
+  const top = "shrink-0 px-4 pt-[max(env(safe-area-inset-top),0.75rem)]",
+    section = currentSection();
+  if (section && section.id !== "social") return <SectionTabs className={top} />;
   return (
     <div className={cn("flex items-center gap-2", top)}>
       <SectionTabs className="min-w-0 flex-1 overflow-x-auto" />

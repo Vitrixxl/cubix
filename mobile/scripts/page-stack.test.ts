@@ -9,17 +9,19 @@ const { slideOf } = await import("../src/components/PageStack");
 const { TABS, goBackAtom, openTabAtom, routeAtom, routeOfUrl, tabOf, trainingSetupModeAtom, trainingStepAtom, urlOfRoute } = await import("../src/state");
 import type { Route } from "../src/state";
 
-test("the five sections; Social holds the chat, coaching and the challenges (duel, tournaments, matches), Me the profile", () => {
-  expect(TABS).toEqual(["timer", "learn", "algorithms", "social", "me"]);
+test("the five sections of the bar; Challenges holds the duel, tournaments and matches, Social the chat and coaching; the profile is apart", () => {
+  expect(TABS).toEqual(["timer", "learn", "algorithms", "challenges", "social"]);
   expect(tabOf("algorithms")).toBe("algorithms");
   expect(tabOf("training")).toBe("learn");
-  expect(tabOf("duel")).toBe("social");
+  expect(tabOf("duel")).toBe("challenges");
   expect(tabOf("playground")).toBe("timer");
   expect(tabOf("analysis")).toBe("timer");
-  expect(tabOf("match")).toBe("social");
+  expect(tabOf("match")).toBe("challenges");
+  expect(tabOf("wca")).toBe("challenges");
   expect(tabOf("community")).toBe("social");
   expect(tabOf("coaching")).toBe("social");
   expect(tabOf("settings")).toBe("me");
+  expect(tabOf("profile")).toBe("me");
 });
 
 test("web addresses read as routes and back", () => {

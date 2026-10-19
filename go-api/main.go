@@ -355,6 +355,8 @@ func (s *AppState) routes() http.Handler {
 	route(true, "/api/mobile/updates/assets/{hash}", 64*1024*1024, map[string]handler{"GET": releaseAsset, "PUT": releaseUploadAsset})
 	route(true, "/api/mobile/updates", json, map[string]handler{"PUT": releasePublish})
 	route(true, "/api/mobile/updates/manifest", json, get(releaseManifest))
+	// The WCA sends the browser back here, to be redirected into the app (wca_auth.go).
+	route(true, "/api/auth/wca/callback", json, get(wcaCallback))
 	// Generic API bodies are small; apiDispatch raises the limit for a signed-in sync push.
 	api := s.endpoint(true, apiBodyMax, every(apiDispatch))
 	// An empty catch-all matches no route in axum: `/api/` is the fallback's. The exact

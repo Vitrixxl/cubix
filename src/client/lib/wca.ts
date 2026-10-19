@@ -193,6 +193,34 @@ export function competitionsPath(filter: CompetitionFilter, page: number) {
   }
   return "competitions?" + query;
 }
+/** The WCA's answers already read, by path (web and phone): shown at once when asked again. */
+const answers = new Map<string, unknown>(),
+  asked = new Map<string, Promise<unknown>>();
+export const wcaAnswer = <T>(path: string) => answers.get(path) as T | undefined;
+/** The answer at `path`, read once through `fetch` however many ask for it meanwhile. */
+export function loadWca<T>(fetch: (path: string) => Promise<T>, path: string): Promise<T> {
+  if (answers.has(path)) return Promise.resolve(answers.get(path) as T);
+  let answer = asked.get(path) as Promise<T> | undefined;
+  if (!answer) {
+    answer = fetch(path)
+      .then((data) => {
+        if (answers.size > 300) answers.clear();
+        answers.set(path, data);
+        return data;
+      })
+      .finally(() => asked.delete(path));
+    asked.set(path, answer);
+  }
+  return answer;
+}
+/** The WCA pages as they first open, read ahead while the app is idle: the countries, the 3×3 world ranking, the
+ * world's records, the competitions to come, and the player's own page (`own`, their WCA ID). */
+export function prefetchWca(fetch: (path: string) => Promise<unknown>, own?: string) {
+  const paths = ["countries", rankingPath("333", "single", { region: "world", page: 1 }), "records?region=world", competitionsPath({ status: "upcoming", country: "", month: "", q: "" }, 1)];
+  if (own) paths.push("persons/" + own, `persons/${own}/results`);
+  for (const path of paths) void loadWca(fetch, path).catch(() => {});
+}
+
 /** The months a filter offers, "2026-10": the next twelve, or the last twenty-four. */
 export function wcaMonths(past: boolean, today = new Date()) {
   return Array.from({ length: past ? 24 : 12 }, (_, i) => {

@@ -84,7 +84,8 @@ export function validJourneyEntry(key: string, value: unknown): value is Journey
  * Shared copy and destinations; platform-specific tours only handle placement, focus and transitions. Each step opens
  * `page`, highlights its tab (`target`) and, inside the page, the element tagged `inner` (web: `data-tour="<inner>"`,
  * native: the view registered under that key), so the tour shows a part of every tab rather than only its button. Web
- * and phone follow this order: the timer, then Learn, Training, Algs, Duel and Me.
+ * and phone follow this order: the timer, then Learn, Training, Algs, Duel and the profile (its button: the account's on
+ * the web, the app bar's on the phone).
  */
 export const TOUR_STEPS = [
   { page: "playground", target: "playground", inner: "scramble", title: "Scramble your cube", body: "Turn your cube with these moves. A new scramble is ready after every solve." },

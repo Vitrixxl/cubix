@@ -1238,7 +1238,6 @@
  "never seen": "jamais vu",
  "never seen in your solves": "jamais vu dans tes solves",
  "never trained": "jamais entraînés",
- "New scramble · Alt+N": "Nouveau mélange · Alt+N",
  "New session": "Nouvelle session",
  "No": "Non",
  "No Ao5 in the last ten weeks.": "Aucune Ao5 ces dix dernières semaines.",
@@ -3989,5 +3988,12 @@
  "Spread, above the chart, shows how the times of the chosen period fall: one column per range of times, and, dashed behind it, the same number of solves just before the period. The mean, the median, the deviation (how far your times stray from the mean: the lower, the steadier) and the DNF rate compare both, the gap in green when the period does better. Pick Last session, 30 days or drag across the curve first to compare that stretch with the one before it.": "Répartition, au-dessus du graphique, montre comment se répartissent les temps de la période choisie : une colonne par tranche de temps et, en pointillés derrière, autant de résolutions juste avant la période. La moyenne, la médiane, l'écart type (à quel point tes temps s'éloignent de la moyenne : plus il est bas, plus tu es régulier) et le taux de DNF comparent les deux, l'écart en vert quand la période fait mieux. Choisis d'abord Dernière séance, 30 jours ou fais glisser sur la courbe pour comparer ce passage avec celui d'avant.",
  "The cases to review and the streak at stake": "Les cas à revoir et la série en jeu",
  "the solves before": "les résolutions d'avant",
- "this period": "cette période"
+ "this period": "cette période",
+ "Continue with the WCA": "Continuer avec la WCA",
+ "The WCA refused the sign-in. Try again.": "La WCA a refusé la connexion. Réessaie.",
+ "The WCA sign-in expired. Try again.": "La connexion WCA a expiré. Réessaie.",
+ "The WCA sign-in was cancelled.": "La connexion WCA a été annulée.",
+ "This WCA account is linked to another Qbix account.": "Ce compte WCA est lié à un autre compte Qbix.",
+ "To link your WCA account, open Qbix on the web.": "Pour lier ton compte WCA, ouvre Qbix sur le web.",
+ "Your WCA account has no WCA ID yet: it comes with a first competition.": "Ton compte WCA n'a pas encore de WCA ID : il arrive avec une première compétition."
 }

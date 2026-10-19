@@ -178,6 +178,8 @@ export interface UserDto {
   username: string;
   isGuest: boolean;
   createdAt: string;
+  /** The WCA ID the WCA's sign-in vouches for (go-api/wca_auth.go). */
+  wcaId?: string | null;
 }
 export interface AuthDto { user: UserDto; token: string }
 export interface ProfileDto {
