@@ -4,6 +4,8 @@
  * (desktop/renderer/profile/*) and the Android app (mobile/src/pages/AccountPage.tsx, components/ProfileProgress.tsx).
  */
 
+import { localFormat } from "../i18n";
+
 /** A solve of the activity: when, its time (null for a DNF), and whether it was timed on the timer page. */
 export type ActivitySolve = { at: string; time: number | null; timer: boolean };
 
@@ -15,6 +17,21 @@ export function dayKey(at: number | Date) {
 }
 
 type Timed = { at: string; time: number | null };
+
+/** `dayKey` of many ISO moments, each day worked out once while they come in order: the last day's bounds are kept. */
+function dayKeys() {
+  let start = 0, end = 0, key = "";
+  return (at: string) => {
+    const t = Date.parse(at);
+    if (!(t >= start && t < end)) {
+      const d = new Date(t);
+      start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      key = dayKey(d);
+    }
+    return key;
+  };
+}
 
 /** Every solve of a profile, the timer's and the cases', with a date. */
 export function activityOf(profile: { playground?: { history?: Timed[] }; cases?: { history?: Timed[] }[] }): ActivitySolve[] {
@@ -29,7 +46,7 @@ export const latestOf = (activity: readonly ActivitySolve[]) => activity.reduce<
 
 /** Consecutive active days: the run reaching today (or yesterday, still alive), the longest one, and whether today is in it. */
 export function streaks(activity: readonly { at: string }[]) {
-  const days = new Set(activity.map((v) => dayKey(new Date(v.at))));
+  const keyOf = dayKeys(), days = new Set(activity.map((v) => keyOf(v.at)));
   const today = new Date();
   const d = new Date(today.getFullYear(), today.getMonth(), today.getDate()), practised = days.has(dayKey(d));
   if (!practised) d.setDate(d.getDate() - 1);
@@ -78,14 +95,16 @@ export function achievementLists<A extends { unlocked: boolean; ratio: number; u
 export type HeatDay = { count: number; times: (number | null)[] };
 export type HeatCell = { key: string; date: Date; count: number; hidden: boolean };
 
+const MONTH = localFormat({ month: "short" });
+
 /** Five steps of the accent: none, then the four quarters of the active days (GitHub's graph). */
 export const HEAT_LEVELS = ["bg-muted", "bg-primary/35", "bg-primary/60", "bg-primary/85", "bg-primary"];
 
 /** The solves of each day. */
 export function heatDays(solves: readonly ActivitySolve[]) {
-  const map = new Map<string, HeatDay>();
+  const map = new Map<string, HeatDay>(), keyOf = dayKeys();
   for (const solve of solves) {
-    const key = dayKey(new Date(solve.at)),
+    const key = keyOf(solve.at),
       day = map.get(key) ?? { count: 0, times: [] };
     day.count++;
     if (solve.timer) day.times.push(solve.time);
@@ -130,7 +149,7 @@ export function heatmap(days: ReadonlyMap<string, HeatDay>, year: number | null)
       opening = w === 0 ? week.find((c) => c.date >= first) : week.find((c) => c.date.getDate() === 1);
     if (!opening || opening.date > last) continue;
     if (months.length && w - months.at(-1)!.week < 3) months.pop();
-    months.push({ week: w, label: opening.date.toLocaleDateString(undefined, { month: "short" }) });
+    months.push({ week: w, label: MONTH.format(opening.date) });
   }
   return { cells, weeks, months, level, total: counts.reduce((sum, n) => sum + n, 0) };
 }

@@ -111,6 +111,16 @@ export function DuelPage() {
   return duel.status === "racing" ? <Race /> : <Lobby hub={hub} setHub={setHub} />;
 }
 
+/** What the time searched changes, drawn again each second on its own rather than the whole lobby. */
+function Searched({ children }: { children: (waited: number) => React.ReactNode }) {
+  const [, setSecond] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSecond((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <>{children(Date.now() - duel.searchSince)}</>;
+}
+
 /**
  * Before a race: the disc (or the search under way) alone; the friends to challenge, a friend to add and the races
  * played each behind a button. On a desktop, first the Challenges' hub, the duel's page a Back away from it.
@@ -120,17 +130,10 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
     phone = usePhone(),
     hubbed = hub && !phone,
     [open, setOpen] = useState<"" | "friends" | "history">(""),
-    [adding, setAdding] = useState(false),
-    [, setSecond] = useState(0);
-  useEffect(() => {
-    if (!searching) return;
-    const id = setInterval(() => setSecond((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, [searching]);
+    [adding, setAdding] = useState(false);
   const event = s.event(),
-    waited = searching ? Date.now() - duel.searchSince : 0,
-    range = matchRange(duel.level, waited),
-    seconds = (ms: number) => (ms / 1000).toFixed(1);
+    seconds = (ms: number) => (ms / 1000).toFixed(1),
+    rangeText = (range: [number, number] | null) => (range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–");
   // The lobby's buttons: a word each on a desktop, icons in a phone's header and in the corner of the hub's Duel box.
   const tool = (I: typeof Swords, label: string, tip: string, action: string, onClick: () => void, icon = phone) => (
     <Tip key={action} content={tr(tip)}>
@@ -179,7 +182,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
               {/* The level and the record; opens the duel's own page (the matching range). */}
               <button type="button" {...opens(() => setHub(false), "link")} data-hub="duel" data-tour="duel" className={cn(CARD_LINK, "-m-2 flex flex-col gap-2.5 rounded-[18px] p-2 hover:bg-muted")}>
                 <span className={KICKER}>{searching ? tr("Searching") : tr("Your {0} level", { 0: event.label })}</span>
-                <b className={cn(NUMERIC, "text-[clamp(44px,5vw,72px)] leading-none font-extrabold tracking-[-0.05em]", searching && "text-primary")}>{searching ? clock(waited) : level}</b>
+                <b className={cn(NUMERIC, "text-[clamp(44px,5vw,72px)] leading-none font-extrabold tracking-[-0.05em]", searching && "text-primary")}>{searching ? <Searched>{(waited) => clock(waited)}</Searched> : level}</b>
                 {played.length > 0 && <span className="max-w-sm"><Record won={count("win")} drawn={count("draw")} lost={count("loss")} /></span>}
               </button>
               {duel.notice && <p className="text-sm text-balance text-destructive">{duel.notice}</p>}
@@ -228,7 +231,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
           figures={
             <>
               <StageFigure value={level} label={tr("Your {0} level", { 0: event.label })} />
-              <StageFigure value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} label="Your matching range" />
+              <StageFigure value={searching ? <Searched>{(waited) => rangeText(matchRange(duel.level, waited))}</Searched> : rangeText(matchRange(duel.level))} label="Your matching range" />
               <StageFigure value={searching ? String(duel.searching) : "–"} label="Also searching" tone={searching && duel.searching ? "good" : undefined} />
             </>
           }
@@ -243,7 +246,9 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
           )}
           {searching ? (
             <>
-              <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />
+              <Searched>
+                {(waited) => <StageMeter share={waited / ANYONE_AFTER} value={clock(waited)} label={matchRange(duel.level, waited) ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: event.label })} />}
+              </Searched>
               <Button action="duel:leave" icon={X} variant="secondary" className="duel-cancel">
                 {tr("Cancel")}
               </Button>

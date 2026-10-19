@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { journalDays, weeklyBestAo5 } from "../src/client/lib/profile";
+import { dayKey, heatDays, journalDays, streaks, weeklyBestAo5 } from "../src/client/lib/profile";
 
 test("journal days carry their best, their Ao5 and the records beaten with their gain", () => {
   const at = (day: number, h: number) => new Date(2026, 9, day, h).toISOString();
@@ -24,4 +24,13 @@ test("weekly best Ao5 counts back from this Monday", () => {
     history = [{ at: new Date(2026, 9, 6).toISOString(), time: 0 }, { at: new Date(2026, 9, 2).toISOString(), time: 0 }, { at: new Date(2026, 9, 7).toISOString(), time: 0 }];
   const weeks = weeklyBestAo5(history, [12, 13, 11.5], 3, today);
   expect(weeks.map((w) => [w.start.getDate(), w.best])).toEqual([[21, null], [28, 13], [5, 11.5]]);
+});
+
+test("solves fall on their local day, in any order", () => {
+  const at = (day: number, h: number, m = 0) => new Date(2026, 9, day, h, m).toISOString();
+  const solves = [at(1, 0), at(1, 23, 59), at(2, 0), at(1, 12), at(3, 23, 59), at(5, 8)].map((v) => ({ at: v, time: 1000, timer: true }));
+  const days = heatDays(solves);
+  expect([...days].map(([key, d]) => [key, d.count])).toEqual([["2026-10-01", 3], ["2026-10-02", 1], ["2026-10-03", 1], ["2026-10-05", 1]]);
+  expect([...days.keys()]).toEqual([...new Set(solves.map((v) => dayKey(new Date(v.at))))]);
+  expect(streaks(solves).longest).toBe(3);
 });

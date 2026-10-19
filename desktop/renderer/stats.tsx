@@ -9,7 +9,7 @@ import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtValue, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
-import { periodFigures, periodSpread, singleRecords, SPREAD_LABEL, solveTone, timerFigures, type PeriodFigure, type SpreadFigure } from "../../src/client/lib/practiceSummary";
+import { historyRecords, periodFigures, periodSpread, singleRecords, SPREAD_LABEL, solveTone, timerFigures, type PeriodFigure, type SpreadFigure } from "../../src/client/lib/practiceSummary";
 import { Back, Button, Choice, Empty, MenuChoice, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
 import { InHead, MoreMenu, StatCard, Stats, dots, useViewport } from "./base";
 import { TONE_TEXT } from "../../src/client/lib/tone";
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { msg } from "../../src/client/i18n/msg";
 import { said } from "./base";
 import { VirtualList } from "./virtual";
@@ -147,6 +147,7 @@ type SessionMetric = (typeof SESSION_METRICS)[number]["id"];
 const METRIC_LEGEND: Record<SessionMetric, string> = { mean: "session mean", best: "session best", ao5: "session's best Ao5", ao12: "session's best Ao12" };
 
 type Preset = "all" | "90" | "30" | "last";
+const NO_AVERAGES: (number | null)[] = [];
 
 function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "session"; phone: boolean; table: SolveTableState }) {
   const history: any[] = data.history;
@@ -191,29 +192,37 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
   // Long periods draw the Ao50: the Ao5 would hide the trend under its noise.
   const long = solveRange[1] - solveRange[0] > 300;
   const sessionLabel = (x: any) => (x ? (x.name ? `${x.name} · ${shortDate(x.at)}` : sessionName(x, event)) : "");
+  // What the chart and the figures are given is kept from one render to the next: the chart's paths are drawn again,
+  // and the records over every solve read again, only when it changes.
+  const sessionPoints = useMemo(() => sessions.map((x) => ({ time: x[metric], at: x.at, displayDate: sessionLabel(x) })), [sessions, metric, event, language()]);
+  const sessionBest = useMemo(() => {
+    let best = -1;
+    sessions.forEach((x, i) => x[metric] != null && (best < 0 || x[metric] < sessions[best][metric]) && (best = i));
+    return best < 0 ? [] : [best];
+  }, [sessions, metric]);
+  const recordMarks = useMemo(() => derived.records.map((r) => r.index), [derived]);
+  const averages = useMemo(() => ({ 5: data.ao5 ?? NO_AVERAGES, 12: data.ao12 ?? NO_AVERAGES, 100: derived.ao100 }), [data, derived]);
+  const allRecords = useMemo(() => historyRecords(history, averages), [history, averages]);
+  const periodRows = useMemo(() => periodFigures(history, averages, range, allRecords), [history, averages, range, allRecords]);
   const chart = spread ? <SpreadChart history={history} range={range} /> : perSession ? (
     <HistoryChart
-      history={sessions.map((x) => ({ time: x[metric], at: x.at, displayDate: sessionLabel(x) }))}
-      averages={[]}
+      history={sessionPoints}
+      averages={NO_AVERAGES}
       range={sessionRange}
       onRange={setSessionRange}
-      marks={(() => {
-        let best = -1;
-        sessions.forEach((x, i) => x[metric] != null && (best < 0 || x[metric] < sessions[best][metric]) && (best = i));
-        return best < 0 ? [] : [best];
-      })()}
+      marks={sessionBest}
       xTitle={tr("session date")}
       tip={(i) => plural(sessions[i]?.count ?? 0, "solve")}
     />
   ) : (
     <HistoryChart
       history={history}
-      averages={long ? derived.ao50 : data.ao5 ?? []}
+      averages={long ? derived.ao50 : averages[5]}
       averageLabel={long ? "Ao50" : "Ao5"}
       range={solveRange}
       onRange={setSolveRange}
       points
-      marks={derived.records.map((r) => r.index)}
+      marks={recordMarks}
       xTitle={tr("solve date")}
       tip={(i) => sessionLabel(derived.session[i])}
     />
@@ -261,8 +270,8 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
       <PeriodBar items={items} range={shown} onRange={setShown} lastSession={perSession || !derived.session.at(-1) ? null : derived.session.indexOf(derived.session.at(-1))} phone={phone} count={range[1] - range[0] + 1} sessionsShown={perSession ? sessionRange[1] - sessionRange[0] + 1 : null} />
     </Surface>
   );
-  const listCard = perSession ? <SessionList sessions={sessions.slice(sessionRange[0], sessionRange[1] + 1)} label={sessionLabel} phone={phone} /> : <SolveList history={history} ao5={data.ao5 ?? []} ao12={data.ao12 ?? []} sessionOf={derived.session} range={range} phone={phone} records={derived.records} {...table} />;
-  const figures = <FiguresCard rows={periodFigures(history, { 5: data.ao5 ?? [], 12: data.ao12 ?? [], 100: derived.ao100 }, range)} event={event} scramble={s.label("scrambles", s.profileScramble)} />;
+  const listCard = perSession ? <SessionList sessions={sessions.slice(sessionRange[0], sessionRange[1] + 1)} label={sessionLabel} phone={phone} /> : <SolveList history={history} ao5={averages[5]} ao12={averages[12]} sessionOf={derived.session} range={range} phone={phone} records={derived.records} {...table} />;
+  const figures = <FiguresCard rows={periodRows} event={event} scramble={s.label("scrambles", s.profileScramble)} />;
   const records = <RecordsCard records={derived.records} history={history} sessionOf={derived.session} />;
   // Narrow windows stack the cards as phones do: the curve, then one of the three under it.
   if (stacked)

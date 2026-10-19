@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { median, worstAverage } from "../src/client/lib/format";
-import { averageFigure, cleanFigures, DEFAULT_FIGURES, figureLabel, figureRows, parseFigure, sessionFigures } from "../src/client/lib/practiceSummary";
+import { averageFigure, cleanFigures, DEFAULT_FIGURES, figureLabel, figureRows, parseFigure, sessionExtremes, sessionFigures } from "../src/client/lib/practiceSummary";
 
 const solves = (...times: (number | "dnf")[]) => times.map((t) => (t === "dnf" ? { time_ms: 9000, penalty: "dnf" as const } : { time_ms: t, penalty: "none" as const }));
 
@@ -39,4 +39,12 @@ describe("the timer's chosen figures", () => {
     // "Add" joins the figures' lines: 5 figures and it stay on one line, 7 make 4 + 4.
     expect([[4, 1], [5, 1], [6, 1], [7, 1]].map(([n, extra]) => figureRows(n!, extra))).toEqual([[5], [6], [4, 3], [4, 4]]);
   });
+});
+
+test("the session's extremes: the first of the fastest, the last of the slowest, a DNF slower than any time", () => {
+  const list = (...times: (number | "dnf")[]) => solves(...times).map((v, i) => ({ ...v, id: i + 1 }));
+  expect(sessionExtremes(list(3000))).toEqual({});
+  expect(sessionExtremes(list(3000, 1000, 1000, 5000, 5000))).toEqual({ best: 2, worst: 5 });
+  expect(sessionExtremes(list(3000, "dnf", 9000, "dnf", 1000))).toEqual({ best: 5, worst: 4 });
+  expect(sessionExtremes(list("dnf", "dnf"))).toEqual({ best: 1, worst: 2 });
 });

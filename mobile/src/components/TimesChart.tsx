@@ -3,7 +3,7 @@ import { ChartLine, MessageSquare, Table } from "lucide-react-native";
 import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
-import { effective, fmtDate, fmtTime, fmtValue } from "../../../src/client/lib/format";
+import { best, effective, fmtDate, fmtTime, fmtValue, worst } from "../../../src/client/lib/format";
 import type { CaseHistoryDto, HistoryPoint } from "../../../src/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -128,8 +128,8 @@ export const HistoryChart = memo(function HistoryChart({ history, averages, rang
   const W = size.w, H = height ?? size.h;
   const scale = useMemo(() => {
     const all = [...history.slice(first, last + 1).map(v => v.time), ...averages.slice(first, last + 1)].filter((v): v is number => v != null && Number.isFinite(v));
-    const low = all.length ? Math.min(...all) : 0;
-    const high = Math.max(low + 1, all.length ? Math.max(...all) : 1);
+    const low = best(all) ?? 0;
+    const high = Math.max(low + 1, worst(all) ?? 1);
     const lo = Math.max(0, low - (high - low) * 0.12);
     return { lo, height: high + (high - low) * 0.12 - lo };
   }, [history, averages, first, last]);

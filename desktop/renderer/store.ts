@@ -294,8 +294,27 @@ export class Store {
     if (this.scramble && this.scramble !== this.savedScramble) try { localStorage.setItem(SHOWN_SCRAMBLE, JSON.stringify({ puzzle: this.puzzle, scramble: (this.savedScramble = this.scramble) })); } catch {}
     if (JSON.stringify(this.compSim) !== this.savedCompSim) try { localStorage.setItem(COMP_SIM, (this.savedCompSim = JSON.stringify(this.compSim))); } catch {}
     this.version++;
-    this.listeners.forEach((fn) => fn());
+    this.notify();
   };
+  /**
+   * Draws the change: at once within an event of the page (a key, a click, a field typed in, as a controlled field
+   * needs), else once a frame, the answers of the data engine and of the server coming in bursts (6 to 8 a solve).
+   */
+  private held = false;
+  private notify() {
+    if (!this.listeners.size) return;
+    const event = window.event;
+    if (event && !(event instanceof MessageEvent)) return this.listeners.forEach((fn) => fn());
+    if (this.held) return;
+    this.held = true;
+    const flush = () => {
+      this.held = false;
+      this.listeners.forEach((fn) => fn());
+    };
+    // No frame is drawn in a hidden tab.
+    if (document.hidden) setTimeout(flush);
+    else requestAnimationFrame(flush);
+  }
   /** Cross training: timer solves on scrambles whose `crossTarget` takes `crossMoves` turns. */
   get crossTraining() {
     return this.page === "training" && this.trainingKind === "cross" && this.puzzle === "333";
@@ -926,11 +945,9 @@ export class Store {
       this.lastSolve = solve.id;
       if (pending.daily) void this.dailyAttempt(pending.daily, solve.id, pending.body.timeMs, pending.body.penalty ?? "none");
       if (solve.record) this.announce(solve.record);
-      await this.refresh();
-      if (this.contextKey() === pending.key) {
-        if (pending.page === "training") await this.nextCase();
-        else await this.nextScramble();
-      }
+      // The next scramble or case is drawn while the figures are read again, not after.
+      const next = this.contextKey() !== pending.key ? null : pending.page === "training" ? this.nextCase() : this.nextScramble();
+      await Promise.all([this.refresh(), next]);
     } catch (e) {
       this.fail(e);
     } finally {

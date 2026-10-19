@@ -148,10 +148,17 @@ export function mean(times: (number | null)[]): number | null {
   return count ? sum / count : null;
 }
 
-export function best(times: (number | null)[]): number | null {
+export function best(times: readonly (number | null)[]): number | null {
   let minimum: number | null = null;
   for (const time of times) if (time !== null) minimum = minimum === null ? time : Math.min(minimum, time);
   return minimum;
+}
+
+/** The slowest time, DNFs left out; a loop, as `Math.max(...times)` throws past ~65k values on JSC. */
+export function worst(times: readonly (number | null)[]): number | null {
+  let maximum: number | null = null;
+  for (const time of times) if (time !== null) maximum = maximum === null ? time : Math.max(maximum, time);
+  return maximum;
 }
 
 /** Sliding sum and monotone queues: O(N) time, O(size) scratch space, including Ao100.

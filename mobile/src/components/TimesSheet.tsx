@@ -3,7 +3,7 @@ import { Ban, CalendarDays, ChevronLeft, ChevronRight, ListOrdered, MessageSquar
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import { effective, fmtSolveOf, fmtTime, shortDate } from "../../../src/client/lib/format";
+import { effective, fmtSolveOf, fmtTime, shortDate, worst } from "../../../src/client/lib/format";
 import { practiceSummary, sessionExtremes, sessionMetrics, solveTone } from "../../../src/client/lib/practiceSummary";
 import { resumedSession, sessionName, type SessionSummary } from "../../../src/client/lib/sessions";
 import { TONE_TEXT } from "../../../src/client/lib/tone";
@@ -268,7 +268,7 @@ function SessionFigures({ solves, wide }: { solves: SolveDto[]; /** One row of s
     const summary = practiceSummary(solves), times = summary.times, valid = times.filter((t): t is number => t !== null);
     return [
       ["Best", fmtTime(summary.best), "bg-success"], ["Ao5", fmtTime(summary.ao5), "bg-primary"], ["Ao12", fmtTime(summary.ao12), "bg-chart-2"],
-      ["Mean", fmtTime(summary.mean), "bg-warning"], ["Worst", times.includes(null) ? "DNF" : fmtTime(valid.length ? Math.max(...valid) : null), "bg-destructive"],
+      ["Mean", fmtTime(summary.mean), "bg-warning"], ["Worst", times.includes(null) ? "DNF" : fmtTime(worst(valid)), "bg-destructive"],
       ["DNF", String(times.length - valid.length), "bg-muted-foreground"],
     ] as const;
   }, [solves]);

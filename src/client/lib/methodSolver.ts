@@ -71,7 +71,8 @@ const perm = (turn: string) => PERMS.get(turn) ?? PERMS.set(turn, movePermutatio
 const AXIS: Record<string, number> = { R: 0, M: 0, L: 0, U: 1, D: 1, F: 2, B: 2 },
   RANK: Record<string, number> = { R: 0, M: 1, L: 2, U: 0, D: 1, F: 0, B: 1 };
 const follows = (last: string, turn: string) => AXIS[last[0]!] !== AXIS[turn[0]!] || RANK[last[0]!]! < RANK[turn[0]!]!;
-const code = (pos: readonly number[]) => pos.reduce((sum, p) => sum * 54 + p, 0);
+/** Up to three sticker places (below 54), 6 bits each. */
+const code = (pos: readonly number[]) => pos.reduce((sum, p) => (sum << 6) | p, 0);
 
 /** How many of `turns` bring up to three pieces (their stickers' places) home, from every place they can reach; built once. */
 const TABLES = new Map<string, Uint8Array>();
@@ -79,16 +80,16 @@ function table(origins: number[], turns: string[]) {
   const id = `${origins}|${turns}`;
   let dist = TABLES.get(id);
   if (dist) return dist;
-  dist = new Uint8Array(54 ** origins.length).fill(255);
+  dist = new Uint8Array(1 << (6 * origins.length)).fill(255);
   dist[code(origins)] = 0;
-  const perms = turns.map(perm);
-  for (let frontier = [origins], d = 1; frontier.length; d++) {
-    const next: number[][] = [];
+  const perms = turns.map(perm), top = 6 * (origins.length - 1);
+  for (let frontier = [code(origins)], d = 1; frontier.length; d++) {
+    const next: number[] = [];
     for (const pos of frontier)
       for (const p of perms) {
-        const moved = pos.map((s) => p[s]!),
-          k = code(moved);
-        if (dist[k] === 255) (dist[k] = d), next.push(moved);
+        let k = 0;
+        for (let shift = top; shift >= 0; shift -= 6) k = (k << 6) | p[(pos >> shift) & 63]!;
+        if (dist[k] === 255) (dist[k] = d), next.push(k);
       }
     frontier = next;
   }

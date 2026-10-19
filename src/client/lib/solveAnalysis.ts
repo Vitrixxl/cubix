@@ -358,7 +358,7 @@ const crossDown = (state: CubeState, cross: Face) => {
 
 /**
  * Optimal cross: a breadth-first table of the four cross edges (where the cross colour of each sits, among the 24 edge
- * stickers) for the 18 face turns, built once.
+ * stickers, 5 bits each) for the 18 face turns, built once.
  */
 const EDGE_STICKERS = SLOTS.flatMap((slot, i) => (slot.p.filter((v) => v === 0).length === 1 ? [i] : []));
 const CROSS_TURNS = FACES.flatMap((face) => [face, face + "2", face + "'"]);
@@ -370,31 +370,30 @@ const crossSolver = () => {
     const perm = movePermutation(parseMove(turn)!);
     return Uint8Array.from(EDGE_STICKERS, (slot) => sticker.get(perm[slot]!)!);
   });
-  const distance = new Uint8Array(24 ** 4).fill(255),
+  const distance = new Uint8Array(1 << 20).fill(255),
     goal = crossGoal();
   distance[goal] = 0;
-  let frontier = [goal];
-  for (let depth = 0; frontier.length; depth++) {
-    const following: number[] = [];
-    for (const code of frontier)
+  // Two buffers as large as the reachable states (24 × 22 × 20 × 18), each depth's frontier written in the other.
+  let frontier = new Int32Array(190080), following = new Int32Array(190080), size = 1;
+  frontier[0] = goal;
+  for (let depth = 0; size; depth++) {
+    let n = 0;
+    for (let i = 0; i < size; i++)
       for (const table of next) {
-        const moved = moveCode(code, table);
+        const moved = moveCode(frontier[i]!, table);
         if (distance[moved] === 255) {
           distance[moved] = depth + 1;
-          following.push(moved);
+          following[n++] = moved;
         }
       }
-    frontier = following;
+    [frontier, following, size] = [following, frontier, n];
   }
   return (crossTable = { distance, next });
 };
 const D_EDGES = CROSS.map((p) => PIECES.get(key(p))!.find((slot) => SLOTS[slot]!.face === "D")!);
-const crossGoal = () => D_EDGES.reduce((code, slot) => code * 24 + EDGE_STICKERS.indexOf(slot), 0);
-const moveCode = (code: number, table: Uint8Array) => {
-  let out = 0;
-  for (let k = 3; k >= 0; k--) out = out * 24 + table[Math.floor(code / 24 ** k) % 24]!;
-  return out;
-};
+const crossGoal = () => D_EDGES.reduce((code, slot) => (code << 5) | EDGE_STICKERS.indexOf(slot), 0);
+const moveCode = (code: number, table: Uint8Array) =>
+  (table[code >> 15]! << 15) | (table[(code >> 10) & 31]! << 10) | (table[(code >> 5) & 31]! << 5) | table[code & 31]!;
 /** The shortest cross from these colours (cross on the bottom). */
 export function optimalCross(c: Face[]): string[] {
   const { distance, next } = crossSolver();
@@ -406,7 +405,7 @@ export function optimalCross(c: Face[]): string[] {
     let at = 0;
     for (const slots of PIECES.values())
       if (slots.length === 2 && slots.map((slot) => c[slot]!).sort().join("") === want) at = slots.find((slot) => c[slot] === centre(c, "D"))!;
-    code = code * 24 + EDGE_STICKERS.indexOf(at);
+    code = (code << 5) | EDGE_STICKERS.indexOf(at);
   }
   const solution: string[] = [];
   while (distance[code]! > 0 && solution.length < 12) {

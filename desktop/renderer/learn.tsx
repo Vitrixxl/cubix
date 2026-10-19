@@ -304,9 +304,10 @@ type Piece = {
 /** The case an inline algorithm solves, drawn like the catalogue's diagrams; puzzles without one keep their icon. */
 function InlineDiagram({ puzzle, step, a, size }: { puzzle: PuzzleId; step: MethodStep; a: MethodAlgorithm; size: number }) {
   const cube = puzzleInfo(puzzle).cubeSize,
-    mask = step.mask ?? "full";
-  if (!cube) return <span className="flex shrink-0 items-center justify-center text-muted-foreground/60" style={{ width: size, height: size }}><Icon name={"Puzzle" + puzzle} size={size * 0.55} /></span>;
-  return <StaticCubeSvg state={applyAlg(solved(cube), algSetup(a))} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
+    mask = step.mask ?? "full",
+    state = useMemo(() => (cube ? applyAlg(solved(cube), algSetup(a)) : undefined), [cube, a]);
+  if (!state) return <span className="flex shrink-0 items-center justify-center text-muted-foreground/60" style={{ width: size, height: size }}><Icon name={"Puzzle" + puzzle} size={size * 0.55} /></span>;
+  return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} className="shrink-0" />;
 }
 
 function inlinePiece(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, entry: CourseEntry): Piece {

@@ -9,6 +9,7 @@
 import type { Face } from "../../shared/cube";
 import { PHASE_LABELS, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "./solveAnalysis";
 import { msg } from "../i18n/msg";
+import { best } from "./format";
 
 /** Where the times of a 3×3 case come from: its training and the solves it was done in, or one of them. */
 export const CASE_SOURCES = ["all", "solves", "training"] as const;
@@ -210,7 +211,7 @@ function gather(id: MethodId | "all", label: string, digests: SolveDigest[]): Me
   const byCase = new Map<string, CaseTiming[]>();
   for (const d of digests) for (const c of d.cases) appendTo(byCase, c.id, c);
   const cases = [...byCase.values()]
-    .map((list): CaseStats => ({ id: list[0]!.id, name: list[0]!.name, step: list[0]!.step, count: list.length, best: Math.min(...list.map((c) => c.duration)), ...meanTiming(list) }))
+    .map((list): CaseStats => ({ id: list[0]!.id, name: list[0]!.name, step: list[0]!.step, count: list.length, best: best(list.map((c) => c.duration))!, ...meanTiming(list) }))
     .sort((a, b) => b.duration - a.duration);
   const turns = average(digests.map((d) => d.turns));
   return {
@@ -218,7 +219,7 @@ function gather(id: MethodId | "all", label: string, digests: SolveDigest[]): Me
     label,
     count: digests.length,
     mean: times.length ? average(times) : null,
-    best: times.length ? Math.min(...times) : null,
+    best: best(times),
     turns,
     tps: duration > 0 ? turns / (duration / 1000) : 0,
     steps,

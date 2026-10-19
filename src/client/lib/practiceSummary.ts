@@ -1,5 +1,5 @@
 import type { Penalty } from "../../shared/types";
-import { averageOf, best, bestAverage, fmtResult, fmtTime, mean, median, rollingAverages, solveResult, worstAverage, type Solved } from "./format";
+import { averageOf, best, bestAverage, fmtResult, fmtTime, mean, median, rollingAverages, solveResult, worst, worstAverage, type Solved } from "./format";
 import { attemptMode } from "../../shared/puzzles";
 import type { Tone } from "./tone";
 import { msg } from "../i18n/msg";
@@ -40,10 +40,9 @@ export type Metric = [label: string, value: string, tone: Tone];
 export function sessionMetrics(solves: readonly Solved[], mode = solves[0]?.solve_mode): Metric[] {
   if (attemptMode(mode)) return sessionFigures(solves, shownFigures(mode, []), mode);
   const summary = practiceSummary(solves), times = summary.times;
-  const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
   return [
     [msg("Best"), fmtTime(summary.best), "good"],
-    [msg("Worst"), worst, "bad"],
+    [msg("Worst"), times.includes(null) ? "DNF" : fmtTime(worst(times)), "bad"],
     [msg("Mean"), fmtTime(summary.mean), ""],
     ["Ao5", fmtTime(summary.ao5), "accent"],
     [msg("Best Ao5"), fmtTime(bestAverage(times, 5)), "good"],
@@ -123,7 +122,7 @@ export function sessionFigures(solves: readonly (Solved & { memo_ms?: number | n
       if (id === "count") return [[label, String(times.length), ""]];
       if (id === "memo") return [[label, fmtTime(memoMean(solves)), ""]];
       const value = id === "best" ? best(times) : id === "mean" ? mean(times) : id === "median" ? median(times)
-        : !times.length ? null : times.includes(null) ? Infinity : Math.max(...(times as number[]));
+        : times.includes(null) ? Infinity : worst(times);
       return [[label, fmtFigure(value, id !== "mean" && id !== "median"), SINGLES[id]![1]]];
     }
     const { size, which } = figure;
@@ -157,8 +156,14 @@ export function timerFigures(summary: {
 /** The session's fastest and slowest solves (a DNF is the slowest), once there are two. */
 export function sessionExtremes(solves: readonly { id: number; time_ms: number; penalty: Penalty }[]): { best?: number; worst?: number } {
   if (solves.length < 2) return {};
-  const ranked = [...solves].sort((a, b) => (solveResult(a) ?? Infinity) - (solveResult(b) ?? Infinity));
-  return { best: ranked[0]!.id, worst: ranked.at(-1)!.id };
+  // One pass: the first of the fastest, the last of the slowest.
+  let fastest = solves[0]!, slowest = fastest, low = Infinity, high = -Infinity;
+  for (const v of solves) {
+    const t = solveResult(v) ?? Infinity;
+    if (t < low) { low = t; fastest = v; }
+    if (t >= high) { high = t; slowest = v; }
+  }
+  return { best: fastest.id, worst: slowest.id };
 }
 
 /** How a time of the session list is tinted: the slowest (or a DNF) bad, the fastest good, a +2 warned. */
@@ -181,27 +186,37 @@ const indexOfMin = (series: readonly (number | null)[]) => {
   return at;
 };
 
+const dnfCount = (list: readonly (number | null)[]) => list.filter((t) => t == null).length;
+type Averages = Record<5 | 12 | 100, readonly (number | null)[]>;
+
+/** What `periodFigures` reads from every solve, whatever the period: worth memoizing with the history and its averages. */
+export function historyRecords(history: readonly Timed[], averages: Averages) {
+  const times = history.map((v) => v.time), memos = history.map((v) => v.memoMs ?? null);
+  const record = (series: readonly (number | null)[]) => { const i = indexOfMin(series); return { record: i < 0 ? null : series[i]!, at: history[i]?.at }; };
+  return {
+    times, memos, blind: memos.some((m) => m != null), mean: mean(times), dnf: dnfCount(times),
+    memo: record(memos), single: record(times), ao5: record(averages[5]), ao12: record(averages[12]), ao100: record(averages[100]),
+  };
+}
+
 /**
  * The stats table of a timer history over the solves [a, b]: the best single and averages of the period (an average
  * counts once it ends inside it), the latest ones, the records and the day each was set; the mean, the count and the
  * DNFs of the period against every solve; blindfolded, the memorisation and the success rate first.
  */
-export function periodFigures(history: readonly Timed[], averages: Record<5 | 12 | 100, readonly (number | null)[]>, [a, b]: [number, number]): PeriodFigure[] {
-  const times = history.map((v) => v.time), shown = times.slice(a, b + 1), last = history.length - 1;
-  const memos = history.map((v) => v.memoMs ?? null), blind = memos.some((m) => m != null);
-  const record = (series: readonly (number | null)[]) => { const i = indexOfMin(series); return { record: i < 0 ? null : series[i]!, at: history[i]?.at }; };
-  const dnf = (list: readonly (number | null)[]) => list.filter((t) => t == null).length;
+export function periodFigures(history: readonly Timed[], averages: Averages, [a, b]: [number, number], all = historyRecords(history, averages)): PeriodFigure[] {
+  const { times, memos } = all, shown = times.slice(a, b + 1), last = times.length - 1;
   const rows: PeriodFigure[] = [];
-  if (blind) {
-    rows.push({ id: "memo", period: mean(memos.slice(a, b + 1)), current: memos[last] ?? null, ...record(memos) });
-    rows.push({ id: "success", period: shown.length ? 1 - dnf(shown) / shown.length : null, current: null, record: times.length ? 1 - dnf(times) / times.length : null });
+  if (all.blind) {
+    rows.push({ id: "memo", period: mean(memos.slice(a, b + 1)), current: memos[last] ?? null, ...all.memo });
+    rows.push({ id: "success", period: shown.length ? 1 - dnfCount(shown) / shown.length : null, current: null, record: times.length ? 1 - all.dnf / times.length : null });
   }
-  rows.push({ id: "single", period: minAt(times, a, b), current: times[last] ?? null, ...record(times) });
+  rows.push({ id: "single", period: minAt(times, a, b), current: times[last] ?? null, ...all.single });
   for (const size of [5, 12, 100] as const)
-    if (size < 100 || times.length >= 100) rows.push({ id: `ao${size}`, period: minAt(averages[size], a, b), current: averages[size][last] ?? null, ...record(averages[size]) });
-  rows.push({ id: "mean", period: mean(shown), current: null, record: mean(times) });
+    if (size < 100 || times.length >= 100) rows.push({ id: `ao${size}`, period: minAt(averages[size], a, b), current: averages[size][last] ?? null, ...all[`ao${size}`] });
+  rows.push({ id: "mean", period: mean(shown), current: null, record: all.mean });
   rows.push({ id: "count", period: shown.length, current: null, record: times.length });
-  rows.push({ id: "dnf", period: dnf(shown), current: null, record: dnf(times) });
+  rows.push({ id: "dnf", period: dnfCount(shown), current: null, record: all.dnf });
   return rows;
 }
 
@@ -224,7 +239,7 @@ export const SPREAD_LABEL: Record<SpreadFigure["id"], string> = { mean: msg("Mea
 const roundWidth = (span: number, most: number) => {
   for (let unit = 1; ; unit *= 10) for (const step of [1, 2, 5]) if (span / (step * unit) <= most) return step * unit;
 };
-const deviation = (list: readonly number[]) => {
+const deviation = (list: Float64Array) => {
   if (list.length < 2) return null;
   const m = list.reduce((a, b) => a + b, 0) / list.length;
   return Math.sqrt(list.reduce((a, b) => a + (b - m) ** 2, 0) / (list.length - 1));
@@ -237,20 +252,24 @@ const deviation = (list: readonly number[]) => {
  */
 export function periodSpread(history: readonly Timed[], [a, b]: [number, number], most = 14) {
   const times = history.map((v) => v.time), now = times.slice(a, b + 1), before = times.slice(Math.max(0, a - now.length), a);
-  const done = (list: readonly (number | null)[]) => list.filter((t): t is number => t != null);
-  const finished = [...done(now), ...done(before)].sort((x, y) => x - y);
+  // Each side's finished times sorted once (numerically, as a typed array), then merged for the percentiles of both.
+  const done = (list: readonly (number | null)[]) => Float64Array.from(list.filter((t): t is number => t != null)).sort();
+  const doneNow = done(now), doneBefore = done(before), finished = new Float64Array(doneNow.length + doneBefore.length);
+  for (let i = 0, j = 0, k = 0; k < finished.length; k++)
+    finished[k] = j >= doneBefore.length || (i < doneNow.length && doneNow[i]! <= doneBefore[j]!) ? doneNow[i++]! : doneBefore[j++]!;
   const low = finished[Math.floor(finished.length * 0.02)] ?? 0, high = finished[Math.ceil(finished.length * 0.98) - 1] ?? low;
   const width = roundWidth(Math.max(1, high - low), most - 1), from = Math.floor(low / width) * width;
   const count = Math.max(1, Math.floor((high - from) / width) + 1);
-  const bucket = (list: readonly number[]) => {
+  const bucket = (list: Float64Array) => {
     const out = new Array<number>(count).fill(0);
     for (const t of list) out[Math.max(0, Math.min(count - 1, Math.floor((t - from) / width)))]!++;
     return out;
   };
-  const figures = (list: readonly (number | null)[]) => ({ mean: mean([...list]), median: done(list).length ? median(done(list)) : null, deviation: deviation(done(list)), dnf: list.length ? (list.length - done(list).length) / list.length : null });
-  const n = figures(now), p = before.length ? figures(before) : null;
+  const middle = (s: Float64Array) => (!s.length ? null : s.length % 2 ? s[s.length >> 1]! : (s[(s.length >> 1) - 1]! + s[s.length >> 1]!) / 2);
+  const figures = (list: (number | null)[], sorted: Float64Array) => ({ mean: mean(list), median: middle(sorted), deviation: deviation(sorted), dnf: list.length ? (list.length - sorted.length) / list.length : null });
+  const n = figures(now, doneNow), p = before.length ? figures(before, doneBefore) : null;
   return {
-    from, width, now: bucket(done(now)), before: bucket(done(before)), beforeCount: before.length,
+    from, width, now: bucket(doneNow), before: bucket(doneBefore), beforeCount: before.length,
     figures: (["mean", "median", "deviation", "dnf"] as const).map((id): SpreadFigure => ({ id, now: n[id], before: p?.[id] ?? null })),
   };
 }

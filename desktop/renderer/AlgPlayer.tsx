@@ -33,7 +33,7 @@ export function useAlgPlayer(alg: string, size: number | null | undefined, mask:
 /** The playback, re-rendering on each frame of it. */
 export const usePlayback = (player: AlgPlayer) => useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot);
 /** What a part of the player shows of the playback (a number, a string): drawn again only when that changes, not at every frame. */
-const usePlayed = <T,>(player: AlgPlayer, read: (p: AlgPlayer) => T) => useSyncExternalStore(player.subscribe, () => read(player), () => read(player));
+export const usePlayed = <T,>(player: AlgPlayer, read: (p: AlgPlayer) => T) => useSyncExternalStore(player.subscribe, () => read(player), () => read(player));
 
 /** The cube: drag to turn it, double-click to see it from the start again. */
 export function PlayerCube({ player, size, className }: { player: AlgPlayer; size: number; className?: string }) {

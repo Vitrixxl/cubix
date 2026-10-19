@@ -177,7 +177,7 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
   useEffect(() => {
     let stream: MediaStream | undefined,
       stopped = false,
-      loop = 0;
+      cancel = () => {};
     setState("starting");
     const media = navigator.mediaDevices;
     if (!media?.getUserMedia) {
@@ -197,16 +197,28 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
         if (!stopped) setDevices(all.map((d) => d.deviceId));
       })
       .catch(() => !stopped && setState("none"));
+    // Each new picture of the camera where the browser tells it, else each frame; the face drawn again only once it
+    // is found elsewhere or read in other colours.
+    let seen = "";
     const watch = faceWatcher(),
       tick = () => {
-        loop = requestAnimationFrame(tick);
         const v = video.current;
-        if (v?.videoWidth) setFace(watch(v));
+        if (v?.requestVideoFrameCallback) {
+          const id = v.requestVideoFrameCallback(tick);
+          cancel = () => v.cancelVideoFrameCallback(id);
+        } else {
+          const id = requestAnimationFrame(tick);
+          cancel = () => cancelAnimationFrame(id);
+        }
+        if (!v?.videoWidth) return;
+        const found = watch(v),
+          key = found ? [found.centre, found.u, found.v, ...found.colours].flat().map(Math.round).join() : "";
+        if (key !== seen) (seen = key), setFace(found);
       };
-    loop = requestAnimationFrame(tick);
+    tick();
     return () => {
       stopped = true;
-      cancelAnimationFrame(loop);
+      cancel();
       stream?.getTracks().forEach((t) => t.stop());
       track.current = null;
     };

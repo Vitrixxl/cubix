@@ -8,7 +8,7 @@ import { CUBE_READING, PUZZLE_NOTATION, cubeNotation, describeMove, isCubeNotati
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { store as s, run } from "./store";
 import { Choice, LABEL, NUMERIC, Tip, usePhone } from "./ui";
-import { PlayerCube, SpeedChoice, useAlgPlayer, usePlayback } from "./AlgPlayer";
+import { PlayerCube, SpeedChoice, useAlgPlayer, usePlayed } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -148,7 +148,7 @@ function MovePlayer({ move, size, phone = false }: { move: string; size: number;
 }
 
 function LoopControls({ player }: { player: AlgPlayer }) {
-  usePlayback(player);
+  usePlayed(player, (p) => p.active);
   return (
     <div className="flex items-center gap-1">
       <Tip content={player.active ? tr("Pause") : tr("Play")}>

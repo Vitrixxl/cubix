@@ -32,10 +32,12 @@ import { journeyProfile } from "../../src/client/lib/journey";
 import { said, useLanguage } from "./base";
 /** Kept on this device for the next launch: an account's device never shows a page written ahead of time (boot.ts). */
 const SIGNED_IN_KEY = "cubix.signedIn";
+/** Once the browser is idle (the first page drawn), else a second after start-up. */
+const whenIdle = (fn: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1000));
 /**
- * A part of the app, fetched at start-up and drawn at once when it is there: React's `lazy` would still
- * suspend once on a part already loaded. A tab left open across a deploy may no longer find it on the server: the page
- * loads again, once, to get the new version.
+ * A part of the app, fetched once the first page is drawn (`whenIdle`), or as soon as it is shown, and drawn at once when
+ * it is there: React's `lazy` would still suspend once on a part already loaded. A tab left open across a deploy may no
+ * longer find it on the server: the page loads again, once, to get the new version.
  */
 const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentType<any>) => {
   let ready: React.ComponentType<any> | undefined;
@@ -50,11 +52,11 @@ const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentT
       },
     ),
   );
-  void load().then((module) => (ready = pick(module)), () => {});
+  whenIdle(() => void load().then((module) => (ready = pick(module)), () => {}));
   return (props: any) => createElement(ready ?? Lazy, props);
 };
 const RELOADED = "cubix.reloadedForUpdate";
-/** Each page's code, all fetched at start-up (`later`). */
+/** Each page's code, all fetched once the first page is drawn (`later`). */
 const CODE = {
   algorithms: () => import("./algorithms"),
   profile: () => import("./profile"),

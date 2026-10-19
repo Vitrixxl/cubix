@@ -67,15 +67,17 @@ export function HistoryChart({ history, averages, range, onRange, points = false
   const memo = history.some((v) => v.memoMs != null);
   // The visible times on a graduated scale; with dots, the slowest 1 % stand on the top line instead of flattening the rest.
   const [lo, hi, step] = useMemo(() => {
-    const values: number[] = [];
+    const all = new Float64Array(3 * Math.max(0, Math.min(last, history.length - 1) - first + 1));
+    let n = 0;
     for (let i = first; i <= last && i < history.length; i++) {
       const v = history[i]!;
-      if (v.time != null) values.push(v.time);
-      if (v.memoMs != null) values.push(v.memoMs);
-      if (averages[i] != null) values.push(averages[i]!);
+      if (v.time != null) all[n++] = v.time;
+      if (v.memoMs != null) all[n++] = v.memoMs;
+      if (averages[i] != null) all[n++] = averages[i]!;
     }
-    if (!values.length) return [0, 1000, 1000];
-    values.sort((a, b) => a - b);
+    if (!n) return [0, 1000, 1000];
+    // A typed array sorts as numbers, without a comparator.
+    const values = all.subarray(0, n).sort();
     const low = values[0]!, high = points ? values[Math.min(values.length - 1, Math.floor(values.length * 0.99))]! : values.at(-1)!;
     const step = STEPS.find((s) => (high - low) / s <= 4) ?? 3600000;
     const lo = Math.max(0, Math.floor(low / step) * step), hi = Math.max(lo + step, Math.ceil(high / step) * step);
@@ -132,9 +134,26 @@ export function HistoryChart({ history, averages, range, onRange, points = false
   }, [history, marks, first, last]);
   // The lines and dots of the times, built again only when the times or the period change, never as the pointer moves.
   const plotted = useMemo(() => {
+    // Past two solves a pixel, the line keeps each pixel column's fastest and slowest and the dots one per pixel: the
+    // same picture from a fraction of the path. The records (`written`) stay where they are.
+    const columns = last - first > 2 * width ? Math.max(1, Math.round(width)) : 0,
+      column = (i: number) => Math.min(columns - 1, Math.floor(((i - first) / span) * columns));
     const path = (value: (i: number) => number | null | undefined) => {
       let pen = false, d = "";
-      for (let i = first; i <= last; i++) {
+      if (columns)
+        for (let i = first; i <= last; ) {
+          const c = column(i);
+          let low = Infinity, high = -Infinity;
+          for (; i <= last && column(i) === c; i++) {
+            const v = value(i);
+            if (v != null && Number.isFinite(v)) (low = Math.min(low, v)), (high = Math.max(high, v));
+          }
+          if (low === Infinity) { pen = false; continue; }
+          const at = 6 + ((c + 0.5) / columns) * 788;
+          d += `${pen ? "L" : "M"}${at} ${y(low)}L${at} ${y(high)}`;
+          pen = true;
+        }
+      else for (let i = first; i <= last; i++) {
         const v = value(i);
         if (v == null || !Number.isFinite(v)) { pen = false; continue; }
         d += `${pen ? "L" : "M"}${x(i)} ${y(v)}`;
@@ -145,9 +164,16 @@ export function HistoryChart({ history, averages, range, onRange, points = false
     // Every dot in one path: zero-length strokes with round (or square) ends.
     const dots = (value: (i: number) => number | null | undefined, only?: (i: number) => boolean) => {
       let d = "";
+      const drawn = new Set<number>();
       for (let i = first; i <= last; i++) {
         const v = value(i);
-        if (v != null && (!only || only(i))) d += `M${x(i)} ${y(v)}h0.01`;
+        if (v == null || (only && !only(i))) continue;
+        if (columns) {
+          const pixel = column(i) * 1000 + Math.round(y(v));
+          if (drawn.has(pixel)) continue;
+          drawn.add(pixel);
+        }
+        d += `M${x(i)} ${y(v)}h0.01`;
       }
       return d;
     };
@@ -173,7 +199,7 @@ export function HistoryChart({ history, averages, range, onRange, points = false
     );
     // `x` and `y` follow from these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history, averages, first, last, lo, hi, step, points, written]);
+  }, [history, averages, first, last, lo, hi, step, points, written, width]);
   // Dates under the plot: six at most, the month and year over a long period.
   const ticks = useMemo(() => {
     const n = Math.min(last - first, Math.max(1, Math.min(5, Math.floor(width / 110)))), at = (i: number) => history[i]?.at;

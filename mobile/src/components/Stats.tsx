@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, ChevronRight, ListOrdered, MessageSquare, Ro
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { effective, fmtValue, plural, rollingAverages, shortDate } from "../../../src/client/lib/format";
-import { periodFigures, periodSpread, singleRecords, SPREAD_LABEL, type PeriodFigure, type SpreadFigure } from "../../../src/client/lib/practiceSummary";
+import { historyRecords, periodFigures, periodSpread, singleRecords, SPREAD_LABEL, type PeriodFigure, type SpreadFigure } from "../../../src/client/lib/practiceSummary";
 import { sessionName } from "../../../src/client/lib/sessions";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { CaseHistoryDto, HistoryPoint, SessionSummary } from "../../../src/shared/types";
@@ -141,8 +141,11 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
   // Long periods draw the Ao50: the Ao5 would hide the trend under its noise.
   const long = solveRange[1] - solveRange[0] > 300;
   const sessionLabel = (x: SessionSummary | null) => x ? (x.name ? `${x.name} · ${shortDate(x.at)}` : sessionName(x, event)) : "";
-  const figures = useMemo(() => Object.fromEntries(periodFigures(history, { 5: data.ao5, 12: data.ao12, 100: derived.ao100 }, range).map(r => [r.id, r])) as Partial<Record<PeriodFigure["id"], PeriodFigure>>,
-    [history, data, derived, range]);
+  // The records over every solve read once, not again at each period.
+  const averages = useMemo(() => ({ 5: data.ao5, 12: data.ao12, 100: derived.ao100 }), [data, derived]);
+  const allRecords = useMemo(() => historyRecords(history, averages), [history, averages]);
+  const figures = useMemo(() => Object.fromEntries(periodFigures(history, averages, range, allRecords).map(r => [r.id, r])) as Partial<Record<PeriodFigure["id"], PeriodFigure>>,
+    [history, averages, range, allRecords]);
   const periodRecords = derived.records.filter(r => r.index >= range[0] && r.index <= range[1]);
   const span = `${shortDate(history[range[0]]!.at)} → ${shortDate(history[range[1]]!.at)}`;
   const { tablet, wide } = useLayout();

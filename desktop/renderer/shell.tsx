@@ -106,9 +106,12 @@ export const SectionTabs = memo(function SectionTabs({ className }: { className?
   );
 });
 
+/** A field of the connected cube's state, on its own: the whole state changes with every gyroscope sample. */
+const useCubeField = <K extends keyof typeof smartCube.snapshot>(key: K) =>
+  useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot[key], () => smartCube.snapshot[key]);
 /** The connected cube's state, and a click to connect it, cancel or disconnect. */
 function useCube() {
-  const cube = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot, () => smartCube.snapshot);
+  const cube = { status: useCubeField("status"), name: useCubeField("name"), battery: useCubeField("battery") };
   return {
     ...cube,
     Icon: cube.status === "on" ? BluetoothConnected : cube.status === "connecting" ? BluetoothSearching : Bluetooth,
