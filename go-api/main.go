@@ -347,7 +347,7 @@ func (s *AppState) routes() http.Handler {
 	// Pictures and videos in coaching conversations travel raw, above the JSON limit below.
 	route(true, "/api/coaching/conversations/{id}/media", coachingMediaMax, map[string]handler{"POST": coachingUpload})
 	route(true, "/api/coaching/media/{id}", json, get(coachingMedia))
-	route(true, "/api/coaching/avatar", 4*1024*1024, map[string]handler{"PUT": coachingSetAvatar, "DELETE": coachingSetAvatar})
+	route(true, "/api/coaching/avatar", coachingAvatarMax, map[string]handler{"PUT": coachingSetAvatar, "DELETE": coachingSetAvatar})
 	route(true, "/api/avatars/{file}", json, get(coachingAvatar))
 	// The APK upload carries a whole Android build, far above the JSON limit below.
 	route(true, "/api/mobile/apk", 256*1024*1024, map[string]handler{"GET": releaseApk, "PUT": releaseUpload})

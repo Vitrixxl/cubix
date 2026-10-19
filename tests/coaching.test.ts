@@ -124,6 +124,11 @@ test("an application, once approved, makes a coach whom players can book, review
  expect(new Uint8Array(await (await fetch(origin+avatar)).arrayBuffer())).toEqual(jpeg);
  expect((await player.get(`coaches/${coach.id}`)).avatar).toBe(avatar);expect((await player.get("conversations"))[0].with.avatar).toBe(avatar);
  expect((await fetch(origin+"/api/coaching/avatar",{method:"PUT",headers:{authorization:"Bearer "+coach.token},body:"GIF89a"})).status).toBe(415);
+ // Only an account has its picture read; over 2 MB, refused before it is.
+ expect((await fetch(origin+"/api/coaching/avatar",{method:"PUT",body:jpeg})).status).toBe(401);
+ const huge=new Uint8Array(2*1024*1024+1);huge.set([0xff,0xd8,0xff]);
+ const tooBig=await fetch(origin+"/api/coaching/avatar",{method:"PUT",headers:{authorization:"Bearer "+coach.token},body:huge});
+ expect([tooBig.status,(await tooBig.json()).error]).toEqual([413,"Pictures are limited to 2 MB."]);
  expect((await (await fetch(origin+"/api/coaching/avatar",{method:"DELETE",headers:{authorization:"Bearer "+coach.token}})).json()).avatar).toBeNull();
  expect((await fetch(origin+avatar)).status).toBe(404);
 

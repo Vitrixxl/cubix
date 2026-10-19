@@ -1961,6 +1961,15 @@ const coachingAvatarMax = 2 * 1024 * 1024
 // coachingSetAvatar is `PUT /api/coaching/avatar`: the account's picture as the whole body (the app sends it square
 // and small); `DELETE` takes it away. Answers the new picture's address.
 func coachingSetAvatar(state *AppState, w http.ResponseWriter, r *http.Request) {
+	// Only an account has its picture read.
+	if _, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, headerText(r, "Authorization")) }); err != nil {
+		writeError(w, err)
+		return
+	}
+	if r.ContentLength > coachingAvatarMax {
+		writeError(w, apiErr(413, "Pictures are limited to 2 MB."))
+		return
+	}
 	bytes, ok := readBody(w, r)
 	if !ok {
 		return
@@ -1975,9 +1984,6 @@ func coachingReplaceAvatar(state *AppState, remove bool, authorization string, b
 		kind := coachingSniff(bytes)
 		if !strings.HasPrefix(kind, "image/") || kind == "image/gif" {
 			return nil, apiErr(415, "Use a JPEG, PNG, WebP or AVIF picture.")
-		}
-		if len(bytes) > coachingAvatarMax {
-			return nil, apiErr(413, "Pictures are limited to 2 MB.")
 		}
 		// The type travels in the name, so serving it needs no lookup.
 		file = newUUID() + "." + strings.TrimPrefix(kind, "image/")

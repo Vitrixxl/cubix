@@ -483,12 +483,13 @@ var apiLargeBodies = make(chan struct{}, 4)
 func apiDispatch(state *AppState, w http.ResponseWriter, r *http.Request) {
 	// A chunked body has no announced length (-1).
 	if r.ContentLength < 0 || r.ContentLength > apiSmallBody {
+		// Only an account sends a large body: strangers never hold one of the few slots.
+		// ponytail: one pool for every account; a slot per account if a signed-in one ever hogs them.
+		if _, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, headerText(r, "Authorization")) }); err != nil {
+			writeError(w, err)
+			return
+		}
 		if (r.ContentLength < 0 || r.ContentLength > apiBodyMax) && r.Method == "POST" && string(apiRoutePath(r.URL.EscapedPath())) == "sync" {
-			// The larger limit only once the token opens an account.
-			if _, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, headerText(r, "Authorization")) }); err != nil {
-				writeError(w, err)
-				return
-			}
 			r = r.WithContext(context.WithValue(r.Context(), limitKey{}, int64(apiSyncMax)))
 		}
 		select {

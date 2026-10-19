@@ -286,37 +286,27 @@ test("the server publishes over-the-air updates following the expo-updates proto
     assets: [{ hash: fontHash, key: "da7645c389387fd772478c57e440d2cb", contentType: "font/ttf", fileExtension: ".ttf" }],
     expoClient: { name: "Cubix", version: "0.1.0", extra: { build: 29800000, commit: "0123456789abcdef" } },
   };
+  // The manifest is signed at export time, with a key the server never sees.
+  const text = JSON.stringify({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z", runtimeVersion: "rt-1", launchAsset: {}, assets: [], metadata: {}, extra: {} });
+  const signedUpdate = { ...update, manifest: text, signature: "c2ln" };
   // The font was never uploaded: the manifest must not point at a missing file.
-  expect((await publish(update)).status).toBe(422);
+  expect((await publish(signedUpdate)).status).toBe(422);
   expect((await putAsset(fontHash, font)).status).toBe(200);
-  expect((await publish({ ...update, runtimeVersion: "../etc" })).status).toBe(422);
-  const published = await publish(update);
-  expect(published.status).toBe(200);
-  expect((await published.json()).updates).toEqual({ "rt-1": { id: expect.stringMatching(/^[0-9a-f-]{36}$/), build: 29800000, commit: "0123456789abcdef", createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/) } });
-  const answer = await manifestRequest("rt-1");
-  expect([answer.status, answer.headers.get("expo-protocol-version"), answer.headers.get("expo-sfv-version")]).toEqual([200, "1", "0"]);
-  const manifest = await answer.json();
-  const base64url = (hex: string) => Buffer.from(hex, "hex").toString("base64url");
-  expect(manifest).toMatchObject({
-    runtimeVersion: "rt-1",
-    launchAsset: { hash: base64url(bundleHash), key: "bundle", contentType: "application/javascript", fileExtension: ".hbc", url: `${origin}/api/mobile/updates/assets/${bundleHash}` },
-    assets: [{ hash: base64url(fontHash), key: "da7645c389387fd772478c57e440d2cb", contentType: "font/ttf", fileExtension: ".ttf", url: `${origin}/api/mobile/updates/assets/${fontHash}` }],
-    extra: { expoClient: { name: "Cubix", extra: { build: 29800000 } } },
-  });
-  // Republishing the same commit keeps the update id, so phones do not fetch it twice.
-  expect((await publish(update)).status).toBe(200);
-  expect((await (await manifestRequest("rt-1")).json()).id).toBe(manifest.id);
+  expect((await publish({ ...signedUpdate, runtimeVersion: "../etc" })).status).toBe(422);
+  // Unsigned, it would run on phones built before the certificate: refused.
+  expect((await publish(update)).status).toBe(422);
+  expect((await publish({ ...update, manifest: text })).status).toBe(422);
+  expect((await publish({ ...update, manifest: text, signature: "not base64!" })).status).toBe(422);
+  expect((await publish({ ...update, manifest: text.replace("rt-1", "rt-2"), signature: "c2ln" })).status).toBe(422);
+  expect((await manifestRequest("rt-1")).status).toBe(204);
+  expect((await publish(signedUpdate)).status).toBe(200);
   expect((await manifestRequest("rt-2")).status).toBe(204);
-  const download = await fetch(manifest.launchAsset.url);
+  const download = await fetch(`${origin}/api/mobile/updates/assets/${bundleHash}`);
   expect(download.status).toBe(200);
   expect(new Uint8Array(await download.arrayBuffer())).toEqual(bundle);
   expect((await fetch(`${origin}/api/mobile/updates/assets/${"0".repeat(64)}`)).status).toBe(404);
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ commit: "0123456789abcdef" });
-  // A manifest signed at export time is served byte for byte, its signature in `expo-signature`.
-  const text = JSON.stringify({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z", runtimeVersion: "rt-1", launchAsset: {}, assets: [], metadata: {}, extra: {} });
-  expect((await publish({ ...update, manifest: text, signature: "not base64!" })).status).toBe(422);
-  expect((await publish({ ...update, manifest: text.replace("rt-1", "rt-2"), signature: "c2ln" })).status).toBe(422);
-  expect((await publish({ ...update, manifest: text, signature: "c2ln" })).status).toBe(200);
+  // Served byte for byte, its signature in `expo-signature`.
   const signed = await manifestRequest("rt-1");
   expect([signed.status, signed.headers.get("expo-signature"), await signed.text()]).toEqual([200, `sig="c2ln", keyid="main", alg="rsa-v1_5-sha256"`, text]);
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z" });

@@ -430,13 +430,14 @@ test("sign-in limits count per client and decode the path as routing does",async
  expect(encoded.slice(0,20).every(s=>s===422)).toBe(true);expect(encoded[20]).toBe(429);
 });
 
-test("API bodies are small but for a signed-in sync push, and every response carries the security headers",async()=>{
+test("API bodies are small but for a signed-in sync push, large ones from accounts only, and every response carries the security headers",async()=>{
  const {origin}=setup();
  const big="["+"0,".repeat(150_000)+"0]";
  const post=(path:string,token?:string)=>fetch(origin+path,{method:"POST",headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{})},body:big});
- expect((await post("/api/solves")).status).toBe(413);
+ expect((await post("/api/solves")).status).toBe(401);
  expect((await post("/api/sync")).status).toBe(401);
  const user=await register(origin,"sync_user");
+ expect((await post("/api/solves",user.token)).status).toBe(413);
  expect((await post("/api/sync",user.token)).status).toBe(422);
  const response=await fetch(origin+"/api/moves");
  expect(Object.fromEntries(["strict-transport-security","x-frame-options","content-security-policy","referrer-policy"].map(h=>[h,response.headers.get(h)])))
