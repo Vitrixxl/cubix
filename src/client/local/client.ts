@@ -1,5 +1,4 @@
-import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
-import { isPuzzle, puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { PUZZLES, isPuzzle, puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { ImportedSolve } from "../lib/timerImport";
 import { readSolution, SOLUTION_MAX } from "../lib/solution";
 import { cleanSplits } from "../lib/phases";
@@ -9,7 +8,7 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases, sets } from "./catalog";
 import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
-import { dayKey, streaks } from "../lib/profile";
+import { dayKey } from "../lib/profile";
 import { sessionSummaries } from "../lib/sessions";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
 import { resultFields } from "../lib/format";
@@ -21,7 +20,7 @@ type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
 type Operation = { id: string; kind: "session" | "session-name" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
+interface Workspace { version: 1; /** The mark of this written workspace, which its journal's entries carry (see `append`). */ base?: string; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
@@ -31,6 +30,28 @@ const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, 
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 /** A session name as stored: trimmed, at most 60 characters; blank is none. */
 const sessionTitle = (name: string | null | undefined) => name?.trim().slice(0,60) || null;
+/** A change written alone, as an entry of the workspace's journal: rows set (null: removed), server IDs acknowledged,
+ * operations queued and done, the pull's cursor. */
+type Change = { sessions?: Record<number, Session | null>; solves?: Record<number, Solve | null>; serverIds?: { sessions?: Record<number, number>; solves?: Record<number, number> }; queued?: Operation[]; done?: string[]; cursor?: number };
+/** Makes a journal entry's change again, over the workspace it followed. */
+function replay(workspace: Workspace, change: Change) {
+  for (const kind of ["sessions", "solves"] as const) {
+    const rows: Record<number, Session | Solve> = workspace[kind];
+    for (const [id, row] of Object.entries(change[kind] ?? {})) if (row) rows[+id] = row; else delete rows[+id];
+    for (const [id, serverId] of Object.entries(change.serverIds?.[kind] ?? {})) if (rows[+id]) rows[+id].serverId = serverId;
+  }
+  const done = new Set(change.done);
+  workspace.outbox = [...workspace.outbox.filter(op => !done.has(op.id)), ...change.queued ?? []];
+  if (change.cursor !== undefined) workspace.cursor = change.cursor;
+}
+/** The catalogue of each puzzle, filtered once from the bundled one. */
+const catalogs = new Map<string, { cases: typeof cases; sets: typeof sets }>();
+function catalogOf(input: PuzzleInput) {
+  const puzzle = puzzleId(input);
+  let value = catalogs.get(puzzle);
+  if (!value) catalogs.set(puzzle, value = { cases: cases.filter(c => puzzleOf(c) === puzzle), sets: sets.filter(s => puzzleOf(s) === puzzle) });
+  return value;
+}
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
 export function createLocalClient(options: {
@@ -57,22 +78,25 @@ export function createLocalClient(options: {
     }
     if (changed) storage.setItem(key, JSON.stringify(values));
   }
-  const catalog = createCatalogCache(storage);
+  // The catalogue was once copied here too, megabytes the bundled one makes useless.
+  for (const puzzle of PUZZLES) if (storage.getItem("cubix.catalog.v1:" + puzzle.id) !== null) storage.removeItem("cubix.catalog.v1:" + puzzle.id);
   const read = <T>(key: string, fallback: T): T => {
     const text = storage.getItem(PREFIX + key);
     if (text === null) return fallback;
     try { return JSON.parse(text) as T; } catch { throw new Error("Local data could not be read. Your saved data has been preserved."); }
   };
-  const write = (key: string, value: unknown) => {
-    try { storage.setItem(PREFIX + key, JSON.stringify(value)); }
-    catch {
-      // Rebuildable algorithms must never prevent saving a personal solve.
-      evictCatalogCache(storage);
-      try { storage.setItem(PREFIX + key, JSON.stringify(value)); }
-      catch { throw new Error("Your device storage is full or unavailable. This change could not be saved."); }
-    }
+  const put = (key: string, text: string) => {
+    try { storage.setItem(PREFIX + key, text); }
+    catch { throw new Error("Your device storage is full or unavailable. This change could not be saved."); }
   };
-  const current = () => read<UserDto>("user",GUEST);
+  const write = (key: string, value: unknown) => put(key, JSON.stringify(value));
+  /** The account signed in (a guest otherwise), parsed again only when its stored text changes. */
+  let signedIn: { text: string | null; value: UserDto } | undefined;
+  const current = () => {
+    const text = storage.getItem(PREFIX + "user");
+    if (signedIn?.text !== text) signedIn = { text, value: read<UserDto>("user",GUEST) };
+    return signedIn.value;
+  };
   const owner = () => current().isGuest ? "guest" : current().id;
   const operation = (workspace: Workspace, id: string, kind: Operation["kind"], localId: number, body: any, createdAt = new Date().toISOString()) => {
     if (id === "guest") return;
@@ -84,25 +108,56 @@ export function createLocalClient(options: {
   };
   /* The parsed workspace stays in memory: a long history is megabytes of JSON, and every screen reads it several
    * times. A small revision written beside it on each save tells whether another client sharing the storage (a tab,
-   * a reopened app) changed it since. `generation` numbers each state for the reads derived from it. */
-  let cached: { id: string; revision: string; workspace: Workspace } | undefined;
+   * a reopened app) changed it since. `generation` numbers each state for the reads derived from it.
+   * Writing those megabytes again at each solve would be as slow: a frequent change (a solve, an acknowledgement, a
+   * pull) is written alone, as the next entry of the workspace's journal (`append`, keys `workspace:<id>/<n>`), replayed
+   * over it when it is read. The whole workspace is written again (`save`) by the other changes, once its journal is
+   * long and when it is read with one. Entries carry the workspace's mark (`base`): those of an older one, left by a
+   * stop between the two writes, are never replayed. */
+  let cached: { id: string; revision: string; workspace: Workspace; entries: number; bytes: number } | undefined;
   let generation = 0;
+  /** The last change written to the journal, with the generation it made (see `ordered`). */
+  let journaled: { generation: number; change: Change } | undefined;
   const cachedWorkspace = () => cached?.workspace;
   const revisionKey = (id: string) => PREFIX + "revision:" + id;
-  const remember = (id: string, workspace: Workspace) => {
+  const journalKey = (id: string, n: number) => "workspace:" + id + "/" + n;
+  const remember = (id: string, workspace: Workspace, entries = 0, bytes = 0) => {
     const revision = crypto.randomUUID();
     storage.setItem(revisionKey(id), revision);
-    cached = { id, revision, workspace }; generation++;
+    cached = { id, revision, workspace, entries, bytes }; generation++;
+  };
+  /** The journal, held by the workspace written: an entry that stays (a failed removal) is never replayed. */
+  const dropJournal = (id: string) => {
+    try { for (let n = 0; storage.getItem(PREFIX + journalKey(id,n)) !== null; n++) storage.removeItem(PREFIX + journalKey(id,n)); } catch { /* Of an older workspace. */ }
   };
   const save = (id: string, value: Workspace) => {
-    try { write("workspace:" + id,value); remember(id, value); }
+    const base = crypto.randomUUID();
+    try { write("workspace:" + id,{ ...value, base }); value.base = base; dropJournal(id); remember(id, value); }
     catch (error) { cached = undefined; generation++; throw error; }
+  };
+  /** Writes `change`, already made to the workspace in memory, alone: the whole workspace once the journal is long. */
+  const append = (id: string, workspace: Workspace, change: Change) => {
+    const journal = cached?.id === id && cached.workspace === workspace && workspace.base && cached.entries < 200 ? cached : undefined;
+    if (!journal) return save(id, workspace);
+    const text = JSON.stringify({ base:workspace.base, ...change });
+    if (journal.bytes + text.length > 1e6) return save(id, workspace);
+    try { put(journalKey(id,journal.entries), text); remember(id, workspace, journal.entries + 1, journal.bytes + text.length); }
+    catch (error) { cached = undefined; generation++; throw error; }
+    journaled = { generation, change };
   };
   const data = (id = owner()) => {
     if (cached?.id === id && storage.getItem(revisionKey(id)) === cached.revision) return cached.workspace;
     cached = undefined;
     const stored = read<(Workspace & { cache?: unknown }) | null>("workspace:" + id,null);
     const workspace: Workspace & { cache?: unknown } = stored ?? empty();
+    // The changes journaled since, then the workspace written with them; one that cannot be is read again next time.
+    let replayed = false, kept = true;
+    for (let n = 0; workspace.base; n++) {
+      const entry = read<(Change & { base?: string }) | null>(journalKey(id,n),null);
+      if (!entry || entry.base !== workspace.base) break;
+      replay(workspace, entry); replayed = true;
+    }
+    if (replayed) try { save(id, workspace); } catch { kept = false; }
     workspace.learned ??= {};
     if (workspace.learnedAlg) { workspace.learnedAlgs = { ...Object.fromEntries(Object.entries(workspace.learnedAlg).map(([id, alg]) => [id, [alg]])), ...workspace.learnedAlgs }; delete workspace.learnedAlg; save(id, workspace); }
     if (!workspace.journey) { workspace.journey = {}; workspace.cursor = 0; save(id, workspace); }
@@ -163,17 +218,21 @@ export function createLocalClient(options: {
       // Imported once: other workspaces on this device receive the marks through the guest import.
       storage.removeItem(LEGACY_LEARNED_KEY);
     }
-    if (cachedWorkspace() !== workspace) try { remember(id, workspace); } catch { /* Read again next time. */ }
+    if (kept && cachedWorkspace() !== workspace) try { remember(id, workspace); } catch { /* Read again next time. */ }
     return workspace;
   };
   const lock = <T>(name: string, action: () => Promise<T>) => options.lock ? options.lock(name,action) : action();
-  const edit = <T>(id: string, action: (workspace: Workspace) => T) => lock("cubix-local",async () => {
+  /** `entry` names what the action changed, for the journal: undefined writes the whole workspace, null nothing. */
+  const edit = <T>(id: string, action: (workspace: Workspace) => T, entry?: (result: T, workspace: Workspace) => Change | null | undefined) => lock("cubix-local",async () => {
     const workspace = data(id);
-    let result: T;
+    let result: T, change: Change | null | undefined;
     // A failed change may have half-modified the object in memory: the stored workspace stays the truth.
-    try { result = action(workspace); } catch (error) { cached = undefined; generation++; throw error; }
-    save(id,workspace); return result;
+    try { result = action(workspace); change = entry?.(result, workspace); } catch (error) { cached = undefined; generation++; throw error; }
+    if (change) append(id,workspace,change); else if (change === undefined) save(id,workspace);
+    return result;
   });
+  /** The journal entry of a change to one solve: the solve, and its operation, queued last (none for a guest). */
+  const solveEntry = (solve: Solve, workspace: Workspace): Change => ({ solves: { [solve.id]: solve }, queued: workspace.outbox.slice(-1).filter(op => op.localId === solve.id) });
   /** Reads derived from the workspace, kept until it changes: screens ask again for unchanged figures. */
   let memoGeneration = -1, memo = new Map<string, unknown>();
   const derived = <T>(key: string, compute: () => T): T => {
@@ -239,7 +298,10 @@ export function createLocalClient(options: {
 
   async function merge(id: string, changes: Awaited<ReturnType<Remote["syncPull"]>>["changes"], cursor: number) {
     await edit(id, workspace => {
-      if (cursor < workspace.cursor) return;
+      if (cursor < workspace.cursor) return null;
+      // Rows go to the journal; a learning mark, an order, a profile entry or an upload dropped rewrite the workspace.
+      const entry = { sessions: {} as Record<number, Session | null>, solves: {} as Record<number, Solve | null>, cursor };
+      let whole = false, touched = false;
       const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" || op.kind === "session-name" ? "sessions" : "solves"}:${op.localId}`));
       // Local IDs by server ID, built once: a first pull brings thousands of rows.
       const byServer = (rows: Record<number, Session | Solve>) => new Map(Object.values(rows).flatMap(r => r.serverId === undefined ? [] : [[r.serverId, r.id] as const]));
@@ -248,11 +310,11 @@ export function createLocalClient(options: {
         if (change.kind === "personal_entries") {
           const row = change.value ? { ...change.value as JourneyEntryDto, value:withoutRetired((change.value as JourneyEntryDto).value) as JourneyEntryDto["value"] } : null;
           if (!row || !validJourneyEntry(row.key, row.value) || workspace.outbox.some(op => op.kind === "journey" && op.body.key === row.key)) continue;
-          workspace.journey[row.key] = row.value;
+          workspace.journey[row.key] = row.value; whole = true;
         } else if (change.kind === "learning_group_orders") {
           const row = change.value as LearningGroupOrderDto | null;
           if (!row || !isLearningTrack(row.track) || workspace.outbox.some(op => op.kind === "learning-order" && op.body.track === row.track)) continue;
-          workspace.groupOrder[row.track] = orderedGroups(learningCases(cases,row.track),row.groups);
+          workspace.groupOrder[row.track] = orderedGroups(learningCases(cases,row.track),row.groups); whole = true;
         } else if (change.kind === "learned_cases") {
           // A pending local mark wins until it is uploaded; the server then orders both edits.
           const row = change.value as LearnedCaseDto | null;
@@ -261,17 +323,22 @@ export function createLocalClient(options: {
           const algs = row.algs?.length ? row.algs : row.alg ? [row.alg] : [];
           workspace.learnedAlgs ??= {};
           if (row.learned && algs.length) workspace.learnedAlgs[row.case_id] = algs; else delete workspace.learnedAlgs[row.case_id];
+          whole = true;
         } else if (change.kind === "sessions") {
           const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
           if (!change.value || !isPuzzle(puzzleOf(change.value as SessionDto))) { delete workspace.sessions[localId]; sessionIds.delete(change.id); }
           else { workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id }; sessionIds.set(change.id, localId); }
+          entry.sessions[localId] = workspace.sessions[localId] ?? null; touched = true;
         } else if (change.kind === "solves") {
           const localId = solveIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           // A remote deletion wins even over an edit queued locally but not uploaded yet.
           if (!change.value || !isPuzzle(puzzleOf(change.value as SolveDto))) {
             delete workspace.solves[localId]; solveIds.delete(change.id);
+            const pending = workspace.outbox.length;
             workspace.outbox = workspace.outbox.filter(op => !(op.localId === localId && ["penalty", "comment", "solution", "delete"].includes(op.kind)));
+            if (workspace.outbox.length !== pending) whole = true;
+            entry.solves[localId] = null; touched = true;
           }
           else {
             if (dirty.has(`solves:${localId}`)) continue;
@@ -283,11 +350,14 @@ export function createLocalClient(options: {
             const result = row.moves != null || row.cubes_attempted != null || !here ? {} : { ...(here.moves != null ? { moves:here.moves } : {}), ...(here.cubes_attempted != null ? { cubes_solved:here.cubes_solved, cubes_attempted:here.cubes_attempted } : {}) };
             workspace.solves[localId] = { ...row, ...(memo != null ? { memo_ms:memo } : {}), ...(splits ? { splits } : {}), ...result, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
             solveIds.set(change.id, localId);
+            entry.solves[localId] = workspace.solves[localId]; touched = true;
           }
         }
       }
+      const moved = cursor !== workspace.cursor;
       workspace.cursor = cursor;
-    });
+      return whole ? undefined : touched || moved ? entry : null;
+    }, entry => entry);
   }
 
   async function synchronize() {
@@ -313,7 +383,9 @@ export function createLocalClient(options: {
           const workspace = data(id), op = workspace.outbox.find(op => !op.error);
           if (!op) break;
           if (batching && op.kind === "solve") {
-            const batch = workspace.outbox.filter(o => !o.error && o.kind === "solve" && sessionServerId(workspace,o.body.sessionId) !== undefined).slice(0,100);
+            // The first hundred, found without going through the whole outbox.
+            const batch: Operation[] = [];
+            for (const o of workspace.outbox) if (!o.error && o.kind === "solve" && sessionServerId(workspace,o.body.sessionId) !== undefined && batch.push(o) === 100) break;
             if (batch.length > 1 && batch[0] === op) {
               const pushed = batch.map(o => ({ id:o.id, method:"POST", path:"solves", body:{ ...o.body, sessionId:sessionServerId(workspace,o.body.sessionId) }, createdAt:o.createdAt }));
               let results: { value: any }[];
@@ -324,10 +396,14 @@ export function createLocalClient(options: {
                 throw error;
               }
               await edit(id, latest => {
-                batch.forEach((o,i) => { if (latest.solves[o.localId]) latest.solves[o.localId].serverId = results[i]!.value.id; });
-                const done = new Set(batch.map(o => o.id));
-                latest.outbox = latest.outbox.filter(item => !done.has(item.id));
-              });
+                const serverIds: Record<number, number> = {}, done = new Set(batch.map(o => o.id));
+                batch.forEach((o,i) => { if (latest.solves[o.localId]) latest.solves[o.localId].serverId = serverIds[o.localId] = results[i]!.value.id; });
+                // Usually the outbox's first operations: taken off its front rather than filtered out of it.
+                let front = 0;
+                while (front < done.size && done.has(latest.outbox[front]?.id ?? "")) front++;
+                if (front === done.size) latest.outbox.splice(0,front); else latest.outbox = latest.outbox.filter(item => !done.has(item.id));
+                return { serverIds: { solves: serverIds }, done: [...done] };
+              }, entry => entry);
               continue;
             }
           }
@@ -353,14 +429,16 @@ export function createLocalClient(options: {
           const result: any = (await (socket?.connection ?? remote).syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
-            if (op.kind === "session" && latest.sessions[op.localId]) latest.sessions[op.localId].serverId = result.id;
-            if (op.kind === "solve" && latest.solves[op.localId]) latest.solves[op.localId].serverId = result.id;
-            if (op.kind === "delete") delete latest.solves[op.localId];
-            if (op.kind === "learning-order" && result && !latest.outbox.some(item => item.kind === op.kind && item.body.track === op.body.track && item.id !== op.id)) {
-              latest.groupOrder[result.track as LearningTrack] = orderedGroups(learningCases(cases,result.track),result.groups);
-            }
+            const entry: Change = { done:[op.id] };
+            if (op.kind === "session" && latest.sessions[op.localId]) entry.serverIds = { sessions: { [op.localId]: latest.sessions[op.localId].serverId = result.id } };
+            if (op.kind === "solve" && latest.solves[op.localId]) entry.serverIds = { solves: { [op.localId]: latest.solves[op.localId].serverId = result.id } };
+            if (op.kind === "delete") { delete latest.solves[op.localId]; entry.solves = { [op.localId]: null }; }
+            const order = op.kind === "learning-order" && result && !latest.outbox.some(item => item.kind === op.kind && item.body.track === op.body.track && item.id !== op.id);
+            if (order) latest.groupOrder[result.track as LearningTrack] = orderedGroups(learningCases(cases,result.track),result.groups);
             latest.outbox = latest.outbox.filter(item => item.id !== op.id);
-          });
+            // An order the server settled rewrites the workspace.
+            return order ? undefined : entry;
+          }, entry => entry);
         }
         activeOperation = undefined;
         // Pages are merged by thousands: each merge rewrites the whole workspace, megabytes for a long history.
@@ -436,22 +514,44 @@ export function createLocalClient(options: {
   }
   const cursorChanged = (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync();
 
-  async function localMutation<T>(change: (workspace: Workspace, id: string) => T): Promise<T> {
+  async function localMutation<T>(change: (workspace: Workspace, id: string) => T, entry?: (result: T, workspace: Workspace) => Change): Promise<T> {
     const id = owner();
     let value: T;
-    try { value = await edit(id,workspace => change(workspace,id)); }
+    try { value = await edit(id,workspace => change(workspace,id),entry); }
     catch (error) { report("error",(error as Error).message); throw error; }
     notify(); schedule(); return value;
   }
 
-  /** Every solve kept, oldest first: sorted once per change rather than by each read. */
-  const ordered = () => derived("ordered", () => liveSolves().sort(chronological));
+  /** Every solve kept, oldest first: sorted once per change rather than by each read. A change journaled just after the
+   * last sort keeps them when it touches no solve (an acknowledgement of the latest one included: a server ID only
+   * orders solves of one date), and adds a solve later than the latest at the end. */
+  let sorted: { workspace: Workspace; generation: number; rows: Solve[] } | undefined;
+  const ordered = () => derived("ordered", () => {
+    const workspace = data(), change = sorted?.workspace === workspace && sorted.generation === generation - 1 && journaled?.generation === generation ? journaled.change : undefined;
+    const before = sorted?.rows ?? [], last = before.at(-1), added = Object.values(change?.solves ?? {}), acked = Object.keys(change?.serverIds?.solves ?? {});
+    const placed = !!change && acked.every(id => Number(id) === last?.id && before.at(-2)?.created_at !== last?.created_at), next = added.length === 1 ? added[0] : undefined;
+    const rows = placed && !added.length ? before
+      : placed && next && !next.deleted && (!last || last.created_at < next.created_at) ? [...before, next]
+      : liveSolves(workspace).sort(chronological);
+    sorted = { workspace, generation, rows };
+    return rows;
+  });
   const args = (...values: unknown[]) => JSON.stringify(values);
+  /** The solves of a practice context and mode (timer or training), oldest first. */
+  const practised = (mode: SessionMode, cubeSize: PuzzleInput, filter: PracticeFilter) => derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {
+    const workspace = data();
+    return ordered().filter(s => matchesPractice(s,cubeSize,filter) && (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode);
+  });
   /** Synchronous reads of local data, for screens that must render without any loading state. Unchanged data gives
    * back the very same objects, so screens can tell nothing changed. */
   const reads = {
     journey: () => data().journey,
-    catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
+    catalog: (cubeSize: PuzzleInput = 3) => catalogOf(cubeSize),
+    /** The solves of a practice context and mode, oldest first: the very same array while they are unchanged. */
+    solves: (mode: SessionMode, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => practised(mode, cubeSize, filter),
+    /** Those of one session. */
+    session: (sessionId: number, mode: SessionMode, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("session" + args(sessionId, mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () =>
+      practised(mode, cubeSize, filter).filter(s => s.session_id === sessionId)),
     stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("stats" + args(puzzleId(cubeSize), filter.solveMode), () => caseStats(ordered(),cubeSize,filter)),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => derived("case" + args(caseId, filter.solveMode), () =>
       history(caseId,ordered().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard")))),
@@ -463,8 +563,22 @@ export function createLocalClient(options: {
       return sessionSummaries(ordered().filter(s => !s.case_id && matchesPractice(s,cubeSize,filter)), workspace.sessions, own.map(s => s.id)).reverse();
     }),
     achievements: () => derived("achievements", () => achievements(ordered(), learnedIds(), { cases, sets })),
-    /** The days in a row with a solve (`streaks`), for the reminders: read again each day. */
-    streak: () => derived("streak" + dayKey(new Date()), () => streaks(ordered().map(s => ({ at: s.created_at })))),
+    /** The days in a row with a solve up to today, or yesterday (as `streaks` counts them), for the reminders: read again
+     * each day, from the latest solve back to the first day without one. */
+    streak: () => derived("streak" + dayKey(new Date()), () => {
+      const rows = ordered(), now = new Date(), day = new Date(now.getFullYear(), now.getMonth(), now.getDate()), today = dayKey(day);
+      let expected = today, days = 0, solvedToday = false;
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const key = dayKey(new Date(rows[i]!.created_at));
+        if (key > expected) continue;
+        // No solve today: the streak may still run up to yesterday.
+        if (key < expected && expected === today && !solvedToday) { day.setDate(day.getDate() - 1); expected = dayKey(day); }
+        if (key !== expected) break;
+        solvedToday ||= key === today; days++;
+        day.setDate(day.getDate() - 1); expected = dayKey(day);
+      }
+      return { current: days, today: solvedToday };
+    }),
     /** A solve of any session, by its id. */
     solve: (id: number) => { const solve = data().solves[id]; return solve && !solve.deleted ? solve : null; },
   };
@@ -503,6 +617,7 @@ export function createLocalClient(options: {
       if (id === "guest" || !token) throw new Error("Sign in first.");
       await options.remote(token).deleteAccount();
       for (const key of ["workspace:" + id, "revision:" + id]) storage.removeItem(PREFIX + key);
+      dropJournal(id);
       cached = undefined; generation++;
       write("user",GUEST); options.clearToken(); report("local"); notify();
       return { ok:true };
@@ -585,7 +700,7 @@ export function createLocalClient(options: {
       if (!Number.isFinite(body.timeMs) || body.timeMs < 0) throw new Error("Invalid solve time.");
       if (body.caseId && !cases.some(c => c.id === body.caseId)) throw new Error("Unknown case.");
       // Preserve insertion order even for imports/tests producing several solves in one millisecond.
-      const latest = Date.parse(derived("latest", () => Object.values(workspace.solves).reduce((at,s) => s.created_at > at ? s.created_at : at,""))) || 0;
+      const latest = Date.parse(ordered().at(-1)?.created_at ?? "") || 0;
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
       // A solution that cannot be read is left out: it never keeps the time from being saved.
       // Fewest Moves keeps the solution as written (WCA notation, rotations and wide turns too).
@@ -598,35 +713,35 @@ export function createLocalClient(options: {
       const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),...result,...(splits ? { splits } : {}),created_at:createdAt };
       workspace.solves[solve.id] = solve;
       operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution,memoMs:memo,splits,...resultBody(solve)},solve.created_at); return solve;
-    }),
+    }, solveEntry),
+    /** The latest `limit` solves of a practice context and mode, newest first. */
     solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
-      const newest = derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {
-        const workspace = data();
-        return ordered().filter(s => matchesPractice(s,cubeSize,filter) && (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode).reverse();
-      });
-      return newest.slice(0,limit);
+      const rows = practised(mode, cubeSize, filter);
+      return rows.slice(Math.max(rows.length - limit, 0)).reverse();
     },
+    // A solve changed is a new object: the desktop engine sends a session's solves again only when one of them is not
+    // the very one it sent (desktop/engine/core.ts).
     setPenalty: async (solveId: number, penalty: Penalty) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
-      solve.penalty = penalty; operation(workspace,id,"penalty",solveId,{penalty}); return solve;
-    }),
+      const changed = workspace.solves[solveId] = { ...solve, penalty }; operation(workspace,id,"penalty",solveId,{penalty}); return changed;
+    }, solveEntry),
     /** Trimmed; an empty text clears the note. Only the latest note of a solve needs uploading. */
     setComment: async (solveId: number, comment: string | null) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       const text = comment?.trim() || null;
       if ((text ?? "").length > 500) throw new Error("Comments are limited to 500 characters.");
-      solve.comment = text;
+      const changed = workspace.solves[solveId] = { ...solve, comment:text };
       workspace.outbox = workspace.outbox.filter(op => !(op.kind === "comment" && !op.error && op.localId === solveId));
-      operation(workspace,id,"comment",solveId,{comment:text}); return solve;
+      operation(workspace,id,"comment",solveId,{comment:text}); return changed;
     }),
     /** The turns written by hand for a solve (see `lib/solution`); null clears them. Only the latest needs uploading. */
     setSolution: async (solveId: number, solution: string | null) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       const text = solution?.trim() || null;
       if ((text ?? "").length > SOLUTION_MAX) throw new Error("The solution is too long.");
-      solve.solution = text;
+      const changed = workspace.solves[solveId] = { ...solve, solution:text };
       workspace.outbox = workspace.outbox.filter(op => !(op.kind === "solution" && !op.error && op.localId === solveId));
-      operation(workspace,id,"solution",solveId,{solution:text}); return solve;
+      operation(workspace,id,"solution",solveId,{solution:text}); return changed;
     }),
     /** The link's token for a solve, once it reached the server. */
     shareSolve: async (solveId: number) => {
@@ -641,7 +756,7 @@ export function createLocalClient(options: {
     deleteSolve: async (solveId: number) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.deleted = true; operation(workspace,id,"delete",solveId,{}); return solve;
-    }),
+    }, solveEntry),
     setLearningGroupOrder: async (track: LearningTrack, groups: string[]) => localMutation((workspace,id) => {
       if (!isLearningTrack(track)) throw new Error("Unknown learning track.");
       const order = orderedGroups(learningCases(cases,track),groups);
@@ -698,6 +813,8 @@ export function createLocalClient(options: {
     liveCursor: () => data().cursor,
     disconnected: (connection: Connection) => { if (live?.connection === connection) live = undefined; },
     learned: () => learnedIds(),
+    /** Whether a guest's workspace holds times or learned cases, which signing in brings to the account. */
+    guestData: () => current().isGuest && (Object.values(data().solves).some(s => !s.deleted) || learnedIds().length > 0),
     learnedAlgs: () => ({ ...data().learnedAlgs }),
     learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */

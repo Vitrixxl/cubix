@@ -58,7 +58,8 @@ function timeGoal(id: string, title: string, description: string, category: Achi
 /** Every achievement with its progress. Learning goals come from marks, the rest from solves. */
 /** `catalog`: the side's own (the engine's, the phone's), which this module never loads itself: the desktop app has its own. */
 export function achievements(rows: SolveDto[], learned: readonly string[], { cases, sets }: { cases: readonly Pick<CaseDto, "id" | "set">[]; sets: readonly SetDto[] }): AchievementSummaryDto {
-  const solves = [...rows].sort(chronological);
+  // Already in order from the local client: then neither copied nor sorted.
+  const solves = rows.every((s, i) => !i || chronological(rows[i - 1]!, s) <= 0) ? rows : [...rows].sort(chronological);
   const learnedSet = new Set(learned);
   const out: AchievementDto[] = [];
   for (const info of PUZZLES) {

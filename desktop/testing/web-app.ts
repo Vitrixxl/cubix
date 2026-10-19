@@ -27,12 +27,22 @@ const open = async (seed?: typeof storage) => {
   await scrambled(opened.page);
   return opened;
 };
+/** The solves stored: the workspace's, and those journaled since it was written whole (src/client/local/client.ts). */
 const stored = (page: Page) => page.evaluate(() => new Promise<number>((resolve, reject) => {
   const request = indexedDB.open("cubix");
   request.onerror = () => reject(request.error);
   request.onsuccess = () => {
-    const get = request.result.transaction("storage").objectStore("storage").get("cubix.local.v1:workspace:guest");
-    get.onsuccess = () => resolve(Object.values(JSON.parse(get.result).solves).filter((s: any) => !s.deleted).length);
+    const store = request.result.transaction("storage").objectStore("storage"), keys = store.getAllKeys(), values = store.getAll();
+    values.onsuccess = () => {
+      const all = Object.fromEntries(keys.result.map((key, i) => [String(key), values.result[i]])), key = "cubix.local.v1:workspace:guest";
+      const workspace = JSON.parse(all[key]), solves = { ...workspace.solves };
+      for (let n = 0; all[`${key}/${n}`]; n++) {
+        const entry = JSON.parse(all[`${key}/${n}`]);
+        if (entry.base !== workspace.base) break;
+        Object.assign(solves, entry.solves);
+      }
+      resolve(Object.values(solves).filter((s: any) => s && !s.deleted).length);
+    };
   };
 }));
 const scramble = (page: Page, puzzle: string) =>

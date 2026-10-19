@@ -11,7 +11,6 @@ import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
 import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
-import { CATALOG_CACHE_PREFIX } from '../../src/client/local/catalog-cache';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EVENTS, puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
@@ -100,7 +99,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   const trainingHistories = new Map<string, TrainingHistory>();
   function training(action: string, puzzle: PuzzleId, ids: string[], useAuf: boolean, solveMode: string) {
     const key = `${puzzle}:${solveMode}`;
-    const pool = cases.filter(c => ids.includes(c.id));
+    const chosen = new Set(ids), pool = cases.filter(c => chosen.has(c.id));
     const before = trainingHistories.get(key) ?? EMPTY_TRAINING_HISTORY;
     const size = puzzleInfo(puzzle).cubeSize;
     const history = trainingHistoryReducer(before, action === 'previous' ? { type: 'previous', pool } : { type: 'next', pool, sample: Math.random(), auf: useAuf && size ? randomAuf() : '' });
@@ -139,6 +138,17 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     const out = shownOf(value, shape);
     return out.token === known ? { token: out.token } : out;
   }
+  /** The session's solves sent lately, by token: a tab holding some of them is sent only the ones added since, when that
+   * is all that changed (a solve changed is a new object, see `setPenalty` in the local client). */
+  const sent = new Map<number, readonly object[]>();
+  const noSession: object[] = [];
+  function sessionSolves(rows: readonly object[], known?: number) {
+    const { token } = shownOf(rows, () => null), held = known === undefined ? undefined : sent.get(known);
+    if (token === known) return { token };
+    sent.set(token, rows);
+    if (sent.size > 4) sent.delete(sent.keys().next().value!);
+    return held && held.length <= rows.length && held.every((row, i) => row === rows[i]) ? { token, added: rows.slice(held.length) } : { token, value: rows };
+  }
   /** The profile as the renderer uses it: a case's summary, not its whole history, and the activity without dates
    * to show, a year of solves weighing megabytes otherwise. */
   const profileView = ({ cases, activity, ...rest }: any) => ({
@@ -150,14 +160,10 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
    * data is being brought here): signing in or creating an account imports them. */
   function localData() {
     if (!local.current().isGuest) return false;
-    if (storage.getItem(tokenKey)) return true;
-    try {
-      const guest = JSON.parse(storage.getItem('cubix.local.v1:workspace:guest') ?? 'null');
-      return Object.values(guest?.solves ?? {}).some((solve: any) => !solve.deleted) || Object.values(guest?.learned ?? {}).some(Boolean);
-    } catch { return false; }
+    return !!storage.getItem(tokenKey) || local.guestData();
   }
   /** The preferences the renderer reads at start-up, without the workspace and catalogue: megabytes it never uses. */
-  const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && !key.startsWith(CATALOG_CACHE_PREFIX) && key !== SCRAMBLE_POOL_KEY && key !== SMART_DIGESTS_KEY));
+  const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && key !== SCRAMBLE_POOL_KEY && key !== SMART_DIGESTS_KEY));
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
     // The reserve of scrambles fills from the launch, while the pages load: its search runs in a worker of its own.
@@ -178,9 +184,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
         local.api.solves('training', Infinity, '333', { solveMode: context.solveMode }),
       ]);
       const jobs: Record<string, Promise<unknown>> = {
-        // The latest thousand solves, or only those of the session the client shows (`session`, null before its first).
-        solves: 'session' in q && q.session == null ? Promise.resolve([])
-          : local.api.solves(trainingMode ? 'training' : 'playground', 'session' in q ? Infinity : 1000, context.puzzle, context).then(rows => 'session' in q ? rows.filter((row: any) => row.session_id === q.session) : rows),
+        // The solves of the session the client shows (`session`, null before its first), oldest first.
+        solves: Promise.resolve(sessionSolves(q.session == null ? noSession : local.read.session(q.session, trainingMode ? 'training' : 'playground', context.puzzle, context), q.known?.solves)),
         stats: inSolves && source !== 'training'
           ? inSolves.then(([digests, training]) => shownOf(smart.caseStats(source, digests, training, local.read.stats(context.puzzle, filter), context.solveMode)).value)
           : Promise.resolve(shownOf(local.read.stats(context.puzzle, filter)).value),
@@ -213,11 +218,12 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
         jobs[trainingMode ? 'training' : 'scramble'] = lastAdvance.promise.then(v => v[trainingMode ? 'training' : 'scramble']);
       }
       if (!trainingMode) prefetchScramble(context);
-      // The figures kept by the client are already shown (`displayed`); only the rest is shaped here.
-      // Those come with their token, and without their value when the tab already holds it.
-      const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory']), tokens: Record<string, number> = {};
+      // The figures kept by the client are already shown (`displayed`), and the session's solves need no shaping; only
+      // the rest is shaped here. Those come with their token, and without their value when the tab already holds it
+      // (with the solves added since, `solvesAdded`, when it holds the earlier ones).
+      const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory', 'solves']), tokens: Record<string, number> = {};
       const values = await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise] as const));
-      const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: readonly [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : []; }));
+      const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: readonly [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : 'added' in v ? [[key + 'Added', v.added]] : []; }));
       return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
@@ -237,7 +243,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'addSolve') {
       // A timer solve that beats the all-time single, Ao5 or Ao12 of its context comes back with its praise.
       const body = req.args[0], solve = await local.api.addSolve(body);
-      const record = body.caseId ? null : recordMessage(solveRecords((await local.api.solves('playground', Infinity, body.puzzle, body)).reverse(), solve.id));
+      const record = body.caseId ? null : recordMessage(solveRecords(local.read.solves('playground', body.puzzle, body), solve.id));
       return { ...solve, record };
     }
     // One-on-one races: the account's token names the player, recent timer solves place them among the others.

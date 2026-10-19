@@ -1,5 +1,5 @@
 import type { SolveDto } from "../../shared/types";
-import { best, rollingAverages, solveResult } from "./format";
+import { rollingAverages, solveResult } from "./format";
 import { msg } from "../i18n/msg";
 
 /**
@@ -10,12 +10,15 @@ export type RecordKind = "single" | "ao5" | "ao12";
 
 /** `times` are the effective times of one practice context in chronological order, the judged solve last. */
 export function beatenRecords(times: readonly (number | null)[]): RecordKind[] {
-  const beats = (values: (number | null)[]) => {
-    const current = values.at(-1) ?? null, previous = best(values.slice(0, -1));
+  // The last value against the best of those before it, read in place.
+  const beats = (values: readonly (number | null)[]) => {
+    let previous: number | null = null;
+    for (let i = 0; i < values.length - 1; i++) { const value = values[i] ?? null; if (value !== null && (previous === null || value < previous)) previous = value; }
+    const current = values.at(-1) ?? null;
     return current !== null && previous !== null && current < previous;
   };
   const out: RecordKind[] = [];
-  if (beats([...times])) out.push("single");
+  if (beats(times)) out.push("single");
   if (beats(rollingAverages(times, 5))) out.push("ao5");
   if (beats(rollingAverages(times, 12))) out.push("ao12");
   return out;
@@ -23,8 +26,9 @@ export function beatenRecords(times: readonly (number | null)[]): RecordKind[] {
 
 /** The records beaten by `solveId` among every solve of its context, oldest first; later solves are ignored. */
 export function solveRecords(solves: readonly SolveDto[], solveId: number): RecordKind[] {
-  const index = solves.findIndex(solve => solve.id === solveId);
-  return index < 0 ? [] : beatenRecords(solves.slice(0, index + 1).map(solveResult));
+  // The judged solve is usually the latest: looked for from the end.
+  const index = solves.findLastIndex(solve => solve.id === solveId);
+  return index < 0 ? [] : beatenRecords(Array.from({ length: index + 1 }, (_, i) => solveResult(solves[i]!)));
 }
 
 const LABELS: Record<RecordKind, string> = { single: "single", ao5: "Ao5", ao12: "Ao12" };

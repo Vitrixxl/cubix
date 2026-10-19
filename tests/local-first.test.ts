@@ -279,7 +279,9 @@ test("cube context survives offline storage, guest import, sync and another devi
   const {remote,db,origin} = setup(); const a = device(remote);
   const oldSession = await a.api.createSession("playground");
   const oldSolve = await a.api.addSolve({sessionId:oldSession.id,timeMs:3333});
-  // The browser records saved before this feature have no cube_size field.
+  // The browser records saved before this feature have no cube_size field. Opened again, the workspace holds the
+  // changes journaled since it was written whole.
+  device(remote,a.storage);
   const key = "cubix.local.v1:workspace:guest";
   const saved = JSON.parse(a.storage.getItem(key)!);
   delete saved.sessions[oldSession.id].cube_size;
@@ -546,7 +548,7 @@ test("a live socket announces the account's own changes so other devices pull im
   });
   ws.addEventListener("message",event => messages.push(JSON.parse(String(event.data))));
   const ready = next("ready");
-  const held = JSON.parse(a.storage.getItem("cubix.local.v1:workspace:"+auth.user.id)!).cursor;
+  const held = a.local.liveCursor();
   ws.addEventListener("open",() => ws.send(JSON.stringify({channel:"live",type:"auth",token:auth.token,after:held})));
   const cursorAtConnect = (await ready).cursor;
   expect(cursorAtConnect).toBe(held);
@@ -580,6 +582,8 @@ test("legacy local scramble histories merge offline without losing solves, dates
   }
   await a.api.addSolve({puzzle:"222",timeMs:1000});
   await a.api.addSolve({puzzle:"333",solveMode:"one-handed",timeMs:2000});
+  // Opened again, the workspace holds the solves journaled since it was written whole.
+  device(remote,a.storage);
   const key = "cubix.local.v1:workspace:guest";
   const old = JSON.parse(a.storage.getItem(key)!);
   delete old.normalScrambles;
@@ -605,6 +609,8 @@ test("pending legacy uploads retain their operation IDs and retry a lost acknowl
   const session = await a.api.createSession("playground");
   await a.api.addSolve({sessionId:session.id,timeMs:12345});
   a.control.loseAck=true; await a.local.sync();
+  // Opened again, the workspace holds the solve journaled since it was written whole.
+  device(remote,a.storage);
   const key = `cubix.local.v1:workspace:${auth.user.id}`;
   const old = JSON.parse(a.storage.getItem(key)!); delete old.normalScrambles;
   for (const row of [...Object.values(old.sessions),...Object.values(old.solves)] as any[]) row.scramble_type="random-moves";

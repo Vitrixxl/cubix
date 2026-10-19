@@ -8,6 +8,8 @@ import { caseDue } from "../lib/trainingPicks";
 
 // ISO timestamps of one format order like their characters: a plain comparison, many times faster than localeCompare.
 export const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
+/** Rows oldest first: the very ones when they already are (the local client's always are), else a sorted copy. */
+const inOrder = <T extends SolveDto>(rows: T[]) => rows.every((row, i) => !i || chronological(rows[i - 1]!, row) <= 0) ? rows : [...rows].sort(chronological);
 const casesById = new Map(cases.map(c => [c.id, c]));
 const defaultScrambles = new Map(PUZZLES.map(p => [p.id, p.scrambles[0]]));
 
@@ -17,7 +19,8 @@ function summary(caseId: string, solves: SolveDto[], times: (number | null)[], a
   const memo = memoMean(solves);
   return { caseId, count: solves.length, best: best(times), worst, mean: mean(times), ...(memo !== null ? { memo } : {}),
     ao5: ao5.at(-1) ?? null, ao12: ao12.at(-1) ?? null, bestAo5: best(ao5), bestAo12: best(ao12), last: times.at(-1) ?? null, lastAt: solves.at(-1)?.created_at ?? null,
-    dueAt: caseDue(solves.map((s, i) => ({ time: times[i] ?? null, at: s.created_at }))) };
+    // Cases only are reviewed: the timer's history has no due date.
+    ...(caseId === "playground" ? {} : { dueAt: caseDue(solves.map((s, i) => ({ time: times[i] ?? null, at: s.created_at }))) }) };
 }
 
 /** A case attempt made during a smart cube solve (smartDigests.ts): `solveId` names the solve. */
@@ -34,7 +37,7 @@ function orderedHistory(caseId: string, solves: Attempt[]): CaseHistoryDto {
         ...(attemptMode(s.solve_mode) ? { solve_mode:s.solve_mode, moves:s.moves ?? null, cubes_solved:s.cubes_solved ?? null, cubes_attempted:s.cubes_attempted ?? null, solution:s.solution ?? null } : {}) }; }), ao5, ao12 };
 }
 export function history(caseId: string, rows: Attempt[]): CaseHistoryDto {
-  return orderedHistory(caseId, [...rows].sort(chronological));
+  return orderedHistory(caseId, inOrder(rows));
 }
 
 function caseGroups(rows: SolveDto[]) {
@@ -48,7 +51,7 @@ function caseGroups(rows: SolveDto[]) {
 
 /** Training lists need summaries only, not the timer history, all-event records or activity graph. */
 export function caseStats(rows: SolveDto[], puzzle: PuzzleInput = 3, filter: PracticeFilter = {}) {
-  const selected = rows.filter(s => s.case_id && matchesPractice(s, puzzle, { solveMode: filter.solveMode })).sort(chronological);
+  const selected = inOrder(rows.filter(s => s.case_id && matchesPractice(s, puzzle, { solveMode: filter.solveMode })));
   return [...caseGroups(selected)].flatMap(([id, solves]) => {
     if (!casesById.has(id)) return [];
     const times = solves.map(s => effective(s.time_ms, s.penalty));
@@ -57,8 +60,8 @@ export function caseStats(rows: SolveDto[], puzzle: PuzzleInput = 3, filter: Pra
 }
 
 export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}, bests: Partial<Record<string, number>> = {}, sessions: Record<number, SessionDto> = {}): ProfileDto {
-  // Sort once for every history and record, retaining the input order of the activity feed.
-  const ordered = [...rows].sort(chronological);
+  // Sorted once (if need be) for every history and record, retaining the input order of the activity feed.
+  const ordered = inOrder(rows);
   const solves = ordered.filter(s => matchesPractice(s, cubeSize, s.case_id ? {solveMode:filter.solveMode} : filter));
   const groups = caseGroups(solves);
   const playground = solves.filter(s => !s.case_id), timed = new Set(playground.map(s => s.id));
@@ -73,7 +76,7 @@ export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput =
 
 /** Each event's timer records on its standard scrambles; a declared best stands until beaten. */
 export function records(rows: SolveDto[], bests: Partial<Record<string, number>> = {}): EventRecordDto[] {
-  return orderedRecords([...rows].sort(chronological), bests);
+  return orderedRecords(inOrder(rows), bests);
 }
 function orderedRecords(rows: SolveDto[], bests: Partial<Record<string, number>>): EventRecordDto[] {
   const groups = new Map<string, SolveDto[]>();

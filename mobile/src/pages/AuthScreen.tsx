@@ -17,7 +17,6 @@ import { API_ORIGIN, api, authToken, local } from "../api";
 import { legalPath } from "../../../src/client/lib/legal";
 import { LauncherCube } from "../components/LauncherCube";
 import { useLayout } from "../hooks/useLayout";
-import { storage } from "../platform/storage";
 import { Logo } from "../components/Logo";
 import { guestModeAtom } from "../state";
 import { useColors } from "../theme";
@@ -39,11 +38,7 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
  */
 function localData() {
   if (!local.current().isGuest) return false;
-  if (authToken.get()) return true;
-  try {
-    const guest = JSON.parse(storage.getItem("cubix.local.v1:workspace:guest") ?? "null");
-    return Object.values(guest?.solves ?? {}).some((solve: any) => !solve.deleted) || Object.values(guest?.learned ?? {}).some(Boolean);
-  } catch { return false; }
+  return !!authToken.get() || local.guestData();
 }
 
 /** Google's callback, set at its single `initialize`: the screen shown now. */

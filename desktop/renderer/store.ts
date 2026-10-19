@@ -645,7 +645,7 @@ export class Store {
       context: this.context(),
       caseId: this.caseDialog || this.caseId,
       page: this.practicePage(),
-      // Only this session's solves: the engine sends no others.
+      // Only this session's solves: the engine sends no others, and only those added to the ones held (`known.solves`).
       session: this.sessions.get(this.contextKey()) ?? null,
       profilePuzzle: this.profilePuzzle,
       profileFilter: {
@@ -707,9 +707,11 @@ export class Store {
           return this.load(this.snapshotQuery());
         }
       }
-      this.solves = v.solves
-        .filter((s: any) => s.session_id === this.sessions.get(key))
-        .reverse();
+      // The session's solves, oldest first: all of them, the ones added to those held, or none when unchanged.
+      const solves = v.solves ?? (v.solvesAdded?.length ? [...this.solves, ...v.solvesAdded] : this.solves);
+      this.solves = query.session === (this.sessions.get(key) ?? null) ? solves : [];
+      if (this.solves === solves && v.tokens?.solves) this.known.solves = v.tokens.solves;
+      else delete this.known.solves;
       this.stats = v.stats;
       this.prefs["cubix.duels"] = v.duels;
       this.learned = new Set(v.learned);
@@ -739,6 +741,7 @@ export class Store {
         ...(this.profile && (v.tokens?.profile ?? this.known.profile) ? { profile: v.tokens?.profile ?? this.known.profile } : {}),
         ...(this.achievements && (v.tokens?.achievements ?? this.known.achievements) ? { achievements: v.tokens?.achievements ?? this.known.achievements } : {}),
         ...(this.caseHistory && v.tokens?.caseHistory ? { caseHistory: v.tokens.caseHistory } : {}),
+        ...(this.known.solves ? { solves: this.known.solves } : {}),
       };
       this.emit();
     } catch (e) {

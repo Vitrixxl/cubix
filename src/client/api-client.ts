@@ -63,13 +63,19 @@ export function createApiClient(origin: string, options: { getToken: () => strin
         try { ws.send(JSON.stringify({ channel: "sync", type, requestId, ...body })); }
         catch (error) { clearTimeout(timer); pending.delete(requestId); reject(error); }
       });
+      // Each message is parsed once, for the synchronization's answers and for the listeners (`on`).
+      const listeners: ((data: LiveOutput) => void)[] = [];
       ws.addEventListener("message", event => {
         let data: LiveOutput;
         try { data = JSON.parse(String(event.data)); } catch { return; }
-        if (data.channel !== "sync" || data.type !== "result") return;
-        const job = pending.get(data.requestId); if (!job) return;
-        clearTimeout(job.timer); pending.delete(data.requestId);
-        if (data.error) job.reject(new ApiError(data.status ?? 500, data.error)); else job.resolve(data.value);
+        if (data.channel === "sync" && data.type === "result") {
+          const job = pending.get(data.requestId);
+          if (job) {
+            clearTimeout(job.timer); pending.delete(data.requestId);
+            if (data.error) job.reject(new ApiError(data.status ?? 500, data.error)); else job.resolve(data.value);
+          }
+        }
+        for (const listener of listeners) listener(data);
       });
       ws.addEventListener("close", () => {
         for (const job of pending.values()) { clearTimeout(job.timer); job.reject(new TypeError("Connection closed")); }
@@ -82,13 +88,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
         send: (message: LiveInput) => ws.send(JSON.stringify(message)),
         close: () => ws.close(),
         on<T extends keyof LiveEvents>(type: T, listener: (event: LiveEvents[T]) => void) {
-          ws.addEventListener(type, event => {
-            if (type === "message") {
-              let data: LiveOutput;
-              try { data = JSON.parse(String((event as MessageEvent).data)); } catch { return; }
-              listener({ data } as LiveEvents[T]);
-            } else listener(event as LiveEvents[T]);
-          });
+          if (type === "message") listeners.push(data => listener({ data } as LiveEvents[T]));
+          else ws.addEventListener(type, event => listener(event as LiveEvents[T]));
         },
       };
     },

@@ -213,7 +213,7 @@ bun run --cwd mobile typecheck
 bun run --cwd mobile doctor
 bun run --cwd mobile test
 bun run --cwd mobile test:scrambler # Chromium/Brave ou CHROMIUM_PATH
-bun test tests/practice-scramble.test.ts tests/training-history.test.ts tests/local-first.test.ts tests/niche-catalog.test.ts tests/catalog-cache.test.ts tests/api-client.test.ts tests/multi-cube.test.ts tests/achievements.test.ts
+bun test tests/practice-scramble.test.ts tests/training-history.test.ts tests/local-first.test.ts tests/niche-catalog.test.ts tests/api-client.test.ts tests/multi-cube.test.ts tests/achievements.test.ts
 ```
 
 Les tests partagés utilisent des bases temporaires, sans modifier les comptes du

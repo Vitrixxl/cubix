@@ -56,7 +56,8 @@ export function createLive(local: Local, token: () => string | null) {
       ready = false;
       // A session the server no longer knows: the sync finds out and signs out, which opens a socket without it.
       if (event.code === 4001) void local.sync();
-      if (!stopped) retry = setTimeout(open, delay);
+      // Jittered: the devices a server restart dropped do not all come back at the same moment.
+      if (!stopped) retry = setTimeout(open, delay * (0.5 + Math.random()));
       delay = Math.min(delay * 2, 15000);
     });
     ws.on("error", () => {});
