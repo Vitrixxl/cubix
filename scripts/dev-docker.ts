@@ -1,5 +1,5 @@
 /** Local development against a seeded API in Docker (compose.dev.yaml): builds and starts the container,
- * then serves the local web sources on 127.0.0.1:5181 with /api proxied to it (desktop/dev.ts).
+ * then serves the local web sources on localhost:5181 with /api proxied to it (desktop/dev.ts).
  *   bun run dev:docker             the web app, for a browser
  *   bun run dev:docker --reset     a fresh database, seeded again
  *   bun run dev:docker --stop      stops the container; its data is kept

@@ -113,7 +113,8 @@ const server = Bun.serve<Socket>({
     },
   },
 });
-const origin = `http://127.0.0.1:${server.port}`;
+// localhost, not 127.0.0.1: the address the WCA and Google know the development site by (.env.example).
+const origin = `http://localhost:${server.port}`;
 console.log(`Cubix web: ${origin} (API: ${upstream})\nVirtual smart cube: ${origin}/dev/cube`);
 
 // A change to the sources: one build at a time, once they have been quiet for a moment, and another after it when they

@@ -25,7 +25,7 @@ Avant de valider quoi que ce soit (commit, push, mise en prod), lancer le dev
 dans Docker et laisser l’utilisateur valider lui-même la modification :
 
 ```sh
-bun run dev:docker             # API seedée dans Docker + site local sur http://127.0.0.1:5181
+bun run dev:docker             # API seedée dans Docker + site local sur http://localhost:5181
 ```
 
 Si la stack tourne déjà (conteneur `cubix-dev-api-1`, site sur le port 5181),
