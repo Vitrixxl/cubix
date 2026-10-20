@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodLearned, methodOf, methodProgress, methodShare, openCourse,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodLearned, methodOf, methodProgress, methodsFor, methodShare, openCourse,
   recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepRead, stepReadKey, stepSets, toggleAlgLearned, toggled, type CourseEntry, type CourseProgress,
 } from "../../../src/client/lib/course";
 import { caseTitle, moveCount } from "../../../src/client/lib/caseState";
@@ -13,8 +13,8 @@ import { isLearningTrack, orderedGroups } from "../../../src/client/lib/dailyLea
 import { plural } from "../../../src/client/lib/format";
 import { applyAlg, solved } from "../../../src/shared/cube";
 import { viewForMask } from "../../../src/shared/cubeDiagram";
-import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../../src/shared/methods";
-import { puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
+import type { MethodAlgorithm, MethodLevel, MethodStep, SolvingMethod } from "../../../src/shared/methods";
+import { puzzleInfo, type PuzzleId, type SolveMode } from "../../../src/shared/puzzles";
 import type { CaseDto } from "../../../src/shared/types";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -40,7 +40,7 @@ import { storage } from "../platform/storage";
 import { useColors } from "../theme";
 import {
   casesAtom, courseProgressAtom, goBackAtom, guidesAtom, learnMethodAtom, learnedCaseIdsAtom, learningFilterAtom, notationAtom, persisted, previousRouteAtom, puzzleAtom,
-  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom, trainingRunAtom, trainingSetupModeAtom, trainingStepAtom,
+  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom, trainingRunAtom, trainingSetupModeAtom, trainingStepAtom,
 } from "../state";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -74,9 +74,9 @@ function LevelBars({ level, on }: { level: MethodLevel; on: boolean }) {
 }
 
 /** What the list says about each method: its facts, its algorithms known and where its course stands. */
-function methodRows(puzzle: PuzzleId, cases: CaseDto[], learned: ReadonlySet<string>, progress: CourseProgress) {
-  const recommended = recommendedMethod(puzzle);
-  return METHODS[puzzle].map(method => {
+function methodRows(puzzle: PuzzleId, mode: SolveMode, cases: CaseDto[], learned: ReadonlySet<string>, progress: CourseProgress) {
+  const recommended = recommendedMethod(puzzle, mode);
+  return methodsFor(puzzle, mode).map(method => {
     const facts = methodFacts(method, cases);
     const known = methodLearned(method, cases, learned, courseEntry(progress, puzzle, method.id));
     return {
@@ -94,7 +94,8 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setRoute = useSetAtom(routeAtom), openGuide = useSetAtom(guidesAtom);
-  const rows = useMemo(() => methodRows(puzzle, cases, learned, progress), [puzzle, cases, learned, progress]);
+  const mode = useAtomValue(solveModeAtom);
+  const rows = useMemo(() => methodRows(puzzle, mode, cases, learned, progress), [puzzle, mode, cases, learned, progress]);
   const last = progress.methods[puzzle];
   const hero = rows.find(r => r.method.id === last && r.state.started && !r.state.learned) ?? rows.find(r => r.state.started && !r.state.learned) ?? rows.find(r => r.recommended) ?? rows[0];
   const open = (id: string, step?: number) => {

@@ -7,15 +7,15 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Lightbulb, Lock, Route, Timer, type LucideIcon } from "lucide-react";
-import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
+import type { MethodAlgorithm, MethodLevel, MethodStep, SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
-import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
+import { puzzleInfo, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { Link } from "react-router";
 import { pageUrl } from "./navigation";
 import { viewForMask, type CubeMask } from "../../src/shared/cubeDiagram";
 import { PlayerAlg, PlayerControls, PlayerCube, useAlgPlayer } from "./AlgPlayer";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, stepRead, stepReadKey, toggled, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, stepRead, stepReadKey, toggled, firstOpenSet, methodFacts, methodLearned, methodProgress, methodsFor, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepPicture, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
@@ -69,8 +69,8 @@ function LevelBars({ level }: { level: MethodLevel }) {
 
 /** What a list of methods says about each: its level, steps, algorithms and where its course stands. */
 function methodRows(puzzle: PuzzleId) {
-  const cases = s.cases(puzzle), progress = s.course, recommended = recommendedMethod(puzzle);
-  return METHODS[puzzle].map((method) => ({
+  const cases = s.cases(puzzle), progress = s.course, recommended = recommendedMethod(puzzle, s.solveMode as SolveMode);
+  return methodsFor(puzzle, s.solveMode as SolveMode).map((method) => ({
     method,
     facts: methodFacts(method, cases),
     learned: methodLearned(method, cases, s.learned, courseEntry(progress, puzzle, method.id)),

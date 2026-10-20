@@ -587,3 +587,104 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
     },
   ],
 };
+
+/** A scramble for the blindfolded steps' pictures: corners cycled and twisted, then edges cycled and flipped, each without the other. */
+const BLD_CORNERS = "R U R' D R U' R' D' U' L' U R U' L U R' F' D2 F U F' D2 F U' R' D' R U R' D R U'",
+  BLD_SCRAMBLE = `${BLD_CORNERS} M2 U M U2 M' U M2 R2 U R U R' U' R' U' R' U R' D M' U2 M U2 D' F2 M' U M' U M' U2 M U M U M U2 F2 L' E L U L' E' L U'`;
+/** Old Pochmann's and M2's parity, after the edges when their letters are odd; tests/bld-methods.test.ts solves scrambles with them. */
+const OP_PARITY = "R U' R' U' R U R D R' U' R D' R' U2 R' U'",
+  M2_PARITY = "D' L2 D M2 D' L2 D";
+/** The memo of a method, from its buffers: the same tracing, the letters of the Speffz scheme. */
+const bldMemo = (edges: string, corners: string, tip: string): MethodStep => ({
+  title: "Memo",
+  text: `Every sticker has a letter (Speffz: A to X, face by face). From the buffer, ${edges} for the edges and ${corners} for the corners, note the letter where its piece belongs, then where the piece there belongs, until the buffer's piece comes back. Group the letters in pairs and turn each pair into a word or an image.`,
+  tips: [
+    "Edges first, then corners: the memo is read in the order the cube is solved.",
+    "When the buffer's piece comes home with pieces still wrong, start a new cycle on one of them and end on it again.",
+    tip,
+  ],
+  picture: { from: BLD_SCRAMBLE, done: BLD_SCRAMBLE },
+});
+const OP_CORNERS: MethodStep = {
+  title: "Corners", text: "For each corner letter, bring the target to RDF with R, D and F turns that keep UBL, UL and UB, swap UBL and RDF with the modified Y perm, then undo the setup.",
+  sets: ["3bld-op-corners"],
+};
+/** Big cubes blindfolded: centres by commutators, wings by r2, then the 3×3's pieces as in Old Pochmann and M2. */
+function bigBld(size: 4 | 5): SolvingMethod {
+  const odd = size === 5;
+  return {
+    id: "r2-op", name: "r2 and Old Pochmann", level: "beginner",
+    summary: `The ${size}×${size} blindfolded one piece type at a time: ${odd ? "the +-centres and x-centres" : "the centres"} by three-cycles, the wings by r2, ${odd ? "the midges by M2 and " : ""}the corners by Old Pochmann.`,
+    steps: [
+      {
+        title: "Memo", text: `Trace each piece type from its buffer, in the order you solve them: ${odd ? "+-centres, x-centres, wings, midges" : "x-centres, wings"}, corners. Centres of a colour are alike: a centre may go to any place of its face still wrong.`,
+        tips: ["Set your buffers and your letters in Training → BLD, then train the memo of a scramble there.", "Centres take few letters: the places already right are skipped."],
+      },
+      {
+        title: "Centres", text: "Cycle three centres at a time with a commutator: moves that bring a target into the top without touching the buffer's place, a turn of the top, then the first moves undone and the turn undone.",
+        tips: ["Keep the buffer's place on the top face, and set each target up to the slice with the faces that do not touch it.", "Write your own commutators down and drill them as you would letter pairs."],
+      },
+      { title: "Wings", text: "Swap each wing with the DFr buffer by r2 (the inner slice alone), the target set up to UBr as in M2.", sets: [`${size}x${size}-bld-r2`] },
+      ...(odd ? [{ title: "Midges", text: "The 5×5's middle edges are the 3×3's edges: solve them with M2 from DF, the middle slice alone.", tips: ["Learn M2 on the 3×3 first: the targets and their setups are the same."] }] : []),
+      { title: "Corners", text: "The corners are the 3×3's: Old Pochmann from UBL, with the outer layers only.", tips: ["Learn Old Pochmann's corners on the 3×3 first: the setups are the same."] },
+    ],
+  };
+}
+
+/**
+ * The blindfolded events' methods (333bf, 444bf, 555bf, 333mbf): what Learn offers in place of the puzzle's own. Every
+ * step's cases are in the catalogue (data/bld.json).
+ */
+export const BLD_METHODS: Partial<Record<PuzzleId, SolvingMethod[]>> = {
+  "333": [
+    {
+      id: "old-pochmann", name: "Old Pochmann", level: "beginner",
+      summary: "The first blindfolded method: one piece at a time, each swapped into place with the T perm (edges) or the Y perm (corners), a setup before and undone after.",
+      steps: [
+        bldMemo("UR", "UBL", "Train the memo of a scramble and your letter pairs in Training → BLD."),
+        {
+          title: "Edges", text: "Hold white on top, green in front. For each edge letter, bring the target to UL with L and D turns and their wide ones, never moving UR; swap UR and UL with the T perm, then undo the setup. UB and UF take a J perm.",
+          sets: ["3bld-op-edges"], picture: { done: BLD_CORNERS },
+        },
+        {
+          title: "Parity", text: "An odd number of edge letters leaves two corners swapped by the T perms: after the edges, do this algorithm once, then the corners as usual.",
+          algs: [{ name: "Parity", alg: OP_PARITY, note: "Swaps UB and UL and the corners UBR and UFR: the corners' last letter swaps the edges back." }],
+          picture: { from: `${BLD_CORNERS} ${invertAlg(OP_PARITY)}`, done: BLD_CORNERS },
+        },
+        OP_CORNERS,
+      ],
+    },
+    {
+      id: "m2", name: "M2 and Old Pochmann", level: "intermediate",
+      summary: "Edges by M2, shorter and faster than the T perm: the target set up to UB and swapped with the DF buffer by M2. Corners stay Old Pochmann.",
+      steps: [
+        bldMemo("DF", "UBL", "Every second edge letter, read C as W and W as C, I as S and S as I: the M slice is upside down then."),
+        {
+          title: "Edges", text: "For each edge letter, bring the target to UB without moving the M slice, do M2, then undo the setup. The M slice's own edges, UF, FU, DB and BD, have algorithms of their own.",
+          sets: ["3bld-m2"], picture: { done: BLD_CORNERS },
+        },
+        {
+          title: "Parity", text: "An odd number of edge letters leaves the M slice half turned: after the edges, do this algorithm once, then the corners as usual.",
+          algs: [{ name: "Parity", alg: M2_PARITY }],
+          picture: { from: `${BLD_CORNERS} ${invertAlg(M2_PARITY)}`, done: BLD_CORNERS },
+        },
+        OP_CORNERS,
+      ],
+    },
+    {
+      id: "3-style", name: "3-style", level: "advanced",
+      summary: "The method of the fastest blindfolders: two targets at a time, each pair one commutator from the UF and UFR buffers. Hundreds of cases, learnt a letter at a time.",
+      steps: [
+        bldMemo("UF", "UFR", "Each pair of letters is one commutator: learn them a first letter at a time, and drill them in Training → BLD."),
+        { title: "Edges", text: "Each pair of edge letters is a commutator that cycles UF with the two targets. An odd last letter is paired with UR.", sets: ["3bld-3style-edges"], picture: { done: BLD_CORNERS } },
+        { title: "Corners", text: "Each pair of corner letters is a commutator that cycles UFR with the two targets.", sets: ["3bld-3style-corners"] },
+        {
+          title: "Parity", text: "With an odd number of letters, the last corner is left alone: one algorithm swaps UFR with it and UF with UR, which the edges' last pair left swapped.",
+          sets: ["3bld-parity"],
+        },
+      ],
+    },
+  ],
+  "444": [bigBld(4)],
+  "555": [bigBld(5)],
+};

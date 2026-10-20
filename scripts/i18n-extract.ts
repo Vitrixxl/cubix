@@ -63,8 +63,9 @@ function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternative
   if (Array.isArray(value)) return value.forEach((v) => walk(v, skip));
   if (value && typeof value === "object") for (const [key, v] of Object.entries(value)) if (!skip.has(key)) walk(v, skip);
 }
-const { METHODS } = await import("../src/shared/methods");
+const { BLD_METHODS, METHODS } = await import("../src/shared/methods");
 walk(METHODS);
+walk(BLD_METHODS);
 const content = await import("../desktop/renderer/landing/content");
 for (const [name, value] of Object.entries(content)) if (!["SITE", "NAME", "SOURCE", "IMPORTS"].includes(name)) walk(value);
 const { GUIDES } = await import("../desktop/guides/pages");

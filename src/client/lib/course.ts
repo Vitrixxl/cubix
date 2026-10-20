@@ -3,9 +3,9 @@
  * stands on and the learned state of the algorithms the catalogue does not hold. Catalogue cases
  * keep their own learned marks (synchronised with the account); everything here is a device preference of the account.
  */
-import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../shared/methods";
+import { BLD_METHODS, METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../shared/methods";
 import { invertAlg } from "../../shared/cube";
-import { puzzleOf, type PuzzleId } from "../../shared/puzzles";
+import { puzzleOf, type PuzzleId, type SolveMode } from "../../shared/puzzles";
 import type { CaseDto, SetDto } from "../../shared/types";
 import { groupCases } from "./practiceCatalog";
 import { msg } from "../i18n/msg";
@@ -48,9 +48,14 @@ export const stepId = (step: Pick<MethodStep, "title">) => slug(step.title);
 export const algId = (step: Pick<MethodStep, "title">, alg: Pick<MethodAlgorithm, "name">) => `${stepId(step)}:${slug(alg.name)}`;
 const courseKey = (puzzle: PuzzleId, method: string) => `${puzzle}:${method}`;
 
-export const methodOf = (puzzle: PuzzleId, id: string | undefined): SolvingMethod | undefined => METHODS[puzzle]?.find(m => m.id === id);
-/** The method to start with on a puzzle: its first beginner one. */
-export const recommendedMethod = (puzzle: PuzzleId) => METHODS[puzzle].find(m => m.level === "beginner")?.id;
+/** The methods Learn offers for an event: a blindfolded one's (Old Pochmann…), the puzzle's own otherwise. */
+export const methodsFor = (puzzle: PuzzleId, mode: SolveMode = "standard"): SolvingMethod[] =>
+  mode === "blindfolded" || mode === "multi-blind" ? BLD_METHODS[puzzle] ?? [] : METHODS[puzzle] ?? [];
+/** A method by its id: among the event's methods when `mode` is given, among all the puzzle's otherwise (a course's link). */
+export const methodOf = (puzzle: PuzzleId, id: string | undefined, mode?: SolveMode): SolvingMethod | undefined =>
+  (mode ? methodsFor(puzzle, mode) : [...methodsFor(puzzle), ...methodsFor(puzzle, "blindfolded")]).find(m => m.id === id);
+/** The method to start with on an event: its first beginner one. */
+export const recommendedMethod = (puzzle: PuzzleId, mode?: SolveMode) => methodsFor(puzzle, mode).find(m => m.level === "beginner")?.id;
 
 /** A course's progress, its step kept within the method. */
 export function courseEntry(progress: CourseProgress, puzzle: PuzzleId, method: string): CourseEntry {

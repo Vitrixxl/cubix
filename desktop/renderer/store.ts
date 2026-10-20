@@ -1476,7 +1476,7 @@ export class Store {
           // the courses), the training's setup, the profile's page.
           const here = readRoute(window.location.pathname, window.location.search);
           if (here && here.page !== "onboarding" && here.page !== "login")
-            goPage(here.page, { ...here, puzzle: event.puzzle, caseId: "", trainingStep: "setup", learnStep: undefined, learnMethod: methodOf(event.puzzle, here.learnMethod) ? here.learnMethod : "" }, true);
+            goPage(here.page, { ...here, puzzle: event.puzzle, caseId: "", trainingStep: "setup", learnStep: undefined, learnMethod: methodOf(event.puzzle, here.learnMethod, event.solveMode) ? here.learnMethod : "" }, true);
           this.learnPick = "";
           this.timerEpoch++;
           await this.nextCase();
