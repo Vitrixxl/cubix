@@ -10,19 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { puzzleMark } from "./logo";
 import { SITE } from "./landing/content";
-import { jpegPdf } from "./lib/pdf";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import semibold from "../assets/fonts/BricolageGrotesque-600.ttf";
+import extrabold from "../assets/fonts/BricolageGrotesque-800.ttf";
 
-/** A4 in millimetres and in points; the sheet is laid out in millimetres. */
-const W = 210, H = 297, POINTS = [595.28, 841.89] as const;
-const MARGIN = 14, GAP = 4, PAD = 3;
+/** A4, in millimetres: the sheet is an SVG of that size, shown as it is and turned into the PDF's vectors. */
+const W = 210, H = 297;
+const MARGIN = 14, GAP = 4, PAD = 3, TOP = MARGIN + 24, BOTTOM = H - 16;
 /** The cases a row the sheet offers. */
 const PER_ROW = [3, 4, 5, 6];
-const TOP = MARGIN + 24, BOTTOM = H - 16;
-const FONT = '"Bricolage Grotesque", system-ui, sans-serif';
-/** Pixels a millimetre: the preview's, the PDF's (about 200 dpi). */
-const PREVIEW = 4, PRINT = 8;
+const FAMILY = "Bricolage Grotesque";
+/** The PDF embeds the app's font at the two weights the sheet writes (desktop/scripts/subset-fonts.ts). */
+const PDF_FONTS = [[600, semibold], [800, extrabold]] as const;
 
 type Look = { theme: ThemeId; light: boolean; cols: number };
 type Entry = { c: any; title: string; alg: string };
@@ -35,87 +35,97 @@ function entries(cases: any[]): Entry[] {
   });
 }
 
-const font = (ctx: CanvasRenderingContext2D, weight: number, size: number) => (ctx.font = `${weight} ${size}px ${FONT}`);
+const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const n = (v: number) => +v.toFixed(3);
+/** A colour as SVG attributes: `rgba()` split into the colour and its opacity, which the PDF draws as such. */
+function paint(attr: "fill" | "stroke", color: string) {
+  const rgba = color.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/);
+  if (!rgba) return `${attr}="${color}"`;
+  const hex = "#" + rgba.slice(1, 4).map((v) => Number(v).toString(16).padStart(2, "0")).join("");
+  return `${attr}="${hex}" ${attr}-opacity="${rgba[4]}"`;
+}
+const text = (x: number, y: number, size: number, weight: 600 | 800, color: string, value: string, anchor = "start") =>
+  `<text x="${n(x)}" y="${n(y)}" font-family="${FAMILY}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" ${paint("fill", color)}>${escape(value)}</text>`;
 
-/** The moves of an algorithm in lines no wider than `width`. */
-function wrap(ctx: CanvasRenderingContext2D, alg: string, width: number) {
+/** The moves of an algorithm in lines no wider than `width` millimetres at `size`, measured in the app's font. */
+function wrap(alg: string, width: number, size: number) {
+  const ctx = (wrap.ctx ??= document.createElement("canvas").getContext("2d")!);
+  // Measured large, then scaled: tiny canvas fonts round their widths.
+  ctx.font = `600 ${size * 10}px "${FAMILY}"`;
   const lines: string[] = [];
   for (const move of alg.split(/\s+/).filter(Boolean)) {
     const last = lines.at(-1);
-    if (last != null && ctx.measureText(last + " " + move).width <= width) lines[lines.length - 1] = last + " " + move;
+    if (last != null && ctx.measureText(last + " " + move).width / 10 <= width) lines[lines.length - 1] = last + " " + move;
     else lines.push(move);
   }
   return lines.length ? lines : ["—"];
 }
+wrap.ctx = null as CanvasRenderingContext2D | null;
 
-/** The puzzles' own diagrams are pictures: each loaded once. */
-const pictures = new Map<string, Promise<HTMLImageElement>>();
-function picture(src: string) {
-  if (!pictures.has(src)) {
-    const img = new Image();
-    img.src = src;
-    pictures.set(src, img.decode().then(() => img));
-  }
-  return pictures.get(src)!;
+/** The puzzles' own diagrams (SVG files): fetched once, their ids made unique to the case, their one style written on each sticker. */
+const pictures = new Map<string, Promise<{ box: string; body: string }>>();
+function picture(asset: string) {
+  if (!pictures.has(asset))
+    pictures.set(asset, fetch("/assets/" + asset).then(async (response) => {
+      const svg = await response.text(),
+        prefix = "p" + pictures.size + "-";
+      return {
+        box: svg.match(/viewBox="([^"]+)"/)?.[1] ?? "0 0 100 100",
+        body: svg
+          .replace(/^[\s\S]*?<svg[^>]*>|<\/svg>\s*$/g, "")
+          .replace(/<title>[\s\S]*?<\/title>|<style>[\s\S]*?<\/style>/g, "")
+          .replace(/class="sticker"/g, 'stroke="#000" stroke-width="1"')
+          .replace(/\bid="/g, `id="${prefix}`)
+          .replace(/href="#/g, `href="#${prefix}`),
+      };
+    }));
+  return pictures.get(asset)!;
 }
 
 /** A case's diagram at (x, y), `size` wide, as the catalogue draws it (`StaticCubeSvg`, its rim by day). */
-async function drawDiagram(ctx: CanvasRenderingContext2D, c: any, x: number, y: number, size: number, rim: string, light: boolean) {
+async function diagram(c: any, x: number, y: number, size: number, rim: string, light: boolean) {
   if (c.diagram) {
-    const img = await picture("/assets/" + c.asset);
-    ctx.save();
-    if (light) ctx.filter = `drop-shadow(0 0 0.15px ${rim}) drop-shadow(0 0 0.15px ${rim})`;
-    ctx.drawImage(img, x, y, size, size);
-    return ctx.restore();
+    const { box, body } = await picture(c.asset);
+    return `<svg x="${n(x)}" y="${n(y)}" width="${n(size)}" height="${n(size)}" viewBox="${box}">${body}</svg>`;
   }
   const view = viewForStage(c.stage),
     top = view !== "iso",
-    { hull, tiles, edges } = diagramPaths(caseState(c), maskForStage(c.stage), view);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(size / 120, size / 120);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  if (hull) (ctx.fillStyle = SEAM_FILL), ctx.fill(new Path2D(hull));
-  for (const { fill, d } of tiles) {
-    const path = new Path2D(d);
-    ctx.fillStyle = fill;
-    ctx.fill(path);
-    if (top) (ctx.strokeStyle = light ? rim : fill), (ctx.lineWidth = light ? 1.2 : TILE_STROKE.strokeWidth), ctx.stroke(path);
-  }
-  // The hairline of a 96-pixel diagram.
-  if (edges) (ctx.strokeStyle = EDGE_STROKE.stroke), (ctx.lineWidth = 1.25), ctx.stroke(new Path2D(edges));
-  ctx.restore();
+    { hull, tiles, edges } = diagramPaths(caseState(c), maskForStage(c.stage), view),
+    stroke = (fill: string) => (light ? `${paint("stroke", rim)} stroke-width="1.2"` : `stroke="${fill}" stroke-width="${TILE_STROKE.strokeWidth}"`);
+  return (
+    `<g transform="translate(${n(x)} ${n(y)}) scale(${n(size / 120)})" stroke-linejoin="round" stroke-linecap="round">` +
+    (hull ? `<path d="${hull}" fill="${SEAM_FILL}"/>` : "") +
+    tiles.map(({ fill, d }) => `<path d="${d}" fill="${fill}"${top ? " " + stroke(fill) : ""}/>`).join("") +
+    // The hairline of a 96-pixel diagram.
+    (edges ? `<path d="${edges}" fill="none" stroke="${EDGE_STROKE.stroke}" stroke-width="1.25"/>` : "") +
+    "</g>"
+  );
 }
 
 /** The app's badge (the 3×3 mark, its top right sticker in the accent) at (x, y), `size` wide. */
-function drawBadge(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, ink: string, accent: string) {
+function badge(x: number, y: number, size: number, ink: string, accent: string) {
   const mark = puzzleMark("333"),
     k = size / mark.box;
-  for (const part of mark.parts) {
-    if (!("rect" in part)) continue;
-    const [px, py, pw, ph, r] = part.rect.map((v) => v * k) as [number, number, number, number, number];
-    ctx.fillStyle = part.accent ? accent : ink;
-    ctx.beginPath();
-    ctx.roundRect(x + px, y + py, pw, ph, r);
-    ctx.fill();
-  }
+  return mark.parts
+    .map((part) => {
+      if (!("rect" in part)) return "";
+      const [px, py, pw, ph, r] = part.rect.map((v) => n(v * k)) as number[];
+      return `<rect x="${n(x + px!)}" y="${n(y + py!)}" width="${pw}" height="${ph}" rx="${r}" fill="${part.accent ? accent : ink}"/>`;
+    })
+    .join("");
 }
 
-/** The sheet's pages, each a canvas of A4 at `scale` pixels a millimetre, in the look chosen. */
-async function drawSheet(set: any, list: Entry[], { theme, light, cols }: Look, scale: number) {
-  // The cards share the width; the diagram takes most of a card, 22 mm at most.
-  const CELL = (W - 2 * MARGIN - GAP * (cols - 1)) / cols,
-    DIAGRAM = Math.min(22, CELL - 4 * PAD);
+/** The sheet's pages as SVG, in the look chosen: the brand and the set on top, the cases on cards, the site and page at the foot. */
+async function sheetPages(set: any, list: Entry[], { theme, light, cols }: Look) {
   const t = themeTokens(theme, light ? "light" : "dark"),
-    // Laid out once on a scratch canvas: the cards' heights decide the pages.
-    measure = document.createElement("canvas").getContext("2d")!;
-  await document.fonts.load(`800 10px ${FONT}`);
-  font(measure, 600, 3);
-  const cards = list.map((e) => ({ ...e, lines: wrap(measure, e.alg, CELL - 2 * PAD) })),
+    // The cards share the width; the diagram takes most of a card, 22 mm at most.
+    cell = (W - 2 * MARGIN - GAP * (cols - 1)) / cols,
+    size = Math.min(22, cell - 4 * PAD);
+  await document.fonts.load(`600 10px "${FAMILY}"`);
+  const cards = list.map((e) => ({ ...e, lines: wrap(e.alg, cell - 2 * PAD - 1, 3) })),
     rows: (typeof cards)[] = [];
   for (let i = 0; i < cards.length; i += cols) rows.push(cards.slice(i, i + cols));
-  const height = (row: typeof cards) => PAD + DIAGRAM + 7 + Math.max(...row.map((card) => card.lines.length)) * 3.8 + PAD;
+  const height = (row: typeof cards) => PAD + size + 7 + Math.max(...row.map((card) => card.lines.length)) * 3.8 + PAD;
   const pages: (typeof rows)[] = [[]];
   let y = TOP;
   for (const row of rows) {
@@ -123,72 +133,66 @@ async function drawSheet(set: any, list: Entry[], { theme, light, cols }: Look, 
     pages.at(-1)!.push(row);
     y += height(row) + GAP;
   }
+  const head =
+    `<rect width="${W}" height="${H}" fill="${t.background}"/>` +
+    badge(MARGIN, MARGIN, 9, t.foreground!, t.primary!) +
+    text(MARGIN + 12, MARGIN + 7.3, 7.5, 800, t.foreground!, "Qbix") +
+    text(W - MARGIN, MARGIN + 5.2, 6.5, 800, t.foreground!, said(set.label), "end") +
+    text(W - MARGIN, MARGIN + 10.6, 3.2, 600, t["muted-foreground"]!, `${s.event().label} · ${plural(list.length, "case")}`, "end") +
+    `<rect x="${MARGIN}" y="${MARGIN + 15}" width="${W - 2 * MARGIN}" height="0.25" ${paint("fill", t.border!)}/>` +
+    `<rect x="${MARGIN}" y="${MARGIN + 14.4}" width="16" height="0.9" rx="0.45" fill="${t.primary}"/>`;
   return Promise.all(
     pages.map(async (page, p) => {
-      const canvas = Object.assign(document.createElement("canvas"), { width: Math.round(W * scale), height: Math.round(H * scale) }),
-        ctx = canvas.getContext("2d")!;
-      ctx.scale(scale, scale);
-      ctx.fillStyle = t.background!;
-      ctx.fillRect(0, 0, W, H);
-      // The brand on the left, the set on the right over an accent underline, a rule under them.
-      drawBadge(ctx, MARGIN, MARGIN, 9, t.foreground!, t.primary!);
-      ctx.fillStyle = t.foreground!;
-      ctx.textBaseline = "middle";
-      ctx.letterSpacing = "-0.28px";
-      font(ctx, 800, 7.5);
-      ctx.fillText("Qbix", MARGIN + 12, MARGIN + 4.8);
-      ctx.textAlign = "right";
-      font(ctx, 800, 6.5);
-      ctx.fillText(said(set.label), W - MARGIN, MARGIN + 3);
-      ctx.letterSpacing = "0px";
-      font(ctx, 600, 3.2);
-      ctx.fillStyle = t["muted-foreground"]!;
-      ctx.fillText(`${s.event().label} · ${plural(list.length, "case")}`, W - MARGIN, MARGIN + 9.5);
-      ctx.fillStyle = t.border!;
-      ctx.fillRect(MARGIN, MARGIN + 15, W - 2 * MARGIN, 0.25);
-      ctx.fillStyle = t.primary!;
-      ctx.beginPath();
-      ctx.roundRect(MARGIN, MARGIN + 14.4, 16, 0.9, 0.45);
-      ctx.fill();
-      // The cases, four a row, each on its card: the diagram, the name, the algorithm.
-      let y = TOP;
+      let y = TOP,
+        body = "";
       for (const row of page) {
         const h = height(row);
-        await Promise.all(
-          row.map(async (card, i) => {
-            const x = MARGIN + i * (CELL + GAP);
-            ctx.fillStyle = t.card!;
-            ctx.beginPath();
-            ctx.roundRect(x, y, CELL, h, 3);
-            ctx.fill();
-            await drawDiagram(ctx, card.c, x + (CELL - DIAGRAM) / 2, y + PAD, DIAGRAM, t.rim!, light);
-            ctx.textAlign = "center";
-            ctx.textBaseline = "alphabetic";
-            ctx.fillStyle = t.foreground!;
-            font(ctx, 800, 3.6);
-            ctx.fillText(card.title, x + CELL / 2, y + PAD + DIAGRAM + 5, CELL - 2 * PAD);
-            font(ctx, 600, 3);
-            ctx.fillStyle = card.alg ? t.foreground! : t.faint!;
-            card.lines.forEach((line, l) => ctx.fillText(line, x + CELL / 2, y + PAD + DIAGRAM + 9.6 + l * 3.8));
-          }),
-        );
+        for (const [i, card] of row.entries()) {
+          const x = MARGIN + i * (cell + GAP),
+            middle = x + cell / 2;
+          body +=
+            `<rect x="${n(x)}" y="${n(y)}" width="${n(cell)}" height="${n(h)}" rx="3" fill="${t.card}"/>` +
+            (await diagram(card.c, x + (cell - size) / 2, y + PAD, size, t.rim!, light)) +
+            text(middle, y + PAD + size + 5, 3.6, 800, t.foreground!, card.title, "middle") +
+            card.lines.map((line, l) => text(middle, y + PAD + size + 9.6 + l * 3.8, 3, 600, card.alg ? t.foreground! : t.faint!, line, "middle")).join("");
+        }
         y += h + GAP;
       }
-      ctx.textBaseline = "middle";
-      font(ctx, 600, 2.8);
-      ctx.fillStyle = t.faint!;
-      ctx.textAlign = "left";
-      ctx.fillText(SITE.replace(/^https:\/\//, ""), MARGIN, H - 9);
-      ctx.textAlign = "right";
-      ctx.fillText(`${p + 1} / ${pages.length}`, W - MARGIN, H - 9);
-      return canvas;
+      const foot = text(MARGIN, H - 8, 2.8, 600, t.faint!, SITE.replace(/^https:\/\//, "")) + text(W - MARGIN, H - 8, 2.8, 600, t.faint!, `${p + 1} / ${pages.length}`, "end");
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${head}${body}${foot}</svg>`;
     }),
   );
 }
 
+/** The pages as a vector PDF: each SVG drawn by svg2pdf, the app's font embedded. Loaded when asked for, not with the page. */
+async function pdfOf(pages: string[]) {
+  const [{ jsPDF }, { svg2pdf }] = await Promise.all([import("jspdf"), import("svg2pdf.js")]),
+    doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
+  for (const [weight, url] of PDF_FONTS) {
+    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    doc.addFileToVFS(`Bricolage-${weight}.ttf`, btoa(binary));
+    doc.addFont(`Bricolage-${weight}.ttf`, FAMILY, "normal", weight);
+  }
+  // svg2pdf reads the page from the document.
+  const host = Object.assign(document.createElement("div"), { hidden: true });
+  document.body.append(host);
+  try {
+    for (const [i, page] of pages.entries()) {
+      if (i) doc.addPage();
+      host.innerHTML = page;
+      await svg2pdf(host.firstElementChild!, doc, { x: 0, y: 0, width: W, height: H });
+    }
+  } finally {
+    host.remove();
+  }
+  return new Uint8Array(doc.output("arraybuffer"));
+}
+
 /**
- * The print dialog of a set's algorithms: the sheet in the app's look, its accent, dark or light and the cases a row chosen here, the
- * pages previewed as they come out, then downloaded as a PDF made on this device.
+ * The print dialog of a set's algorithms: the sheet in the app's look, its accent, dark or light and the cases a row
+ * chosen here, the pages previewed as they come out, then downloaded as a vector PDF made on this device.
  */
 export function PrintDialog({ set, onClose }: { set: any; onClose: () => void }) {
   const [look, setLook] = useState<Look>({ theme: (THEMES.some((x) => x.id === s.themeName) ? s.themeName : "peach") as ThemeId, light: s.light, cols: 5 }),
@@ -197,15 +201,13 @@ export function PrintDialog({ set, onClose }: { set: any; onClose: () => void })
     list = entries(s.setCases(set.id));
   useEffect(() => {
     let live = true;
-    void drawSheet(set, list, look, PREVIEW).then((canvases) => live && setPages(canvases.map((c) => c.toDataURL("image/jpeg", 0.9))));
+    void sheetPages(set, list, look).then((svgs) => live && setPages(svgs));
     return () => void (live = false);
   }, [look.theme, look.light, look.cols]);
   async function save() {
     setBusy(true);
     try {
-      const canvases = await drawSheet(set, list, look, PRINT),
-        jpegs = await Promise.all(canvases.map((c) => new Promise<Blob>((done) => c.toBlob((b) => done(b!), "image/jpeg", 0.92)).then(async (b) => ({ jpeg: new Uint8Array(await b.arrayBuffer()), w: c.width, h: c.height }))));
-      download(jpegPdf(jpegs, ...POINTS), "application/pdf", `qbix-${String(set.id).toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`);
+      download(await pdfOf(pages!), "application/pdf", `qbix-${String(set.id).toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`);
     } finally {
       setBusy(false);
     }
@@ -216,7 +218,9 @@ export function PrintDialog({ set, onClose }: { set: any; onClose: () => void })
         <div className="min-h-0 overflow-y-auto rounded-[18px] bg-muted p-5" data-slot="print-preview" aria-busy={!pages}>
           <div className="mx-auto flex max-w-md flex-col gap-4">
             {pages
-              ? pages.map((src, i) => <img key={i} src={src} alt={tr("Page {0} of {1}", { 0: i + 1, 1: pages.length })} className="aspect-[210/297] w-full rounded-[4px] shadow-lg" />)
+              ? pages.map((svg, i) => (
+                  <div key={i} role="img" aria-label={tr("Page {0} of {1}", { 0: i + 1, 1: pages.length })} data-page={i + 1} className="overflow-hidden rounded-[4px] shadow-lg [&>svg]:block [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+                ))
               : <Skeleton className="aspect-[210/297] w-full" />}
           </div>
         </div>

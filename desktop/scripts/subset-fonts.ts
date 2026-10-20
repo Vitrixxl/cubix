@@ -1,6 +1,7 @@
 /**
  * The web app's fonts (Bricolage Grotesque, and Geist for the landing page), cut to the characters it writes and packed as WOFF2: `bun desktop/scripts/subset-fonts.ts`
- * writes desktop/assets/fonts/*.woff2 from the TTFs beside them. Run again only when the app writes a character
+ * writes desktop/assets/fonts/*.woff2 from the TTFs beside them, and the PDF's Bricolage at its two weights
+ * (BricolageGrotesque-600.ttf, -800.ttf: a PDF embeds one weight a font, not a variable font). Run again only when the app writes a character
  * outside these ranges; a missing one falls back to the system's sans-serif.
  *
  * Subset by HarfBuzz (libharfbuzz-subset, through bun:ffi), every layout feature kept (tabular figures…). WOFF2 with
@@ -29,12 +30,21 @@ const hbSubset = dlopen("libharfbuzz-subset.so.0", {
   hb_subset_input_unicode_set: { args: [p], returns: p },
   hb_subset_input_set: { args: [p, i32], returns: p },
   hb_subset_or_fail: { args: [p, p], returns: p },
+  hb_subset_input_pin_all_axes_to_default: { args: [p, p], returns: i32 },
+  hb_subset_input_pin_axis_location: { args: [p, p, u32, FFIType.f32], returns: i32 },
 }).symbols;
+/** A four-letter OpenType tag as HarfBuzz takes it. */
+const tag = (name: string) => [...name].reduce((n, c) => (n << 8) | c.charCodeAt(0), 0) >>> 0;
 const LAYOUT_FEATURES = 6;
 
-function subset(font: Uint8Array): Uint8Array {
+/** The font cut to `RANGES`; `pin` fixes its variable axes there (the others at their default), a static font. */
+function subset(font: Uint8Array, pin?: Record<string, number>): Uint8Array {
   const face = hb.hb_face_create(hb.hb_blob_create(ptr(font), font.length, 0, null, null), 0);
   const input = hbSubset.hb_subset_input_create_or_fail();
+  if (pin) {
+    hbSubset.hb_subset_input_pin_all_axes_to_default(input, face);
+    for (const [axis, value] of Object.entries(pin)) if (!hbSubset.hb_subset_input_pin_axis_location(input, face, tag(axis), value)) throw new Error(`No ${axis} axis to pin`);
+  }
   const unicodes = hbSubset.hb_subset_input_unicode_set(input);
   for (const [first, last] of RANGES) hb.hb_set_add_range(unicodes, first, last);
   const features = hbSubset.hb_subset_input_set(input, LAYOUT_FEATURES);
@@ -92,4 +102,12 @@ for (const name of ["BricolageGrotesque", ...WEIGHTS.map((weight) => `Geist-${we
   const out = woff2(subset(ttf));
   await Bun.write(`${DIR}/${name}.woff2`, out);
   console.log(`${name}.woff2: ${out.length} bytes (TTF ${ttf.length})`);
+}
+
+// The PDF's (desktop/renderer/printSheet.tsx): the weights it writes, as TTF.
+const bricolage = new Uint8Array(await Bun.file(`${DIR}/BricolageGrotesque.ttf`).arrayBuffer());
+for (const weight of [600, 800]) {
+  const out = subset(bricolage, { wght: weight });
+  await Bun.write(`${DIR}/BricolageGrotesque-${weight}.ttf`, out);
+  console.log(`BricolageGrotesque-${weight}.ttf: ${out.length} bytes`);
 }

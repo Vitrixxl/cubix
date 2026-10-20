@@ -87,23 +87,26 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const production = { "process.env.NODE_ENV": '"production"', CUBIX_DEV: String(devTools) };
   const naming = { entry: "[name]-[hash].[ext]", chunk: "[name]-[hash].[ext]", asset: "[name]-[hash].[ext]" };
   // The fonts (desktop/scripts/subset-fonts.ts), named after their content: the stylesheet links them rather than
-  // inlining them, so they download in parallel and only the weights a page draws.
+  // inlining them, so they download in parallel and only the weights a page draws. The PDF's static weights too.
   const fonts = new Map<string, string>();
   for (const name of await readdir("desktop/assets/fonts")) {
-    if (!name.endsWith(".woff2")) continue;
+    const ext = name.endsWith(".woff2") ? ".woff2" : /-\d00\.ttf$/.test(name) ? ".ttf" : "";
+    if (!ext) continue;
     const bytes = await readFile(join("desktop/assets/fonts", name));
-    const url = `/build/${basename(name, ".woff2")}-${new Bun.CryptoHasher("sha256").update(bytes).digest("hex").slice(0, 8)}.woff2`;
+    const url = `/build/${basename(name, ext)}-${new Bun.CryptoHasher("sha256").update(bytes).digest("hex").slice(0, 8)}${ext}`;
     await writeFile(join(out, url), bytes);
     fonts.set(name, url);
   }
   const linked: BunPlugin = {
     name: "fonts",
     setup(build) {
-      build.onResolve({ filter: /\.woff2$/ }, ({ path }) => {
+      // A stylesheet links the font; a script gets its address.
+      build.onResolve({ filter: /\.(woff2|ttf)$/ }, ({ path, importer }) => {
         const url = fonts.get(basename(path));
         if (!url) throw new Error(`Unknown font ${path}: run desktop/scripts/subset-fonts.ts`);
-        return { path: url, external: true };
+        return importer.endsWith(".css") ? { path: url, external: true } : { path: url, namespace: "font-url" };
       });
+      build.onLoad({ filter: /.*/, namespace: "font-url" }, ({ path }) => ({ contents: `export default ${JSON.stringify(path)}`, loader: "js" }));
     },
   };
   const bundle = async (entrypoint: string, define: Record<string, string> = {}, splitting = false): Promise<Bundle> => {

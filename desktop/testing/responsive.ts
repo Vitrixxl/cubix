@@ -117,16 +117,18 @@ try {
   await act(page, "nav:algorithms");
   await page.waitForSelector('[data-action^="case:"]');
   await check("algorithms");
-  // Print: the sheet previewed in the look chosen, then a PDF made in the page.
+  // Print: the sheet previewed in the look chosen, then a vector PDF made in the page (its font embedded, no picture).
   await page.getByRole("button", { name: "Print", exact: true }).click();
-  await page.waitForSelector('[data-slot="print-preview"] img');
-  const dark = await page.locator('[data-slot="print-preview"] img').first().getAttribute("src");
+  const preview = '[data-slot="print-preview"] [data-page]';
+  await page.waitForSelector(preview);
+  const dark = await page.locator(preview).first().innerHTML();
   await act(page, "print:mode:light");
-  await page.waitForFunction((before) => document.querySelector('[data-slot="print-preview"] img')?.getAttribute("src") !== before, dark);
+  await page.waitForFunction(([selector, before]) => document.querySelector(selector!)?.innerHTML !== before, [preview, dark]);
   const [pdf] = await Promise.all([page.waitForEvent("download"), act(page, "print:pdf")]);
   const bytes = (await readFile(await pdf.path())).toString("latin1");
-  const shown = await page.locator('[data-slot="print-preview"] img').count();
-  assert.ok(bytes.startsWith("%PDF-1.4") && bytes.includes(`/Count ${shown} `), "the PDF has the pages previewed");
+  const shown = await page.locator(preview).count();
+  assert.ok(bytes.startsWith("%PDF-") && bytes.match(/\/Count (\d+)/)?.[1] === String(shown), "the PDF has the pages previewed");
+  assert.ok(bytes.includes("/FontFile2") && !bytes.includes("/Subtype /Image"), "the PDF is vectors and the app's font");
   await page.keyboard.press("Escape");
   await act(page, "case:F2L 1");
   await check("case"); // opened beside the list on desktop, as a page of its own on phones
