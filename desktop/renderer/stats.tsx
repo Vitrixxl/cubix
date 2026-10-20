@@ -6,11 +6,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownUp, ChartLine, List, MessageSquare, Plus, Rotate3d, Timer } from "lucide-react";
 import { store as s } from "./store";
+import type { SolveDto } from "../../src/shared/types";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
-import { fmtValue, joinedDate, rollingAverages, shortDate } from "../../src/client/lib/format";
+import { fmtDate, fmtValue, joinedDate, rollingAverages, shortDate, solveResult } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
 import { historyRecords, periodFigures, periodSpread, singleRecords, SPREAD_LABEL, solveTone, timerFigures, type PeriodFigure, type SpreadFigure } from "../../src/client/lib/practiceSummary";
-import { Back, Button, Choice, Empty, MenuChoice, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
+import { Back, Button, Choice, Empty, MenuChoice, Modal, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
 import { InHead, MoreMenu, StatCard, Stats, dots, useViewport } from "./base";
 import { TONE_TEXT } from "../../src/client/lib/tone";
 import { EVENTS } from "../../src/shared/puzzles";
@@ -227,7 +228,6 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
       tip={(i) => sessionLabel(derived.session[i])}
     />
   );
-  const blind = history.some((v) => v.memoMs != null);
   const legend = spread
     ? [
         ["size-2.5 rounded-[3px] bg-chart-1", "this period"],
@@ -238,26 +238,9 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
         ["h-0.5 w-4 bg-chart-1", METRIC_LEGEND[metric]],
         ["size-2 rounded-full bg-success", "best session"],
       ]
-    : [
-        ["size-2 rounded-full bg-chart-1", "one solve"],
-        ["h-0.5 w-4 bg-chart-2", long ? "average of 50 (Ao50)" : "average of 5 (Ao5)"],
-        ["size-2 rounded-full bg-success", "single record"],
-        ...(blind ? [["size-2 rounded-[2px] bg-warning", "memo"]] : []),
-        ...(history.some((v) => v.time == null) && solveRange[1] - solveRange[0] < 300 ? [["text-destructive", "DNF", "×"]] : []),
-      ];
+    : solvesLegend(history, solveRange);
   const stacked = phone || narrow;
-  const legendRow = (
-    <span className={cn("flex items-center text-xs font-semibold whitespace-nowrap text-muted-foreground", stacked ? "-mt-2 shrink-0 flex-wrap gap-x-3 gap-y-0.5" : "ml-auto gap-4")}>
-      {legend.map(([swatch, label, glyph]) => (
-        <span key={label} className="flex items-center gap-1.5">
-          <span aria-hidden="true" className={cn(swatch, glyph ? "font-extrabold" : "")}>
-            {glyph}
-          </span>
-          {said(label)}
-        </span>
-      ))}
-    </span>
-  );
+  const legendRow = <Legend items={legend} className={stacked ? "-mt-2 shrink-0 flex-wrap gap-x-3 gap-y-0.5" : "ml-auto gap-4"} />;
   const chartCard = (
     <Surface className={cn(CARD, "pb-3")} aria-label={tr("Chart")}>
       <CardHead title={spread ? "Spread" : perSession ? "One value per session" : "All solves"}>
@@ -303,6 +286,58 @@ function StatsBody({ data, by, phone, table }: { data: any; by: "solve" | "sessi
         {figures}
         {records}
       </div>
+    </div>
+  );
+}
+
+/** What the curve of every solve draws: the solves, their rolling average, the records, the memos and the DNFs. */
+const solvesLegend = (history: any[], range: ChartRange) => [
+  ["size-2 rounded-full bg-chart-1", "one solve"],
+  ["h-0.5 w-4 bg-chart-2", range[1] - range[0] > 300 ? "average of 50 (Ao50)" : "average of 5 (Ao5)"],
+  ["size-2 rounded-full bg-success", "single record"],
+  ...(history.some((v) => v.memoMs != null) ? [["size-2 rounded-[2px] bg-warning", "memo"]] : []),
+  ...(history.some((v) => v.time == null) && range[1] - range[0] < 300 ? [["text-destructive", "DNF", "×"]] : []),
+];
+
+/** A chart's legend: each swatch (or glyph) and its label. */
+function Legend({ items, className }: { items: string[][]; className?: string }) {
+  return (
+    <span className={cn("flex items-center text-xs font-semibold whitespace-nowrap text-muted-foreground", className)}>
+      {items.map(([swatch, label, glyph]) => (
+        <span key={label} className="flex items-center gap-1.5">
+          <span aria-hidden="true" className={cn(swatch, glyph ? "font-extrabold" : "")}>
+            {glyph}
+          </span>
+          {said(label)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The timer's session, opened from its band of figures (FiguresEditor.tsx): its solves as the statistics page's curve, in a dialog. */
+export function SolvesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const solves: SolveDto[] = s.solves,
+    current = s.currentSession(),
+    history = useMemo(() => solves.map((v) => ({ id: v.id, time: solveResult(v), at: v.created_at, displayDate: fmtDate(v.created_at), memoMs: v.memo_ms })), [solves]);
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title={current?.name || sessionName({ at: current?.at }, s.event().label)} description={plural(history.length, "solve")} className="flex h-[min(86vh,600px)] flex-col sm:max-w-5xl" tall>
+      {history.length ? <SolvesCurve key={history.length} history={history} mode={s.context().solveMode} /> : <Empty icon={Timer} title={tr("No times yet")} />}
+    </Modal>
+  );
+}
+
+function SolvesCurve({ history, mode }: { history: any[]; mode: string }) {
+  const [range, setRange] = useState<ChartRange>([0, history.length - 1]);
+  const { ao5, ao50, records } = useMemo(() => {
+    const times = history.map((v) => v.time);
+    return { ao5: rollingAverages(times, 5), ao50: rollingAverages(times, 50), records: singleRecords(history).map((r) => r.index) };
+  }, [history]);
+  const long = range[1] - range[0] > 300;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <Legend items={solvesLegend(history, range)} className="shrink-0 flex-wrap gap-x-4 gap-y-0.5" />
+      <HistoryChart history={history} averages={long ? ao50 : ao5} averageLabel={long ? "Ao50" : "Ao5"} range={range} onRange={setRange} points marks={records} xTitle={tr("solve date")} mode={mode} />
     </div>
   );
 }

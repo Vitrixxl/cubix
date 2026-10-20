@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import { tr } from "../../src/client/i18n";
 import { NUMERIC } from "./base";
 
-/** A figure of the event shown: a time, or Fewest Moves' moves and Multi-Blind's cubes (`fmtValue`). */
-const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, s.profileSolveMode, opts);
-
 export type ChartRange = [number, number];
 type Entry = { time: number | null; displayDate: string; at?: string; memoMs?: number | null };
 type Drag = { pointer: number; start: number; end: number; range: ChartRange; pan: boolean };
@@ -37,7 +34,7 @@ export function fitRange(start: number, width: number, last: number): ChartRange
  * names the solves to write (the records); otherwise the fastest and slowest shown. Scroll zooms, a drag selects a
  * period, Shift-drag pans, a double click resets.
  */
-export function HistoryChart({ history, averages, range, onRange, points = false, marks, averageLabel = "Ao5", xTitle, tip }: {
+export function HistoryChart({ history, averages, range, onRange, points = false, marks, averageLabel = "Ao5", xTitle, tip, mode = s.profileSolveMode }: {
   history: Entry[];
   averages: (number | null)[];
   range: ChartRange;
@@ -49,7 +46,11 @@ export function HistoryChart({ history, averages, range, onRange, points = false
   xTitle?: string;
   /** A last line for the tooltip of a point (its session). */
   tip?: (i: number) => React.ReactNode;
+  /** The solve mode the values are of: the profile's, or the timer's. */
+  mode?: string;
 }) {
+  /** A figure of the event shown: a time, or Fewest Moves' moves and Multi-Blind's cubes (`fmtValue`). */
+  const fmtTime = (value: number | null | undefined, opts?: { blank?: string }) => fmtValue(value, mode, opts);
   const plot = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);

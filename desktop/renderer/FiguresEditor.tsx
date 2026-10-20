@@ -4,7 +4,7 @@
  * its kind (and an average its size, current, best or worst).
  */
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Pencil, Plus } from "lucide-react";
+import { ChartLine, Check, Pencil, Plus } from "lucide-react";
 import { averageFigure, FIGURE_LIMIT, figureLabel, figureRows, shownFigures } from "../../src/client/lib/practiceSummary";
 import { attemptMode } from "../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { store as s } from "./store";
 import { FADE, FOCUS, StatCard, dots } from "./ui";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { SolvesDialog } from "./stats";
 
 /** A figure being edited, with motion (FigureBox.tsx): fetched once the band is edited, its tile shown meanwhile. */
 const FigureBox = lazy(() => import("./FigureBox").then((m) => ({ default: m.FigureBox })));
@@ -58,6 +59,8 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
     [open, setOpen] = useState<string | null>(null),
     /** The order while a figure is dragged: the others make room as it goes. */
     [order, setOrder] = useState<string[] | null>(null),
+    /** Every solve of the event as a curve, in a dialog. */
+    [chart, setChart] = useState(false),
     /** A key per box that follows its figure through changes of kind, so its popover stays open. */
     keys = useRef(new Map<string, number>()),
     serial = useRef(0),
@@ -174,6 +177,17 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
     <div className="group/stats relative flex shrink-0 flex-col gap-3" data-tour="session" data-no-timer={editing || undefined}>
       <div className={cn("flex gap-2", FADE)} data-no-timer>
         {actions}
+        {!editing && <Button
+          variant="ghost"
+          size="icon"
+          aria-label={tr("All solves")}
+          title={tr("All solves")}
+          data-action="figures:chart"
+          onClick={() => setChart(true)}
+          className="ml-auto shrink-0 bg-card text-muted-foreground hover:bg-muted"
+        >
+          <ChartLine />
+        </Button>}
         {!fixed && <Button
           variant={editing ? "default" : "ghost"}
           size={editing ? "default" : "icon"}
@@ -181,12 +195,13 @@ export function FiguresBand({ actions }: { actions?: React.ReactNode }) {
           title={editing ? undefined : tr("Edit the figures")}
           data-action="figures:edit"
           onClick={() => (editing ? finish() : setEditing(true))}
-          className={cn("ml-auto shrink-0", !editing && "bg-card text-muted-foreground hover:bg-muted")}
+          className={cn("shrink-0", editing ? "ml-auto" : "bg-card text-muted-foreground hover:bg-muted")}
         >
           {editing ? <Check data-icon="inline-start" /> : <Pencil />}
           {editing && tr("Done")}
         </Button>}
       </div>
+      <SolvesDialog open={chart} onOpenChange={setChart} />
       {/* One wrapping line of siblings (so a dragged box keeps its place in the tree), each tile as wide as its line asks. */}
       <section aria-label={tr("Statistics")} className={cn("flex flex-wrap gap-3", FADE)}>
         {rows.flatMap((length, row) => Array.from({ length }, (_, j) => tile(rows.slice(0, row).reduce((a, b) => a + b, 0) + j, length)))}
