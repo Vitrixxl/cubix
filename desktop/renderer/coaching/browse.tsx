@@ -118,12 +118,12 @@ export function CoachList() {
                 )}
               </Empty>
             ) : (
-              <ul className="flex flex-col gap-1" data-slot="coach-list">
+              <ul className="flex flex-col gap-2" data-slot="coach-list">
                 <VirtualList
                   items={shown}
                   scroller={scroller}
                   estimate={120}
-                  gap={4}
+                  gap={8}
                   spacerAs="li"
                   rowKey={(c) => c.id}
                   row={(c, _, measure) => (
@@ -147,14 +147,14 @@ export function CoachList() {
 }
 
 /**
- * A coach in the list (and in their own profile's preview): the face, the name with their rating, a line on what they
+ * A coach in the list (and in their own profile's preview), in its box: the face, the name with their rating, a line on what they
  * teach, the price on the right, then their next slot to pick at once and how many more are open.
  */
 export function CoachRow({ c, active = false, slot = null, onPick }: { c: Coach; active?: boolean; slot?: number | null; onPick?: (slot: number | null) => void }) {
   const line = [c.headline || tr("Speedcubing coach"), c.languages.join(", ")].filter(Boolean).join(" · ");
   return (
     <div
-      className={cn("relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-[18px] px-3.5 py-3 transition-colors", onPick && "hover:bg-muted", active && "bg-muted")}
+      className={cn("relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-[18px] bg-muted px-4 py-3.5 transition-shadow", onPick && "hover:inset-ring-1 hover:inset-ring-foreground/15", active && "inset-ring-2! inset-ring-primary!")}
       data-coach={c.username}
       aria-current={active || undefined}
     >

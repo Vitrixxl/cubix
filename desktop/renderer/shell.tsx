@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { COACHING, pageUrl, readRoute, type AppRoute } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import { language, tr } from "../../src/client/i18n";
@@ -207,7 +208,7 @@ export function AccountMenu() {
         {phone && (
           <DropdownMenuItem data-action="coffee" className="font-bold text-primary data-highlighted:text-foreground" render={<a href={COFFEE} target="_blank" rel="noreferrer" />}>
             <Coffee className="text-primary" />
-            {tr("Coffee")}
+            {tr("Buy me a coffee")}
           </DropdownMenuItem>
         )}
         {!guest && (
@@ -277,7 +278,7 @@ function SignIn() {
 
 /**
  * Desktop navigation, across the top: the brand, the five sections by name (the current one underlined in the
- * accent) and, after a rule, the current section's pages (`SectionPages`), then the puzzle and the account on the right.
+ * accent), then the puzzle and the account on the right; the current section's pages are under it (`SectionBar`).
  */
 export const Header = memo(function Header() {
   useShell();
@@ -312,24 +313,20 @@ export const Header = memo(function Header() {
           );
         })}
       </nav>
-      <SectionPages />
       <div className="ml-auto flex items-center gap-2.5">
         {/* Support for the app, in plain view: the app is free, a coffee keeps it going. */}
-        <Tip content={tr("Buy me a coffee")}>
-          <a
-            href={COFFEE}
-            target="_blank"
-            rel="noreferrer"
-            data-action="coffee"
-            aria-label={tr("Buy me a coffee")}
-            // A link drawn as the app's buttons are (shape and size), in the accent colour.
-            // A narrow window leaves it to the account's menu.
-            className={cn(buttonVariants({ variant: "tint" }), "max-lg:hidden")}
-          >
-            <Coffee />
-            <span className="max-lg:hidden">{tr("Coffee")}</span>
-          </a>
-        </Tip>
+        <a
+          href={COFFEE}
+          target="_blank"
+          rel="noreferrer"
+          data-action="coffee"
+          // A link drawn as the app's buttons are (shape and size), in the accent colour.
+          // A narrow window leaves it to the account's menu.
+          className={cn(buttonVariants({ variant: "tint" }), "max-lg:hidden")}
+        >
+          <Coffee />
+          {tr("Buy me a coffee")}
+        </a>
         <InstallApp />
         <CubeState />
         <PuzzlePill />
@@ -347,50 +344,44 @@ const PAGE_ICONS: Record<string, LucideIcon> = {
 };
 
 /**
- * Desktop, in the header after the sections and a rule: the current section's pages, each with its icon and what waits
- * there, the current one on the card's colour (none for a section of one page). Under `xl`, the icons alone, each named
- * in its tooltip, so that the header keeps to the window.
+ * Desktop, under the header: the current section's pages as tabs, each with its icon and what waits there (none for a
+ * section of one page).
  */
-function SectionPages() {
+export const SectionBar = memo(function SectionBar() {
+  useShell();
   const section = currentSection(),
     here = currentPage();
   if (!section || section.pages.length < 2) return null;
   return (
-    <>
-      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border" />
-      <nav aria-label={said(section.label)} className="flex items-center gap-1">
-        {section.pages.map(([page, label, shortcut]) => {
-          const I = PAGE_ICONS[page] ?? section.icon,
-            n = waiting[page]?.() ?? 0;
-          return (
-            <Tip key={page} content={shortcut ? `${tr(label)} · ${shortcut}` : tr(label)}>
-              <Link
-                to={pageTo(page)}
+    <nav aria-label={said(section.label)} className={cn("mx-6 shrink-0 pb-1 lg:mx-9", FADE)}>
+      <Tabs value={here}>
+        <TabsList>
+          {section.pages.map(([page, label, shortcut]) => {
+            const I = PAGE_ICONS[page] ?? section.icon,
+              n = waiting[page]?.() ?? 0;
+            return (
+              <TabsTrigger
+                key={page}
+                value={page}
+                nativeButton={false}
+                render={<Link to={pageTo(page)} />}
                 data-action={"nav:" + page}
                 aria-current={here === page ? "page" : undefined}
                 aria-keyshortcuts={shortcut || undefined}
-                aria-label={tr(label)}
-                className={cn(
-                  "group/tab relative flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:text-foreground max-xl:w-9 max-xl:justify-center max-xl:px-0",
-                  FOCUS,
-                )}
+                title={shortcut ? `${tr(label)} · ${shortcut}` : undefined}
+                className="group/tab px-3.5"
               >
-                <I className="size-4 shrink-0 group-aria-[current=page]/tab:text-primary" />
-                <span className="max-xl:hidden">{said(label)}</span>
-                {n > 0 && (
-                  <>
-                    <span data-slot={page + "-unread"} className="rounded-md bg-primary px-1.5 text-[11px] leading-[18px] text-primary-foreground tabular-nums max-xl:hidden">{n}</span>
-                    <Dot n={n} className="top-1 right-1 xl:hidden" />
-                  </>
-                )}
-              </Link>
-            </Tip>
-          );
-        })}
-      </nav>
-    </>
+                <I className="group-data-active/tab:text-primary" />
+                {said(label)}
+                {n > 0 && <span data-slot={page + "-unread"} className="rounded-md bg-primary px-1.5 text-[11px] leading-[18px] text-primary-foreground tabular-nums">{n}</span>}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
+    </nav>
   );
-}
+});
 
 /** Phones, above the page: the current section's pages; in the social section and on the profile, the account's menu
  * beside them (the way to the profile). */

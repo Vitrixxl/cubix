@@ -10,7 +10,7 @@ import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, usePhone } from "./ui";
 import { AppSkeleton, CaseDialogSkeleton, PageFallback, SettingsSkeleton } from "./skeletons";
-import { Header, PhoneTop, TIP_DELAY, TabBar } from "./shell";
+import { Header, PhoneTop, SectionBar, TIP_DELAY, TabBar } from "./shell";
 import { Practice } from "./practice";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -269,6 +269,7 @@ function App() {
         <div data-app-shell="" data-running={s.running ? "" : undefined} className="group/app flex h-svh min-h-0 flex-col overflow-hidden">
           {/* A battle or a tournament under way takes the whole window. */}
           {!mobile && !arena && <Header />}
+          {!mobile && !arena && <SectionBar />}
           {mobile && !arena && <PhoneTop />}
           <div className="flex min-h-0 flex-1">
           <main data-slot="app-main" className="relative min-h-0 min-w-0 flex-1 overflow-hidden">

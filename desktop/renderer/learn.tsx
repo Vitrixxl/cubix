@@ -290,6 +290,8 @@ type Piece = {
   /** A case's number in its set (37, Aa), large on its tile. */
   short?: string;
   sub?: string;
+  /** The moves from a solved cube to the case. */
+  setup?: string;
   note?: string;
   algs: string[];
   mine: string[];
@@ -318,6 +320,7 @@ function inlinePiece(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, ent
     key: id,
     name: a.name,
     sub: a.detail,
+    setup: size ? algSetup(a) : undefined,
     algs,
     mine: [],
     note: a.note,
@@ -338,6 +341,7 @@ function casePiece(c: any, group: string): Piece {
     name: caseTitle(c) === c.id ? c.id : said(c.name),
     short: shortId(c),
     sub: [c.name !== caseTitle(c) && said(c.name), c.subgroup && c.subgroup !== group && said(c.subgroup)].filter(Boolean).join(" · ") || undefined,
+    setup: c.setup,
     algs,
     mine,
     use: (alg) => `learnAlg:${c.id}:${all.indexOf(alg)}`,
@@ -584,7 +588,7 @@ function AlgBand({ bench, touch = false }: { bench: Bench; touch?: boolean }) {
   );
 }
 
-/** The piece's name on top: its name large, its other names; on desktops its learned toggle beside it. */
+/** The piece's name on top: its name large, its other names, its setup; on desktops its learned toggle beside it. */
 function PieceHead({ piece, touch = false }: { piece: Piece; touch?: boolean }) {
   return (
     <div className="relative flex shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-4">
@@ -592,6 +596,12 @@ function PieceHead({ piece, touch = false }: { piece: Piece; touch?: boolean }) 
       <div className="flex min-w-0 flex-col gap-1">
         <h2 className={cn("truncate leading-none font-extrabold tracking-[-0.04em]", touch ? "text-[32px]" : "text-[52px]")}>{said(piece.name)}</h2>
         {piece.sub && <span className={cn("text-sm font-semibold text-muted-foreground md:text-base", !touch && "truncate")}>{piece.sub}</span>}
+        {piece.setup && (
+          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground" data-slot="piece-setup">
+            {tr("Setup")}
+            <Alg text={piece.setup} size={touch ? 14 : 16} className="text-foreground/80" />
+          </span>
+        )}
       </div>
     </div>
   );
