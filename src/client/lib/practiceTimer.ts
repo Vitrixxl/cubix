@@ -1,5 +1,6 @@
 import { msg } from "../i18n/msg";
 import type { Penalty } from "../../shared/types";
+import { toHundredths } from "./format";
 export type TimerPhase = "idle" | "inspecting" | "holding" | "ready" | "running" | "stopped";
 export const HOLD_DELAY_MS = 300;
 /** WCA inspection: 15 seconds, then a +2 until 17, a DNF after (regulations A3a1, A3d1). */
@@ -66,7 +67,9 @@ export class PracticeTimer {
     clearTimeout(this.expiry);
     this.update({ phase: "running", startedAt: at, elapsed: 0, inspectedAt: undefined, memo: undefined, splits: undefined, penalty });
   }
-  private stop(elapsed: number) {
+  /** Stops at `elapsed`, kept to the hundredth (`toHundredths`) as the memo and the splits are. */
+  private stop(ms: number) {
+    const elapsed = toHundredths(ms);
     this.update({ phase: "stopped", elapsed });
     this.options.onStop(elapsed, this.snapshot.penalty ?? "none", this.snapshot.memo, this.snapshot.splits);
   }
@@ -84,7 +87,7 @@ export class PracticeTimer {
     if (timeStamp !== undefined) this.lastPress = timeStamp;
     const { phase, startedAt, memo, splits = [] } = this.snapshot;
     if (phase === "running") {
-      const elapsed = this.at(timeStamp) - startedAt;
+      const elapsed = toHundredths(this.at(timeStamp) - startedAt);
       if (memo === undefined && this.options.memo?.()) this.update({ memo: elapsed });
       else if (splits.length < (this.options.phases?.() ?? 1) - 1) this.update({ splits: [...splits, elapsed] });
       else this.stop(elapsed);

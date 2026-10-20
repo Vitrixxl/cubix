@@ -12,7 +12,7 @@ import { achievements } from "../lib/achievements";
 import { dayKey } from "../lib/profile";
 import { sessionSummaries } from "../lib/sessions";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
-import { resultFields } from "../lib/format";
+import { resultFields, toHundredths } from "../lib/format";
 
 /** A solve's Fewest Moves and Multi-Blind fields as the API takes them. */
 const resultBody = (s: SolveDto) => ({ ...(s.moves != null ? { moves:s.moves } : {}), ...(s.cubes_attempted != null ? { cubesSolved:s.cubes_solved ?? 0, cubesAttempted:s.cubes_attempted } : {}) });
@@ -676,7 +676,7 @@ export function createLocalClient(options: {
       for (const solve of [...solves].sort((a,b) => a.at - b.at)) {
         const info = eventInfo(solve.event);
         if (!info || !Number.isFinite(solve.at) || !Number.isFinite(solve.timeMs) || solve.timeMs < 0) continue;
-        const { puzzle, solveMode } = info, at = new Date(solve.at).toISOString(), timeMs = Math.round(solve.timeMs);
+        const { puzzle, solveMode } = info, at = new Date(solve.at).toISOString(), timeMs = toHundredths(solve.timeMs);
         if (known.has(key(puzzle,solveMode,at,timeMs))) { duplicates++; continue; }
         known.add(key(puzzle,solveMode,at,timeMs));
         const context = { puzzle, solveMode, scrambleType: "normal" as const }, group = `${solve.event}|${solve.session ?? ""}`;
@@ -715,10 +715,10 @@ export function createLocalClient(options: {
       const written = context.solveMode === "fewest-moves" && body.solution?.trim() && body.solution.length <= SOLUTION_MAX;
       const solution = written || readSolution(body.solution) ? body.solution!.trim() : undefined;
       // A memorisation outside the solve is left out the same way.
-      const memo = Number.isFinite(body.memoMs) && body.memoMs! >= 0 && body.memoMs! <= body.timeMs ? Math.round(body.memoMs!) : undefined;
+      const memo = Number.isFinite(body.memoMs) && body.memoMs! >= 0 && body.memoMs! <= body.timeMs ? toHundredths(body.memoMs!) : undefined;
       const splits = cleanSplits(body.splits, body.timeMs);
       const result = resultFields(context.solveMode, body);
-      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),...result,...(splits ? { splits } : {}),created_at:createdAt };
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:toHundredths(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),...result,...(splits ? { splits } : {}),created_at:createdAt };
       workspace.solves[solve.id] = solve;
       operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution,memoMs:memo,splits,...resultBody(solve)},solve.created_at); return solve;
     }, solveEntry),

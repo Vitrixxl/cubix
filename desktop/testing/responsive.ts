@@ -105,7 +105,7 @@ try {
   await act(page, "menu:entry");
   await page.getByRole("menuitemradio", { name: "Typing", exact: true }).click();
   await page.keyboard.press("Escape");
-  await page.getByRole("textbox", { name: "Time", exact: true }).fill("1234");
+  await page.keyboard.type("1234");
   await page.keyboard.press("Enter");
   await page.waitForSelector('[data-action^="penalty:"]:not([disabled]):not([data-disabled])');
   await act(page, "menu:timer");

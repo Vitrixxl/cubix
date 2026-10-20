@@ -109,7 +109,7 @@ test("anonymous practice is entirely local and survives reopening offline",async
   const reopened = device(remote,a.storage); reopened.control.offline=true;
   expect((await reopened.api.cases()).length).toBe(cases.filter((c) => puzzleOf(c) === "333").length);
   expect((await reopened.api.solves("training"))[0].id).toBe(solve.id);
-  expect((await reopened.api.caseHistory("PLL Aa")).summary.best).toBe(3234);
+  expect((await reopened.api.caseHistory("PLL Aa")).summary.best).toBe(3230);
   expect((await reopened.api.profile("Guest")).trainingSolves).toBe(1);
   await reopened.api.deleteSolve(solve.id);
   expect(await reopened.api.solves("training")).toEqual([]);
@@ -301,7 +301,7 @@ test("cube context survives offline storage, guest import, sync and another devi
     await expect(a.api.addSolve({sessionId:session.id,cubeSize:3,timeMs:10})).rejects.toThrow("cube");
     await expect(a.api.createSession("training",[c.id],3)).rejects.toThrow("cube");
   }
-  expect((await a.api.profile("Guest")).playground.summary.best).toBe(3333);
+  expect((await a.api.profile("Guest")).playground.summary.best).toBe(3330);
   const auth = await a.api.devLogin("multi_cube_alice");
   await a.local.sync();
   expect(a.local.status().pending).toBe(0);
@@ -314,7 +314,7 @@ test("cube context survives offline storage, guest import, sync and another devi
     const serverRows = await remote(auth.token).solves("playground",100,cube);
     expect(localProfile.playground.summary).toEqual(history("playground",serverRows).summary);
     expect(localProfile.totalSolves).toBe(cube === 3 ? 1 : 2);
-    expect(localProfile.playground.summary.best).toBe(cube === 3 ? 3333 : cube*2000);
+    expect(localProfile.playground.summary.best).toBe(cube === 3 ? 3330 : cube*2000);
     expect(await b.api.solves("playground",100,cube)).toHaveLength(1);
     expect(await b.api.stats(cube)).toHaveLength(cube === 3 ? 0 : 1);
   }
@@ -406,7 +406,7 @@ test('niche training sessions, case statistics and modes survive guest import an
     expect(await b.api.cases(puzzle)).toEqual(await remote(auth.token).cases(puzzle));
     expect(await b.api.sets(puzzle)).toEqual(await remote(auth.token).sets(puzzle));
     expect((await b.api.latestSession('training',puzzle,context))?.puzzle_id).toBe(puzzle);
-    expect((await b.api.caseHistory(c.id,context)).summary.best).toBe(4321);
+    expect((await b.api.caseHistory(c.id,context)).summary.best).toBe(4320);
     expect((await b.api.caseHistory(c.id)).summary.best).toBe(1000);
     const local=await b.api.profile(auth.user.username,undefined,puzzle,context);
     const server=await remote(auth.token).stats(puzzle,context);

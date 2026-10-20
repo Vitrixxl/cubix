@@ -38,7 +38,7 @@ const SERIES: Record<string, string> = {
 /** What a count goal counts, one at a time. */
 const NOUN: Record<string, string> = { solves: "solve", times: "solve", drills: "solve", bld: "solve", days: "day", streak: "day", sets: "case", algorithms: "case" };
 
-/** What is left to unlock it: "0.061 to go", "3 solves to go"; none before a first solve. */
+/** What is left to unlock it: "0.06 to go", "3 solves to go"; none before a first solve. */
 function left(a: A) {
   if (a.unlocked) return "";
   if (isTimeGoal(a)) return a.progress ? tr("{0} to go", { 0: fmtTime(a.progress - a.target + 1) }) : tr("No solve yet");

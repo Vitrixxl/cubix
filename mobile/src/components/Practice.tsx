@@ -234,7 +234,7 @@ export const timerHint = (timer: TimerApi, options?: { disabled?: string | false
 export function TimerDigits({ timer, area, max }: { timer: TimerApi; area: { width: number; height: number }; max?: number }) {
   const armed = timer.phase === "ready" || timer.phase === "holding";
   // An inspection past 17 seconds: a DNF, no solve.
-  const text = armed ? "0.000" : inspectionExpired(timer) ? tr("DNF") : fmtTime(timer.elapsed, { blank: "0.000" });
+  const text = armed ? "0.00" : inspectionExpired(timer) ? tr("DNF") : fmtTime(timer.elapsed, { blank: "0.00" });
   const size = digitsSize(area, text.length, max);
   return timer.phase === "running" ? <LiveDigits startedAt={timer.startedAt} size={size} /> : <Digits text={text} phase={timer.phase} size={size} />;
 }
@@ -251,7 +251,7 @@ export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: 
   const hint = !text ? tr("Type your time, then Enter: 1234 is 12.34") : solve === null ? tr("Not a time") : tr("{0} · Enter to save", { 0: fmtSolve(solve.ms, solve.penalty) });
   return <View className="w-full items-center">
     <TextInput value={text} onChangeText={value => setText(typedSolveChars(value))} onSubmitEditing={submit} submitBehavior="submit"
-      keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.000" placeholderTextColor={colors.mutedForeground + "66"}
+      keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={colors.mutedForeground + "66"}
       cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel={tr("Time")} editable={!disabled}
       className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && solve === null ? "text-destructive" : "text-timer")}
       style={{ fontSize: size * 0.8, includeFontPadding: false }} />

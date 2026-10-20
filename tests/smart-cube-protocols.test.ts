@@ -235,7 +235,7 @@ describe("GAN smart timer", () => {
     expect(timer.snapshot.phase).toBe("running");
     now = 9000;
     device.receive(frame(4, [0, 8, 0xe7, 0x03]));
-    expect(stops).toEqual([8999]);
+    expect(stops).toEqual([8990]);
     // Hands lifted too soon: nothing starts.
     device.receive(frame(5));
     device.receive(frame(6));
@@ -246,7 +246,7 @@ describe("GAN smart timer", () => {
     expect(timer.snapshot.phase).toBe("running");
     device.receive(frame(5));
     expect(timer.snapshot.phase).toBe("idle");
-    expect(stops).toEqual([8999]);
+    expect(stops).toEqual([8990]);
     stop();
   });
 });

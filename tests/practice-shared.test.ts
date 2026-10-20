@@ -94,8 +94,9 @@ test("timer reset cancels delayed readiness and a stopped solve is saved only on
     timer.cancelArming();
     expect(timer.snapshot.phase).toBe("running");
     timer.press(); timer.press(); timer.release();
-    expect(saved).toEqual([1234.5]);
-    expect(timer.snapshot.elapsed).toBe(1234.5);
+    // Kept to the hundredth, as a competition timer gives it.
+    expect(saved).toEqual([1230]);
+    expect(timer.snapshot.elapsed).toBe(1230);
   } finally { timer.dispose(); }
 });
 
@@ -139,8 +140,8 @@ describe("a timer started and stopped by a smart cube", () => {
     expect(timer.snapshot.phase).toBe("running");
     expect(timer.begin()).toBe(false);
     timer.finish(12345);
-    expect(timer.snapshot).toMatchObject({ phase: "stopped", elapsed: 12345 });
-    expect(stops).toEqual([12345]);
+    expect(timer.snapshot).toMatchObject({ phase: "stopped", elapsed: 12340 });
+    expect(stops).toEqual([12340]);
     timer.finish(1);
     expect(stops).toHaveLength(1);
   });

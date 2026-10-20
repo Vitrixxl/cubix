@@ -279,6 +279,7 @@ func dailyRoute(db *Conn, method string, parts []string, query map[string]string
 		if !ok || math.IsNaN(ms) || ms != math.Round(ms) || ms < 0 || ms > dailyMaxMs || (penalty != "dnf" && ms < floor) {
 			return nil, apiErr(400, "This time is not plausible.")
 		}
+		ms = hundredths(ms)
 		// A connected cube's turns make the result verified; the keyboard's and the screen's are not.
 		var solution any
 		solved := 0

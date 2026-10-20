@@ -41,7 +41,7 @@ export function roundResult(format: RoundFormat, times: readonly (number | null)
   return { average, best: single, result: format === "bo3" ? single : average, dropped };
 }
 
-/** The attempts as WCA lists them: "(10.500) 12.010 13.220 (DNF) 11.800". */
+/** The attempts as WCA lists them: "(10.50) 12.01 13.22 (DNF) 11.80". */
 export const attemptTexts = (times: readonly (number | null)[], dropped: readonly number[]) =>
   times.map((t, i) => (dropped.includes(i) ? `(${fmtTime(t, { blank: "DNF" })})` : fmtTime(t, { blank: "DNF" })));
 

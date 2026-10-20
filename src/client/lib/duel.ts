@@ -64,7 +64,7 @@ export const ao5Text = (v: number | null) => fmtTime(v, { blank: "DNF" });
 /** An Ao5 of the race: nothing until the five solves are in, DNF when it is one. */
 export const raceAverage = (v: number | null | undefined) => (v === undefined ? "" : ao5Text(v));
 /** The time of a side at rest: its latest solve, or zero before its first. */
-export const shownSolve = (v: DuelSolve | undefined) => (v ? fmtSolve(v.ms, v.penalty) : "0.000");
+export const shownSolve = (v: DuelSolve | undefined) => (v ? fmtSolve(v.ms, v.penalty) : "0.00");
 /** Minutes and seconds, for how long a search has been running. */
 export function clock(ms: number) {
   const seconds = Math.floor(ms / 1000);

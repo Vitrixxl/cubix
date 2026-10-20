@@ -75,7 +75,7 @@ try {
   await b.screenshot({ path: `${SHOTS}/opponent-running.png` });
   await a.keyboard.press("a");
   await b.waitForSelector(".duel-side.theirs.idle");
-  await b.waitForFunction(() => document.querySelector(".duel-side.theirs > :first-child")?.textContent !== "0.000");
+  await b.waitForFunction(() => document.querySelector(".duel-side.theirs > :first-child")?.textContent !== "0.00");
   // The opponent's time in their column of the rounds.
   await b.waitForFunction(() => /\d/.test(document.querySelectorAll('.duel-board-row[data-round="0"] [role="cell"]')[1]?.textContent ?? ""));
 

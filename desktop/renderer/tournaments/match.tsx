@@ -246,7 +246,7 @@ function Race({ m }: { m: Match }) {
   );
   const mySide = (
     <Side
-      rest={playing ? (timer.phase !== "idle" ? "0.000" : rest(left)) : live.phases[left] !== "idle" ? "0.000" : rest(left)}
+      rest={playing ? (timer.phase !== "idle" ? "0.00" : rest(left)) : live.phases[left] !== "idle" ? "0.00" : rest(left)}
       startedAt={playing ? timer.startedAt : live.started[left]}
       phase={playing ? timer.phase : live.phases[left]}
       hint={playing ? said(myHint) : undefined}
@@ -261,7 +261,7 @@ function Race({ m }: { m: Match }) {
     />
   );
   const theirSide = (
-    <Side rest={live.phases[right] !== "idle" ? "0.000" : rest(right)} startedAt={live.started[right]} phase={live.phases[right]} mine={false} className={m.present?.[right] ? undefined : "opacity-50"} />
+    <Side rest={live.phases[right] !== "idle" ? "0.00" : rest(right)} startedAt={live.started[right]} phase={live.phases[right]} mine={false} className={m.present?.[right] ? undefined : "opacity-50"} />
   );
   const score = scoreOf(m),
     where = [m.sets > 1 && !live.over && tr("Set {0}", { 0: setNumber }), current && !live.over && tr("Solve {0}", { 0: current.number })].filter(Boolean).join(" · ");

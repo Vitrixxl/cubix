@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -132,6 +133,12 @@ func asUint(v any) (uint64, bool) {
 		}
 	}
 	return 0, false
+}
+
+// hundredths is a time kept to the hundredth, as a competition timer gives it: the milliseconds past it dropped
+// (src/client/lib/format.ts toHundredths).
+func hundredths(ms float64) float64 {
+	return math.Floor(ms/10) * 10
 }
 
 // asFloat is Value::as_f64: any number.

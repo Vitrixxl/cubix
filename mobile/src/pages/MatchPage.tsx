@@ -218,7 +218,7 @@ function Watch({ phase, startedAt, rest, name }: { phase: Phase; startedAt: numb
   const colors = useColors(), size = digitsSize(area, 6, 112);
   return <View className="min-h-0 flex-1 items-center justify-center gap-2 rounded-3xl bg-card" onLayout={e => setArea(e.nativeEvent.layout)}>
     {phase === "running" ? <LiveDigits startedAt={startedAt} size={size} />
-      : <Digits text={phase === "idle" ? rest : "0.000"} phase={phase} size={size} color={phase === "idle" ? alpha(colors.foreground, 70) : undefined} />}
+      : <Digits text={phase === "idle" ? rest : "0.00"} phase={phase} size={size} color={phase === "idle" ? alpha(colors.foreground, 70) : undefined} />}
     <Text className="text-sm text-muted-foreground">{name}</Text>
   </View>;
 }

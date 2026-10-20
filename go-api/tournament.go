@@ -470,7 +470,7 @@ func tournamentPlay(db *Conn, state *AppState, id int64, seat int, body any) err
 			return nil
 		}
 		if _, err := db.Exec(fmt.Sprintf("UPDATE match_solves SET %s_ms=?,%s_penalty='none' WHERE match_id=? AND number=?", side, side),
-			int64(math.Round(ms)), id, number); err != nil {
+			int64(hundredths(ms)), id, number); err != nil {
 			return err
 		}
 		return tournamentSettle(db, state, id)

@@ -54,7 +54,7 @@ test("a blindfolded solve keeps its memorisation, which must lie within the solv
   const member = (await call("/auth/dev", "POST", {username:"blind"})).body;
   const context = {puzzle:"333",solveMode:"blindfolded",scrambleType:"normal"};
   const session = (await call("/sessions", "POST", {mode:"playground",...context},member.token)).body;
-  expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:24999.6},member.token)).body.memo_ms).toBe(25000);
+  expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:24999.6},member.token)).body.memo_ms).toBe(24990);
   expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000},member.token)).body.memo_ms).toBeNull();
   expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:61000},member.token)).status).toBe(422);
 });

@@ -3,14 +3,20 @@ import { msg } from "../i18n/msg";
 import { tn } from "../i18n";
 import { MBLD_CUBES, mbldValue, wcaResult } from "./wca";
 
-/** Times read to the millisecond: 12345 → "12.345", 61234 → "1:01.234" */
+/** A time kept to the hundredth, as a competition timer gives it: what is past it is dropped. */
+export const toHundredths = (ms: number) => Math.floor(ms / 10) * 10;
+
+/**
+ * A time to the hundredth: "12.34", "1:02.30". Solves are kept to the hundredth already (`toHundredths`); an average
+ * or a mean is rounded to the nearest one, as the WCA rounds them.
+ */
 export function fmtTime(ms: number | null | undefined, opts: { blank?: string } = {}): string {
   if (ms === null || ms === undefined || Number.isNaN(ms)) return opts.blank ?? "–";
-  const total = Math.max(0, ms);
+  const total = Math.round(Math.max(0, ms) / 10) * 10;
   const minutes = Math.floor(total / 60000);
   const seconds = (total % 60000) / 1000;
-  if (minutes > 0) return `${minutes}:${seconds.toFixed(3).padStart(6, "0")}`;
-  return seconds.toFixed(3);
+  if (minutes > 0) return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
+  return seconds.toFixed(2);
 }
 
 /** How a time reaches the timer page: the built-in timer, a time typed from an external timer, or a timer that records nothing. */
@@ -47,7 +53,7 @@ export function parseTypedTime(text: string): number | null {
     const match = /^(?:(?:(\d+):)?(\d+):)?(\d*)(?:\.(\d*))?$/.exec(value);
     if (!match || !(match[3] || match[4])) return null;
     const [, hours = "0", minutes = "0", seconds, fraction = ""] = match;
-    ms = (Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds || "0")) * 1000 + Number(fraction.slice(0, 3).padEnd(3, "0"));
+    ms = (Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds || "0")) * 1000 + Number(fraction.slice(0, 2).padEnd(3, "0"));
   }
   return ms > 0 && ms < MAX_TYPED_MS ? ms : null;
 }
@@ -66,6 +72,17 @@ export function parseTypedSolve(text: string): { ms: number; penalty: Penalty } 
   const plus = value.endsWith("+"),
     ms = parseTypedTime(plus ? value.slice(0, -1) : value);
   return ms === null ? null : { ms, penalty: plus ? "+2" : "none" };
+}
+
+/**
+ * A time being typed as the timer writes it: "1234" is 12.34 (`parseTypedTime`), "12.34+" stays, "DNF" too; what reads
+ * as no time yet ("1:", "dn") is shown as typed.
+ */
+export function typedDisplay(text: string): string {
+  const solve = parseTypedSolve(text);
+  if (!solve) return text;
+  if (solve.penalty === "dnf") return solve.ms ? `DNF(${fmtTime(solve.ms)})` : "DNF";
+  return fmtTime(solve.ms) + (solve.penalty === "+2" ? "+" : "");
 }
 
 /** What a typed entry keeps of a keystroke: digits, separators, "+" and the letters of "DNF". */

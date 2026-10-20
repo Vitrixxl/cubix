@@ -5,6 +5,7 @@
 import { eventOf, type PuzzleId, type SolveMode } from "../../shared/puzzles";
 import { phaseTimes } from "./phases";
 import { numberedScrambles } from "./wca";
+import { toHundredths } from "./format";
 
 type ExportedSolve = { created_at: string; puzzle_id?: string | null; solve_mode?: string | null; time_ms: number; penalty: string; case_id?: string | null; scramble?: string | null; comment?: string | null; splits?: number[] | null };
 
@@ -17,12 +18,12 @@ export function solvesCsv(solves: readonly ExportedSolve[]): string {
     ...solves.map((x) => [
       x.created_at,
       eventOf((x.puzzle_id ?? "333") as PuzzleId, (x.solve_mode ?? "standard") as SolveMode)?.id ?? x.puzzle_id,
-      (x.time_ms / 1000).toFixed(3),
+      (toHundredths(x.time_ms) / 1000).toFixed(2),
       x.penalty,
       x.case_id,
       x.scramble,
       x.comment,
-      x.splits && phaseTimes(x.splits, x.time_ms).map((t) => (t / 1000).toFixed(3)).join(" "),
+      x.splits && phaseTimes(x.splits, x.time_ms).map((t) => (toHundredths(t) / 1000).toFixed(2)).join(" "),
     ]),
   ]
     .map((row) => row.map(cell).join(","))

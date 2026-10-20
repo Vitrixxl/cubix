@@ -14,7 +14,7 @@ test("an average of 5 drops its best and its worst, a DNF being the worst", () =
   expect(r.average).toBeCloseTo(12066.667, 2);
   expect(r.best).toBe(10500);
   expect(r.dropped).toEqual([1, 2]);
-  expect(attemptTexts(times, r.dropped)).toEqual(["12.000", "(10.500)", "(13.200)", "11.800", "12.400"]);
+  expect(attemptTexts(times, r.dropped)).toEqual(["12.00", "(10.50)", "(13.20)", "11.80", "12.40"]);
   const dnf = roundResult("ao5", [12000, null, 13000, 11000, 14000]);
   expect(dnf.average).toBe(13000);
   expect(dnf.dropped).toEqual([3, 1]);
@@ -36,7 +36,7 @@ test("the record a round is compared with", () => {
   expect(roundRecord("ao5", [10000, 11000, 12000, 13000, 14000, 9000])).toBe(12000);
   expect(roundRecord("mo3", [60000, null, 66000, 63000, 60000])).toBe(63000);
   expect(roundRecord("bo3", [null, 45000])).toBe(45000);
-  expect(versusRecord(12000, 12440)).toEqual({ faster: true, text: "−0.440" });
-  expect(versusRecord(13000, 12000)).toEqual({ faster: false, text: "+1.000" });
+  expect(versusRecord(12000, 12440)).toEqual({ faster: true, text: "−0.44" });
+  expect(versusRecord(13000, 12000)).toEqual({ faster: false, text: "+1.00" });
   expect(versusRecord(null, 12000)).toBeNull();
 });

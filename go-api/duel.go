@@ -504,7 +504,7 @@ func (a *DuelArena) play(id string, body any) {
 		if len(race.scrambles) == 0 || r != race.round() || race.seats[seat].results[r] != nil {
 			return
 		}
-		race.seats[seat].results[r] = &duelSolve{ms: duelMs(math.Round(ms)), penalty: p}
+		race.seats[seat].results[r] = &duelSolve{ms: duelMs(hundredths(ms)), penalty: p}
 		race.broadcast(race.state())
 	case "penalty":
 		r, okR := round("round")

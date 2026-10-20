@@ -65,7 +65,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Cube } from "./Cube";
-import { fmtTime, fmtSolve, fmtSolveOf, parseTypedSolve, solveResult, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
+import { fmtTime, fmtSolve, fmtSolveOf, parseTypedSolve, solveResult, typedDisplay, typedSolveChars, effective, INSPECTIONS, TIME_ENTRIES } from "../../src/client/lib/format";
 import { attemptMode } from "../../src/shared/puzzles";
 import { METRONOME_CHOICES, startMetronome } from "../../src/client/lib/metronome";
 import { MBLD_CHOICES, mbldLimitMs, scrambleList } from "../../src/client/lib/wca";
@@ -329,7 +329,7 @@ function InspectionDigits({ since, show, speak, ...digits }: { since: number; sh
     };
   }, [since, speak]);
   const elapsed = now - since,
-    text = !show ? "0.000" : elapsed < INSPECTION_MS ? String(Math.ceil((INSPECTION_MS - elapsed) / 1000)) : elapsed < INSPECTION_DNF_MS ? "+2" : tr("DNF");
+    text = !show ? "0.00" : elapsed < INSPECTION_MS ? String(Math.ceil((INSPECTION_MS - elapsed) / 1000)) : elapsed < INSPECTION_DNF_MS ? "+2" : tr("DNF");
   return <Digits {...digits} text={text} />;
 }
 
@@ -395,7 +395,11 @@ export function Practice() {
     inspecting = timer.inspectedAt !== undefined && timer.phase !== "running";
   const [typed, setTyped] = useState(""),
     typedSolve = typed ? parseTypedSolve(typed) : null;
-  const typedRef = useRef<HTMLInputElement>(null);
+  // The time being typed, for the keys' listeners.
+  const typedRef = useRef("");
+  typedRef.current = typed;
+  // The digits' size, the same typed, inspected or timed.
+  const digitsSize = mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]";
   // While a solve runs everything else fades out and the digits glide to the middle of the screen, then back.
   const digitsRef = useRef<HTMLDivElement>(null),
     running = timer.phase === "running";
@@ -418,10 +422,26 @@ export function Practice() {
       shift = `translate(${innerWidth / 2 - (r.left + r.width / 2)}px, ${innerHeight / 2 - (r.top + r.height / 2)}px)`;
     moved.forEach((e) => e && (e.style.transform = shift));
   }, [running]);
+  useEffect(() => setTyped(""), [typing, s.timerEpoch]);
+  // A typed time is keys, not a field: each one goes into the digits shown, Backspace takes one back, Escape clears
+  // them, Enter saves the solve.
   useEffect(() => {
-    setTyped("");
-    if (typing && !s.overlay) typedRef.current?.focus();
-  }, [typing, s.overlay, s.timerEpoch]);
+    if (!typing) return;
+    const key = (e: KeyboardEvent) => {
+      if (typingInto(e) || s.overlay || s.caseDialog || e.ctrlKey || e.metaKey || e.altKey) return;
+      const text = typedRef.current;
+      if (e.key === "Enter") {
+        const solve = parseTypedSolve(text);
+        if (solve && enabled) setTyped(""), void s.save(solve.ms, solve.penalty);
+      } else if (e.key === "Backspace") setTyped(text.slice(0, -1));
+      else if (e.key === "Escape" && text) setTyped("");
+      else if (e.key.length === 1 && typedSolveChars(e.key) && text.length < 16) setTyped(text + e.key);
+      else return;
+      e.preventDefault();
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, [typing, enabled]);
   const c = training ? s.find(s.training?.id) : null,
     ready = pool ? !!c && pool.has(c.id) : true,
     cubeSize = training ? 0 : s.info()?.cubeSize,
@@ -480,13 +500,13 @@ export function Practice() {
   const notice = running ? "" : s.notice;
   const last = s.solves.find((v) => v.id === s.lastSolve);
   // csTimer's keys on the last solve: Ctrl+1 no penalty, Ctrl+2 a +2, Ctrl+3 a DNF, Ctrl+Z deletes it (asked first).
-  // Never in a field, but the typed time's while it is empty.
+  // Never in a field, nor while a time is being typed.
   useEffect(() => {
     if (!last || mobile) return;
     const key = (e: KeyboardEvent) => {
       // A round's attempts are final once signed: the keys sign the one waiting instead (below).
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || s.overlay || s.caseDialog || s.compRound()) return;
-      if (typingInto(e) && !(e.target === typedRef.current && !typedRef.current?.value)) return;
+      if (typingInto(e) || typedRef.current) return;
       const penalty = ({ Digit1: "none", Digit2: "+2", Digit3: "dnf" } as Record<string, string>)[e.code];
       if (!penalty && e.code !== "KeyZ") return;
       e.preventDefault();
@@ -916,24 +936,13 @@ export function Practice() {
                 ) : fmc ? (
                   <FewestMoves enabled={enabled && !!s.scramble} />
                 ) : typing ? (
-                  <input
-                    ref={typedRef}
-                    className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40")}
-                    aria-label={tr("Time")}
+                  // The typed time drawn as the timer draws its own: "1234" is 12.34, the digits coming in from the right.
+                  <Digits
                     data-tour="timer"
-                    placeholder="0.000"
-                    inputMode="decimal"
-                    value={typed}
-                    onChange={(e) => setTyped(typedSolveChars(e.target.value))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const solve = parseTypedSolve(typed);
-                        if (solve && enabled) {
-                          setTyped("");
-                          void s.save(solve.ms, solve.penalty);
-                        }
-                      }
-                    }}
+                    digitsRef={digitsRef}
+                    text={typed ? typedDisplay(typed) : "0.00"}
+                    phase="idle"
+                    className={cn(digitsSize, !typed && "opacity-40")}
                   />
                 ) : inspecting ? (
                   <InspectionDigits
@@ -943,16 +952,16 @@ export function Practice() {
                     show={!!round || s.inspection === "display" || s.inspection === "both"}
                     speak={s.inspection === "voice" || s.inspection === "both"}
                     phase={timer.phase}
-                    className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
+                    className={digitsSize}
                   />
                 ) : (
                   <LiveDigits
                     data-tour="timer"
                     digitsRef={digitsRef}
                     startedAt={timer.startedAt}
-                    text={judging ? fmtSolve(judging.ms, judging.penalty) : timer.phase === "holding" || timer.phase === "ready" ? "0.000" : timer.expired ? tr("DNF") : fmtTime(timer.elapsed)}
+                    text={judging ? fmtSolve(judging.ms, judging.penalty) : timer.phase === "holding" || timer.phase === "ready" ? "0.00" : timer.expired ? tr("DNF") : fmtTime(timer.elapsed)}
                     phase={timer.phase}
-                    className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : live ? "text-[clamp(40px,min(calc(90cqw/var(--chars)),13cqh),104px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
+                    className={mobile ? digitsSize : live ? "text-[clamp(40px,min(calc(90cqw/var(--chars)),13cqh),104px)]" : digitsSize}
                   />
                 )}
                 {fmc ? null : s.mbldPending && multi ? (

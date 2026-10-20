@@ -59,5 +59,5 @@ test("splits travel through csTimer's backups, Qbix's own export and the CSV", (
   expect(readTimerExport(JSON.stringify(cstimer)).solves[0]!.splits).toEqual([1800, 7500, 9600]);
   const qbix = { app: "Qbix", solves: [{ id: 1, session_id: null, case_id: null, puzzle_id: "333", solve_mode: "standard", time_ms: 11200, penalty: "none", scramble: "R", created_at: "2026-10-10T08:00:00.000Z", splits: [1800, 7500] }], sessions: [] };
   expect(readTimerExport(JSON.stringify(qbix)).solves[0]!.splits).toEqual([1800, 7500]);
-  expect(solvesCsv([{ created_at: "2026-10-10", time_ms: 11200, penalty: "none", splits: [1800, 7500] }]).split("\n")[1]).toEndWith(",1.800 5.700 3.700");
+  expect(solvesCsv([{ created_at: "2026-10-10", time_ms: 11200, penalty: "none", splits: [1800, 7500] }]).split("\n")[1]).toEndWith(",11.20,none,,,,1.80 5.70 3.70");
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseTypedSolve, parseTypedTime, typedSolveChars } from "../src/client/lib/format";
+import { parseTypedSolve, parseTypedTime, typedDisplay, typedSolveChars } from "../src/client/lib/format";
 
 test("bare digits read from the right, like csTimer", () => {
   expect(parseTypedTime("1234")).toBe(12340);
@@ -12,7 +12,7 @@ test("punctuated times keep their units", () => {
   expect(parseTypedTime("12.34")).toBe(12340);
   expect(parseTypedTime(" 12,3 ")).toBe(12300);
   expect(parseTypedTime(".5")).toBe(500);
-  expect(parseTypedTime("9.8765")).toBe(9876);
+  expect(parseTypedTime("9.8765")).toBe(9870);
   expect(parseTypedTime("1:23.45")).toBe(83450);
   expect(parseTypedTime("1:5")).toBe(65000);
   expect(parseTypedTime("1:02:03.4")).toBe(3723400);
@@ -32,4 +32,12 @@ test("a typed solve takes a +2 or a DNF as csTimer does; the bare time stays wit
   // A best declared in the introduction is a time, never a penalty.
   for (const text of ["DNF", "12.34+"]) expect(parseTypedTime(text)).toBeNull();
   expect(typedSolveChars("Dnf(1a2.3)+x")).toBe("Dnf(12.3)+");
+});
+
+test("a time being typed is shown to the hundredth, the digits coming in from the right", () => {
+  expect(["1", "12", "123", "1234", "12345"].map(typedDisplay)).toEqual(["0.01", "0.12", "1.23", "12.34", "1:23.45"]);
+  expect(typedDisplay("12.34+")).toBe("12.34+");
+  expect(typedDisplay("DNF")).toBe("DNF");
+  expect(typedDisplay("dnf(1234)")).toBe("DNF(12.34)");
+  for (const text of ["0", "1:", "dn"]) expect(typedDisplay(text)).toBe(text);
 });

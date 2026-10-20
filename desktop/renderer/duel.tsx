@@ -572,8 +572,8 @@ function Race() {
   const mine = duel.me,
     theirs = duel.them,
     myLast = mine[duel.latest(mine)],
-    myRest = timer.phase !== "idle" ? "0.000" : shownSolve(myLast),
-    theirRest = duel.opponentPhase !== "idle" ? "0.000" : shownSolve(theirs[duel.latest(theirs)]);
+    myRest = timer.phase !== "idle" ? "0.00" : shownSolve(myLast),
+    theirRest = duel.opponentPhase !== "idle" ? "0.00" : shownSolve(theirs[duel.latest(theirs)]);
   const myHint = timerHint(timer.phase, {
     disabled: !duel.opponentHere ? `${opponent.name} left the race` : duel.over ? "Race over" : !duel.scrambles.length ? "Drawing the scrambles…" : !!mine[round] && `Waiting for ${opponent.name}`,
     keyboard: !phone,

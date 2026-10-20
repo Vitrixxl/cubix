@@ -416,7 +416,7 @@ function InspectionDigits({ timer, area, max, show, speak }: { timer: TimerApi; 
     return () => { calls.forEach(clearTimeout); voice?.cancel(); };
   }, [since, speak]);
   const elapsed = now - since;
-  const text = !show ? "0.000" : elapsed < INSPECTION_MS ? String(Math.ceil((INSPECTION_MS - elapsed) / 1000)) : elapsed < INSPECTION_DNF_MS ? "+2" : tr("DNF");
+  const text = !show ? "0.00" : elapsed < INSPECTION_MS ? String(Math.ceil((INSPECTION_MS - elapsed) / 1000)) : elapsed < INSPECTION_DNF_MS ? "+2" : tr("DNF");
   return <Digits text={text} phase={timer.phase} size={digitsSize(area, 6, max)} />;
 }
 

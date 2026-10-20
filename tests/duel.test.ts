@@ -82,9 +82,9 @@ test("two players of close levels race an Ao5 on the same scrambles", async () =
     host.drain();
     // Ahead of the round: ignored.
     host.send({ type: "solve", round: round + 1, ms: 1, penalty: "none" });
-    host.send({ type: "solve", round, ms: 10000 + round, penalty: "none" });
+    host.send({ type: "solve", round, ms: 10000 + round * 10, penalty: "none" });
     await host.next("state", (m) => m.results[seatOf(host)][round]);
-    guest.send({ type: "solve", round, ms: 11000 + round, penalty: round === 4 ? "dnf" : "none" });
+    guest.send({ type: "solve", round, ms: 11000 + round * 10, penalty: round === 4 ? "dnf" : "none" });
     await host.next("state", (m) => m.results.every((r: any[]) => r[round]));
   }
   guest.drain();
@@ -92,8 +92,8 @@ test("two players of close levels race an Ao5 on the same scrambles", async () =
   guest.send({ type: "cancel", round: 4 });
   host.send({ type: "penalty", round: 2, penalty: "+2" });
   const over = await guest.next("state", (m) => m.results[seatOf(host)][2]?.penalty === "+2");
-  expect(over.results[seatOf(guest)][4]).toEqual({ ms: 11004, penalty: "dnf" });
-  expect(over.results[seatOf(host)].map((r: any) => r.ms)).toEqual([10000, 10001, 10002, 10003, 10004]);
+  expect(over.results[seatOf(guest)][4]).toEqual({ ms: 11040, penalty: "dnf" });
+  expect(over.results[seatOf(host)].map((r: any) => r.ms)).toEqual([10000, 10010, 10020, 10030, 10040]);
 
   // A rematch starts once both ask, on new scrambles from the host.
   guest.drain();

@@ -116,7 +116,7 @@ try {
   for (let i = 0; i < 4 && !(await highlighted.filter({ hasText: "Slowest first" }).count()); i++) await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   assert.equal(await sort.innerText(), "Slowest first");
-  assert.equal((await times())[0], "1:23.000"); // DNFs stay last in both directions, as on mobile.
+  assert.equal((await times())[0], "1:23.00"); // DNFs stay last in both directions, as on mobile.
   await sort.click();
   await page.getByRole("menuitemradio", { name: "Newest first" }).click();
   // The whole period is one list: scrolled to its end, its oldest solve is drawn, the rows above it no longer.

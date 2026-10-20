@@ -308,7 +308,7 @@ function Attempt({ event }: { event: DailyEvent }) {
       <Fade hidden={running}>
         {scramble ? <Alg text={scramble} size={19} /> : <Skeleton className="h-6 w-11/12" />}
       </Fade>
-      <TimerCard timer={timer} rest="0.000" disabled={!scramble || saving} hint={timerHint(timer, { disabled: !scramble ? tr("One moment…") : saving ? tr("Saving…") : false })} />
+      <TimerCard timer={timer} rest="0.00" disabled={!scramble || saving} hint={timerHint(timer, { disabled: !scramble ? tr("One moment…") : saving ? tr("Saving…") : false })} />
       <SaveError timer={timer} />
     </View>
     <StopSurface timer={timer} />

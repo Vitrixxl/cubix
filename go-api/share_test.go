@@ -73,7 +73,7 @@ func TestSharedSolves(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	webRouter(dir, db).ServeHTTP(w, httptest.NewRequest("GET", "/fr/s/"+first, nil))
-	if body := w.Body.String(); w.Code != 200 || !strings.Contains(body, `<meta property="og:title" content="14.340+ · 3×3 on Qbix" />`) ||
+	if body := w.Body.String(); w.Code != 200 || !strings.Contains(body, `<meta property="og:title" content="14.34+ · 3×3 on Qbix" />`) ||
 		!strings.Contains(body, `<meta property="og:url" content="https://example.com/s/`+first+`" />`) {
 		t.Fatalf("page %d %s", w.Code, body)
 	}

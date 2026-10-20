@@ -980,7 +980,7 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			if !ok || math.IsNaN(f) || f < 0 || f > time {
 				return nil, validation()
 			}
-			f = math.Round(f)
+			f = hundredths(f)
 			memo = &f
 		}
 		splits, err := apiSplits(body, time)
@@ -1041,7 +1041,7 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			return nil, apiErr(409, "This account holds 200,000 solves, the most it can keep. Delete old ones to add more.")
 		}
 		row, err := apiSolveRow(dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,splits,moves,cubes_solved,cubes_attempted,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
-			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, splits, moves, solved, attempted, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType))
+			sid, caseID, hundredths(time), penalty, scramble, comment, solution, memo, splits, moves, solved, attempted, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType))
 		if err == nil {
 			*caller.solves++
 		}

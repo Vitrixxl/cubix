@@ -224,9 +224,10 @@ func webSharedPage(dir string, db *Db, path string, w http.ResponseWriter, r *ht
 		if penalty == "+2" {
 			ms += 2000
 		}
-		time = fmt.Sprintf("%.3f", float64(ms)/1000)
+		ms = ms / 10 * 10
+		time = fmt.Sprintf("%.2f", float64(ms)/1000)
 		if minutes := ms / 60000; minutes > 0 {
-			time = fmt.Sprintf("%d:%06.3f", minutes, float64(ms%60000)/1000)
+			time = fmt.Sprintf("%d:%05.2f", minutes, float64(ms%60000)/1000)
 		}
 		if penalty == "+2" {
 			time += "+"

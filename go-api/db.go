@@ -322,12 +322,25 @@ func dbMigrate(db *Conn) error {
 				ALTER TABLE solves DROP COLUMN share_token;`)
 		},
 	}
+	steps = append(steps, func() error { return timesToHundredths(db) })
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// timesToHundredths keeps every stored time to the hundredth, as the API takes them (`hundredths`): the solves' times
+// and memorisations, the daily results and the battles' solves. Run at each start, it changes only what is left; the
+// solves changed reach each device through their sync triggers.
+func timesToHundredths(db *Conn) error {
+	return db.ExecBatch(`UPDATE solves SET time_ms=time_ms-time_ms%10 WHERE time_ms%10!=0;
+		UPDATE solves SET memo_ms=memo_ms-memo_ms%10 WHERE memo_ms%10!=0;
+		UPDATE daily_results SET time_ms=time_ms-time_ms%10 WHERE time_ms%10!=0;
+		UPDATE daily_cancelled SET time_ms=time_ms-time_ms%10 WHERE time_ms%10!=0;
+		UPDATE match_solves SET a_ms=a_ms-a_ms%10 WHERE a_ms%10!=0;
+		UPDATE match_solves SET b_ms=b_ms-b_ms%10 WHERE b_ms%10!=0;`)
 }
 
 // dbAll is db::all: every row as an object; blobs read as null.

@@ -44,7 +44,7 @@ test("solves of every event give their result, figures and fields", () => {
   expect(solveResult(fm(28, "dnf"))).toBeNull();
   expect(fmtSolveOf(fm(28))).toBe("28");
   expect(fmtSolveOf({ time_ms: 1_000_000, penalty: "none", solve_mode: "multi-blind", cubes_solved: 3, cubes_attempted: 4 })).toBe("3/4 16:40");
-  expect(fmtSolveOf({ time_ms: 12_345, penalty: "+2" })).toBe("14.345+");
+  expect(fmtSolveOf({ time_ms: 12_340, penalty: "+2" })).toBe("14.34+");
   const solves = [fm(30), fm(27), fm(29)];
   expect(sessionFigures(solves, shownFigures("fewest-moves", ["ao5"]))).toEqual([
     ["Best", "27", "good"], ["Mo3", "28.67", "accent"], ["Best Mo3", "28.67", "good"], ["Mean", "28.67", ""], ["Solves", "3", ""],

@@ -303,6 +303,10 @@ func seedRun(db *Conn, catalog *Catalog) (*SeedSummary, error) {
 		return nil, err
 	}
 	solves, _ := asInt(row["n"])
+	// The seed's times to the hundredth, as the API keeps them.
+	if err := timesToHundredths(db); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}

@@ -143,7 +143,7 @@ export function TimerCard({ timer, rest, hint, disabled, actions, top, className
       onLayout={e => { const { width, height } = e.nativeEvent.layout; setArea(a => a.width === width && a.height === height ? a : { width, height }); }}>
       {top}
       {running ? <LiveDigits startedAt={timer.startedAt} size={size} />
-        : <Digits text={timer.phase === "idle" || timer.phase === "stopped" ? rest : "0.000"} phase={timer.phase} size={size} />}
+        : <Digits text={timer.phase === "idle" || timer.phase === "stopped" ? rest : "0.00"} phase={timer.phase} size={size} />}
       <Text numberOfLines={1} className={cn("min-h-5 text-sm text-muted-foreground", running && "opacity-0")}>{said(hint)}</Text>
     </View>
     {actions ? <Fade hidden={running}><TouchBar className="px-2 pb-2">{actions}</TouchBar></Fade> : null}
@@ -167,7 +167,7 @@ export function OpponentLive({ title, phase, startedAt, rest, gone }: { title: s
   return <View className={cn("min-h-14 flex-row items-center gap-2.5 rounded-2xl bg-card px-3.5 py-2", gone && "opacity-50")}>
     {running ? <LiveDot tone="bg-success" /> : <View className="size-2 rounded-full bg-muted-foreground/40" />}
     <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold">{said(title)}</Text>
-    {running ? <LiveDigits startedAt={startedAt} size={26} /> : <Digits text={phase === "idle" ? rest : "0.000"} phase={phase} size={26} />}
+    {running ? <LiveDigits startedAt={startedAt} size={26} /> : <Digits text={phase === "idle" ? rest : "0.00"} phase={phase} size={26} />}
   </View>;
 }
 

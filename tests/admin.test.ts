@@ -396,7 +396,7 @@ test("finished duels are recorded for the overview and both accounts",async()=>{
  const [host,guest]=ma.host?[a,b]:[b,a];const aliceSeat=ma.seat;
  host.send({type:"scrambles",list:["R","U","F","L","D"]});await guest.next(m=>m.type==="state"&&m.scrambles.length===5);
  for(let round=0;round<5;round++){
-  a.send({type:"solve",round,ms:10000+round,penalty:"none"});b.send({type:"solve",round,ms:12000+round,penalty:round===4?"dnf":"none"});
+  a.send({type:"solve",round,ms:10000+round*10,penalty:"none"});b.send({type:"solve",round,ms:12000+round*10,penalty:round===4?"dnf":"none"});
   await a.next(m=>m.type==="state"&&m.results.every((r:any[])=>r[round]));
  }
  a.ws.close();b.ws.close();
@@ -404,7 +404,7 @@ test("finished duels are recorded for the overview and both accounts",async()=>{
  const overview=await eventually(()=>adminGet(origin,admin.cookie,"/api/admin/overview"),o=>o.duels.total===1);
  expect(overview.duels).toEqual({total:1,today:1,d7:1});expect(overview.series.at(-1).duels).toBe(1);
  const detail=await adminGet(origin,admin.cookie,"/api/admin/users/"+alice.user.id);
- expect(detail.duels).toMatchObject({played:1,won:1,lost:0,recent:[{opponent:"duel_bob",opponentId:bob.user.id,ao5:10002,opponentAo5:12002,result:"win"}]});
+ expect(detail.duels).toMatchObject({played:1,won:1,lost:0,recent:[{opponent:"duel_bob",opponentId:bob.user.id,ao5:10020,opponentAo5:12020,result:"win"}]});
  expect(detail.user.duels).toBe(1);expect(aliceSeat===0||aliceSeat===1).toBe(true);
  // The two players came on the app's socket.
  const log=await adminGet(origin,admin.cookie,"/api/admin/requests?kind=live");expect(log.total).toBe(2);expect(log.rows[0]).toMatchObject({path:"/api/live",status:101});

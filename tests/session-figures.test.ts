@@ -22,11 +22,11 @@ describe("the timer's chosen figures", () => {
   test("computes each figure, a DNF counting as the slowest", () => {
     const figures = sessionFigures(solves(1000, 2000, 3000, 4000, 5000, 6000), ["median", "ao3", "ao3:best", "ao3:worst", "ao5", "count", "ao12"]);
     expect(figures.map(([label, value]) => [label, value])).toEqual([
-      ["Median", "3.500"],
-      ["Ao3", "5.000"],
-      ["Best Ao3", "2.000"],
-      ["Worst Ao3", "5.000"],
-      ["Ao5", "4.000"],
+      ["Median", "3.50"],
+      ["Ao3", "5.00"],
+      ["Best Ao3", "2.00"],
+      ["Worst Ao3", "5.00"],
+      ["Ao5", "4.00"],
       ["Solves", "6"],
       ["Ao12", "–"],
     ]);
