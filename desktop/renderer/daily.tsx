@@ -4,18 +4,17 @@
  * histogram on the right with the player's bar raised. The same standing in a dialog after the solve.
  */
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, CalendarDays, History, Play, Trophy, Undo2 } from "lucide-react";
+import { BadgeCheck, CalendarDays, History, Play, Undo2 } from "lucide-react";
 import { store as s } from "./store";
 import { call } from "./bridge";
 import { Alg, Back, Button, Empty, Modal, NUMERIC, PAGE, PageHead, Segmented, Surface, Tip, isPhone, useViewport } from "./ui";
-import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, apart, opens } from "./tournaments/format";
-import { IconTile } from "./base";
+import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, opens } from "./tournaments/format";
 import { cn } from "@/lib/utils";
 import { VirtualList } from "./virtual";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button as UiButton } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { bucketOf, dailyDay, dailyStats, fetchDaily, fetchDailyHistory, isDailyEvent, DAILY_EVENTS, type DailyBoard, type DailyDay, type DailyEvent, type DailyPlace } from "../../src/client/lib/daily";
+import { bucketOf, dailyDay, dailyStats, fetchDaily, fetchDailyHistory, dailyEventOf, type DailyBoard, type DailyDay, type DailyEvent, type DailyPlace } from "../../src/client/lib/daily";
 import { fmtSolve, fmtTime } from "../../src/client/lib/format";
 import { eventInfo } from "../../src/shared/puzzles";
 import { locale, tn, tr } from "../../src/client/i18n";
@@ -66,8 +65,7 @@ async function loadHistory(event: DailyEvent) {
 }
 /** Today's scramble, field and results of the event the page opens on, read ahead so that it opens at once. */
 export function preloadDaily() {
-  const current = s.event().id,
-    event: DailyEvent = isDailyEvent(current) ? current : "333";
+  const event = dailyEventOf(s.puzzle);
   void loadDaily(event, dailyDay());
   if (s.signedIn) void loadHistory(event);
 }
@@ -96,49 +94,6 @@ function DailyChart({ board, place }: { board: DailyBoard; place: DailyPlace | n
         );
       })}
     </figure>
-  );
-}
-
-/**
- * The Challenges' hub's Daily (duel.tsx): today's scramble, the field so far with the player's bar, then Solve, or the
- * standing once done. The whole card opens the page.
- */
-export function DailyCard() {
-  const current = s.event().id,
-    event: DailyEvent = isDailyEvent(current) ? current : "333",
-    day = dailyDay(),
-    local = s.dailyDone[`${day}:${event}`],
-    scramble = scrambles.get(`${day}:${event}`) ?? "",
-    board = boards.get(`${s.user.id}:${day}:${event}:${s.dailyVerified}`) ?? null,
-    loaded = board && board !== "offline" ? board : null,
-    place = loaded ? loaded.mine ?? loaded.placed : null,
-    done = !!local || !!loaded?.mine,
-    open = () => void s.action("nav:daily");
-  useEffect(() => void loadDaily(event, day), [event, day, local?.penalty, local?.timeMs]);
-  return (
-    <Surface {...opens(open, "link")} aria-label={tr("Daily")} data-hub="daily" className={cn(CARD_LINK, "min-h-0 flex-1 gap-3.5 p-5")}>
-      <div className="flex items-center gap-3">
-        <IconTile icon={CalendarDays} />
-        <PanelHead title={tr("Daily")} meta={dayLabel(day)} className="min-w-0 flex-1" />
-        {place && <span className={cn(NUMERIC, "text-sm font-bold text-success")}>{fmtSolve(place.timeMs, place.penalty)}</span>}
-      </div>
-      <div className="font-semibold">{scramble ? <Alg text={scramble} size={18} /> : <Skeleton className="h-6 w-full" />}</div>
-      {loaded && <span className={cn(KICKER, "normal-case tracking-normal")}>{place ? tr("{0} of {1}", { 0: place.rank, 1: loaded.total }) + " · " : ""}{tn(loaded.total, "{n} solver")}</span>}
-      {loaded ? <DailyChart board={loaded} place={place} /> : <div className="flex-1" />}
-      <div className="flex" {...apart}>
-        {done ? (
-          <UiButton variant="secondary" className="flex-1" onClick={open} data-action="daily:standing">
-            <Trophy />
-            {tr("Standing")}
-          </UiButton>
-        ) : (
-          <UiButton className="flex-1" data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)}>
-            <Play />
-            {tr("Solve")}
-          </UiButton>
-        )}
-      </div>
-    </Surface>
   );
 }
 
@@ -240,13 +195,12 @@ export function DailyDialog() {
   );
 }
 
-/** Challenges › Daily: the player's results over the days, the day's scramble of each event with a way to the timer on it, and where one stands. */
+/** Challenges › Daily: the day's scramble of the puzzle chosen with a way to the timer on it, where one stands, and the player's results over the days. */
 export function DailyPage() {
-  const current = s.event().id,
-    today = dailyDay(),
+  const today = dailyDay(),
     { w } = useViewport(),
     phone = isPhone(w),
-    [event, setEvent] = useState<DailyEvent>(isDailyEvent(current) ? current : "333"),
+    event = dailyEventOf(s.puzzle),
     [day, setDay] = useState(today),
     [results, setResults] = useState(false),
     verified = s.dailyVerified,
@@ -258,7 +212,6 @@ export function DailyPage() {
   const loaded = board && board !== "offline" ? board : null,
     place = loaded ? loaded.mine ?? loaded.placed : null,
     done = !!local || !!loaded?.mine;
-  const events = <Segmented label={tr("Event")} value={event} onChange={(id) => setEvent(id as DailyEvent)} options={DAILY_EVENTS.map((id) => ({ id, label: eventLabel(id) }))} action="daily-event:" />;
   const action =
     board === null ? (
       <Skeleton className="h-16 w-[min(100%,24rem)] rounded-xl" />
@@ -269,7 +222,7 @@ export function DailyPage() {
     ) : (
       <StageAction icon={Play} title={tr("Solve it")} data-action={"daily:" + event} onClick={() => void s.action("daily:" + event)} />
     );
-  const pick = (d: string, e: DailyEvent) => (setDay(d), setEvent(e), setResults(false));
+  const pick = (d: string) => (setDay(d), setResults(false));
   const resultsButton = (
     <Tip content={tr("Your results")}>
       <UiButton variant="outline" onClick={() => setResults(true)} data-action="daily:results">
@@ -281,9 +234,7 @@ export function DailyPage() {
   return (
     <div className={cn(PAGE, "daily")}>
       {phone && (
-        <PageHead title={tr("Daily scramble")}>
-          {events}
-        </PageHead>
+        <PageHead title={tr("Daily scramble")} puzzle />
       )}
       <div className={cn("grid min-h-0 flex-1 gap-5", phone ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]")}>
         <Stage
@@ -310,10 +261,9 @@ export function DailyPage() {
           )}
           <div className="flex flex-col items-center gap-2.5">
             {!phone && (
-              <div className="flex items-center gap-3">
-                <span className={KICKER}>{dayLabel(day)}</span>
-                {events}
-              </div>
+              <span className={KICKER}>
+                {dayLabel(day)} · {eventLabel(event)}
+              </span>
             )}
             <div className="max-w-[min(100%,40rem)] text-center font-semibold">{scramble ? <Alg text={scramble} size={phone ? 17 : 22} /> : <Skeleton className="h-7 w-[min(36rem,80vw)]" />}</div>
           </div>
@@ -356,7 +306,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
  * days above, each day its time, rank and whether it is verified; one picked shows its field. From the API once signed
  * in (in the view picked: all results or the verified ones), else the attempts kept on this device.
  */
-function Results({ day, event, onPick }: { day: string; event: DailyEvent; onPick: (day: string, event: DailyEvent) => void }) {
+function Results({ day, event, onPick }: { day: string; event: DailyEvent; onPick: (day: string) => void }) {
   const today = dailyDay(),
     verified = s.dailyVerified,
     local = s.dailyDone[`${today}:${event}`],
@@ -394,7 +344,7 @@ function Results({ day, event, onPick }: { day: string; event: DailyEvent; onPic
                 level={eventLabel(event)}
                 sub={tr("Not tried yet")}
                 aria-current={day === today ? "true" : undefined}
-                {...opens(() => onPick(today, event))}
+                {...opens(() => onPick(today))}
                 className={TICKET_LINK}
               />
             )}
@@ -413,7 +363,7 @@ function Results({ day, event, onPick }: { day: string; event: DailyEvent; onPic
                   level={v.total ? tr("{0} of {1}", { 0: v.rank, 1: v.total }) : undefined}
                   sub={<Verified on={v.verified} />}
                   aria-current={day === v.day ? "true" : undefined}
-                  {...opens(() => onPick(v.day, event))}
+                  {...opens(() => onPick(v.day))}
                   className={cn(TICKET_LINK, "grid-cols-[72px_minmax(0,1fr)_auto]")}
                 />
               )}

@@ -19,7 +19,7 @@ import { XpGain } from "./xp";
 import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
-import { bindNavigation, go, readRoute, type AppRoute } from "./navigation";
+import { COACHING, bindNavigation, go, readRoute, type AppRoute } from "./navigation";
 import { onIntent, thrifty } from "./prefetch";
 import { preloadAll } from "./preload";
 import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
@@ -166,7 +166,7 @@ function App() {
             Digit5: "nav:duel",
             Digit6: "nav:tournaments",
             Digit7: "nav:community",
-            Digit8: "nav:coaching",
+            Digit8: COACHING ? "nav:coaching" : undefined,
             Digit9: "nav:analysis",
             KeyS: "settings",
             KeyN: "next",

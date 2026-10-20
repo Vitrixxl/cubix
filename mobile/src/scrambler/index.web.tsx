@@ -42,6 +42,7 @@ export const nativeEngine: ScrambleEngine = {
   randomScrambleForEvent: event => send("event", { event }),
   orbitScramble: orbit => send("orbit", { orbit }),
   patternScramble: pattern => send("pattern", { pattern }),
+  seededScramble: (event, seed) => send("seeded", { event, seed }),
 };
 /** The timer's metronome: the page's own Web Audio (a worker has none). */
 export { startMetronome as metronome } from "../../../src/client/lib/metronome";

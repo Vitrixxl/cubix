@@ -16,7 +16,7 @@ import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import type { PolyPuzzle } from "../../src/shared/puzzleScene";
 import { PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
-import { go, goPage, pageUrl, readRoute, type AppRoute } from "./navigation";
+import { COACHING, go, goPage, pageUrl, readRoute, type AppRoute } from "./navigation";
 import { ACCOUNT_PAGES } from "../../src/client/lib/route";
 import { sharedSolveUrl } from "../../src/client/lib/sharedSolve";
 import { smartCube } from "../../src/client/lib/smartCube";
@@ -1093,6 +1093,7 @@ export class Store {
   }
   applyRoute(route: AppRoute) {
     if (route.page === "onboarding" || route.page === "login") return;
+    if (route.page === "coaching" && !COACHING) return void goPage("community", {}, true);
     const { page } = route;
     // A case's address names its puzzle: the list beside it opens on its step and its set.
     const shown = page === "algorithms" ? this.find(route.caseId) : undefined, puzzle = shown ? puzzleOf(shown) : route.puzzle;

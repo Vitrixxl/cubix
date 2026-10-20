@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router";
-import { pageUrl, readRoute, type AppRoute } from "./navigation";
+import { COACHING, pageUrl, readRoute, type AppRoute } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
@@ -32,7 +32,7 @@ export const SECTIONS: { id: string; label: string; short: string; icon: LucideI
   { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["learn", "Courses", "Alt+2"], ["training", "Training", "Alt+3"]] },
   { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+4"]] },
   { id: "compete", label: "Challenges", short: "Challenges", icon: Swords, pages: [["duel", "Duel", "Alt+5"], ["tournaments", "Tournaments", "Alt+6"], ["daily", "Daily", ""], ["wca", "WCA", ""]] },
-  { id: "social", label: "Social", short: "Social", icon: Users, pages: [["community", "Messages", "Alt+7"], ["people", "Community", ""], ["coaching", "Coaching", "Alt+8"]] },
+  { id: "social", label: "Social", short: "Social", icon: Users, pages: [["community", "Messages", "Alt+7"], ["people", "Community", ""], ...(COACHING ? [["coaching", "Coaching", "Alt+8"] as Page] : [])] },
 ];
 
 /** The route the app shows: the store's once started, the address's before (the store then still holds its defaults). */

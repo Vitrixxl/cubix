@@ -79,7 +79,7 @@ func TestDailyOneRankedAttempt(t *testing.T) {
 		if m := v.(M); m["total"] != 2 || m["mine"] != nil || m["placed"].(M)["rank"] != 2 || m["placed"].(M)["beats"] != 50.0 {
 			t.Fatal(m)
 		}
-		if _, err := dailyRoute(c, "GET", []string{"daily", "pyram"}, nil, nil, &ApiCaller{}); err == nil {
+		if _, err := dailyRoute(c, "GET", []string{"daily", "333bf"}, nil, nil, &ApiCaller{}); err == nil {
 			t.Fatal("event without a daily scramble")
 		}
 		return nil

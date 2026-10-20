@@ -44,29 +44,20 @@ async function solve(page: Page, ms = 150) {
 try {
   const a = await open(), b = await open();
   assert.equal(await a.locator("[data-sonner-toast]").count() + await b.locator("[data-sonner-toast]").count(), 0, "no tab waits for another");
-  // The Challenges open on their hub: the duel, the daily and the tournaments; the section's rail beside it; each opens its page, Back returns.
+  // The Challenges open on the duel: its box, the races played and the friends, nothing of the daily or the tournaments,
+  // which have their own tabs in the section's rail; the duel's box is no link and says how many search its event.
   await a.waitForSelector(".challenges-hub");
-  assert.equal(await a.locator(".challenges-hub [data-hub]").count(), 3, "the duel, the tournaments and the daily");
+  assert.equal(await a.locator(".challenges-hub [data-hub], .challenges-hub [data-action='tournaments:open']").count(), 0, "the duel alone");
+  await a.waitForFunction(() => document.querySelector('.challenges-hub [data-tour="duel"]')?.textContent?.includes("Searching now0"));
   assert.equal(await a.locator('nav[aria-label="Challenges"] [data-action="nav:tournaments"]').count(), 1, "the section's rail");
   assert.ok(await fits(a), "the hub fits the window");
   await a.screenshot({ path: `${SHOTS}/hub.png` });
-  await a.locator('[data-hub="tournaments"]').click();
-  await a.waitForSelector(".tournaments");
-  await a.locator('main [data-action="coaching:back"]').click();
-  await a.waitForSelector(".challenges-hub");
-  await a.locator('[data-hub="daily"]').click();
-  await a.waitForSelector(".daily-stage");
-  await a.locator('main [data-action="nav:duel"]').click();
-  await a.waitForSelector(".challenges-hub");
-  await a.locator('[data-hub="duel"]').click();
-  await a.waitForSelector(".duel-stage");
-  assert.ok(await fits(a), "the lobby fits the window");
-  await a.screenshot({ path: `${SHOTS}/lobby.png` });
-  await a.locator('[data-action="duel:hub"]').click();
-  await a.waitForSelector(".challenges-hub");
-  // Face off, from the hub, opens the duel's page on the search under way.
+  // Face off, from the hub, opens the duel's page on the search under way; the other tab's hub counts it.
   await a.locator('[data-action="duel:search"]').click();
   await a.waitForSelector(".duel-lobby .duel-cancel");
+  assert.ok(await fits(a), "the lobby fits the window");
+  await a.screenshot({ path: `${SHOTS}/lobby.png` });
+  await b.waitForFunction(() => document.querySelector('.challenges-hub [data-tour="duel"]')?.textContent?.includes("Searching now1"));
   await b.locator('[data-action="duel:search"]').click();
   await Promise.all([a.waitForSelector(".duel-race"), b.waitForSelector(".duel-race")]);
   await Promise.all([a.waitForSelector(".duel-scramble .alg"), b.waitForSelector(".duel-scramble .alg")]);

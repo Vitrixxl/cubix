@@ -16,6 +16,7 @@ const handlers: Record<string, (payload: any) => Promise<string>> = {
   event: ({ event }) => engine.randomScrambleForEvent(event),
   orbit: ({ orbit }) => engine.orbitScramble(orbit),
   pattern: ({ pattern }) => engine.patternScramble(pattern),
+  seeded: ({ event, seed }) => engine.seededScramble(event, seed),
   // Optimal cross, XCross or XXCross solutions: a depth-first search too slow for the app's JS thread.
   crossSolutions: async ({ scramble, target }) => JSON.stringify(crossSolutions(scramble, target)),
   // The timer's metronome (src/client/lib/metronome): Hermes has no Web Audio, this page has. 0 stops it.

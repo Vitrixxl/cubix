@@ -1,18 +1,21 @@
 /**
- * The daily scramble: one scramble a day per event, the same for everyone, new at midnight UTC. It is drawn on the
- * device, offline too: a random state seeded by the date and the event, solved by the app's random-state 3×3
- * solver (cubing.js, deterministic), so every platform shows the same moves. The field and the ranking come from
- * /api/daily/<event> (go-api/daily.go).
+ * The daily scramble: one scramble a day per puzzle, the same for everyone, new at midnight UTC. It is drawn on the
+ * device, offline too, by the app's scrambler seeded by the date and the puzzle (the 3×3: a random state seeded so,
+ * solved), so every platform shows the same moves. The field and the ranking come from /api/daily/<puzzle>
+ * (go-api/daily.go).
  */
 import type { PatternData } from "../../shared/crossTraining";
 import type { ScrambleEngine } from "./practiceScrambleCore";
+import { PUZZLES, type PuzzleId } from "../../shared/puzzles";
 import { msg } from "../i18n/msg";
 import { effective } from "./format";
 
-/** The events with a daily scramble: the 3×3 random-state ones. */
-export const DAILY_EVENTS = ["333", "333oh"] as const;
-export type DailyEvent = (typeof DAILY_EVENTS)[number];
+/** The events with a daily scramble: each puzzle's own (its id), relays aside. */
+export const DAILY_EVENTS: readonly PuzzleId[] = PUZZLES.map(p => p.id);
+export type DailyEvent = PuzzleId;
 export const isDailyEvent = (event: string): event is DailyEvent => (DAILY_EVENTS as readonly string[]).includes(event);
+/** The daily scramble of the puzzle chosen, the 3×3's for a relay. */
+export const dailyEventOf = (puzzle: string): DailyEvent => (isDailyEvent(puzzle) ? puzzle : "333");
 /** The day of the daily scramble: the UTC date, YYYY-MM-DD. */
 export const dailyDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 
@@ -58,7 +61,12 @@ export function dailyPattern(day: string, event: string): PatternData {
     CENTERS: { pieces: [0, 1, 2, 3, 4, 5], orientation: [0, 0, 0, 0, 0, 0] },
   } as PatternData;
 }
-export const dailyScramble = (day: string, event: string, engine: ScrambleEngine) => engine.patternScramble(dailyPattern(day, event));
+/** The day's scramble of a puzzle: the 3×3's from its seeded state, the others' from the scrambler seeded by the day. */
+export function dailyScramble(day: string, event: string, engine: ScrambleEngine) {
+  if (event === "333") return engine.patternScramble(dailyPattern(day, event));
+  const below = seeded(`qbix-daily:${day}:${event}`);
+  return engine.seededScramble(event, [below(2 ** 32), below(2 ** 32)]);
+}
 
 export type DailyPlace = { rank: number; beats: number; timeMs: number; penalty: "none" | "+2" | "dnf" };
 /** The account's ranked result: whether a connected cube recorded it, and whether it may still be cancelled. */

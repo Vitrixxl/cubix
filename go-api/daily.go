@@ -8,11 +8,15 @@ import (
 	"time"
 )
 
-// The daily scramble: the same scramble for everyone, per event, drawn by the clients from the UTC date
+// The daily scramble: the same scramble for everyone, per puzzle, drawn by the clients from the UTC date
 // (src/client/lib/daily.ts). Each account has one ranked attempt a day per event; anyone may see the field.
 
-// dailyEvents: the events with a daily scramble, and the fastest time taken as plausible (ms), under the world records.
-var dailyEvents = map[string]float64{"333": 2500, "333oh": 5000}
+// dailyEvents: the puzzles with a daily scramble, and the fastest time taken as plausible (ms), under the world
+// records. 333oh: the one-handed daily of the apps before the dailies went by puzzle.
+var dailyEvents = map[string]float64{
+	"222": 400, "333": 2500, "444": 14000, "555": 28000, "666": 50000, "777": 80000,
+	"sq1": 3000, "pyram": 600, "skewb": 600, "minx": 20000, "clock": 1300, "333oh": 5000,
+}
 
 const dailyMaxMs = 3_600_000
 

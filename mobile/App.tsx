@@ -9,7 +9,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { PUZZLES } from "../src/shared/puzzles";
-import { authToken, local, localChanged, syncStatusChanged } from "./src/api";
+import { API_ORIGIN, authToken, local, localChanged, syncStatusChanged } from "./src/api";
+import { coachingShown } from "../src/client/lib/route";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { GuidesSheet } from "./src/components/GuidesDialog";
 import { DeviceNotices, DevicesSheet } from "./src/components/Devices";
@@ -78,7 +79,7 @@ function renderPage(route: Route) {
     case "tournaments": return <TournamentsPage view={route.view} />;
     case "wca": return <WcaPage view={route.view} />;
     case "match": return <MatchPage id={route.id} />;
-    case "coaching": return <CoachingPage view={route.view} />;
+    case "coaching": return coachingShown(API_ORIGIN) ? <CoachingPage view={route.view} /> : <CommunityPage />;
   }
 }
 // These pages load on first use: none of them is on the way to the timer.

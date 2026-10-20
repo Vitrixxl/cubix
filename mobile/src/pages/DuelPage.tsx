@@ -47,7 +47,13 @@ export function DuelPage() {
     // A search follows the puzzle: it starts again on the new event.
     if (duel.status === "searching" && eventInfo(event) && duel.levelEvent !== event) void duel.search(event);
   }, [event, duel]);
-  return duel.status === "racing" ? <Race /> : <Lobby />;
+  // The lobby says how many search its event.
+  const racing = duel.status === "racing";
+  useEffect(() => {
+    duel.watch(racing ? "" : event);
+    return () => duel.watch("");
+  }, [racing, event, duel]);
+  return racing ? <Race /> : <Lobby />;
 }
 
 
@@ -88,6 +94,8 @@ function Play({ onChallenge }: { onChallenge: () => void }) {
     range = matchRange(duel.level, waited),
     seconds = (ms: number) => (ms / 1000).toFixed(1),
     level = duel.level === null ? tr("New") : fmtTime(duel.level),
+    // Those searching the event besides the player.
+    others = searching ? duel.searching : duel.waiting,
     looking = range ? tr("Looking near your level…") : tr("Anyone on {0} will do…", { 0: label });
   // The search widens to anyone after ANYONE_AFTER: its share as a thin bar.
   const widening = <View className="h-1 w-12 overflow-hidden rounded-full bg-background"><View className="h-full rounded-full bg-primary" style={{ width: `${Math.min(1, waited / ANYONE_AFTER) * 100}%` }} /></View>;
@@ -105,7 +113,7 @@ function Play({ onChallenge }: { onChallenge: () => void }) {
           <Figure label={tr("Your level")} value={level} />
         </View>}
       <Figure className="flex-1" label={tr("Matching")} value={range ? `${seconds(range[0])}–${seconds(range[1])}` : searching || duel.level === null ? tr("Anyone") : "–"} />
-      <Figure className="flex-1" label={tr("Searching")} tone={searching && duel.searching ? "good" : ""} value={searching ? String(duel.searching) : "–"} />
+      <Figure className="flex-1" label={tr("Searching")} tone={others ? "good" : ""} value={others === undefined ? "–" : String(others)} />
     </View>;
   const play = <View className="flex-row gap-2">
     <Button size="lg" className="h-14 flex-1 gap-2 rounded-2xl" accessibilityLabel={tr("Play an opponent at your level")} onPress={() => void duel.search(event)}>

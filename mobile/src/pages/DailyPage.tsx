@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import {
-  bucketOf, cancelDaily, dailyDay, dailyScramble, dailyStats, fetchDaily, fetchDailyHistory, isDailyEvent, DailyError, DAILY_EVENTS,
+  bucketOf, cancelDaily, dailyDay, dailyScramble, dailyStats, fetchDaily, fetchDailyHistory, dailyEventOf, DailyError,
   type DailyBoard, type DailyDay, type DailyEvent, type DailyPlace,
 } from "../../../src/client/lib/daily";
 import { fmtSolve, fmtTime } from "../../../src/client/lib/format";
@@ -17,7 +17,7 @@ import { eventInfo, heldScramble, puzzleInfo, type PracticeContext } from "../..
 import { API_ORIGIN, api, authToken, local } from "../api";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { ask } from "../components/Confirm";
-import { Alg, Bar, Choice, Empty, Fade, HeadButton, Numeric, Segmented } from "../components/layout";
+import { Alg, Bar, Choice, Empty, Fade, HeadButton, Numeric } from "../components/layout";
 import { Sheet, SheetFlatList } from "../components/Sheet";
 import { SaveError, StopSurface, timerHint, useTimerChrome } from "../components/Practice";
 import { ScrambleCube } from "../components/ScrambleCube";
@@ -27,7 +27,7 @@ import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { storage } from "../platform/storage";
 import { nativeEngine } from "../scrambler";
-import { eventAtom, goBackAtom, guidesAtom, replaceRouteAtom, routeAtom, signedInAtom } from "../state";
+import { goBackAtom, puzzleAtom, guidesAtom, replaceRouteAtom, routeAtom, signedInAtom } from "../state";
 import { localFormat, tn, tr } from "../../../src/client/i18n";
 
 /**
@@ -65,12 +65,8 @@ const token = () => (local.current()?.isGuest ? null : authToken.get());
 const VERIFIED_KEY = "cubix.daily.verified", DONE_KEY = "cubix.daily.done";
 /** The fields and results show only verified ones (made on a connected cube). */
 const verifiedAtom = atom(storage.getItem(VERIFIED_KEY) === "true", (_, set, on: boolean) => { storage.setItem(VERIFIED_KEY, String(on)); set(verifiedAtom, on); });
-/** The event the page shows; unset, the puzzle's when it has a daily scramble. */
-const pickedAtom = atom<DailyEvent | null>(null);
-const useEvent = () => {
-  const [picked, setPicked] = useAtom(pickedAtom), current = useAtomValue(eventAtom);
-  return [picked ?? (isDailyEvent(current) ? current : "333"), setPicked] as const;
-};
+/** The daily scramble the page shows: the puzzle chosen's. */
+const useEvent = () => dailyEventOf(useAtomValue(puzzleAtom));
 /** The event being solved on the attempt screen. */
 const attemptAtom = atom<DailyEvent | null>(null);
 
@@ -127,17 +123,12 @@ const eventLabel = (id: string) => tr(eventInfo(id)?.label ?? id);
 
 /** Challenges › Daily: today's scramble of the event and its one action, the day's figures, the field; the player's results in the History sheet. */
 function Today() {
-  const { wide } = useLayout(), [event, setEvent] = useEvent(), [history, setHistory] = useState(false);
-  const other = DAILY_EVENTS.find(id => id !== event)!;
+  const { wide } = useLayout(), event = useEvent(), [history, setHistory] = useState(false);
   return <View className="flex-1">
-    <AppBar puzzle={false}>{wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}</AppBar>
+    <AppBar>{wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}</AppBar>
     <SectionTabs />
     <DayWithResults day={dailyDay()} />
-    {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} right={
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("Show {0}", { 0: eventLabel(other) })} onPress={() => setEvent(other)}
-        className="h-10 justify-center rounded-full bg-muted px-3.5 active:bg-muted/70">
-        <Text className="text-sm font-bold">{eventLabel(event)}</Text>
-      </Pressable>}>
+    {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} description={eventLabel(event)}>
       <YourResults event={event} onPick={() => setHistory(false)} />
     </Sheet>}
   </View>;
@@ -145,7 +136,7 @@ function Today() {
 
 /** A day and, on a tablet, the player's results with it: a card at its foot (portrait), a docked panel (wide). */
 function DayWithResults({ day }: { day: string }) {
-  const { tablet, wide } = useLayout(), [event] = useEvent();
+  const { tablet, wide } = useLayout(), event = useEvent();
   return <View className="min-h-0 flex-1 flex-row">
     <View className="min-h-0 flex-1">
       <DayView day={day} />
@@ -157,7 +148,7 @@ function DayWithResults({ day }: { day: string }) {
 
 /** A past day, opened from the results: its scramble, where the player stood, its field. */
 function PastDay({ day }: { day: string }) {
-  const [event] = useEvent();
+  const event = useEvent();
   return <View className="flex-1">
     <PushedBar title={shortDay(day)} sub={eventLabel(event)} />
     <DayWithResults day={day} />
@@ -214,7 +205,7 @@ function Field({ board, place }: { board: DailyBoard; place: DailyPlace | null }
 /** A day of an event: the event, its scramble and one action, its figures, its field. */
 function DayView({ day }: { day: string }) {
   useDaily();
-  const [event, setEvent] = useEvent();
+  const event = useEvent();
   const verified = useAtomValue(verifiedAtom), signedIn = useAtomValue(signedInAtom), openGuide = useSetAtom(guidesAtom), solve = useSetAtom(attemptAtom);
   const today = dailyDay(), past = day !== today, key = `${day}:${event}`, kept = doneAll()[key];
   const scramble = scrambles.get(key) ?? "", board = boards.get(`${account()}:${key}:${verified}`) ?? null;
@@ -222,11 +213,10 @@ function DayView({ day }: { day: string }) {
   const loaded = board && board !== "offline" ? board : null, place = loaded ? loaded.mine ?? loaded.placed : null, done = !!kept || !!loaded?.mine;
   const { tablet, wide } = useLayout(), info = eventInfo(event);
   const head = <View className="flex-row items-center justify-between gap-2">
-    <Cap className="flex-1">{dayLabel(day)}</Cap>
+    <Cap className="flex-1">{dayLabel(day)} · {eventLabel(event)}</Cap>
     <HeadButton icon={CircleHelp} label={tr("How the daily scramble works")} onPress={() => openGuide("timer")} />
   </View>;
   const alg = scramble ? <Alg text={scramble} size={tablet && !wide ? 21 : 18} /> : <View className="gap-2"><Skeleton className="h-5 w-11/12" /><Skeleton className="h-5 w-3/5" /></View>;
-  const segmented = <Segmented label={tr("Event")} value={event} onChange={setEvent} options={DAILY_EVENTS.map(id => ({ id, label: eventLabel(id) }))} />;
   const stage = <View className={cn("gap-2.5 rounded-3xl bg-card p-4", tablet && "gap-3.5 p-5")}>
     {/* A tablet shows the scrambled cube beside the moves. */}
     {tablet ? <View className="flex-row items-start gap-4">
@@ -263,11 +253,10 @@ function DayView({ day }: { day: string }) {
   </View>;
   // A wide screen sets the day's stage and its figures beside its field.
   if (wide) return <View className="min-h-0 flex-1 flex-row gap-4 px-7 pt-4 pb-3">
-    <View className="w-[400px] gap-3">{segmented}{stage}<Figures board={loaded} place={place} cards /></View>
+    <View className="w-[400px] gap-3">{stage}<Figures board={loaded} place={place} cards /></View>
     {field}
   </View>;
   return <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-3", tablet && "gap-3.5 px-7 pt-4")}>
-    {segmented}
     {stage}
     <Figures board={loaded} place={place} cards={tablet} />
     {field}

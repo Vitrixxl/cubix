@@ -12,6 +12,7 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
+import { COACHING } from "./navigation";
 import { Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
 import { SessionSheet } from "./phone";
 import { AlgView } from "./algView";
@@ -257,7 +258,7 @@ function GuidesDialog() {
           onValueChange={(next: string[]) => next[0] && next[0] !== page && void s.action("guidePage:" + next[0])}
           className="w-full max-md:w-auto"
         >
-          {(Object.keys(GUIDES) as Guide[]).map((id) => (
+          {(Object.keys(GUIDES) as Guide[]).filter((id) => COACHING || id !== "coachingGuide").map((id) => (
             <ToggleGroupItem
               key={id}
               value={id}

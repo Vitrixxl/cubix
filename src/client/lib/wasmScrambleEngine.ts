@@ -24,14 +24,18 @@ export function wasmScrambleEngine(load: () => Promise<BufferSource>): ScrambleE
       .then(bytes => WebAssembly.compile(bytes))
       .then(module => WebAssembly.instantiate(module, {}))
       .then(instance => {
-        const wasm = instance.exports as unknown as Exports, seed = crypto.getRandomValues(new Uint32Array(2));
-        wasm.seed(seed[0]!, seed[1]!);
+        const wasm = instance.exports as unknown as Exports;
+        reseed(wasm);
         return wasm;
       })
       .catch(error => {
         ready = undefined;
         throw error;
       }));
+  const reseed = (wasm: Exports) => {
+    const seed = crypto.getRandomValues(new Uint32Array(2));
+    wasm.seed(seed[0]!, seed[1]!);
+  };
   const io = (wasm: Exports, length: number) => new Uint8Array(wasm.memory.buffer, wasm.io(), length);
   // The calls return the scramble's length, -1 for an error.
   const answer = (wasm: Exports, length: number, what: string) => {
@@ -46,6 +50,17 @@ export function wasmScrambleEngine(load: () => Promise<BufferSource>): ScrambleE
       const wasm = await scrambler(), name = new TextEncoder().encode(event);
       io(wasm, name.length).set(name);
       return answer(wasm, wasm.scramble_event(name.length), event);
+    },
+    // Seeded for this one scramble, then random again: the scrambles after it stay unforeseeable.
+    async seededScramble(event, [a, b]) {
+      const wasm = await scrambler(), name = new TextEncoder().encode(event);
+      wasm.seed(a >>> 0, b >>> 0);
+      io(wasm, name.length).set(name);
+      try {
+        return answer(wasm, wasm.scramble_event(name.length), event);
+      } finally {
+        reseed(wasm);
+      }
     },
     async orbitScramble(orbit) {
       const wasm = await scrambler();

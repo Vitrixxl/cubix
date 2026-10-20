@@ -121,6 +121,9 @@ export class DuelClient {
   status: "off" | "searching" | "racing" = "off";
   /** Other players searching the same event. */
   searching = 0;
+  /** Players searching the event the lobby shows (`watch`), undefined until the server says. */
+  waiting: number | undefined = undefined;
+  private watched = "";
   searchSince = 0;
   /** Undefined while it is being worked out. */
   level: number | null | undefined = undefined;
@@ -150,9 +153,10 @@ export class DuelClient {
 
   constructor(private readonly platform: DuelHost) {
     // Whatever comes after leaving is not this player's any more.
-    platform.live.on("duel", (m) => this.status !== "off" && this.receive(m));
-    // The server takes a player whose socket closed out of the queue and the race.
+    platform.live.on("duel", (m) => (m.type === "waiting" ? m.event === this.watched && ((this.waiting = m.searching), this.changed()) : this.status !== "off" && this.receive(m)));
+    // The server takes a player whose socket closed out of the queue and the race; a socket opened again is told the lobby anew.
     platform.live.on("live", (m) => {
+      if (m.type === "ready" && this.watched) this.send({ type: "watch", event: this.watched });
       if (m.type !== "lost" || this.status === "off") return;
       this.status = "off";
       this.notice = msg("Connection lost.");
@@ -322,6 +326,13 @@ export class DuelClient {
       this.notice = msg("The duel server cannot be reached.");
       this.changed();
     }
+  }
+  /** Follows how many search an event while its lobby is shown; "" stops. */
+  watch(event: string) {
+    if (event === this.watched) return;
+    this.watched = event;
+    this.waiting = undefined;
+    this.send({ type: "watch", event });
   }
   /** Stops searching, or leaves the race. */
   leave() {

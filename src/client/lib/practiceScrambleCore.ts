@@ -11,6 +11,8 @@ export interface ScrambleEngine {
   orbitScramble(orbit: "EDGES" | "CORNERS"): Promise<string>;
   /** A scramble reaching this 3×3 state (centres solved). */
   patternScramble(pattern: PatternData): Promise<string>;
+  /** The competition scramble of an event the generator gives from this seed, the same on every device. */
+  seededScramble(event: string, seed: readonly [number, number]): Promise<string>;
 }
 /** Outer-turn scramble length per cube size. */
 const SCRAMBLE_LENGTHS: Record<CubeSize, number> = { 2: 11, 3: 22, 4: 40, 5: 60, 6: 80, 7: 100 };

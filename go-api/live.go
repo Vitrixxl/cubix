@@ -517,6 +517,7 @@ func (c *liveClient) leave() {
 		c.state.coaching.remove(c.uid(), c.id)
 	}
 	c.state.duel.leave(c.id)
+	c.state.duel.watch(c.id, "", nil)
 	for id := range c.matches {
 		c.state.matches.leave(id, c.id)
 	}

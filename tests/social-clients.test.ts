@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Community, type Notice, type Question, type SocialHost } from "../src/client/lib/community";
 import { Coaching } from "../src/client/lib/coaching";
 import { MatchClient } from "../src/client/lib/match";
-import { readRoute } from "../src/client/lib/route";
+import { coachingShown, readRoute } from "../src/client/lib/route";
 import { sharedSolveId } from "../src/client/lib/sharedSolve";
 import type { LiveLink, LiveMessage } from "../src/client/live";
 
@@ -205,4 +205,10 @@ test("the app's addresses read back as routes, for the links the phone opens", (
 test("a shared solve's address names it, under a language or not, its old address too", () => {
   expect(["/s/aB3dE5gH9k", "/fr/s/aB3dE5gH9k", "/solve/0123abcd"].map(sharedSolveId)).toEqual(["aB3dE5gH9k", "aB3dE5gH9k", "0123abcd"]);
   expect(["/s/", "/s/a/b", "/timer", "/xx/s/a"].map(sharedSolveId)).toEqual([undefined, undefined, undefined, undefined]);
+});
+
+test("coaching is hidden on the production server, shown in development and the tests", () => {
+  expect(coachingShown("https://cubix.vitrixxl.fr")).toBe(false);
+  expect(coachingShown("http://127.0.0.1:5181")).toBe(true);
+  expect(coachingShown("http://localhost:8081")).toBe(true);
 });

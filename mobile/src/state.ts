@@ -6,8 +6,8 @@ import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, 
 import type { CaseDto, CaseStatsDto, SolveDto, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
-import { pageUrl, readRoute } from "../../src/client/lib/route";
-import { api, authToken, local } from "./api";
+import { coachingShown, pageUrl, readRoute } from "../../src/client/lib/route";
+import { API_ORIGIN, api, authToken, local } from "./api";
 import { REMINDERS_KEY } from "../../src/client/lib/reminders";
 import { storage } from "./platform/storage";
 import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossSolveMode, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
@@ -96,7 +96,7 @@ export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
   social: [
     { id: "messages", label: "Messages", route: { page: "community" }, has: r => r.page === "community" && !isPeople(r) },
     { id: "people", label: "Community", route: { page: "community", view: "people" }, has: isPeople },
-    { id: "coaching", label: "Coaching", route: { page: "coaching" }, has: r => r.page === "coaching" },
+    ...(coachingShown(API_ORIGIN) ? [{ id: "coaching", label: "Coaching", route: { page: "coaching" }, has: r => r.page === "coaching" } satisfies SectionPage] : []),
   ],
   me: [{ id: "profile", label: "Profile", route: { page: "profile" }, has: r => r.page === "profile" || r.page === "settings" }],
 };

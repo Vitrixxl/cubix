@@ -17,6 +17,8 @@ import { GraduationCap } from "lucide-react-native";
 import { openCourse } from "../../../src/client/lib/course";
 import { courseProgressAtom, routeAtom } from "../state";
 import { tr } from "../../../src/client/i18n";
+import { coachingShown } from "../../../src/client/lib/route";
+import { API_ORIGIN } from "../api";
 
 /** The guides, in the web's order, by the names the app opens them with (`guidesAtom`). Their texts are the web's
  * (src/client/lib/guides.ts), bundled with the app: help remains available offline. */
@@ -24,7 +26,7 @@ const KEYS: Record<GuideId, Guide> = {
   about: "overviewGuide", algorithms: "algorithmsGuide", training: "trainingGuide", timer: "timerGuide", smartCube: "smartCubeGuide", duel: "duelGuide",
   community: "communityGuide", coaching: "coachingGuide", methods: "methodsGuide", notation: "notationGuide", averages: "averagesGuide",
 };
-const GUIDE_NAMES = (Object.keys(KEYS) as GuideId[]).map(id => [id, GUIDES[KEYS[id]].name] as [GuideId, string]);
+const GUIDE_NAMES = (Object.keys(KEYS) as GuideId[]).filter(id => id !== "coaching" || coachingShown(API_ORIGIN)).map(id => [id, GUIDES[KEYS[id]].name] as [GuideId, string]);
 const idOf = (guide: Guide) => (Object.keys(KEYS) as GuideId[]).find(id => KEYS[id] === guide)!;
 
 /** A paragraph's pieces: its text, links in the accent and figures in bold, in the paragraph's size. */

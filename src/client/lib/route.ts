@@ -1,6 +1,9 @@
 /** The app's addresses as routes and back, free of the router: the web app's and the links the Android app opens. */
 import { isPuzzle, type PuzzleId } from "../../shared/puzzles";
 export interface AppRoute { page: string; caseId: string; /** Coaching: the view and its argument, e.g. "coach/<id>". */ coaching?: string; /** The community, tournaments, matches and the WCA: the view under the page, e.g. "groups/<id>/battles". */ view?: string; profileMode: string; trainingStep: "setup" | "practice"; learnMethod: string; learnStep?: number; puzzle?: PuzzleId }
+/** Coaching is hidden on the production server for now: it shows in development and the tests, on any other host. */
+// ponytail: a host check; a server flag once coaching opens to everyone.
+export const coachingShown = (origin: string) => !origin.includes("cubix.vitrixxl.fr");
 const pages: Record<string, string> = { login: "login", timer: "playground", algorithms: "algorithms", training: "training", duel: "duel", learn: "learn", coaching: "coaching", community: "community", tournaments: "tournaments", match: "match", daily: "daily", wca: "wca", profile: "profile", onboarding: "onboarding" };
 /** Pages whose address goes deeper than one level: a view and its arguments. */
 const NESTED = ["community", "tournaments", "match", "wca"];

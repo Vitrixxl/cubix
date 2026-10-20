@@ -53,7 +53,8 @@ const server = Bun.serve<Socket>({
       headers.delete("host");
       // The administration only accepts requests from its own origin.
       if (headers.has("origin")) headers.set("origin", upstream);
-      return fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: request.body, redirect: "manual" })
+      // A compressed answer goes on as it came: unpacked, it would still say gzip and the browser could not read it.
+      return fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: request.body, redirect: "manual", decompress: false })
         .catch(() => new Response(JSON.stringify({ error: "API unavailable" }), { status: 502 }));
     }
     // The administration is drawn by the same page (see go-api/web.go).

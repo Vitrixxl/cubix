@@ -226,16 +226,25 @@ type duelSeatRef struct {
 	seat int
 }
 
+// duelWatcher: an app on the duel's lobby, told how many search its event, and again when that changes.
+type duelWatcher struct {
+	event string
+	tx    *wsOutbox
+	last  int
+}
+
 type duelInner struct {
 	// Those searching, by event, longest waiting first.
 	queue map[string][]*duelWaiting
+	// The lobbies open, by socket.
+	watchers map[string]*duelWatcher
 	races map[string]*duelRace
 	// Race and seat of each player in a race.
 	seats map[string]duelSeatRef
 }
 
 func newDuelInner() *duelInner {
-	return &duelInner{queue: map[string][]*duelWaiting{}, races: map[string]*duelRace{}, seats: map[string]duelSeatRef{}}
+	return &duelInner{queue: map[string][]*duelWaiting{}, watchers: map[string]*duelWatcher{}, races: map[string]*duelRace{}, seats: map[string]duelSeatRef{}}
 }
 
 func (inner *duelInner) searching() int {
@@ -350,14 +359,35 @@ func (inner *duelInner) start(first, second *duelWaiting) {
 	inner.races[id] = race
 }
 
-// status tells everyone searching how many others search the same event.
+// status tells everyone searching how many others search the same event, and each lobby how many search its event
+// when that changed (a lobby searching itself has the count above).
 func (inner *duelInner) status() {
+	searching := map[string]bool{}
 	for _, queue := range inner.queue {
 		message := liveText("duel", M{"type": "queue", "searching": len(queue) - 1})
 		for _, w := range queue {
 			w.tx.send(message)
+			searching[w.id] = true
 		}
 	}
+	for id, w := range inner.watchers {
+		if n := len(inner.queue[w.event]); !searching[id] && n != w.last {
+			w.last = n
+			w.tx.send(liveText("duel", M{"type": "waiting", "event": w.event, "searching": n}))
+		}
+	}
+}
+
+// watch: a lobby opened on an event, or closed ("").
+func (a *DuelArena) watch(id, event string, tx *wsOutbox) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if event == "" {
+		delete(a.inner.watchers, id)
+		return
+	}
+	a.inner.watchers[id] = &duelWatcher{event: event, tx: tx, last: -1}
+	a.inner.status()
 }
 
 func (a *DuelArena) tick() {
@@ -565,6 +595,12 @@ func (c *liveClient) onDuel(body any) {
 		c.state.duel.queue(&duelWaiting{id: c.id, name: name, user: user, event: event, level: level, since: time.Now(), tx: c.tx})
 	case "leave":
 		c.state.duel.leave(c.id)
+	case "watch":
+		event := str(idx(body, "event"))
+		if event != "" && !practiceIsEvent(event) {
+			return
+		}
+		c.state.duel.watch(c.id, event, c.tx)
 	default:
 		c.state.duel.play(c.id, body)
 	}

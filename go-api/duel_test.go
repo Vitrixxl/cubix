@@ -103,3 +103,29 @@ func TestTheQueueIsCapped(t *testing.T) {
 		t.Fatal(arena.inner.searching())
 	}
 }
+
+func TestALobbyHearsHowManySearchItsEventWhenItChanges(t *testing.T) {
+	arena := newDuelArena(nil)
+	lobby, other := duelClient(arena), duelClient(arena)
+	lobby.onDuel(M{"type": "watch", "event": "nope"})
+	lobby.onDuel(M{"type": "watch", "event": "444"})
+	sent := func() []string { return lobby.tx.queue }
+	if len(sent()) != 1 || !strings.Contains(sent()[0], `"type":"waiting"`) || !strings.Contains(sent()[0], `"searching":0`) {
+		t.Fatal(sent())
+	}
+	other.onDuel(M{"type": "queue", "event": "444"})
+	if len(sent()) != 2 || !strings.Contains(sent()[1], `"searching":1`) {
+		t.Fatal(sent())
+	}
+	// Unchanged: nothing more; another event's queue is not its count.
+	arena.tick()
+	duelClient(arena).onDuel(M{"type": "queue", "event": "222"})
+	if len(sent()) != 2 {
+		t.Fatal(sent())
+	}
+	lobby.onDuel(M{"type": "watch", "event": ""})
+	other.onDuel(M{"type": "leave"})
+	if len(sent()) != 2 || len(arena.inner.watchers) != 0 {
+		t.Fatal(sent())
+	}
+}
