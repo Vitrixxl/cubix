@@ -5,8 +5,9 @@ import { store as s, run } from "./store";
 import { Cube } from "./Cube";
 import { PhoneSheet, SessionButton } from "./phone";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Back as BaseBack, Icon, InHead, NUMERIC, PageHead as BasePageHead, Segmented, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
+import { Back as BaseBack, FOCUS, Icon, InHead, NUMERIC, PageHead as BasePageHead, Segmented, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
 import { cn } from "@/lib/utils";
+import { accents } from "./theme";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import {
@@ -492,6 +493,25 @@ export function MenuChoice({ label, action, value, options }: { label: string; a
 /** A `DialogFooter` reaches the dialog's edges, whatever its padding: the dialog's 6, the phone sheet's 5. */
 const DIALOG_FOOTER = "*:data-[slot=dialog-footer]:-mx-6 *:data-[slot=dialog-footer]:-mb-6 *:data-[slot=dialog-footer]:px-6",
   SHEET_FOOTER = "*:data-[slot=dialog-footer]:-mx-5 *:data-[slot=dialog-footer]:-mb-5 *:data-[slot=dialog-footer]:rounded-none *:data-[slot=dialog-footer]:px-5";
+
+/** The theme's accents as round swatches, the one chosen ringed and checked. */
+export function AccentSwatches({ value, onPick, action }: { value: string; onPick: (id: string) => void; action: string }) {
+  return accents.map((a) => (
+    <Tip key={a.id} content={said(a.name)}>
+      <button
+        type="button"
+        data-action={action + a.id}
+        aria-label={said(a.name)}
+        aria-pressed={value === a.id}
+        onClick={(e) => (e.currentTarget.blur(), onPick(a.id))}
+        className={cn("flex size-7 items-center justify-center rounded-full transition-shadow", FOCUS, value === a.id && "ring-2 ring-primary ring-offset-2 ring-offset-popover")}
+        style={{ background: a.color }}
+      >
+        {value === a.id && <Check className="size-3.5 text-[#1c1317]" />}
+      </button>
+    </Tip>
+  ));
+}
 
 /**
  * A dialog: centred on a desktop, a sheet from the bottom on phones (full height when `tall`). It is open while the app

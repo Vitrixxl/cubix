@@ -1,9 +1,6 @@
 /** The algorithms page: every set of the puzzle beside the chosen one's cases; a case in its dialog, opened from anywhere. */
 import { caseContext, catalogSections } from "../../src/client/lib/practiceCatalog";
-import { caseDetail, casePlayItem, caseState, caseTitle, displayAlg, leftHandAlgs, maskForStage, moveCount, shortId } from "../../src/client/lib/caseState";
-import { createPortal } from "react-dom";
-import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
-import { viewForStage } from "../../src/shared/cubeDiagram";
+import { caseDetail, casePlayItem, displayAlg, leftHandAlgs, moveCount, shortId } from "../../src/client/lib/caseState";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
@@ -12,7 +9,7 @@ import { methodSets, store as s } from "./store";
 import { METHODS, type SolvingMethod } from "../../src/shared/methods";
 import { stepSets } from "../../src/client/lib/course";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, plural, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
 import { Button as UiButton } from "@/components/ui/button";
 import { TimerStats } from "./stats";
 import { useWidth } from "./FiguresEditor";
@@ -23,6 +20,7 @@ import type { Virtualizer } from "@tanstack/react-virtual";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { Link } from "react-router";
+import { PrintDialog } from "./printSheet";
 import { pageUrl } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 
@@ -173,7 +171,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
                 <Printer />
                 {tr("Print")}</UiButton>
             )}
-            {printing && <PrintSheet set={set} onDone={() => setPrinting(false)} />}
+            {printing && <PrintDialog set={set} onClose={() => setPrinting(false)} />}
             <Button action={"train:" + set.id} icon={Timer} variant="default" className="ml-auto">
               {tr("Train all")} · {count}</Button>
           </div>
@@ -187,38 +185,6 @@ function Catalog({ mobile }: { mobile: boolean }) {
 
 /** Every set of the puzzle under its step, each with its ring of cases learned; the chosen one lists its groups, folded
  * and unfolded by a click on it again. */
-/**
- * A set's algorithms as a sheet to print: each case seen as the catalogue draws it, its name and the algorithm the
- * player uses (the first one else, or the first for the left hand when that is chosen). Printed alone, then gone.
- */
-function PrintSheet({ set, onDone }: { set: any; onDone: () => void }) {
-  const cases = s.setCases(set.id),
-    alg = (c: any) => {
-      const mirrored = s.leftHand ? leftHandAlgs(c, cases)?.[0] : undefined;
-      return s.learnedAlgs[c.id]?.[0] ?? (mirrored ? displayAlg(mirrored) : c.algorithms?.[0] ? displayAlg(c.algorithms[0]) : "");
-    };
-  useEffect(() => {
-    addEventListener("afterprint", onDone, { once: true });
-    const frame = requestAnimationFrame(() => print());
-    return () => (cancelAnimationFrame(frame), removeEventListener("afterprint", onDone));
-  }, []);
-  return createPortal(
-    <div data-print-sheet className="fixed -left-[200vw] w-[180mm] bg-white text-black print:static">
-      <h1 className="mb-4 text-xl font-extrabold">{said(set.label)} · {plural(cases.length, "case")}</h1>
-      <div className="grid grid-cols-4 gap-x-4 gap-y-3">
-        {cases.map((c: any) => (
-          <div key={c.id} className="flex break-inside-avoid flex-col items-center gap-1 text-center">
-            {c.diagram ? <img src={"/assets/" + c.asset} width={64} height={64} alt={c.id} /> : <StaticCubeSvg state={caseState(c)} size={64} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} />}
-            <strong className="text-xs">{said(caseTitle(c))}</strong>
-            <span className="font-mono text-[10px] leading-snug">{alg(c)}</span>
-          </div>
-        ))}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 function SetTree({ sections, active }: { sections: { stage: string; variants: any[] }[]; active: string }) {
   const list = useRef<HTMLDivElement>(null);
   // The set whose groups are folded; another set chosen opens unfolded.

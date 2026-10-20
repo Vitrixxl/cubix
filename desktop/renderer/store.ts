@@ -44,7 +44,7 @@ import { appReady } from "../../src/client/lib/firstLaunch";
 
 const SHOWN_SCRAMBLE = "cubix.shownScramble";
 /** Saves a file made on the page (an export) to the downloads. */
-export function download(body: string, type: string, name: string) {
+export function download(body: string | Uint8Array<ArrayBuffer>, type: string, name: string) {
   const url = URL.createObjectURL(new Blob([body], { type }));
   Object.assign(document.createElement("a"), { href: url, download: name }).click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);

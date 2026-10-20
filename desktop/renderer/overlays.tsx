@@ -1,19 +1,18 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
 import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
-import { Check, Compass, Download, GraduationCap, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
+import { Compass, Download, GraduationCap, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s } from "./store";
 import { searchCases } from "../../src/client/lib/practiceCatalog";
 import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
 import { ScrambleExport } from "./attempts";
-import { accents } from "./theme";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { COACHING } from "./navigation";
-import { Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
+import { AccentSwatches, Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, usePhone } from "./ui";
 import { SessionSheet } from "./phone";
 import { AlgView } from "./algView";
 import { SolveView } from "./SolveView";
@@ -84,25 +83,7 @@ function Settings() {
           />
         </SettingRow>
         <SettingRow label={tr("Accent")}>
-          {accents.map((a) => (
-            <Tip key={a.id} content={said(a.name)}>
-              <button
-                type="button"
-                data-action={"theme:" + a.id}
-                aria-label={said(a.name)}
-                aria-pressed={s.themeName === a.id}
-                onClick={run("theme:" + a.id)}
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full transition-shadow",
-                  FOCUS,
-                  s.themeName === a.id && "ring-2 ring-primary ring-offset-2 ring-offset-popover",
-                )}
-                style={{ background: a.color }}
-              >
-                {s.themeName === a.id && <Check className="size-3.5 text-[#1c1317]" />}
-              </button>
-            </Tip>
-          ))}
+          <AccentSwatches value={s.themeName} action="theme:" onPick={(id) => void s.action("theme:" + id)} />
         </SettingRow>
       </SettingGroup>
       <SettingGroup title={tr("Language")}>

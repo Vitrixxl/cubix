@@ -2,7 +2,7 @@
  * the practice prompt, timer and metrics never overlap. Screenshots go to artifacts/testing. */
 import { SHOTS, act, launchApp, resize, scrambled, signIn, startServer } from "./app";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -117,6 +117,17 @@ try {
   await act(page, "nav:algorithms");
   await page.waitForSelector('[data-action^="case:"]');
   await check("algorithms");
+  // Print: the sheet previewed in the look chosen, then a PDF made in the page.
+  await page.getByRole("button", { name: "Print", exact: true }).click();
+  await page.waitForSelector('[data-slot="print-preview"] img');
+  const dark = await page.locator('[data-slot="print-preview"] img').first().getAttribute("src");
+  await act(page, "print:mode:light");
+  await page.waitForFunction((before) => document.querySelector('[data-slot="print-preview"] img')?.getAttribute("src") !== before, dark);
+  const [pdf] = await Promise.all([page.waitForEvent("download"), act(page, "print:pdf")]);
+  const bytes = (await readFile(await pdf.path())).toString("latin1");
+  const shown = await page.locator('[data-slot="print-preview"] img').count();
+  assert.ok(bytes.startsWith("%PDF-1.4") && bytes.includes(`/Count ${shown} `), "the PDF has the pages previewed");
+  await page.keyboard.press("Escape");
   await act(page, "case:F2L 1");
   await check("case"); // opened beside the list on desktop, as a page of its own on phones
   // The training drills learned cases only.

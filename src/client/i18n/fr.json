@@ -1,4 +1,9 @@
 {
+ "Cases per row": "Cas par ligne",
+ "{n} page": "{n} page",
+ "{n} pages": "{n} pages",
+ "Download the PDF": "Télécharger le PDF",
+ "Page {0} of {1}": "Page {0} sur {1}",
  ", on the same scrambles for both players.": ", sur les mêmes mélanges pour les deux joueurs.",
  ": every solve comes with its date, penalty, scramble and session. It is read on your device, and importing the same file twice adds nothing twice.": " : chaque résolution vient avec sa date, sa pénalité, son mélange et sa session. Le fichier est lu sur ton appareil, et importer deux fois le même fichier n'ajoute rien en double.",
  ". Cancellations must be made before this time.": ". Les annulations doivent être faites avant cette heure.",

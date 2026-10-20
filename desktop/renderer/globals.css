@@ -347,15 +347,3 @@ html:not(.dark) img.case-diagram {
   --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
 
-/* A sheet to print (algorithms.tsx `PrintSheet`) is printed alone. */
-@media print {
-  body:has([data-print-sheet]) > :not([data-print-sheet]) {
-    display: none !important;
-  }
-  html:has([data-print-sheet]),
-  body:has([data-print-sheet]) {
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
-  }
-}
