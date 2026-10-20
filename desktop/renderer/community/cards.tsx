@@ -245,8 +245,8 @@ export function MatchDialog({ match, open, onOpenChange }: { match: Match; open:
 
 const startDay = localFormat({ weekday: "short", day: "numeric" });
 const TOURNAMENT_TONE = { open: "good", running: "accent", finished: "", cancelled: "off" } as const;
-/** A tournament's seats as a row of dots, filled as players register, while there are few enough to count. */
-const SEATS_SHOWN = 16;
+/** A tournament's seats as a row of dots, filled as players register, while there are few enough to count and to fit its card. */
+const SEATS_SHOWN = 8;
 
 /**
  * A tournament in a conversation: when it starts in the margin, its name and format, its places as a row of seats,
@@ -297,7 +297,7 @@ export function TournamentChatCard({ tournament }: { tournament: Tournament }) {
             ))}
           </span>
         ) : null}
-        <span className={NUMERIC}>{t.maxPlayers ? tr("{0} of {1} places", { 0: t.players, 1: t.maxPlayers }) : `${t.players} ${tr("players")}`}</span>
+        <span className={cn(NUMERIC, "whitespace-nowrap")}>{t.maxPlayers ? tr("{0} of {1} places", { 0: t.players, 1: t.maxPlayers }) : `${t.players} ${tr("players")}`}</span>
         {t.registered && t.status === "open" && <span className="font-bold text-success">· {tr("Registered")}</span>}
       </span>
       <StateMark tone={TOURNAMENT_TONE[t.status]} className="justify-self-end">

@@ -277,15 +277,16 @@ function SignIn() {
 
 /**
  * Desktop navigation, across the top: the brand, the five sections by name (the current one underlined in the
- * accent), then the puzzle and the account on the right; the current section's pages are under it, at the head of the page (`SectionBar`).
+ * accent) and, after a rule, the current section's pages (`SectionPages`), then the puzzle and the account on the right.
  */
 export const Header = memo(function Header() {
   useShell();
   const section = currentSection();
   return (
-    <header className={cn("topbar rail flex shrink-0 items-center gap-5 px-6 pt-4 pb-3 lg:gap-7 lg:px-9 lg:pt-5", FADE)}>
+    <header className={cn("topbar rail flex shrink-0 items-center gap-3 px-6 pt-4 pb-3 lg:gap-7 lg:px-9 lg:pt-5", FADE)}>
       <Link to={pageUrl("playground", { puzzle: s.puzzle as PuzzleId })} aria-label={tr("Qbix · timer")} className={cn("flex h-10 items-center rounded-xl text-[26px]", FOCUS)}>
-        <Brand />
+        {/* A narrow window keeps the badge alone. */}
+        <Brand className="max-lg:*:last:hidden" />
       </Link>
       <nav aria-label={tr("Sections")} className="flex items-center gap-0.5">
         {SECTIONS.map(({ id, label, pages }) => {
@@ -300,8 +301,8 @@ export const Header = memo(function Header() {
               aria-current={here ? "page" : undefined}
               aria-keyshortcuts={first[2] || undefined}
               className={cn(
-                "relative rounded-xl px-3 py-2.5 text-[15px] font-semibold text-faint transition-colors hover:bg-card hover:text-foreground aria-[current=page]:text-foreground lg:px-4",
-                "after:absolute after:inset-x-3 after:bottom-0.5 after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100 lg:after:inset-x-4",
+                "relative rounded-xl px-2 py-2.5 text-[15px] font-semibold text-faint transition-colors hover:bg-card hover:text-foreground aria-[current=page]:text-foreground lg:px-4",
+                "after:absolute after:inset-x-2 after:bottom-0.5 after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100 lg:after:inset-x-4",
                 FOCUS,
               )}
             >
@@ -311,6 +312,7 @@ export const Header = memo(function Header() {
           );
         })}
       </nav>
+      <SectionPages />
       <div className="ml-auto flex items-center gap-2.5">
         {/* Support for the app, in plain view: the app is free, a coffee keeps it going. */}
         <Tip content={tr("Buy me a coffee")}>
@@ -321,7 +323,8 @@ export const Header = memo(function Header() {
             data-action="coffee"
             aria-label={tr("Buy me a coffee")}
             // A link drawn as the app's buttons are (shape and size), in the accent colour.
-            className={buttonVariants({ variant: "tint" })}
+            // A narrow window leaves it to the account's menu.
+            className={cn(buttonVariants({ variant: "tint" }), "max-lg:hidden")}
           >
             <Coffee />
             <span className="max-lg:hidden">{tr("Coffee")}</span>
@@ -344,45 +347,50 @@ const PAGE_ICONS: Record<string, LucideIcon> = {
 };
 
 /**
- * Desktop, at the head of the page: the current section's name, then its pages as tabs, each with its icon and what
- * waits there, the current one underlined in the accent like the sections above (none for a section of one page).
+ * Desktop, in the header after the sections and a rule: the current section's pages, each with its icon and what waits
+ * there, the current one on the card's colour (none for a section of one page). Under `xl`, the icons alone, each named
+ * in its tooltip, so that the header keeps to the window.
  */
-export const SectionBar = memo(function SectionBar() {
-  useShell();
+function SectionPages() {
   const section = currentSection(),
     here = currentPage();
   if (!section || section.pages.length < 2) return null;
   return (
-    <div className={cn("mx-6 flex shrink-0 items-end gap-7 lg:mx-9", FADE)}>
-      <h1 className="pb-2.5 text-[30px] leading-tight font-extrabold tracking-[-0.04em]">{said(section.label)}</h1>
+    <>
+      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border" />
       <nav aria-label={said(section.label)} className="flex items-center gap-1">
         {section.pages.map(([page, label, shortcut]) => {
           const I = PAGE_ICONS[page] ?? section.icon,
             n = waiting[page]?.() ?? 0;
           return (
-            <Link
-              key={page}
-              to={pageTo(page)}
-              data-action={"nav:" + page}
-              aria-current={here === page ? "page" : undefined}
-              aria-keyshortcuts={shortcut || undefined}
-              title={shortcut ? `${tr(label)} · ${shortcut}` : undefined}
-              className={cn(
-                "group/tab relative flex items-center gap-2 rounded-xl px-3.5 pt-2 pb-3.5 text-base font-bold text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground",
-                "after:absolute after:inset-x-3.5 after:bottom-0 after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100",
-                FOCUS,
-              )}
-            >
-              <I className="size-[18px] shrink-0 group-aria-[current=page]/tab:text-primary" />
-              {said(label)}
-              {n > 0 && <span data-slot={page + "-unread"} className="rounded-md bg-primary px-1.5 text-[11px] leading-[18px] text-primary-foreground tabular-nums">{n}</span>}
-            </Link>
+            <Tip key={page} content={shortcut ? `${tr(label)} · ${shortcut}` : tr(label)}>
+              <Link
+                to={pageTo(page)}
+                data-action={"nav:" + page}
+                aria-current={here === page ? "page" : undefined}
+                aria-keyshortcuts={shortcut || undefined}
+                aria-label={tr(label)}
+                className={cn(
+                  "group/tab relative flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:text-foreground max-xl:w-9 max-xl:justify-center max-xl:px-0",
+                  FOCUS,
+                )}
+              >
+                <I className="size-4 shrink-0 group-aria-[current=page]/tab:text-primary" />
+                <span className="max-xl:hidden">{said(label)}</span>
+                {n > 0 && (
+                  <>
+                    <span data-slot={page + "-unread"} className="rounded-md bg-primary px-1.5 text-[11px] leading-[18px] text-primary-foreground tabular-nums max-xl:hidden">{n}</span>
+                    <Dot n={n} className="top-1 right-1 xl:hidden" />
+                  </>
+                )}
+              </Link>
+            </Tip>
           );
         })}
       </nav>
-    </div>
+    </>
   );
-});
+}
 
 /** Phones, above the page: the current section's pages; in the social section and on the profile, the account's menu
  * beside them (the way to the profile). */

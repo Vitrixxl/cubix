@@ -120,10 +120,12 @@ try {
   await sort.click();
   await page.getByRole("menuitemradio", { name: "Newest first" }).click();
   // The whole period is one list: scrolled to its end, its oldest solve is drawn, the rows above it no longer.
-  await page.locator("[data-row]").last().evaluate((el) => el.closest("[class*=overflow-y-auto]")!.scrollTo(0, 1e7));
+  // Found and scrolled at once: the list draws its rows again as it settles, and a row held from before may be gone.
+  const scrollList = (top: number) => page.evaluate((top) => document.querySelector("[data-row]")!.closest("[class*=overflow-y-auto]")!.scrollTo(0, top), top);
+  await scrollList(1e7);
   await page.waitForFunction(() => document.querySelectorAll("[data-row]").length > 0);
   assert.ok((await rows.count()) < 100);
-  await page.locator("[data-row]").first().evaluate((el) => el.closest("[class*=overflow-y-auto]")!.scrollTo(0, 0));
+  await scrollList(0);
 
   const newest = await rows.first().innerText();
   await row(0).locator('[data-action$=":+2"]').click();

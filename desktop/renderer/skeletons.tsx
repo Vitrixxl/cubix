@@ -11,7 +11,7 @@ import { tr } from "../../src/client/i18n";
 import { cn } from "@/lib/utils";
 import { Skeleton as Bone } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Header, PhoneTop, SectionBar, shownRoute, TabBar, TIP_DELAY } from "./shell";
+import { Header, PhoneTop, shownRoute, TabBar, TIP_DELAY } from "./shell";
 
 const BUSY = { "aria-busy": true } as const;
 /** A surface of the page (base.tsx Surface). */
@@ -244,7 +244,7 @@ export function AppSkeleton({ phone }: { phone: boolean }) {
   return (
     <TooltipProvider delay={TIP_DELAY}>
       <div className="flex h-svh flex-col overflow-hidden">
-        {phone ? <PhoneTop /> : <><Header /><SectionBar /></>}
+        {phone ? <PhoneTop /> : <Header />}
         <div className="relative min-h-0 flex-1">
           <div className="absolute inset-0 flex flex-col">
             <PageFallback phone={phone} />

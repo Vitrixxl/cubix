@@ -6,14 +6,15 @@
  * shared with coaching.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessagesSquare, PanelRight, SearchX, UserPlus, Users } from "lucide-react";
+import { MessageSquare, MessagesSquare, PanelRight, SearchX, UserPlus, UserRound, Users } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { Avatar, Segmented, plural } from "../ui";
 import { Empty, LINK, LINK_ACCENT, ListSkeleton, NUMERIC, Tip } from "../base";
-import { time } from "../coaching/parts";
+import { day, time } from "../coaching/parts";
+import { peopleUrl } from "./people";
 import { Bubble, ChatClosed, ChatHeader, Composer, ConversationList as List, ConversationRow as Row, LIST, MessageList } from "../chat";
-import { cardText, community, communityUrl, eventName, matchUrl, seatIn, type Conversation, type Message } from "./client";
+import { cardText, community, communityUrl, eventName, matchUrl, seatIn, type Conversation, type Message, type Person } from "./client";
 import { BattleCard, TournamentChatCard } from "./cards";
 import { BattleDialog, TournamentDialog, NewGroupDialog, Requests } from "./dialogs";
 import { VirtualList } from "../virtual";
@@ -215,11 +216,53 @@ export function Chat({ conversation: c, details, onDetails, back }: { conversati
         me={s.user.id}
         event={(m) => (m.match ? <BattleCard match={m.match} /> : m.tournament ? <TournamentChatCard tournament={m.tournament} /> : null)}
         bubble={(m) => <Bubble at={m.createdAt}>{m.body}</Bubble>}
+        peek={(m) => <PersonPeek person={m.sender} />}
         empty={
           <Empty icon={MessagesSquare} title={c.kind === "group" ? tr("Say hello to the group.") : tr("Say hello to {0}.", { 0: c.with!.username })} />
         }
       />
       {c.open ? <Write c={c} /> : <ChatClosed>{tr("You are no longer friends with {0}", { 0: c.with?.username })}</ChatClosed>}
+    </div>
+  );
+}
+
+/**
+ * Someone who wrote, on hover of their face in the transcript: their face and name, since when you are friends, then
+ * their page and a word to them; someone else of a group, the way to ask them as a friend.
+ */
+function PersonPeek({ person: p }: { person: Person }) {
+  const me = p.id === s.user.id,
+    friend = community.me?.friends.find((f) => f.id === p.id);
+  return (
+    <div className="flex flex-col gap-3" data-slot="person-peek">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={p.username} src={p.avatar} size={44} />
+        <div className="flex min-w-0 flex-col">
+          <b className="truncate text-base font-extrabold tracking-[-0.01em]">{p.username}</b>
+          {(me || friend) && <span className="text-xs text-muted-foreground">{me ? tr("You") : tr("Friends since {0}", { 0: day(friend!.since) })}</span>}
+        </div>
+      </div>
+      {!me && (
+        <div className="flex gap-2 *:flex-1">
+          {friend ? (
+            <>
+              <Button variant="outline" size="sm" onClick={() => go(peopleUrl("u", p.id))} data-action="peek:profile">
+                <UserRound />
+                {tr("Profile")}
+              </Button>
+              <Button size="sm" onClick={() => void community.message(p.id)} data-action="peek:write">
+                <MessageSquare />
+                {tr("Write")}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => void community.addFriend(p.username)} data-action="peek:friend">
+              <UserPlus />
+              {tr("Add a friend")}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

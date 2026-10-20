@@ -6,7 +6,9 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, Lock, Send } from "lucide-react";
-import { NUMERIC, ROW, SearchField, Surface, Tip, personColour, said, type Props } from "./base";
+import { Avatar, FOCUS, NUMERIC, ROW, SearchField, Surface, Tip, said, type Props } from "./base";
+import { store as s } from "./store";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { day, dayKey, span, time } from "./coaching/parts";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,7 @@ export const LIST = "flex flex-col gap-0.5 p-2";
 const FRESH = "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-150";
 
 /** A line of the transcript: the margin (who, when) then what was said; on a phone the margin goes above. */
-const TURN = "grid gap-x-[18px] gap-y-1 md:grid-cols-[110px_minmax(0,1fr)]";
+const TURN = "grid gap-x-[18px] gap-y-1 md:grid-cols-[44px_minmax(0,1fr)]";
 
 const shortDay = localFormat({ day: "numeric", month: "short" });
 const weekday = localFormat({ weekday: "short" });
@@ -199,7 +201,7 @@ type Turn<T> = { day: boolean; mine: boolean; items: T[]; event?: React.ReactNod
 
 /**
  * The messages as a transcript, newest at the bottom: split by day, each sender's run of messages one turn with their
- * name (in their colour, "You" in the accent) and its time in the margin. A message `event`
+ * face and its time in the margin, the face showing `peek` (who they are, what to do with them) on hover, or their name. A message `event`
  * returns something for (a battle, a tournament) stands as a turn of its own. `them` names the other party when the
  * messages do not carry their sender. `bubble` draws a message inside its turn; `children` come after (the ones on
  * their way). The newest stays in view as messages arrive and pictures take their height. Only the turns in view are
@@ -211,6 +213,7 @@ export function MessageList<T extends Said>({
   them,
   event,
   bubble,
+  peek,
   empty,
   children,
 }: {
@@ -219,6 +222,8 @@ export function MessageList<T extends Said>({
   them?: string;
   event?: (m: T) => React.ReactNode;
   bubble: (m: T) => React.ReactNode;
+  /** What hovering a sender's face shows: their card. */
+  peek?: (m: T) => React.ReactNode;
   empty: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -265,13 +270,27 @@ export function MessageList<T extends Said>({
             rowKey={(t) => t.items[0]!.id}
             row={(t, _, measure) => {
               const first = t.items[0]!,
-                name = t.mine ? tr("You") : (first.sender?.username ?? them ?? "");
+                name = first.sender?.username ?? (t.mine ? s.user.username : them) ?? "",
+                face = <Avatar name={name} src={first.sender?.avatar} size={32} />;
               return (
                 <div ref={measure} className="flex flex-col gap-1">
                   {t.day && <DayDivider at={first.createdAt} />}
                   <div className={cn(TURN, "py-1.5")} data-mine={t.mine || undefined}>
-                    <div className="flex min-w-0 items-baseline gap-2 md:flex-col md:items-end md:gap-0 md:pt-0.5 md:text-right">
-                      <span className={cn("max-w-full truncate text-[13px] font-extrabold", t.mine ? "text-primary" : personColour(name))}>{name}</span>
+                    <div className="flex min-w-0 items-center gap-2 md:flex-col md:gap-1 md:pt-0.5">
+                      {peek ? (
+                        <Popover>
+                          <PopoverTrigger openOnHover delay={250} aria-label={t.mine ? tr("You") : name} className={cn("rounded-full", FOCUS)}>
+                            {face}
+                          </PopoverTrigger>
+                          <PopoverContent side="right" align="start" className="w-64">
+                            {peek(first)}
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Tip content={t.mine ? tr("You") : name} side="right">
+                          <span aria-label={t.mine ? tr("You") : name}>{face}</span>
+                        </Tip>
+                      )}
                       <time className={cn(NUMERIC, "text-[11px] font-semibold text-muted-foreground")}>{time(first.createdAt)}</time>
                     </div>
                     <div className="flex min-w-0 flex-col items-start gap-1.5">
@@ -303,13 +322,13 @@ export function Bubble({ at, children }: { at: number; children: React.ReactNode
   );
 }
 
-/** The day the messages under it were written, in the margin, then a hairline: Today, Yesterday, then the date. */
+/** The day the messages under it were written, then a hairline: Today, Yesterday, then the date. */
 function DayDivider({ at }: { at: number }) {
   const key = dayKey(at),
     label = key === dayKey(Date.now()) ? tr("Today") : key === dayKey(Date.now() - 86_400_000) ? tr("Yesterday") : day(at);
   return (
-    <div role="separator" className={cn(TURN, "my-2 grid-cols-[auto_1fr] items-center text-xs font-bold text-muted-foreground")}>
-      <span className={cn(NUMERIC, "first-letter:uppercase md:text-right")}>{label}</span>
+    <div role="separator" className="my-2 grid grid-cols-[auto_1fr] items-center gap-x-[18px] text-xs font-bold text-muted-foreground">
+      <span className={cn(NUMERIC, "whitespace-nowrap first-letter:uppercase")}>{label}</span>
       <span aria-hidden="true" className="h-px bg-muted" />
     </div>
   );
@@ -321,7 +340,7 @@ function ChatSkeleton() {
     <div className="flex flex-col gap-4" aria-busy="true" aria-label={tr("Loading")}>
       {["w-2/5", "w-3/5", "w-1/4", "w-1/2", "w-2/5"].map((w, i) => (
         <div key={i} className={TURN}>
-          <Skeleton className="h-4 w-16 md:ml-auto" />
+          <Skeleton className="size-8 rounded-full md:mx-auto" />
           <Skeleton className={cn("h-5", w)} />
         </div>
       ))}
