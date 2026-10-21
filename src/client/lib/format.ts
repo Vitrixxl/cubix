@@ -85,8 +85,8 @@ export function typedDisplay(text: string): string {
   return fmtTime(solve.ms) + (solve.penalty === "+2" ? "+" : "");
 }
 
-/** What a typed entry keeps of a keystroke: digits, separators, "+" and the letters of "DNF". */
-export const typedSolveChars = (text: string) => text.replace(/[^\d.,:+()dnf]/gi, "");
+/** What a typed entry keeps of a keystroke: its digits only, the time filling in from the right. */
+export const typedSolveChars = (text: string) => text.replace(/\D/g, "");
 
 export function fmtSolve(timeMs: number, penalty: Penalty): string {
   if (penalty === "dnf") return "DNF";

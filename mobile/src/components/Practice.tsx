@@ -251,7 +251,7 @@ export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: 
   const hint = !text ? tr("Type your time, then Enter: 1234 is 12.34") : solve === null ? tr("Not a time") : tr("{0} · Enter to save", { 0: fmtSolve(solve.ms, solve.penalty) });
   return <View className="w-full items-center">
     <TextInput value={text} onChangeText={value => setText(typedSolveChars(value))} onSubmitEditing={submit} submitBehavior="submit"
-      keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={colors.mutedForeground + "66"}
+      keyboardType="number-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={colors.mutedForeground + "66"}
       cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel={tr("Time")} editable={!disabled}
       className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && solve === null ? "text-destructive" : "text-timer")}
       style={{ fontSize: size * 0.8, includeFontPadding: false }} />

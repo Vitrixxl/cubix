@@ -31,7 +31,7 @@ test("a typed solve takes a +2 or a DNF as csTimer does; the bare time stays wit
   for (const text of ["+", "12+3", "12++", "DNF(", "DNF()", "DN", "DNF12"]) expect(parseTypedSolve(text)).toBeNull();
   // A best declared in the introduction is a time, never a penalty.
   for (const text of ["DNF", "12.34+"]) expect(parseTypedTime(text)).toBeNull();
-  expect(typedSolveChars("Dnf(1a2.3)+x")).toBe("Dnf(12.3)+");
+  expect(typedSolveChars("Dnf(1a2.3)+x")).toBe("123");
 });
 
 test("a time being typed is shown to the hundredth, the digits coming in from the right", () => {
