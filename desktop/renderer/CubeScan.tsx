@@ -9,7 +9,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Camera, CameraOff, Check, Hand, RefreshCw, Sun, SwitchCamera, TriangleAlert, Undo2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { FACES, type Face } from "../../src/shared/cube";
 import { cubeOrientation, cubeScene } from "../../src/shared/cubeScene";
@@ -368,8 +368,12 @@ function CameraScan({ onRead, onHand }: { onRead: (samples: Rgb[]) => void; onHa
 
 const PLACE: Record<Face, string> = { U: "col-start-2 row-start-1", L: "col-start-1 row-start-2", F: "col-start-2 row-start-2", R: "col-start-3 row-start-2", B: "col-start-4 row-start-2", D: "col-start-2 row-start-3" };
 
-/** The colour each sticker of a face is painted, the centre fixed: the net of the cube, U above F, D below. */
-function Net({ colours, doubt, brush, onPaint }: { colours: (Face | null)[]; doubt: boolean[]; brush: Face; onPaint: (slot: number) => void }) {
+/**
+ * The colour each sticker of a face is painted, the centre fixed: the net of the cube, U above F, D below. A sticker
+ * clicked opens the six colours beside it.
+ */
+function Net({ colours, doubt, onPaint }: { colours: (Face | null)[]; doubt: boolean[]; onPaint: (slot: number, colour: Face) => void }) {
+  const [open, setOpen] = useState<number | null>(null);
   return (
     <div className="grid grid-cols-4 gap-1.5 md:gap-2" role="group" aria-label={tr("Cube net")}>
       {FACES.map((face, f) => (
@@ -379,23 +383,42 @@ function Net({ colours, doubt, brush, onPaint }: { colours: (Face | null)[]; dou
               colour = colours[slot],
               unsure = doubt[slot];
             return (
-              <button
-                key={i}
-                type="button"
-                data-action="scan:paint"
-                disabled={i === 4}
-                aria-label={unsure ? tr("Check this sticker") : tr("Paint this sticker")}
-                onClick={() => onPaint(slot)}
-                className={cn(
-                  "flex size-[calc((100vw_-_5rem)/13)] items-center justify-center rounded-[6px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-xs font-extrabold text-[#1c1317] outline-none enabled:cursor-pointer enabled:hover:opacity-80 md:size-[clamp(1rem,min(5.4svh,calc((100vw_-_34rem)/14)),2.75rem)]",
-                  !colour && "bg-[repeating-linear-gradient(45deg,var(--muted),var(--muted)_3px,transparent_3px,transparent_6px)] ring-1 ring-foreground/15",
-                  colour === brush && i !== 4 && "ring-1 ring-foreground/30",
-                  unsure && "outline-2 -outline-offset-2 outline-foreground outline-dashed",
-                )}
-                style={colour ? { background: hex(colour) } : undefined}
-              >
-                {unsure && "?"}
-              </button>
+              <Popover key={i} open={open === slot} onOpenChange={(next) => setOpen(next ? slot : null)}>
+                <PopoverTrigger
+                  render={
+                  <button
+                    type="button"
+                    data-action="scan:paint"
+                    disabled={i === 4}
+                    aria-label={unsure ? tr("Check this sticker") : tr("Paint this sticker")}
+                    className={cn(
+                      "flex size-[calc((100vw_-_5rem)/13)] items-center justify-center rounded-[6px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-xs font-extrabold text-[#1c1317] outline-none enabled:cursor-pointer enabled:hover:opacity-80 md:size-[clamp(1rem,min(5.4svh,calc((100vw_-_34rem)/14)),2.75rem)]",
+                      !colour && "bg-[repeating-linear-gradient(45deg,var(--muted),var(--muted)_3px,transparent_3px,transparent_6px)] ring-1 ring-foreground/15",
+                      open === slot && "ring-2 ring-foreground ring-offset-2 ring-offset-card",
+                      unsure && "outline-2 -outline-offset-2 outline-foreground outline-dashed",
+                    )}
+                    style={colour ? { background: hex(colour) } : undefined}
+                  >
+                    {unsure && "?"}
+                  </button>
+                  }
+                />
+                <PopoverContent className="grid w-auto grid-cols-3 gap-2 p-2.5" aria-label={tr("Colour")}>
+                  {FACES.map((face) => (
+                    <button
+                      key={face}
+                      type="button"
+                      data-action={"scan:colour:" + face}
+                      aria-label={said(COLOUR_NAMES[face])}
+                      onClick={() => (onPaint(slot, face), setOpen(null))}
+                      className={cn("flex size-11 cursor-pointer items-center justify-center rounded-[8px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-[#1c1317] hover:opacity-85", FOCUS)}
+                      style={{ background: hex(face) }}
+                    >
+                      {colour === face && <Check className="size-5" strokeWidth={3} />}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
             );
           })}
         </div>
@@ -411,7 +434,6 @@ function Net({ colours, doubt, brush, onPaint }: { colours: (Face | null)[]; dou
 function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: (Face | null)[]; doubt?: boolean[]; onDone: (colours: Face[]) => void; onCamera?: () => void; frame: Frame }) {
   const [colours, setColours] = useState(initial),
     [doubt, setDoubt] = useState(unsure ?? initial.map(() => false)),
-    [brush, setBrush] = useState<Face>("U"),
     [impossible, setImpossible] = useState(false),
     counts = FACES.map((face) => colours.filter((c) => c === face).length),
     // Every sticker painted, nine of each colour: then only the solver can tell.
@@ -434,9 +456,8 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
         <Net
           colours={colours}
           doubt={doubt}
-          brush={brush}
-          onPaint={(slot) => {
-            setColours((c) => c.map((v, i) => (i === slot ? brush : v)));
+          onPaint={(slot, colour) => {
+            setColours((c) => c.map((v, i) => (i === slot ? colour : v)));
             setDoubt((d) => d.map((v, i) => v && i !== slot));
           }}
         />
@@ -463,23 +484,6 @@ function Review({ initial, doubt: unsure, onDone, onCamera, frame }: { initial: 
             ))}
           </ul>
           {problem && !blank && !complete && <p className="text-[13px] text-destructive">{said(problem)}</p>}
-        </section>
-        <section className="flex flex-col gap-2.5 rounded-[24px] bg-card px-4 py-3.5 md:px-5 md:py-[18px]">
-          <h2 className="text-lg font-extrabold max-md:hidden">{checks === 1 ? tr("1 sticker to check") : checks ? tr("{0} stickers to check", { 0: checks }) : tr("Correct a sticker")}</h2>
-          <ToggleGroup aria-label={tr("Colour")} spacing={2} value={[brush]} onValueChange={(next: string[]) => next[0] && setBrush(next[0] as Face)} className="justify-between">
-            {FACES.map((face) => (
-              <ToggleGroupItem
-                key={face}
-                value={face}
-                data-action={"scan:brush:" + face}
-                aria-label={said(COLOUR_NAMES[face])}
-                className="size-11 p-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)] text-[#1c1317] hover:opacity-90 aria-pressed:ring-2 aria-pressed:ring-foreground aria-pressed:ring-offset-2 aria-pressed:ring-offset-card md:size-[46px]"
-                style={{ background: hex(face) }}
-              >
-                {brush === face && <Check className="size-5" strokeWidth={3} />}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
         </section>
         <div className="mt-auto grid grid-cols-2 gap-2 md:grid-cols-1">
           <ActionCard primary icon={Check} title={tr("Confirm")} disabled={!complete} onClick={() => (problem ? setImpossible(true) : onDone(colours as Face[]))} action="scan:done" className={cn(!onCamera && "col-span-2")} />

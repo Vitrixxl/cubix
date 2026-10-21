@@ -18,8 +18,6 @@ const NOT_BUTTONS = new Set(['SidebarMenuButton', 'SidebarMenuSubButton', 'Dropd
 const SHAPE_EXCEPTIONS: [string, string][] = [
   // The guide's pages, a list down the help dialog: rows that wrap their title, not buttons.
   ['overlays.tsx', 'data-action={"guidePage:" + id}'],
-  // The scanner's colour swatches: squares of the sticker's colour, ringed when picked.
-  ['CubeScan.tsx', 'data-action={"scan:brush:" + face}'],
 ];
 /** Classes that change a button's shape: height, padding, radius, font size, gaps, icon size. */
 const SHAPE = /^(?:h|min-h|max-h|size|p|px|py|pl|pr|pt|pb|ps|pe|gap|gap-x|gap-y|leading)-|^rounded(?:-|$)|^text-(?:xs|sm|base|lg|\d*xl|\[[\d.]+(?:px|rem|em)\])$/;
