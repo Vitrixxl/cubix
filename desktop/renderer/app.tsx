@@ -90,6 +90,7 @@ function prefetchLinks() {
   });
 }
 const Introduction = later(() => import("./introduction"), (m) => m.Introduction);
+const CubeWorld = lazy(() => import("./CubeWorld").then((m) => ({ default: m.CubeWorld })));
 const Onboarding = later(() => import("./introduction"), (m) => m.Onboarding);
 const Algorithms = later(CODE.algorithms, (m) => m.Algorithms);
 const Profile = later(CODE.profile, (m) => m.Profile);
@@ -262,6 +263,8 @@ function App() {
     inArena = !!arena && (location.pathname === arena || (!held?.match && location.pathname.startsWith("/match/")));
   if (arena && !inArena && route.page !== "onboarding") return <Navigate to={arena} replace />;
   // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
+  // The cube's world (an easter egg) takes the place of the whole interface.
+  if (s.overlay === "world") return <TooltipProvider delay={TIP_DELAY}><Suspense fallback={null}><CubeWorld /></Suspense></TooltipProvider>;
   if (route.page === "onboarding") return <TooltipProvider delay={TIP_DELAY}><Suspense fallback={<PageSkeleton />}><Shown /><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
   return (
     <TooltipProvider delay={TIP_DELAY}>

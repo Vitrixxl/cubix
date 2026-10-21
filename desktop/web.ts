@@ -4,7 +4,7 @@
  *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker); its public
  *                          pages written ahead of time in every language under pages/ (desktop/prerender.tsx)
  *   /robots.txt…           with sitemap.xml, llms.txt and llms-full.txt, for search engines and language models
- *   /build/*               bundles, fonts and the scrambler (scrambler/) with a content hash in their name, immutable
+ *   /build/*               bundles, fonts, the scrambler (scrambler/) and the cube's world (cubeworld/) with a content hash in their name, immutable
  *   /assets/*              icons, case diagrams and the mouse pointers (scripts/build-cursors.ts)
  */
 import { cp, mkdir, rename, rm, readdir, readFile, writeFile } from "node:fs/promises";
@@ -120,10 +120,14 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const wasm = await readFile("scrambler/scrambler.wasm");
   const scrambler = `/build/scrambler-${new Bun.CryptoHasher("sha256").update(wasm).digest("hex").slice(0, 8)}.wasm`;
   await writeFile(join(out, scrambler), wasm);
+  // The cube's world (cubeworld/, WebAssembly), an easter egg the app fetches when it opens (CubeWorld.tsx).
+  const worldWasm = await readFile("cubeworld/cubeworld.wasm");
+  const cubeWorld = `/build/cubeworld-${new Bun.CryptoHasher("sha256").update(worldWasm).digest("hex").slice(0, 8)}.wasm`;
+  await writeFile(join(out, cubeWorld), worldWasm);
   // Split: the catalogue's details (catalogSplit) are a chunk of their own.
   const { entry: worker, files: engine } = await bundle("desktop/renderer/worker.ts", { CUBIX_SCRAMBLER: JSON.stringify(scrambler) }, true);
   // Split: the app and the administration (/admin) are chunks of their own, each page loads only its own code.
-  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker) }, true);
+  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker), CUBIX_CUBEWORLD: JSON.stringify(cubeWorld) }, true);
   // Each language's dictionary, a chunk of its own (src/client/i18n).
   const dictionaries = Object.fromEntries(Object.entries(app.meta.outputs).flatMap(([file, { entryPoint }]) => {
     const language = /i18n\/(\w+)\.json$/.exec(entryPoint ?? "")?.[1];

@@ -11,6 +11,7 @@
     "build:api": "sh go-api/build.sh",
     "build:web": "bun desktop/web.ts",
     "build:scrambler": "bun scrambler/build.ts",
+    "build:cubeworld": "bun cubeworld/build.ts",
     "build:assets": "bun desktop/scripts/export-assets.tsx",
     "build:cursors": "bun scripts/build-cursors.ts",
     "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-algsets.ts && bun scripts/build-bld-catalog.ts && bun scripts/build-case-images.ts && bun scripts/build-catalog.ts",
@@ -23,7 +24,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
     "knip": "knip --no-progress",
     "check": "bun run typecheck && bun run knip",
-    "test": "bun run check && bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && (cd scrambler && cargo test --release -q) && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
+    "test": "bun run check && bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && (cd scrambler && cargo test --release -q) && (cd cubeworld && cargo test --release -q) && cd go-api && go vet -tags seed ./... && go test -tags \"sqlite_stat4 seed\" ./...",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/server.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "test:ui": "bun run build:api && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts && bun desktop/testing/prerender.ts"
   },

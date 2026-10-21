@@ -64,6 +64,17 @@ const notice = ({ title, description, tone }: DeviceNotice) => {
 };
 announceDevice(() => ({ ...smartCube.snapshot, link: smartCube.snapshot.status }), smartCube.subscribe, notice);
 announceDevice(() => smartTimer.snapshot, smartTimer.subscribe, notice);
+// The cube's world (CubeWorld.tsx), an easter egg: R R L L U U D D turned on a smart cube, held either way up.
+const WORLD_CODE = "RRLLUUDD";
+let worldTurns = { count: 0, held: "", reported: "" };
+smartCube.subscribe(() => {
+  const { count, turn } = smartCube.snapshot, reported = smartCube.moves.at(-1)?.move[0];
+  if (count === worldTurns.count) return;
+  if (!turn || !reported || turn.move.layers.length !== 1) return void (worldTurns = { count, held: "", reported: "" });
+  const held = "RLUDFB"[turn.move.axis * 2 + (turn.move.layers[0]! > 0 ? 0 : 1)]!;
+  worldTurns = { count, held: (worldTurns.held + held).slice(-8), reported: (worldTurns.reported + reported).slice(-8) };
+  if ((worldTurns.held === WORLD_CODE || worldTurns.reported === WORLD_CODE) && store.overlay !== "world") void store.action("menu:world");
+});
 // The Stackmat's signal coming and going.
 let stackmatLink = stackmat.snapshot.link;
 stackmat.subscribe(() => {
