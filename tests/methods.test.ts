@@ -272,7 +272,7 @@ test("a course remembers its method, its step and its own learned algorithms", (
   expect(readCourseProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress);
   expect(readCourseProgress({ methods: { "333": 4 }, courses: { x: { step: -1, done: "a" } } })).toEqual({ methods: {}, courses: { x: { step: 0, learned: [] } } });
   expect(readCourseProgress(null)).toEqual(EMPTY_COURSE_PROGRESS);
-  // CFOP's OLL step teaches 2-look OLL and full OLL.
+  // CFOP's OLL step teaches full OLL.
   const oll = METHODS[puzzle].find(m => m.id === "cfop")!.steps.find(s => s.title === "OLL")!;
-  expect(stepAlgorithmCount(oll, cases)).toBe(67);
+  expect(stepAlgorithmCount(oll, cases)).toBe(57);
 });

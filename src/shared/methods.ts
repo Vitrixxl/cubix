@@ -299,8 +299,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           help: CROSS_HELP,
         },
         { title: "F2L", text: "Pair a corner with its edge and insert them together into their slot, four times. The 41 basic cases are learnt intuitively first.", sets: ["f2l"], picture: { done: LL, mask: "F2L" } },
-        { title: "OLL", text: "Make the top face one colour in a single algorithm (57 cases), or in two steps with 2-look OLL (10 algorithms).", sets: ["2look-oll", "oll"], picture: { done: LL_PERMUTED, mask: "OLL" } },
-        { title: "PLL", text: "Move the last-layer pieces into place in a single algorithm (21 cases), or with 2-look PLL (6 algorithms).", sets: ["2look-pll", "pll"], picture: { mask: "PLL" } },
+        { title: "OLL", text: "Make the top face one colour in a single algorithm (57 cases), or in two steps with 2-look OLL (10 algorithms).", sets: ["oll"], picture: { done: LL_PERMUTED, mask: "OLL" } },
+        { title: "PLL", text: "Move the last-layer pieces into place in a single algorithm (21 cases), or with 2-look PLL (6 algorithms).", sets: ["pll"], picture: { mask: "PLL" } },
         {
           title: "Going further", text: "WV and VLS orient the last layer while inserting the last pair; COLL and OLLCP leave only an edge PLL. When the last-layer edges are already oriented after F2L, ZBLL solves the whole last layer in one algorithm.",
           sets: ["wv", "sv", "vls", "cls", "zbls", "coll", "ollcp", "ell", "zbll-t", "zbll-u", "zbll-l", "zbll-pi", "zbll-h", "zbll-s", "zbll-as"],

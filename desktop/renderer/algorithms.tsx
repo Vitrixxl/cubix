@@ -5,9 +5,12 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
 import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Route, Search, SquareCheck, Timer, Video, X } from "lucide-react";
-import { methodSets, store as s } from "./store";
+import { methodSets, store as s, type PlayItem } from "./store";
 import { METHODS, type SolvingMethod } from "../../src/shared/methods";
-import { stepSets } from "../../src/client/lib/course";
+import { algSetup, stepSets } from "../../src/client/lib/course";
+import { applyAlg, solved } from "../../src/shared/cube";
+import { viewForMask } from "../../src/shared/cubeDiagram";
+import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { fmtTime } from "../../src/client/lib/format";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, LABEL, LearnToggle, NUMERIC, MenuAction, Modal, PAGE, PageHead, PlayBadge, LearnedMark, ProgressRing, ROW, Segmented, SelectMenu, Surface, Tip, isPhone, run, usePhone, useQuiet, useViewport, type Props } from "./ui";
 import { Button as UiButton } from "@/components/ui/button";
@@ -24,7 +27,7 @@ import { PrintDialog } from "./printSheet";
 import { pageUrl } from "./navigation";
 import { AssistedSolve } from "./AssistedSolve";
 import { assisted as solvable } from "../../src/client/lib/methodSolver";
-import type { PuzzleId } from "../../src/shared/puzzles";
+import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 
 function useScrollPosition(key: string) {
   const ref = useRef<HTMLDivElement>(null);
@@ -58,12 +61,13 @@ function currentSet() {
   return { sections, section: sections.find((section) => section.stage === stage) };
 }
 
-/** The puzzle's methods that teach sets of the catalogue, and the one the page shows (its first one until one is chosen;
- * none for a puzzle without any: every set by its stage). */
+/** The puzzle's methods that teach sets of the catalogue or algorithms of their own (the beginner's), and the one the
+ * page shows: the one chosen, else the first with sets (none for a puzzle without any: every set by its stage). */
 function catalogMethods() {
   const puzzle = s.puzzle as PuzzleId,
-    methods = (METHODS[puzzle] ?? []).filter((m) => methodSets(puzzle, m.id).length);
-  return { methods, chosen: methods.find((m) => m.id === s.algsMethod) ?? methods[0] };
+    taught = (m: SolvingMethod) => methodSets(puzzle, m.id).length > 0,
+    methods = (METHODS[puzzle] ?? []).filter((m) => taught(m) || m.steps.some((step) => step.algs?.length));
+  return { methods, chosen: methods.find((m) => m.id === s.algsMethod) ?? methods.find(taught) ?? methods[0], taught };
 }
 
 /** The tree's sections for a method: each of its steps with the sets it teaches, under the step's name. */
@@ -122,7 +126,9 @@ function Catalog({ mobile }: { mobile: boolean }) {
         {grid}
       </div>
     );
-  const byMethod = catalogMethods();
+  const byMethod = catalogMethods(),
+    // A method of its own algorithms only (the beginner's): its steps on the left, their algorithms on the right.
+    own = byMethod.chosen && !byMethod.taught(byMethod.chosen) ? byMethod.chosen : null;
   return (
     <div className={PAGE}>
       {/* The sets by method first: the chosen method's steps and their sets on the left. */}
@@ -155,10 +161,10 @@ function Catalog({ mobile }: { mobile: boolean }) {
               <span className="text-[15px] font-bold">{s.event().label}</span>
               <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>{tr("{0} of {1} learned", { 0: learned, 1: total.toLocaleString() })}</span>
             </div>
-            <SetTree sections={byMethod.chosen ? methodSections(byMethod.chosen) : sections} active={set.id} />
+            {own ? <StepList method={own} /> : <SetTree sections={byMethod.chosen ? methodSections(byMethod.chosen) : sections} active={set.id} />}
           </Surface>
         </div>
-        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        {own ? <MethodAlgs method={own} /> : <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <SetHead set={set} section={section} />
           <div className="flex shrink-0 flex-wrap items-center gap-2.5">
             <FilterChoice section={section} />
@@ -188,10 +194,77 @@ function Catalog({ mobile }: { mobile: boolean }) {
           </div>
           {grid}
           {picked && <PickBar picked={picked} clear={() => setPicked(null)} />}
-        </section>
+        </section>}
         {byMethod.chosen && <AssistedSolve method={byMethod.chosen.id} />}
       </div>
     </div>
+  );
+}
+
+const stepAnchor = (index: number) => "method-step-" + index;
+
+/** A method's steps, each a link to its algorithms on the right. */
+function StepList({ method }: { method: SolvingMethod }) {
+  return (
+    <ol className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+      {method.steps.map((step, i) => (
+        <li key={step.title}>
+          <button type="button" onClick={() => document.getElementById(stepAnchor(i))?.scrollIntoView({ behavior: "smooth", block: "start" })} className={cn(ROW, "flex w-full items-center gap-3 px-2.5 py-2 text-left")}>
+            <span className={cn(NUMERIC, "flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-primary")}>{i + 1}</span>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{said(step.title)}</span>
+            <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{(step.algs?.length ?? 0) + (step.help?.length ?? 0) || ""}</span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** A method's own algorithms, step by step: each its cube (played in 3D on a click), its name and its turns. */
+function MethodAlgs({ method }: { method: SolvingMethod }) {
+  const puzzle = s.puzzle as PuzzleId,
+    size = puzzleInfo(puzzle).cubeSize;
+  return (
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-8 overflow-y-auto pr-1" aria-label={said(method.name)}>
+      {method.steps.map((step, i) => {
+        const algs = [...(step.algs ?? []), ...(step.help ?? [])];
+        return (
+          <div key={step.title} id={stepAnchor(i)} className="flex scroll-mt-2 flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-extrabold tracking-[-0.025em]">
+                <span className={cn(NUMERIC, "mr-2 text-primary")}>{i + 1}</span>
+                {said(step.title)}
+              </h2>
+              <p className="max-w-3xl text-sm text-muted-foreground">{said(step.text)}</p>
+            </div>
+            {algs.length > 0 && (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2">
+                {algs.map((a) => {
+                  const item: PlayItem = { key: method.id + step.title + a.name, name: a.name, detail: a.detail, context: step.title, algs: [a.alg, ...(a.alternatives ?? [])], note: a.note, size: size ?? 0, mask: step.mask ?? "full", setup: a.setup };
+                  return (
+                    <div key={a.name + a.alg} className="flex items-center gap-3 rounded-2xl bg-card p-2.5">
+                      {size ? (
+                        <PlayDiagram id={item.key} name={a.name} onPlay={() => s.openAlg([item], 0)}>
+                          <StaticCubeSvg state={applyAlg(solved(size), algSetup(a))} size={72} mask={step.mask ?? "full"} view={viewForMask(step.mask ?? "full")} />
+                        </PlayDiagram>
+                      ) : null}
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="text-[13px] font-semibold">
+                          {said(a.name)}
+                          {a.detail && <span className="font-normal text-muted-foreground"> · {said(a.detail)}</span>}
+                        </span>
+                        <Alg text={a.alg} size={15} />
+                        {a.note && <span className="text-xs text-muted-foreground">{said(a.note)}</span>}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
