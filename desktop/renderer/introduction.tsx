@@ -253,7 +253,7 @@ export function Onboarding() {
         return s.emit();
       }
       if (known.length) goPage("playground", { puzzle }, true);
-      else goPage("learn", { puzzle, learnMethod: BEGINNER_COURSE.method }, true);
+      else void s.action(`learnFrom:${puzzle}:${BEGINNER_COURSE.method}`);
       s.overlay = tour ? "tour" : ""; s.emit();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
@@ -463,10 +463,10 @@ function Tour() {
   const [step, setStep] = useState(0), [spot, setSpot] = useState<Spot | null>(null);
   const [card, setCard] = useState({ width: 360, height: 220 });
   const [profile] = useState(() => journeyProfile(s.journey)), steps = tourSteps(profile), beginner = isBeginner(profile);
-  // A beginner's tour ends on the course they start with.
+  // A beginner's tour ends on the method they start with.
   const end = () => {
     s.overlay = "";
-    if (beginner) goPage("learn", { puzzle: BEGINNER_COURSE.puzzle, learnMethod: BEGINNER_COURSE.method }, true);
+    if (beginner) void s.action(`learnFrom:${BEGINNER_COURSE.puzzle}:${BEGINNER_COURSE.method}`);
     s.emit();
   };
   const ref = useDialog(end), cardRef = useRef<HTMLDivElement>(null);

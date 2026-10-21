@@ -4,7 +4,6 @@
  * The pages of an account, a guest's own data or the login page are not for search engines.
  */
 import catalogData from "../assets/catalog.json";
-import { METHODS } from "../../src/shared/methods";
 import { puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
 import { pageUrl, readRoute, type AppRoute } from "../../src/client/lib/route";
 import { tr } from "../../src/client/i18n";
@@ -81,26 +80,6 @@ export function pageSeo(route: AppRoute | null, puzzle: PuzzleId = "333"): PageS
         trail: [home, [tr("{0} algorithms", { 0: searched(puzzleOf(c)) }), list], [tr(c.setLabel ?? c.stage), list], [c.id, page(c.id)]],
       };
     }
-    case "learn": {
-      const list = pageUrl("learn", { puzzle });
-      const method = METHODS[puzzle]?.find((m) => m.id === route.learnMethod);
-      if (!method) {
-        return {
-          path: list,
-          title: tr("Learn to solve the {0}: {1}", { 0: name, 1: METHODS[puzzle].map((m) => tr(m.name)).join(", ") }),
-          description: tr("Step-by-step courses to solve the {0}, from your first solve to advanced methods, with the algorithms of each step in 3D.", { 0: name }),
-          trail: [home, [tr("Learn the {0}", { 0: name }), list]],
-        };
-      }
-      const index = Math.min(route.learnStep ?? 0, method.steps.length - 1), step = method.steps[index]!;
-      const path = pageUrl("learn", { puzzle, learnMethod: method.id, ...(index ? { learnStep: index } : {}) });
-      return {
-        path,
-        title: tr("{0} method for the {1}, step {2}: {3}", { 0: tr(method.name), 1: name, 2: index + 1, 3: tr(step.title) }),
-        description: short(index ? tr(step.text) : tr(method.summary) + " " + tr(step.text)),
-        trail: [home, [tr("Learn the {0}", { 0: name }), list], [tr(method.name), pageUrl("learn", { puzzle, learnMethod: method.id })], [tr(step.title), path]],
-      };
-    }
     case "training":
       if (route.trainingStep !== "setup" || !stagesOf(puzzle).length) return null;
       return {
@@ -145,9 +124,6 @@ export function prerenderedPages(): { url: string; files: string[] }[] {
       add(pageUrl("algorithms", { puzzle }), main);
       add(pageUrl("training", { puzzle }), main);
     }
-    add(pageUrl("learn", { puzzle }), main);
-    for (const method of METHODS[puzzle])
-      method.steps.forEach((_, step) => add(pageUrl("learn", { puzzle, learnMethod: method.id, ...(step ? { learnStep: step } : {}) }), main));
   }
   for (const c of catalog.cases) if (canonicalCase(c.id) === c.id) add(pageUrl("algorithms", { caseId: c.id, puzzle: puzzleOf(c) }), true);
   return pages;

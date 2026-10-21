@@ -30,7 +30,7 @@ type Page = [page: string, label: string, shortcut: string];
  */
 export const SECTIONS: { id: string; label: string; short: string; icon: LucideIcon; pages: Page[] }[] = [
   { id: "timer", label: "Timer", short: "Timer", icon: Timer, pages: [["playground", "Timer", "Alt+1"], ["analysis", "Analysis", "Alt+9"]] },
-  { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["learn", "Courses", "Alt+2"], ["training", "Training", "Alt+3"]] },
+  { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["training", "Training", "Alt+3"]] },
   { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+4"]] },
   { id: "compete", label: "Challenges", short: "Challenges", icon: Swords, pages: [["duel", "Duel", "Alt+5"], ["tournaments", "Tournaments", "Alt+6"], ["daily", "Daily", ""], ["wca", "WCA", ""]] },
   { id: "social", label: "Social", short: "Social", icon: Users, pages: [["community", "Messages", "Alt+7"], ["people", "Community", ""], ...(COACHING ? [["coaching", "Coaching", "Alt+8"] as Page] : [])] },

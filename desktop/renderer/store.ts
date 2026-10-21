@@ -11,7 +11,7 @@ import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { attemptMode, EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, roundFormat, scrambleTypesOf, type PuzzleId, type RoundFormat, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossSolveMode, crossTrainingType, hasSolutions, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
-import { courseEntry, courseStorageKey, goToStep, methodOf, methodSetIds, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
+import { courseEntry, courseStorageKey, goToStep, methodOf, methodSetIds, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import type { PolyPuzzle } from "../../src/shared/puzzleScene";
@@ -471,7 +471,7 @@ export class Store {
       chosen = this.prefs["cubix.training.recognitionByCube"]?.[this.puzzle];
     return chosen && learned(chosen) ? chosen : (this.allSets().find((set: any) => learned(set.id))?.id ?? "");
   }
-  /** The method the algorithms page shows its sets by, per puzzle ("all": every set by its stage). */
+  /** The method the algorithms page shows its sets by, per puzzle ("all" until one is chosen: the first). */
   /** Whether a last layer case shows its algorithms for the left hand (`leftHandAlgs`). */
   get leftHand(): boolean { return this.prefs["cubix.algs.leftHand"] ?? false; }
   get algsMethod(): string { return this.prefs["cubix.algs.methodByCube"]?.[this.puzzle] ?? "all"; }
@@ -1771,20 +1771,13 @@ export class Store {
         case "learnPick":
           this.learnPick = arg;
           break;
-        case "learnMethod": {
-          if (!methodOf(this.puzzle as PuzzleId, arg)) break;
-          this.saveCourse(openCourse(this.course, this.puzzle as PuzzleId, arg));
-          goPage("learn", { learnMethod: arg, puzzle: this.puzzle as PuzzleId });
-          break;
-        }
-        case "learnMethods":
-          goPage("learn", { puzzle: this.puzzle as PuzzleId });
-          break;
+        // A method is learned on the algorithms page now: its steps' sets, its explanation and the assisted solve.
         case "learnFrom": {
           const [puzzle, method] = arg.split(":");
           if (!isPuzzle(puzzle) || !methodOf(puzzle, method)) break;
-          this.saveCourse(openCourse(this.course, puzzle, method!));
-          goPage("learn", { puzzle, learnMethod: method });
+          this.usePuzzle(puzzle);
+          await this.action("algsMethod:" + method);
+          goPage("algorithms", { puzzle });
           break;
         }
         case "learnStep":
@@ -1835,7 +1828,7 @@ export class Store {
           break;
         case "methods":
           this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
-          this.guideMethod = "";
+          this.guideMethod = arg || this.algsMethod;
           this.overlay = "methods";
           break;
         case "guidePuzzle":

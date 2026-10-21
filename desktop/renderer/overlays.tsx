@@ -1,6 +1,6 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
 import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
-import { Compass, Download, GraduationCap, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
+import { Box, Boxes, ChevronDown, Compass, ListOrdered, Download, LogOut, Monitor, Moon, Pencil, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s } from "./store";
 import { searchCases } from "../../src/client/lib/practiceCatalog";
@@ -8,8 +8,10 @@ import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
 import { ScrambleExport } from "./attempts";
 import { GuideContent } from "../guides/Content";
-import { METHODS } from "../../src/shared/methods";
-import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
+import { METHODS, type SolvingMethod } from "../../src/shared/methods";
+import { stepSets } from "../../src/client/lib/course";
+import { StepAlgs, StepGoal } from "./AssistedSolve";
+import { puzzleInfo, puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { COACHING } from "./navigation";
 import { AccentSwatches, Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, usePhone } from "./ui";
@@ -29,7 +31,7 @@ import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { language, tr } from "../../src/client/i18n";
-import { LanguagePicker, said } from "./base";
+import { LanguagePicker, ROW, said } from "./base";
 import { LEGAL_DOCUMENTS } from "./legal/paths";
 
 const close = s.closeOverlay;
@@ -292,33 +294,82 @@ function MethodsDialog() {
   const methods = METHODS[s.guidePuzzle],
     method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
   return (
-    <Modal id="methods" title={tr("Solving methods")} className="sm:max-w-2xl" tall>
-      <div className="flex flex-col gap-2">
-        <Choice prefix="guidePuzzle:" label={tr("Puzzle")} value={s.guidePuzzle} options={PUZZLES.map((p) => ({ id: p.id, label: p.label }))} className="flex-wrap" />
-        <Choice prefix="guideMethod:" label={tr("Method")} value={method.id} options={methods.map((m) => ({ id: m.id, label: m.name }))} className="flex-wrap" />
-      </div>
-      <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto rounded-[20px] bg-muted/60 p-5">
-        <div className="flex items-start gap-4">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h3 className="text-xl font-extrabold tracking-[-0.025em]">{said(method.name)}</h3>
-            <p className="text-sm text-muted-foreground">{said(method.summary)}</p>
-          </div>
-          <Button action={`learnFrom:${s.guidePuzzle}:${method.id}`} icon={GraduationCap} variant="outline" className="shrink-0">
-            {tr("Learn")}</Button>
-        </div>
-        <ol className="flex flex-col gap-4">
-          {method.steps.map((step, i) => (
-            <li key={step.title} className="flex gap-4">
-              <span className={cn(NUMERIC, "flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary")}>{i + 1}</span>
-              <div className="flex flex-col gap-1">
-                <strong className="pt-0.5 text-sm font-semibold">{said(step.title)}</strong>
-                <p className="text-sm text-muted-foreground">{said(step.text)}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
+    <Modal id="methods" title={said(method.name)} description={said(method.summary)} className="sm:max-w-2xl" tall>
+      <ol className="flex max-h-[60vh] flex-col gap-1 overflow-y-auto rounded-[20px] bg-muted/60 p-3">
+        {method.steps.map((step, i) => (
+          <MethodStepRow key={method.id + step.title} puzzle={s.guidePuzzle} method={method} index={i} />
+        ))}
+      </ol>
     </Modal>
+  );
+}
+
+/** A step of the methods dialog: its explanation, and a click on it the rest (its tips, then on demand the cube it
+ * leaves and its algorithms, and the catalogue's sets that teach it). */
+function MethodStepRow({ puzzle, method, index }: { puzzle: PuzzleId; method: SolvingMethod; index: number }) {
+  const [open, setOpen] = useState(false),
+    [goal, setGoal] = useState(false),
+    [algs, setAlgs] = useState(false),
+    step = method.steps[index]!,
+    cube = puzzleInfo(puzzle).cubeSize,
+    sets = puzzle === s.puzzle ? stepSets(step, s.allSets(), puzzle) : [],
+    openSet = (id: string) => {
+      s.overlay = "";
+      void s.action("set:" + id);
+      if (s.page !== "algorithms") void s.action("nav:algorithms");
+      s.emit();
+    };
+  return (
+    // Open, the step is one card: its head, then what it holds along a line from its number.
+    <li className={cn("rounded-2xl transition-colors", open && "bg-background/70 ring-1 ring-border")}>
+      <button type="button" aria-expanded={open} data-action={"methodStep:" + index} onClick={() => setOpen(!open)} className={cn(ROW, "flex w-full gap-4 px-2 py-2", open && "hover:bg-transparent")}>
+        <span className={cn(NUMERIC, "flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary")}>{index + 1}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <strong className="pt-0.5 text-sm font-semibold">{said(step.title)}</strong>
+          <span className="text-sm text-muted-foreground">{said(step.text)}</span>
+        </span>
+        <ChevronDown className={cn("mt-1.5 size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="mr-3 mb-3 ml-5.5 flex flex-col gap-4 border-l-2 border-primary/40 py-1 pl-7">
+          {!!step.tips?.length && (
+            <ol className="flex flex-col gap-2" aria-label={tr("Tips")}>
+              {step.tips.map((tip, k) => (
+                <li key={tip} className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground">
+                  <span className={cn(NUMERIC, "flex size-6 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-bold text-warning")}>{k + 1}</span>
+                  {said(tip)}
+                </li>
+              ))}
+            </ol>
+          )}
+          {step.missing && <p className="text-[13px] text-muted-foreground">{said(step.missing)}</p>}
+          <div className="flex flex-wrap gap-2">
+            {cube && (
+              <UiButton variant="secondary" size="sm" aria-pressed={goal} data-action={"methodGoal:" + index} onClick={() => setGoal(!goal)} className="aria-pressed:bg-accent">
+                <Box />
+                {tr("Show the desired state")}</UiButton>
+            )}
+            {!!(step.algs?.length || step.help?.length) && (
+              <UiButton variant="secondary" size="sm" aria-pressed={algs} data-action={"methodAlgs:" + index} onClick={() => setAlgs(!algs)} className="aria-pressed:bg-accent">
+                <ListOrdered />
+                {tr("Show the help algorithms")}</UiButton>
+            )}
+            {sets.map((set: any) => (
+              <UiButton key={set.id} variant="secondary" size="sm" data-action={"set:" + set.id} onClick={() => openSet(set.id)}>
+                <Boxes />
+                {said(set.label)} · {s.learnedIn(set.id)} / {set.count}
+              </UiButton>
+            ))}
+          </div>
+          {goal && cube && (
+            <figure className="self-start rounded-2xl bg-muted p-3">
+              <StepGoal method={method} index={index} size={96} cube={cube} />
+            </figure>
+          )}
+          {algs && <StepAlgs step={step} />}
+        </div>
+      )}
+    </li>
   );
 }
 

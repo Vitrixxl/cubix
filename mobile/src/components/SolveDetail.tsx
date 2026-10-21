@@ -2,7 +2,7 @@ import { ChartNoAxesColumn, Delete, PenLine } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { ScrollView, View } from "react-native";
 import { fmtSolveOf } from "../../../src/client/lib/format";
-import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../../src/client/lib/solution";
+import { annotationAlg, COLOURS, frontsOf, heldAlg, pressTurn, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../../src/client/lib/solution";
 import { mergeTurns, type PhaseId } from "../../../src/client/lib/solveAnalysis";
 import { FACE_COLORS } from "../../../src/shared/cubeAppearance";
 import { puzzleInfo, puzzleOf, relayOf } from "../../../src/shared/puzzles";
@@ -164,23 +164,13 @@ const PAD = [
   ["M", "E", "S", "x", "y", "z"],
 ];
 
-/** A pad key: a face appends a turn, a modifier toggles on the last turn, ⌫ removes it. */
-function padPress(tokens: string[], key: string): string[] {
-  const last = tokens.at(-1);
-  if (key === "back") return tokens.slice(0, -1);
-  if (key !== "'" && key !== "2") return [...tokens, key];
-  if (!last) return tokens;
-  const base = last.replace(/(2'|2|')$/, ""), suffix = last.slice(base.length);
-  return [...tokens.slice(0, -1), base + (suffix === key ? "" : key)];
-}
-
 /**
  * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, put in with the
  * pad only, never typed freely. A modifier toggles on the last turn (R, R', R2).
  */
 function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value: Annotation; onChange: (a: Annotation) => void; valid: boolean; onCancel: () => void; onSave: () => void }) {
   const tokens = value.moves.trim().split(/\s+/).filter(Boolean),
-    press = (k: string) => onChange({ ...value, moves: padPress(tokens, k).join(" ") });
+    press = (k: string) => onChange({ ...value, moves: (pressTurn(tokens, k) ?? tokens).join(" ") });
   const colours = (list: readonly Colour[]) => list.map(c => ({ id: c, label: colourName(c), prefix: <Swatch colour={c} /> }));
   const key = (id: string, label: ReactNode, onPress: () => void, accessibilityLabel?: string) =>
     <Button key={id} variant="outline" size="sm" className="h-11 min-w-0 flex-1 px-0" onPress={onPress} accessibilityLabel={accessibilityLabel}>{label}</Button>;
@@ -197,7 +187,7 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
         {row.map(k => key(k, <Text className="font-medium">{k}</Text>, () => press(k)))}
         {r === 0 ? key("'", <Text>′</Text>, () => press("'"), tr("Counter-clockwise"))
           : r === 1 ? key("2", <Text>2</Text>, () => press("2"), tr("Half turn"))
-          : key("back", <Icon as={Delete} size={17} />, () => press("back"), tr("Remove the last turn"))}
+          : key("back", <Icon as={Delete} size={17} />, () => press("Backspace"), tr("Remove the last turn"))}
       </View>)}
     </View>
     <View className="flex-row justify-end gap-2">

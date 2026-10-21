@@ -1255,7 +1255,6 @@
  "No tournament yet": "Aucun tournoi pour l'instant",
  "No. Qbix is a practice tool and is not affiliated with Rubik’s or the World Cube Association.": "Non. Qbix est un outil d'entraînement et n'est affilié ni à Rubik’s ni à la World Cube Association.",
  "None": "Aucune",
- "none learned · see Courses": "aucun appris · voir Cours",
  "None picked by hand": "Aucun choisi à la main",
  "Not ranked": "Non classé",
  "Not ranked: only the first attempt of the day counts.": "Non classé : seul le premier essai du jour compte.",
@@ -4040,5 +4039,18 @@
  "Daily, beside the scramble, gives everyone the same scramble of the puzzle chosen, one for each puzzle, new each day at midnight UTC; Challenges → Daily shows the one of the puzzle chosen at the top. It is worked out on your device, so it works offline. Your first solve of it each day is your ranked attempt; later ones are placed among the others without counting. A +2 or DNF given to the ranked solve afterwards counts too. After the solve a chart shows how everyone's times spread, your bar highlighted, with the share of players you beat and your rank. Ranking needs an account: guests see where their time would stand.": "Daily, à côté du mélange, donne à tous le même mélange du puzzle choisi, un par puzzle, nouveau chaque jour à minuit UTC ; Challenges → Daily montre celui du puzzle choisi en haut. Il est calculé sur ton appareil, donc il marche hors ligne. Ta première résolution du jour est ton essai classé ; les suivantes sont placées parmi les autres sans compter. Un +2 ou un DNF donné ensuite à la résolution classée compte aussi. Après le solve, un graphique montre la répartition des temps de tous, ta barre en évidence, avec la part des joueurs que tu bats et ton rang. Être classé demande un compte : les invités voient où leur temps se placerait.",
  "Your messages with a friend or a group open here.": "Tes messages avec un ami ou un groupe s'ouvrent ici.",
  "Secret unlocked!": "Secret débloqué !",
- "Welcome to the cube's world": "Bienvenue dans le monde du cube"
+ "Welcome to the cube's world": "Bienvenue dans le monde du cube",
+ "Explain the method": "Explication de la méthode",
+ "none learned · see Algorithms": "aucun appris · voir Algorithmes",
+ "The method's algorithm": "L’algorithme de la méthode",
+ "Desired state": "État souhaité",
+ "No algorithm here: this step is solved by thinking it through.": "Pas d'algorithme ici : cette étape se résout en réfléchissant.",
+ "Now: {0}": "À toi : {0}",
+ "Qbix sees when the step is done": "Qbix voit quand l'étape est faite",
+ "Show the desired state": "Voir l'état souhaité",
+ "Show the help algorithms": "Voir les algos d'aide",
+ "Step done": "Étape faite",
+ "Learn with my cube": "Apprendre avec mon cube",
+ "Connected or painted": "Connecté ou colorié",
+ "« {0} » is not a turn": "« {0} » n'est pas un mouvement"
 }

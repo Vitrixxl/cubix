@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { annotationAlg, readAnnotation, readSolution, writeAnnotation } from "../src/client/lib/solution";
+import { annotationAlg, pressTurn, readAnnotation, readSolution, readTurns, writeAnnotation } from "../src/client/lib/solution";
 
 describe("hand-written solutions", () => {
   test("are kept with how the cube was held, any notation included", () => {
@@ -21,5 +21,20 @@ describe("hand-written solutions", () => {
     expect(annotationAlg({ top: "green", front: "white", moves: "R" })).toBe("x R");
     expect(annotationAlg({ top: "white", front: "green", moves: "R" })).toBe("z2 R");
     expect(annotationAlg({ top: "yellow", front: "orange", moves: "" })).toBe("y");
+  });
+});
+
+describe("turns written by hand", () => {
+  test("keys make turns, any other key none", () => {
+    let turns: string[] = [];
+    for (const key of ["x", "2", "R", "'", "U", "2", "'", "F", "w", "M"]) turns = pressTurn(turns, key) ?? turns;
+    expect(turns).toEqual(["x2", "R'", "U'", "Fw", "M"]);
+    expect(pressTurn(turns, "k")).toBeNull();
+    expect(pressTurn([], "'")).toBeNull();
+    expect(pressTurn(["R'"], "'")).toEqual(["R"]);
+    expect(pressTurn(["R"], "Backspace")).toEqual([]);
+  });
+  test("a pasted text keeps its turns only", () => {
+    expect(readTurns("(R U R’ U') sexy x2 RUR'U' Rw2, M'")).toEqual(["R", "U", "R'", "U'", "x2", "R", "U", "R'", "U'", "Rw2", "M'"]);
   });
 });

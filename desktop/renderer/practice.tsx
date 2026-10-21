@@ -579,14 +579,14 @@ export function Practice() {
       {tr("Video")}
     </Button>
   );
-  // Only learned cases are trained: none in the cases chosen, the way back to choose, or to the courses to learn them.
+  // Only learned cases are trained: none in the cases chosen, the way back to choose, or to the algorithms to learn them.
   const unlearned = [...s.selected].some((id) => s.find(id) && !s.learned.has(id));
   const noCases = (
     <div data-no-timer>
       <Empty icon={LayoutList} title={tr("No learned case to train")} className="py-8">
         <div className="flex gap-2">
           <Button action="trainingSetup" variant="default" tip={tr("Choose cases")}>{tr("Cases")}</Button>
-          {unlearned && <Button action="nav:learn" tip={tr("Open the courses")}>{tr("Courses")}</Button>}
+          {unlearned && <Button action="nav:algorithms" tip={tr("Open the algorithms")}>{tr("Algorithms")}</Button>}
         </div>
       </Empty>
     </div>

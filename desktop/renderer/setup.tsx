@@ -2,7 +2,7 @@
  * The training's page, before the timer: the ways of training as a list on the left (arrows move, Enter starts), the
  * one chosen large on the right: the steps (the cross, an EOLine, a block…), a recognition run through a set, the
  * learned cases (the recommended ones, the slowest against the player's usual, and those picked by hand, else all of
- * them), whole sets, or free practice on any case. Phones open the chosen one in a sheet. Learning new cases is the courses' work: a set with none learned leads to its course.
+ * them), whole sets, or free practice on any case. Phones open the chosen one in a sheet. Learning new cases is the algorithms page's work: a set with none learned leads to its method there.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
@@ -36,10 +36,10 @@ const sec = (ms: number) => (ms / 1000).toFixed(2);
 const STAGE_FILL: Record<string, string> = { F2L: "bg-success", OLL: "bg-primary", PLL: "bg-lilac", ZBLL: "bg-warning" };
 /** The seconds a case may be shown in a recognition run without a connected cube. */
 const RECOGNITION_SECONDS = [1, 2, 3, 5, 8];
-/** The course that teaches a set, if one does. */
+/** The algorithms of the method that teaches a set, if one does. */
 function courseAction(setId: string) {
   const method = METHODS[s.puzzle as PuzzleId]?.find((m) => m.steps.some((step) => step.sets?.includes(setId)));
-  return method ? `learnFrom:${s.puzzle}:${method.id}` : "nav:learn";
+  return method ? `learnFrom:${s.puzzle}:${method.id}` : "nav:algorithms";
 }
 
 /** The sets of the puzzle with their cases and how many are learned: those with learned cases first. */
@@ -355,7 +355,7 @@ function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
   );
 }
 
-/** A set with nothing learned: the way to its course. */
+/** A set with nothing learned: the way to its method's algorithms. */
 function CourseRow({ set }: { set: any }) {
   return (
     <button
@@ -366,7 +366,7 @@ function CourseRow({ set }: { set: any }) {
     >
       <b className="text-sm font-bold">{tr(set.label)}</b>
       <span className="flex items-center gap-1 text-[13px] font-semibold">
-        {tr("none learned · see Courses")}
+        {tr("none learned · see Algorithms")}
         <ChevronRight className="size-3.5" aria-hidden="true" />
       </span>
     </button>
@@ -597,7 +597,7 @@ function Recommended({ learned, phone = false }: { learned: number; phone?: bool
     >
       {!learned ? (
         <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="my-auto py-8">
-          <Button action="nav:learn" variant="default" tip={tr("Open the courses")}>{tr("Courses")}</Button>
+          <Button action="nav:algorithms" variant="default" tip={tr("Open the algorithms")}>{tr("Algorithms")}</Button>
         </Empty>
       ) : !shown.length ? (
         <Empty icon={Timer} title={tr(s.trainSets.length || [...s.selected].some((id) => s.learned.has(id)) ? "No recommendation yet" : "No recommendation: training all learned")} className="my-auto py-8" />
@@ -664,7 +664,7 @@ function Pips({ learned, total, fill }: { learned: number; total: number; fill: 
   );
 }
 
-/** Whole sets, their learned cases only; a set with none learned leads to its course. */
+/** Whole sets, their learned cases only; a set with none learned leads to its method's algorithms. */
 function SetsCard({ sets, phone }: { sets: ReturnType<typeof useSets>; phone: boolean }) {
   return (
     <Card title={tr("Whole sets")} className={cn(!phone && "min-h-0 shrink")}>
@@ -694,7 +694,7 @@ function SetsCard({ sets, phone }: { sets: ReturnType<typeof useSets>; phone: bo
             >
               <b className="text-sm font-bold">{tr(set.label)}</b>
               <span className="flex items-center gap-1 text-[13px] font-semibold">
-                {tr("none learned · see Courses")}
+                {tr("none learned · see Algorithms")}
                 <ChevronRight className="size-3.5" aria-hidden="true" />
               </span>
             </button>

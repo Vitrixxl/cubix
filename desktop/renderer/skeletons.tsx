@@ -493,106 +493,6 @@ export function CaseDialogSkeleton({ phone }: { phone: boolean }) {
   );
 }
 
-/** Learning: the choice of a course (the one advised large, the others listed), or a course's step. */
-function LearnSkeleton({ phone, method }: { phone: boolean; method: string }) {
-  if (!method)
-    return (
-      <Page>
-        <Head title="w-20" sub="w-80 max-md:w-28">{phone && <Puzzle />}</Head>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-5">
-          <div className={cn(CARD, "shrink-0 justify-between gap-5 p-5 md:p-8")}>
-            <div className="flex flex-col gap-3">
-              <Bone className="h-4 w-24" />
-              <Bone className="h-9 w-56 md:h-14 md:w-72" />
-              <Bone className="h-4 w-full max-w-md max-md:hidden" />
-              <Bone className="h-4 w-2/3 max-md:hidden" />
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-3 gap-3 max-md:hidden">{times(3).map((i) => <div key={i} className="flex h-[75px] flex-col justify-center gap-2 rounded-[20px] bg-muted px-4"><Bone className="h-3 w-14 bg-card" /><Bone className="h-5 w-12 bg-card" /></div>)}</div>
-              <div className="grid grid-cols-6 gap-1.5">{times(6).map((i) => <Bone key={i} className="h-2" />)}</div>
-              <Bone className="h-4 w-44" />
-              <Bone className={cn(H, "w-full")} />
-            </div>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden md:gap-3">
-            {times(4).map((i) => (
-              <div key={i} className="flex h-[100px] shrink-0 flex-col justify-center gap-3 rounded-[20px] bg-card px-5 md:h-[163px]">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <Bone className="size-11 shrink-0 rounded-[14px]" />
-                  <div className="flex min-w-0 flex-1 flex-col gap-2"><Bone className="h-5 w-32" /><Bone className="h-4 w-4/5 max-md:w-24" /></div>
-                  <div className="flex flex-col items-end gap-2"><Bone className="h-7 w-16" /><Bone className="h-3 w-20 max-md:hidden" /></div>
-                </div>
-                <Bone className="h-1.5 w-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Page>
-    );
-  if (phone)
-    return (
-      <Page>
-        <Head back title="w-28" sub="w-28"><Bone className={ICON} /></Head>
-        <div className={cn(CARD, "flex-1 overflow-hidden")}>
-          <div className="flex h-14 shrink-0 items-center gap-3 px-4"><Bone className="size-5 rounded-full" /><Bone className="h-6 w-48" /></div>
-          <div className="flex min-h-0 flex-1 flex-col gap-5 px-4 pt-4">
-            <div className="flex gap-2"><Bone className="h-11 w-36" /><Bone className="h-11 w-32" /></div>
-            <div className="flex items-center gap-3"><div className="flex flex-1 flex-col gap-2"><Bone className="h-3 w-24" /><Bone className="h-9 w-40" /></div><Bone className="size-28 rounded-[22px]" /></div>
-            <Bone className="h-4 w-11/12" />
-            <Bone className="h-4 w-3/4" />
-          </div>
-          <div className="flex shrink-0 flex-col gap-3 p-3">
-            <div className="flex flex-col gap-3 rounded-[20px] bg-muted/50 p-3"><div className="flex justify-between"><Bone className="h-4 w-16" /><Bone className="h-11 w-24" /></div><div className="grid grid-cols-3 gap-2">{times(3).map((i) => <Bone key={i} className="h-11" />)}</div></div>
-            <div className="flex gap-2"><Bone className="size-11" /><Bone className="h-11 flex-1" /></div>
-          </div>
-        </div>
-      </Page>
-    );
-  return (
-    <Page>
-      <header className="flex min-h-12 shrink-0 items-center gap-5">
-        <div className="flex shrink-0 items-center gap-2">
-          <Bone className="size-9" />
-          <div className="flex flex-col gap-1.5"><Bone className="h-5 w-24" /><Bone className="h-3 w-20" /></div>
-        </div>
-        <div className="flex min-w-0 flex-1 items-center gap-7 overflow-hidden">{["w-28", "w-36", "w-44", "w-28", "w-28", "w-40"].map((w, i) => <Bone key={i} className={cn("h-9 shrink-0", w)} />)}</div>
-        <Bone className="h-9 w-36 shrink-0" />
-      </header>
-      <div className="grid min-h-0 flex-1 grid-cols-[21rem_minmax(0,1fr)_17.5rem] gap-4 min-[1400px]:grid-cols-[24rem_minmax(0,1fr)_19rem]">
-        <div className={cn(CARD, "gap-3 overflow-hidden p-3 pt-4")}>
-          <Bone className="mx-2 h-5 w-32" />
-          {times(3).map((i) => (
-            <div key={i} className="flex h-16 items-center gap-3 px-2">
-              <Bone className="size-[52px] rounded-[12px]" />
-              <div className="flex flex-col gap-2"><Bone className="h-4 w-28" /><Bone className="h-3 w-14" /></div>
-            </div>
-          ))}
-        </div>
-        <div className={cn(CARD, "gap-4 p-6")}>
-          <div className="flex items-end justify-between">
-            <div className="flex flex-col gap-3"><Bone className="h-3 w-24" /><Bone className="h-14 w-80" /></div>
-            <div className="flex flex-col items-end gap-3"><Bone className="h-9 w-36" /><Bone className="h-4 w-24" /></div>
-          </div>
-          <Bone className="h-4 w-11/12" />
-          <div className="flex min-h-0 flex-1 items-center justify-center"><Bone className="size-56 rounded-[40px]" /></div>
-          <div className="flex shrink-0 flex-col gap-4 rounded-[20px] bg-muted/50 p-4">
-            <div className="flex items-center justify-between"><Bone className="h-5 w-48" /><Bone className="h-9 w-36" /></div>
-            <div className="grid grid-cols-3 gap-2">{times(3).map((i) => <Bone key={i} className="h-9" />)}</div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2"><Bone className="mr-auto h-4 w-14" /><Bone className="h-9 w-36" /><Bone className="h-9 w-36" /></div>
-        </div>
-        <div className={cn(CARD, "gap-4 p-5")}>
-          <Bone className="h-3 w-16" />
-          <Bone className="h-6 w-40" />
-          <Bone className="h-24 w-full rounded-[18px]" />
-          {times(5).map((i) => <Bone key={i} className="h-3.5 w-11/12" />)}
-          <div className="mt-auto flex flex-col gap-2"><Bone className="h-9 w-full" /><div className="flex gap-2"><Bone className="size-9" /><Bone className="h-9 flex-1" /></div></div>
-        </div>
-      </div>
-    </Page>
-  );
-}
-
 /** The duel's lobby on a phone; on a desktop the Challenges' hub (duel.tsx HubBox): three boxes, each its icon and title, its figure, its action. */
 function DuelSkeleton({ phone }: { phone: boolean }) {
   if (phone)
@@ -1088,8 +988,6 @@ export function PageFallback({ phone }: { phone: boolean }) {
     <TimerSkeleton phone={phone} training />
   ) : page === "algorithms" ? (
     <AlgorithmsSkeleton phone={phone} />
-  ) : page === "learn" ? (
-    <LearnSkeleton phone={phone} method={r.learnMethod} />
   ) : page === "duel" ? (
     <DuelSkeleton phone={phone} />
   ) : page === "daily" ? (

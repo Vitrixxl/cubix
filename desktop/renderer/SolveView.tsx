@@ -1,26 +1,26 @@
 /**
  * A solve on its own: its time, scramble and solution, the solution played in 3D on the scrambled cube when it is
- * known, recorded by a smart cube or written by hand. The owner can write it (how the cube was held, then its turns,
- * rotations and slices included), share the solve by a link, and set its penalty, comment or delete it.
+ * known, recorded by a smart cube or written by hand. The owner writes it in a field always there (its turns,
+ * rotations and slices included, played as they are typed), share the solve by a link, and set its penalty, comment or delete it.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Delete, Link2Off, MessageSquare, PenLine, Share2, Trash2 } from "lucide-react";
+import { Link2Off, Share2, Trash2 } from "lucide-react";
 import { call } from "./bridge";
 import { store as s } from "./store";
 import { Alg, Button, Empty, FOCUS, LABEL, NUMERIC, PenaltyToggles, Surface, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { PhaseSplits, SolveAnalysisButton, SolveSteps, capitalised, colourLabel } from "./SolveAnalysis";
 import { FACE_COLORS } from "../../src/shared/cubeAppearance";
-import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
+import { annotationAlg, heldAlg, pressTurn, readAnnotation, readSolution, readTurns, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
 import { fmtSolveOf, fmtTime, type Solved } from "../../src/client/lib/format";
 import { ScrambleLines } from "./attempts";
 import { attemptMode, puzzleInfo, puzzleOf, relayOf, type StoredContext } from "../../src/shared/puzzles";
 import { Button as UiButton } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { language, tr } from "../../src/client/i18n";
 import { localePath } from "../../src/client/lib/route";
@@ -67,24 +67,24 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
     // The scramble as the cube Cubix shows it; a scramble it cannot follow leaves no cube to play on.
     setup = useMemo(() => (solve.scramble ? heldAlg(solve.scramble.trim().split(/\s+/)) : null), [solve.scramble]),
     cube = !!size && setup !== null,
-    [editing, setEditing] = useState(false),
-    [draft, setDraft] = useState<Annotation>(() => readAnnotation(solve.solution) ?? { top: "yellow", front: "green", moves: "" }),
-    draftText = writeAnnotation(draft),
-    alg = (editing ? (draftText && draft.moves ? annotationAlg(draft) : "") : played(solve.solution)) ?? "",
-    player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined });
-  const [commenting, setCommenting] = useState(s.commenting);
-  useEffect(() => setEditing(false), [solve.id]);
-  // Fewest Moves keeps the solution written, never turns recorded on a cube.
-  const fmc = solve.solve_mode === "fewest-moves",
+    // Fewest Moves keeps the solution written, never turns recorded on a cube.
+    fmc = solve.solve_mode === "fewest-moves",
     recorded = useMemo(() => (fmc ? null : readSolution(solve.solution)), [solve.solution, fmc]),
-    annotation = fmc ? null : readAnnotation(solve.solution);
+    annotation = fmc ? null : readAnnotation(solve.solution),
+    // The owner writes the turns of a solve no cube recorded, in a field always there, played as they are typed.
+    writable = owner && !recorded && !fmc && cube && solve.id !== undefined,
+    [moves, setMoves] = useState(annotation?.moves ?? ""),
+    draft: Annotation = { top: annotation?.top ?? "yellow", front: annotation?.front ?? "green", moves },
+    draftText = writeAnnotation(draft),
+    alg = (writable ? (draftText && moves.trim() ? annotationAlg(draft) : "") : played(solve.solution)) ?? "",
+    player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined });
+  useEffect(() => setMoves(readAnnotation(solve.solution)?.moves ?? ""), [solve.id]);
 
   const save = async () => {
-    if (!draftText || solve.id === undefined) return;
+    if (!draftText || moves.trim() === (annotation?.moves ?? "") || solve.id === undefined) return;
     try {
-      await call("setSolution", solve.id, draft.moves.trim() ? draftText : null);
-      s.overlaySolve = { ...s.overlaySolve, solution: draft.moves.trim() ? draftText : null };
-      setEditing(false);
+      await call("setSolution", solve.id, moves.trim() ? draftText : null);
+      s.overlaySolve = { ...s.overlaySolve, solution: moves.trim() ? draftText : null };
       await s.refresh();
     } catch (e) {
       s.fail(e);
@@ -96,8 +96,6 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
       <span className={LABEL}>{tr("Solution")}</span>
       {solve.solution ? <Alg text={solve.solution} size={15} className="text-foreground/90" /> : <p className="text-sm text-muted-foreground">{tr("No solution")}</p>}
     </section>
-  ) : editing ? (
-    <AnnotationEditor value={draft} onChange={setDraft} valid={!!draftText} onCancel={() => setEditing(false)} onSave={save} />
   ) : (
     <section className="flex flex-col gap-2" aria-label={tr("Solution")} data-solution>
       <div className="flex min-h-7 items-center gap-3">
@@ -110,15 +108,11 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         )}
         <div className="ml-auto flex items-center gap-1">
           {recorded && solve.id !== undefined && <SolveAnalysisButton solve={solve} turns={recorded} />}
-          {owner && !recorded && cube && (
-            <UiButton variant="outline" onClick={() => setEditing(true)} data-action="annotate" aria-label={annotation ? tr("Edit the turns") : tr("Write the turns")}>
-              <PenLine />
-              {annotation ? tr("Edit") : tr("Write")}
-            </UiButton>
-          )}
         </div>
       </div>
-      {alg && player ? (
+      {writable ? (
+        <TurnsField turns={moves.split(" ").filter(Boolean)} onChange={(turns) => setMoves(turns.join(" "))} onDone={save} />
+      ) : alg && player ? (
         <PlayerAlg key={alg} player={player} text={recorded ? "z2 " + alg : annotation!.moves} size={16} className="max-h-32 overflow-y-auto" />
       ) : (
         !(owner && cube) && <p className="text-sm text-muted-foreground">{tr("No turns recorded for this solve.")}</p>
@@ -162,15 +156,11 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         {/* A visitor sees no solution where none was recorded. */}
         {(owner || recorded || annotation || fmc) && solution}
         {!owner && recorded && <SolveSteps scramble={solve.scramble} turns={recorded} />}
-        {owner && solve.id !== undefined && commenting ? <CommentField solve={solve} onDone={() => setCommenting(false)} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>}
-        {owner && solve.id !== undefined && !editing && (
+        {owner && solve.id !== undefined ? <CommentField key={solve.id} solve={solve} focus={s.commenting} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>}
+        {owner && solve.id !== undefined && (
           // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
           <div className="mt-auto flex flex-wrap items-center gap-1.5">
             {!attemptMode(solve.solve_mode) && <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />}
-            <UiButton variant="outline" onClick={() => setCommenting(true)} data-action="comment" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
-              <MessageSquare />
-              {tr("Comment")}
-            </UiButton>
             {/* A guest is asked to sign in first (store.ts). */}
             <Button action={"share:" + solve.id} icon={Share2} variant="outline" className="text-muted-foreground">
               {tr("Share")}
@@ -185,13 +175,11 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
   );
 }
 
-/** The comment written in place, focused: Enter or leaving it saves, Shift+Enter breaks the line, Escape cancels. */
-function CommentField({ solve, onDone }: { solve: ViewedSolve; onDone: () => void }) {
-  const [text, setText] = useState(solve.comment ?? ""),
-    cancelled = useRef(false);
+/** The comment, always there for the owner (focused when the dialog opened for it): Enter or leaving it saves,
+ * Shift+Enter breaks the line, Escape puts back the one saved. */
+function CommentField({ solve, focus }: { solve: ViewedSolve; focus: boolean }) {
+  const [text, setText] = useState(solve.comment ?? "");
   const save = async () => {
-    onDone();
-    if (cancelled.current) return;
     if (text.trim() === (solve.comment ?? "").trim()) return;
     try {
       await call("setComment", solve.id, text.trim());
@@ -203,7 +191,7 @@ function CommentField({ solve, onDone }: { solve: ViewedSolve; onDone: () => voi
   };
   return (
     <Textarea
-      autoFocus
+      autoFocus={focus}
       aria-label={tr("Comment")}
       placeholder={tr("What happened on this solve?")}
       className="min-h-20 text-sm"
@@ -215,14 +203,66 @@ function CommentField({ solve, onDone }: { solve: ViewedSolve; onDone: () => voi
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           e.currentTarget.blur();
-        } else if (e.key === "Escape") {
+        } else if (e.key === "Escape" && text !== (solve.comment ?? "")) {
           e.preventDefault();
           e.stopPropagation();
-          cancelled.current = true;
-          onDone();
+          setText(solve.comment ?? "");
         }
       }}
     />
+  );
+}
+
+/**
+ * The turns written by hand, each a chip, in a field that takes turns only: a key that is not a turn's is refused (said
+ * under it), ' and 2 change the last turn, Backspace removes it, a pasted text keeps its turns (readTurns). Enter or
+ * leaving the field saves.
+ */
+function TurnsField({ turns, onChange, onDone }: { turns: string[]; onChange: (turns: string[]) => void; onDone: () => void }) {
+  const [refused, setRefused] = useState(""),
+    input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!refused) return;
+    const id = setTimeout(() => setRefused(""), 2000);
+    return () => clearTimeout(id);
+  }, [refused]);
+  // Typed one key at a time, or pasted (or put in by a phone's keyboard) at once.
+  const typed = (text: string) => {
+    if (!text) return;
+    if (text.length > 1) return onChange([...turns, ...readTurns(text)]);
+    const next = pressTurn(turns, text);
+    if (next) onChange(next);
+    else if (text.trim()) setRefused(text);
+  };
+  return (
+    <div className="flex flex-col gap-1.5">
+      <InputGroup className="h-auto min-h-16 cursor-text flex-wrap content-start items-start gap-1 p-2" onClick={() => input.current?.focus()} aria-invalid={!!refused}>
+        {turns.map((turn, i) => (
+          <Badge key={i} variant="secondary" className="alg h-7 rounded-md px-2 font-sans text-sm font-bold">
+            {turn}
+          </Badge>
+        ))}
+        <InputGroupInput
+          ref={input}
+          aria-label={tr("Write the turns")}
+          aria-invalid={!!refused}
+          placeholder={turns.length ? "" : "x2 y R U R' U' r M' …"}
+          className="h-7 min-w-24 px-1"
+          value=""
+          onChange={(e) => typed(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Backspace" && turns.length) onChange(turns.slice(0, -1));
+            else if (e.key === "Enter") e.currentTarget.blur();
+            else return;
+            e.preventDefault();
+          }}
+          onBlur={onDone}
+        />
+      </InputGroup>
+      <span className="min-h-4 text-xs font-semibold text-destructive" role="status">
+        {refused && tr("« {0} » is not a turn", { 0: refused })}
+      </span>
+    </div>
   );
 }
 
@@ -239,122 +279,6 @@ function SolutionFigures({ turns }: { turns: { move: string; at?: number }[] }) 
 }
 
 export const Swatch = ({ colour }: { colour: Colour }) => <span className="inline-block size-3 rounded-[3px] ring-1 ring-foreground/20" style={{ background: SWATCH[colour] }} aria-label={colourName(colour)} />;
-
-function ColourSelect({ label, value, options, onChange }: { label: string; value: Colour; options: readonly Colour[]; onChange: (c: Colour) => void }) {
-  const items = options.map((c) => ({ value: c, label: colourName(c) }));
-  return (
-    <Field className="min-w-0 flex-1 gap-1.5">
-      <FieldLabel className={LABEL}>{label}</FieldLabel>
-      <Select items={items} value={value} onValueChange={(v) => onChange(v as Colour)}>
-        <SelectTrigger aria-label={label} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((c) => (
-            <SelectItem key={c} value={c}>
-              <Swatch colour={c} />
-              {colourName(c)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
-  );
-}
-
-/** The keys of the turn pad: face turns, wide turns, slices and rotations. */
-const PAD = [
-  ["R", "L", "U", "D", "F", "B"],
-  ["r", "l", "u", "d", "f", "b"],
-  ["M", "E", "S", "x", "y", "z"],
-];
-
-/** A pad key or its keyboard key: a face appends a turn, a modifier toggles on the last turn, ⌫ removes it. */
-function padPress(tokens: string[], key: string): string[] | null {
-  const last = tokens.at(-1);
-  if (key === "Backspace") return tokens.slice(0, -1);
-  if (key === "'" || key === "2") {
-    if (!last) return null;
-    const base = last.replace(/(2'|2|')$/, ""), suffix = last.slice(base.length);
-    return [...tokens.slice(0, -1), base + (suffix === key ? "" : key)];
-  }
-  return PAD.some((row) => row.includes(key)) ? [...tokens, key] : null;
-}
-
-/**
- * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, put in with the
- * pad or the same keys on the keyboard, never typed freely. A modifier toggles on the last turn (R, R', R2).
- */
-function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value: Annotation; onChange: (a: Annotation) => void; valid: boolean; onCancel: () => void; onSave: () => void }) {
-  const tokens = value.moves.trim().split(/\s+/).filter(Boolean),
-    press = (key: string) => {
-      const moves = padPress(tokens, key);
-      if (moves) onChange({ ...value, moves: moves.join(" ") });
-      return !!moves;
-    };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || (e.target as Element | null)?.closest?.("input, textarea, select, [role=listbox]")) return;
-      if (press(e.key)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    addEventListener("keydown", onKey, true);
-    return () => removeEventListener("keydown", onKey, true);
-  });
-  return (
-    <section className="flex flex-col gap-3" aria-label={tr("Write the turns")}>
-      <div className="flex gap-3">
-        <ColourSelect label={tr("On top")} value={value.top} options={COLOURS} onChange={(top) => onChange({ ...value, top, front: frontsOf(top).includes(value.front) ? value.front : frontsOf(top)[0]! })} />
-        <ColourSelect label={tr("In front")} value={value.front} options={frontsOf(value.top)} onChange={(front) => onChange({ ...value, front })} />
-      </div>
-      <div role="list" aria-label={tr("Turns")} className="flex max-h-28 min-h-16 flex-wrap content-start gap-1 overflow-y-auto rounded-md border border-input bg-muted/30 p-2">
-        {tokens.length ? (
-          tokens.map((t, i) => (
-            <code key={i} role="listitem" className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-sm font-medium">
-              {t}
-            </code>
-          ))
-        ) : (
-          <span className="self-center text-xs text-muted-foreground">x2 y R U R' U' r M' …</span>
-        )}
-      </div>
-      <div className="grid grid-cols-[repeat(6,minmax(0,1fr))_auto] gap-1">
-        {PAD.map((row, r) => (
-          <div key={r} className="contents">
-            {row.map((key) => (
-              <UiButton key={key} type="button" variant="outline" className="font-medium" onClick={() => press(key)}>
-                {key}
-              </UiButton>
-            ))}
-            {r === 0 ? (
-              <UiButton type="button" variant="outline" onClick={() => press("'")} aria-label={tr("Counter-clockwise")}>
-                ′
-              </UiButton>
-            ) : r === 1 ? (
-              <UiButton type="button" variant="outline" onClick={() => press("2")} aria-label={tr("Half turn")}>
-                2
-              </UiButton>
-            ) : (
-              <UiButton type="button" variant="outline" onClick={() => press("Backspace")} aria-label={tr("Remove the last turn")}>
-                <Delete />
-              </UiButton>
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-end gap-2">
-        <UiButton type="button" variant="ghost" onClick={onCancel}>
-          {tr("Cancel")}
-        </UiButton>
-        <UiButton type="button" disabled={!valid} onClick={onSave} data-action="saveTurns">
-          {tr("Save")}
-        </UiButton>
-      </div>
-    </section>
-  );
-}
 
 /** A solve shared by its link, as anyone opening the link sees it, signed in or not. */
 export function SharedSolve({ token }: { token: string }) {

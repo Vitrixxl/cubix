@@ -19,7 +19,7 @@ import { XpGain } from "./xp";
 import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
-import { COACHING, bindNavigation, go, readRoute, type AppRoute } from "./navigation";
+import { COACHING, bindNavigation, go, pageUrl, readRoute, type AppRoute } from "./navigation";
 import { onIntent, thrifty } from "./prefetch";
 import { preloadAll } from "./preload";
 import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
@@ -69,7 +69,6 @@ const CODE = {
   daily: () => import("./daily"),
   wca: () => import("./wca/page"),
   training: detailed(() => import("./setup")),
-  learn: detailed(() => import("./learn")),
 };
 /**
  * What a link opens, fetched ahead (prefetch.ts): for the pages that read the server, their list (read only, at most
@@ -103,7 +102,6 @@ const DailyPage = later(CODE.daily, (m) => m.DailyPage);
 const WcaPage = later(CODE.wca, (m) => m.WcaPage);
 const TrainingSetup = later(CODE.training, (m) => m.TrainingSetup);
 const RecognitionPractice = later(CODE.training, (m) => m.RecognitionPractice);
-const Learn = later(CODE.learn, (m) => m.Learn);
 const Overlays = later(detailed(() => import("./overlays")), (m) => m.Overlays);
 const CaseDialog = later(CODE.algorithms, (m) => m.CaseDialog);
 /** Whether a case's dialog was opened yet: its part of the app loads then, and stays for the next. */
@@ -161,7 +159,6 @@ function App() {
         const action = (
           {
             Digit1: "nav:playground",
-            Digit2: "nav:learn",
             Digit3: "nav:training",
             Digit4: "nav:algorithms",
             Digit5: "nav:duel",
@@ -191,8 +188,6 @@ function App() {
           s.showTimes = false;
           s.emit();
         }
-      } else if (!s.overlay && !s.assisted && s.page === "learn" && s.learnMethod && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
-        void s.action(e.key === "ArrowLeft" ? "previous" : "next");
       } else if (
         !s.overlay &&
         s.page === "algorithms" &&
@@ -244,7 +239,6 @@ function App() {
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "") +
-        (s.page === "learn" ? ":" + (s.learnMethod || "home") : "") +
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
         (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "") +
         // The community is one page, a conversation opening in place; a tournament or a match is a page of its own.
@@ -257,6 +251,8 @@ function App() {
   if (s.ready && s.signedIn && !journeyProfile(s.journey) && route?.page !== "onboarding")
     return <Navigate to={"/onboarding" + (route && ["community", "tournaments", "match"].includes(route.page) ? "?next=" + encodeURIComponent(location.pathname + location.search) : "")} replace />;
   if (!route) return <Navigate to="/timer" replace />;
+  // The courses are gone: their old addresses open the algorithms, where each method is explained and learned.
+  if (route.page === "learn") return <Navigate to={pageUrl("algorithms", { puzzle: route.puzzle })} replace />;
   // A battle or a tournament under way holds the whole app until it is over or given up.
   const held = community.competition,
     arena = held?.match ? "/match/" + held.match : held?.tournament ? "/tournaments/" + held.tournament : null,
@@ -290,8 +286,6 @@ function App() {
                     <Practice />
                   ) : s.page === "algorithms" ? (
                     <Algorithms />
-                  ) : s.page === "learn" ? (
-                    <Learn />
                   ) : s.page === "duel" ? (
                     <DuelPage />
                   ) : s.page === "coaching" ? (

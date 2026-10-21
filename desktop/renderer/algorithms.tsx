@@ -4,7 +4,7 @@ import { caseDetail, casePlayItem, displayAlg, leftHandAlgs, moveCount, shortId 
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Search, SquareCheck, Timer, Video, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Route, Search, SquareCheck, Timer, Video, X } from "lucide-react";
 import { methodSets, store as s } from "./store";
 import { METHODS, type SolvingMethod } from "../../src/shared/methods";
 import { stepSets } from "../../src/client/lib/course";
@@ -18,10 +18,12 @@ import { Kbd } from "@/components/ui/kbd";
 import { VirtualList, inRows } from "./virtual";
 import type { Virtualizer } from "@tanstack/react-virtual";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { ActionCard, said } from "./base";
 import { Link } from "react-router";
 import { PrintDialog } from "./printSheet";
 import { pageUrl } from "./navigation";
+import { AssistedSolve } from "./AssistedSolve";
+import { assisted as solvable } from "../../src/client/lib/methodSolver";
 import type { PuzzleId } from "../../src/shared/puzzles";
 
 function useScrollPosition(key: string) {
@@ -56,11 +58,12 @@ function currentSet() {
   return { sections, section: sections.find((section) => section.stage === stage) };
 }
 
-/** The puzzle's methods that teach sets of the catalogue, and the one the page shows (none: every set by its stage). */
+/** The puzzle's methods that teach sets of the catalogue, and the one the page shows (its first one until one is chosen;
+ * none for a puzzle without any: every set by its stage). */
 function catalogMethods() {
   const puzzle = s.puzzle as PuzzleId,
     methods = (METHODS[puzzle] ?? []).filter((m) => methodSets(puzzle, m.id).length);
-  return { methods, chosen: methods.find((m) => m.id === s.algsMethod) };
+  return { methods, chosen: methods.find((m) => m.id === s.algsMethod) ?? methods[0] };
 }
 
 /** The tree's sections for a method: each of its steps with the sets it teaches, under the step's name. */
@@ -127,26 +130,34 @@ function Catalog({ mobile }: { mobile: boolean }) {
         <Choice
           prefix="algsMethod:"
           label={tr("Method")}
-          value={byMethod.chosen?.id ?? "all"}
+          value={byMethod.chosen!.id}
           className="shrink-0 self-start"
-          options={[{ id: "all", label: tr("All") }, ...byMethod.methods.map((m) => ({ id: m.id, label: said(m.name) }))]}
+          options={byMethod.methods.map((m) => ({ id: m.id, label: said(m.name) }))}
         />
       )}
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
-        <Surface data-tour="algorithms" className="w-[min(19rem,32%)] shrink-0 gap-3 p-3 pt-4">
-          <Button action="search" variant="secondary" className="shrink-0 justify-start text-muted-foreground">
-            <Search />
-            <span className="truncate">{tr("Find")}</span>
-            <Kbd className="ml-auto max-lg:hidden">{tr("Ctrl K")}</Kbd>
-          </Button>
-          <div className="flex shrink-0 items-baseline justify-between px-2.5">
-            <span className="text-[15px] font-bold">{s.event().label}</span>
-            <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>{tr("{0} of {1} learned", { 0: learned, 1: total.toLocaleString() })}</span>
+        <div className="flex w-[min(19rem,32%)] shrink-0 flex-col gap-3">
+          {/* The chosen method explained, and learned on the player's own cube (AssistedSolve). */}
+          <div className="flex shrink-0 flex-col gap-2">
+            <Button action={"methods:" + (byMethod.chosen?.id ?? "")} icon={BookOpen} variant="secondary" className="justify-start">
+              {byMethod.chosen ? tr("Explain the method") : tr("Solving methods")}</Button>
+            {byMethod.chosen && solvable(s.puzzle as PuzzleId, byMethod.chosen.id) && (
+              <ActionCard icon={Route} title={tr("Learn with my cube")} text={tr("Connected or painted")} onClick={run("assisted")} action="assisted" className="py-2.5" />
+            )}
           </div>
-          <SetTree sections={byMethod.chosen ? methodSections(byMethod.chosen) : sections} active={set.id} />
-          <Button action="methods" icon={BookOpen} variant="ghost" className="shrink-0 justify-start text-muted-foreground">
-            {tr("Methods")}</Button>
-        </Surface>
+          <Surface data-tour="algorithms" className="min-h-0 flex-1 gap-3 p-3 pt-4">
+            <Button action="search" variant="secondary" className="shrink-0 justify-start text-muted-foreground">
+              <Search />
+              <span className="truncate">{tr("Find")}</span>
+              <Kbd className="ml-auto max-lg:hidden">{tr("Ctrl K")}</Kbd>
+            </Button>
+            <div className="flex shrink-0 items-baseline justify-between px-2.5">
+              <span className="text-[15px] font-bold">{s.event().label}</span>
+              <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>{tr("{0} of {1} learned", { 0: learned, 1: total.toLocaleString() })}</span>
+            </div>
+            <SetTree sections={byMethod.chosen ? methodSections(byMethod.chosen) : sections} active={set.id} />
+          </Surface>
+        </div>
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           <SetHead set={set} section={section} />
           <div className="flex shrink-0 flex-wrap items-center gap-2.5">
@@ -178,6 +189,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
           {grid}
           {picked && <PickBar picked={picked} clear={() => setPicked(null)} />}
         </section>
+        {byMethod.chosen && <AssistedSolve method={byMethod.chosen.id} />}
       </div>
     </div>
   );

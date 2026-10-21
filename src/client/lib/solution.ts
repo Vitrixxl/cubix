@@ -95,6 +95,30 @@ export function writeAnnotation({ top, front, moves }: Annotation): string | nul
   return text;
 }
 
+/** A turn as written by hand: a face, wide (Rw or r), a slice or a rotation, then ' or 2 or both. */
+const WRITTEN = "(?:[RLUDFB]w?|[rludfbMESxyz])(?:2'|2|')?";
+const TURNS_ONLY = new RegExp(`^(?:${WRITTEN})+$`), TURN_AT = new RegExp(WRITTEN, "g");
+/** The turns of a pasted text: each of its words made of turns only ("RUR'U'" too), any other word ("sexy") left out. */
+export function readTurns(text: string): string[] {
+  return text.replace(/[’′]/g, "'").split(/[\s()[\],]+/).filter((word) => TURNS_ONLY.test(word)).flatMap((word) => word.match(TURN_AT)!);
+}
+/**
+ * A key pressed on the turns written so far: a face, slice or rotation appends a turn, ' and 2 toggle on the last one
+ * (R, R', R2), w makes the last face turn wide, Backspace removes the last turn; null for a key that is not a turn's.
+ */
+export function pressTurn(turns: readonly string[], key: string): string[] | null {
+  const last = turns.at(-1), rest = turns.slice(0, -1);
+  if (key === "Backspace") return rest;
+  if (/^[RLUDFBrludfbMESxyz]$/.test(key)) return [...turns, key];
+  if (!last) return null;
+  const base = last.replace(/(2'|2|')$/, ""), suffix = last.slice(base.length);
+  if (key === "'" || key === "’" || key === "2") {
+    const mark = key === "2" ? "2" : "'";
+    return [...rest, base + (suffix === mark ? "" : mark)];
+  }
+  return key === "w" && /^[RLUDFB]$/.test(base) ? [...rest, base + "w" + suffix] : null;
+}
+
 /** The colours of the cube Cubix shows a scramble on: yellow on top, green in front, orange on the right. */
 const SHOWN: Record<string, Colour> = { U: "yellow", D: "white", F: "green", B: "blue", R: "orange", L: "red" };
 /** The whole-cube rotations, the shortest first. */

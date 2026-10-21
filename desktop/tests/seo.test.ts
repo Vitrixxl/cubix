@@ -13,7 +13,7 @@ test("each public page has its title, description and address; an account's page
   expect(oll.trail.at(-1)).toEqual(["OLL 21", "/algorithms/OLL%2021?puzzle=333"]);
   expect(seoOf("/timer", "")!.path).toBe("/timer?puzzle=333");
   expect(seoOf("/timer", "?puzzle=pyram")!.title).toContain("Pyraminx");
-  expect(seoOf("/learn/cfop", "?puzzle=333&step=2")!.path).toBe("/learn/cfop?puzzle=333&step=2");
+  expect(seoOf("/learn/cfop", "?puzzle=333&step=2")).toBeNull();
   for (const path of ["/community", "/profile", "/login", "/duel", "/training/practice", "/onboarding"]) expect(seoOf(path, "")).toBeNull();
 });
 
