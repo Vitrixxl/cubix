@@ -141,9 +141,7 @@ function TournamentList() {
           </div>
         </div>
       ) : !list.length ? (
-        <Empty icon={Trophy} title={tr("No tournament yet")} className="flex-1">
-          {!phone && hub}
-        </Empty>
+        <Empty icon={Trophy} title={tr("No tournament yet")} className="flex-1" />
       ) : (
         <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "md:grid-cols-[320px_minmax(0,1fr)]", wide && "md:grid-cols-[340px_minmax(0,1fr)_320px]")}>
           <Surface className="gap-3.5 p-4 pt-5">
