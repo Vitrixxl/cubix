@@ -112,6 +112,10 @@ const BOUNCE: f32 = 0.35;
 /// A turn's kick: the cube hops, and spins against the layer it turned.
 const HOP: f32 = 7.0;
 const RECOIL: f32 = 3.5;
+/// How hard the cube follows the held cube's orientation, and how much its spin is damped toward the held one's:
+/// a spring, so that gravity and what it runs into still tip it over.
+const FOLLOW: f32 = 55.0;
+const FOLLOW_DAMPING: f32 = 11.0;
 const STEP: f32 = 1.0 / 240.0;
 const TURN_SECONDS: f32 = 0.13;
 const FOV: f32 = 0.85;
@@ -370,27 +374,24 @@ impl World {
         }
     }
 
-    /// How much a push turns the cube: not at all while it is held, its orientation the player's.
-    fn turnable(&self) -> f32 { if self.held.is_some() { 0.0 } else { 1.0 / INERTIA } }
-
     fn push(&mut self, impulse: V, at: V) {
         self.vel = self.vel + impulse * (1.0 / MASS);
-        self.spin = self.spin + at.cross(impulse) * self.turnable();
+        self.spin = self.spin + at.cross(impulse) * (1.0 / INERTIA);
     }
 
     fn step(&mut self, dt: f32) {
         self.vel.1 -= GRAVITY * dt;
+        if let Some(held) = self.held {
+            let error = held.then(self.q.inverse()).vector();
+            let torque = error * FOLLOW + (self.held_spin - self.spin) * FOLLOW_DAMPING;
+            self.spin = self.spin + torque * (dt / INERTIA);
+        }
         self.vel = self.vel * (1.0 - 0.1 * dt);
         self.spin = self.spin * (1.0 - 0.3 * dt);
         self.pos = self.pos + self.vel * dt;
-        if let Some(held) = self.held {
-            // Turned exactly as the player turns theirs: nothing else turns it.
-            (self.q, self.spin) = (held, self.held_spin);
-        } else {
-            let w = self.spin;
-            let dq = Q(0.0, w.0, w.1, w.2).then(self.q);
-            self.q = Q(self.q.0 + dq.0 * dt / 2.0, self.q.1 + dq.1 * dt / 2.0, self.q.2 + dq.2 * dt / 2.0, self.q.3 + dq.3 * dt / 2.0).unit();
-        }
+        let w = self.spin;
+        let dq = Q(0.0, w.0, w.1, w.2).then(self.q);
+        self.q = Q(self.q.0 + dq.0 * dt / 2.0, self.q.1 + dq.1 * dt / 2.0, self.q.2 + dq.2 * dt / 2.0, self.q.3 + dq.3 * dt / 2.0).unit();
         self.collide();
     }
 
@@ -404,7 +405,7 @@ impl World {
         }
         let rn = r.cross(n);
         let bounce = if bounce && going < -3.0 { BOUNCE } else { 0.0 };
-        let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) * self.turnable());
+        let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) * (1.0 / INERTIA));
         self.push(n * j, r);
         let v = self.vel + self.spin.cross(r);
         let slide = v - n * v.dot(n);
@@ -412,7 +413,7 @@ impl World {
         if speed > 1e-5 {
             let t = slide * (1.0 / speed);
             let rt = r.cross(t);
-            let jt = (speed / (1.0 / MASS + rt.dot(rt) * self.turnable())).min(FRICTION * j);
+            let jt = (speed / (1.0 / MASS + rt.dot(rt) * (1.0 / INERTIA))).min(FRICTION * j);
             self.push(t * -jt, r);
         }
     }
@@ -623,14 +624,11 @@ mod tests {
     #[test]
     fn the_cube_follows_how_the_player_holds_theirs_whatever_the_camera() {
         let mut w = World::new();
-        let held = Q::around(V(1.0, 0.3, 0.5).unit(), 0.9);
+        let held = Q::around(V(0.0, 1.0, 0.0), 0.7);
         w.held = Some(held);
         w.yaw = 0.3;
         settle(&mut w, 6.0);
-        assert!(held.then(w.q.inverse()).vector().len() < 1e-5, "{:?}", w.q);
-        // Its corner on the ground, the rest of it above.
-        let lowest = (0..8).map(|c| w.pos.1 + w.q.rotate(V(if c & 1 == 0 { -HALF } else { HALF }, if c & 2 == 0 { -HALF } else { HALF }, if c & 4 == 0 { -HALF } else { HALF })).1).fold(f32::MAX, f32::min);
-        assert!(lowest.abs() < 0.05, "{lowest}");
+        assert!(held.then(w.q.inverse()).vector().len() < 0.1, "{:?}", w.q);
     }
 
     #[test]
