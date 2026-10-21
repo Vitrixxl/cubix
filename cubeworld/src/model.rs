@@ -90,7 +90,11 @@ pub fn cube(stickers: &[f32], turn: Option<(usize, f32, Q)>, body: Q, pos: V, me
                     let v = set(set(centre, a, if sa > 0.0 { hi.at(a) } else { lo.at(a) }), b, if sb > 0.0 { hi.at(b) } else { lo.at(b) });
                     if outer(v) { round_corner(v, sa, sb, a, b, &mut points) } else { points.push(v) }
                 }
-                out.polygon(centre, &points, q, V::axis(f) * side, BODY, 0.0, |_| (0.0, 0.0));
+                // Flat, a hair under the stickers: the corners' curve dips below the face, and a fan from the face's
+                // middle down to it would rise through the stickers.
+                let under = plane - side * 0.004;
+                let points: Vec<V> = points.into_iter().map(|v| set(v, f, under)).collect();
+                out.polygon(set(centre, f, under), &points, q, V::axis(f) * side, BODY, 0.0, |_| (0.0, 0.0));
             }
         }
     }
@@ -122,8 +126,9 @@ pub fn cube(stickers: &[f32], turn: Option<(usize, f32, Q)>, body: Q, pos: V, me
             }
         }
         // Just off the body, so that it never shows through.
+        // Flat, as the body's faces are, just off them.
         let lift = n * 0.002;
-        let points: Vec<V> = points.into_iter().map(|v| v + lift).collect();
+        let points: Vec<V> = points.into_iter().map(|v| set(v, f, centre.at(f)) + lift).collect();
         let face = |v: V| ((v.at(a) - centre.at(a)) * 2.0, (v.at(b) - centre.at(b)) * 2.0);
         out.polygon(centre + lift, &points, pose(p.at(axis)), n, colour, 1.0, face);
     }
