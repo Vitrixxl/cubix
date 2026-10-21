@@ -1,5 +1,5 @@
 import { applyMove, parseAlg, parseScramble, slotsFor, solved, type Move } from './cube';
-import { GREY, stickerColors, type CubeMask } from './cubeAppearance';
+import { DIM, GREY, stickerColors, type CubeMask } from './cubeAppearance';
 
 /**
  * The 3D cube of the desktop timer, as pure geometry: the canvas of the timer and the SVG of both
@@ -193,11 +193,12 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
   };
   if (hints)
     slotsFor(scene.size).forEach(({ p, n }, slot) => {
-      // A hidden sticker pushed out along its normal, painted first (behind it all): the top layer's sides, and any
-      // sticker out of its place (an F2L case's pair, under the cube too). The mask's grey says nothing: left out.
-      const top = n[1] === 0 && Math.abs(p[1]! - h) <= 0.0001,
+      // A hidden sticker pushed out along its normal, painted first (behind it all): the top face whole (seen from
+      // below once the cube is turned), its layer's sides, and any sticker out of its place (an F2L case's pair, under
+      // the cube too). Elsewhere the mask's greys say nothing: left out.
+      const layer = Math.abs(p[1]! - h) <= 0.0001,
         color = scene.colors[state[slot]!]!;
-      if ((!top && state[slot] === slot) || color === GREY) return;
+      if (!(layer && n[1] === 1) && ((!layer && state[slot] === slot) || color === GREY || color === DIM)) return;
       const moved = moving(Math.round(p[axis]! + h)),
         center = add(p, scale(n, 0.5 + HINT_GAP));
       if (seen(n, add(p, scale(n, 0.5)), moved)) return;

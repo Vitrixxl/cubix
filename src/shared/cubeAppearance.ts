@@ -31,7 +31,8 @@ export const hexOf = (color: number) => '#' + color.toString(16).padStart(6, '0'
 export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, hexOf(FACE_HEX[f])])) as Record<Face, string>;
 // Neutral stickers remain readable against both light and dark app backgrounds.
 export const GREY = 0x6e6e78;
-const DIM = 0x4c4c56;
+/** The darker grey of the stickers a mask hides below the top layer. */
+export const DIM = 0x4c4c56;
 
 /** The side colours one `y` brings to the front (F shows R's, R shows B's...), the top and bottom kept. */
 const Y_TURN: Record<number, number> = { [FACE_HEX.F]: FACE_HEX.R, [FACE_HEX.R]: FACE_HEX.B, [FACE_HEX.B]: FACE_HEX.L, [FACE_HEX.L]: FACE_HEX.F };
