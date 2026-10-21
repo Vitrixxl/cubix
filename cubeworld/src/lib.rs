@@ -1,11 +1,17 @@
 //! The cube's world, an easter egg (desktop/renderer/CubeWorld.tsx): a 3×3 that falls, bounces and rolls in an arena,
-//! turned as the player turns their smart cube (`hold`) and kicked by each of its turns (`turn`), drawn here into the
-//! RGBA pixels the page puts on a canvas.
+//! turned as the player turns their smart cube (`hold`) and kicked by each of its turns (`turn`), the camera turned
+//! around it with the mouse (`orbit`).
+//!
+//! Rust draws it on the graphics card: it writes the shaders, builds the meshes and the matrices, and makes the WebGL 2
+//! calls, which the page passes on to the canvas's context one by one (the `gl_*` imports, a thin shim).
 //!
 //! The world's axes are the player's (x to the right, y up, z toward them), a cubie is 1 wide: the cube is 3 wide, its
 //! centre 1.5 above the floor when it lies on it. Its inertia is the same about every axis (a cube's), a number.
 use std::cell::RefCell;
 use std::ops::{Add, Mul, Neg, Sub};
+
+mod scenery;
+use scenery::{Collider, Item, PLAY};
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 struct V(f32, f32, f32);
@@ -71,13 +77,35 @@ impl Q {
     }
 }
 
+/// A 4×4 matrix, column after column, as WebGL reads it.
+type M = [f32; 16];
+fn multiply(a: &M, b: &M) -> M {
+    let mut m = [0.0; 16];
+    for c in 0..4 {
+        for r in 0..4 {
+            m[c * 4 + r] = (0..4).map(|k| a[k * 4 + r] * b[c * 4 + k]).sum();
+        }
+    }
+    m
+}
+fn look_at(eye: V, target: V) -> M {
+    let f = (target - eye).unit();
+    let s = f.cross(V(0.0, 1.0, 0.0)).unit();
+    let u = s.cross(f);
+    [s.0, u.0, -f.0, 0.0, s.1, u.1, -f.1, 0.0, s.2, u.2, -f.2, 0.0, -s.dot(eye), -u.dot(eye), f.dot(eye), 1.0]
+}
+fn perspective(fov: f32, aspect: f32, near: f32, far: f32) -> M {
+    let f = 1.0 / (fov / 2.0).tan();
+    let mut m = [0.0; 16];
+    (m[0], m[5], m[10], m[11], m[14]) = (f / aspect, f, (far + near) / (near - far), -1.0, 2.0 * far * near / (near - far));
+    m
+}
+
 const GRAVITY: f32 = 30.0;
 const MASS: f32 = 1.0;
 /// A solid cube's, 3 wide: m s² / 6.
 const INERTIA: f32 = MASS * 9.0 / 6.0;
 const HALF: f32 = 1.5;
-/// The arena's walls, this far from its centre.
-const ARENA: f32 = 10.0;
 /// How hard the cube follows the held cube's orientation, and how much its spin is damped toward the held one's.
 const FOLLOW: f32 = 55.0;
 const FOLLOW_DAMPING: f32 = 11.0;
@@ -88,6 +116,9 @@ const HOP: f32 = 7.0;
 const RECOIL: f32 = 3.5;
 const STEP: f32 = 1.0 / 240.0;
 const TURN_SECONDS: f32 = 0.13;
+const FOV: f32 = 0.85;
+/// Toward the sun.
+const LIGHT: V = V(-0.42, 0.8, 0.43);
 
 /// A face turn being drawn: its layer starts `from` radians back and comes to rest.
 struct Turn {
@@ -97,11 +128,204 @@ struct Turn {
     t: f32,
 }
 
+/// What the page's WebGL shim gives (CubeWorld.tsx): shaders, programs and buffers named by numbers.
+#[cfg(target_arch = "wasm32")]
+mod gl {
+    #[link(wasm_import_module = "gl")]
+    unsafe extern "C" {
+        fn gl_shader(fragment: u32, source: *const u8, len: usize) -> u32;
+        fn gl_program(vertex: u32, fragment: u32) -> u32;
+        fn gl_buffer() -> u32;
+        fn gl_frame(width: u32, height: u32);
+        fn gl_uniform(program: u32, name: *const u8, len: usize, x: f32, y: f32, z: f32, w: f32);
+        fn gl_matrix(program: u32, name: *const u8, len: usize, m: *const f32);
+        fn gl_upload(buffer: u32, vertices: *const f32, floats: usize);
+        fn gl_draw(program: u32, buffer: u32, floats: usize);
+    }
+    pub fn program(vertex: &str, fragment: &str) -> u32 {
+        unsafe { gl_program(gl_shader(0, vertex.as_ptr(), vertex.len()), gl_shader(1, fragment.as_ptr(), fragment.len())) }
+    }
+    pub fn buffer() -> u32 { unsafe { gl_buffer() } }
+    pub fn frame(width: usize, height: usize) { unsafe { gl_frame(width as u32, height as u32) } }
+    pub fn uniform(program: u32, name: &str, v: [f32; 4]) { unsafe { gl_uniform(program, name.as_ptr(), name.len(), v[0], v[1], v[2], v[3]) } }
+    pub fn matrix(program: u32, name: &str, m: &super::M) { unsafe { gl_matrix(program, name.as_ptr(), name.len(), m.as_ptr()) } }
+    pub fn upload(buffer: u32, vertices: &[f32]) { unsafe { gl_upload(buffer, vertices.as_ptr(), vertices.len()) } }
+    pub fn draw(program: u32, buffer: u32, floats: usize) { unsafe { gl_draw(program, buffer, floats) } }
+}
+/// Off the web (the tests), nothing is drawn.
+#[cfg(not(target_arch = "wasm32"))]
+mod gl {
+    pub fn program(_: &str, _: &str) -> u32 { 0 }
+    pub fn buffer() -> u32 { 0 }
+    pub fn frame(_: usize, _: usize) {}
+    pub fn uniform(_: u32, _: &str, _: [f32; 4]) {}
+    pub fn matrix(_: u32, _: &str, _: &super::M) {}
+    pub fn upload(_: u32, _: &[f32]) {}
+    pub fn draw(_: u32, _: u32, _: usize) {}
+}
+
+/// Every mesh's vertices: position, normal, colour, then the place on its face (-1 to 1) and its kind (0 a cubie's
+/// plastic, 1 a sticker, the others scenery.rs's).
+const FLOATS: usize = 12;
+
+const VERTEX: &str = "#version 300 es
+layout(location = 0) in vec3 a_pos;
+layout(location = 1) in vec3 a_normal;
+layout(location = 2) in vec3 a_color;
+layout(location = 3) in vec3 a_face;
+uniform mat4 u_vp;
+uniform vec4 u_time;
+out vec3 v_pos; out vec3 v_normal; out vec3 v_color; out vec3 v_face;
+void main() {
+  vec3 p = a_pos;
+  // Leaves and flowers in the wind, more the higher they are.
+  if (a_face.z > 3.5 && a_face.z < 4.5) {
+    float t = u_time.x * 1.4 + a_pos.x * 0.21 + a_pos.z * 0.17;
+    p += vec3(sin(t), 0.0, cos(t * 0.8)) * 0.035 * max(a_pos.y, 0.0);
+  }
+  v_pos = p; v_normal = a_normal; v_color = a_color; v_face = a_face;
+  gl_Position = u_vp * vec4(p, 1.0);
+}";
+
+/// The sky and the haze the floor fades into, shared by the shaders.
+const SKY: &str = "
+uniform vec4 u_light;
+const vec3 HORIZON = vec3(0.8, 0.88, 0.97);
+vec3 sky(vec3 d) {
+  float up = max(d.y, 0.0);
+  vec3 c = mix(HORIZON, vec3(0.27, 0.5, 0.9), pow(up, 0.6));
+  float sun = max(dot(d, u_light.xyz), 0.0);
+  return c + vec3(1.0, 0.92, 0.75) * (pow(sun, 900.0) * 4.0 + pow(sun, 16.0) * 0.22);
+}
+vec3 haze(vec3 c, float distance) { return mix(c, HORIZON, 1.0 - exp(-distance * 0.0075)); }
+";
+
+const SKY_VERTEX: &str = "#version 300 es
+layout(location = 0) in vec3 a_pos;
+out vec2 v_clip;
+void main() { v_clip = a_pos.xy; gl_Position = vec4(a_pos.xy, 0.99999, 1.0); }";
+
+fn sky_fragment() -> String {
+    format!(
+        "#version 300 es
+precision highp float;
+in vec2 v_clip;
+uniform vec4 u_right, u_up, u_forward;
+out vec4 o;
+{SKY}
+void main() {{
+  vec3 d = normalize(u_forward.xyz + u_right.xyz * v_clip.x * u_right.w + u_up.xyz * v_clip.y * u_up.w);
+  o = vec4(sky(d), 1.0);
+}}"
+    )
+}
+
+/// Everything around the cube (scenery.rs): lit by the sky and the sun, the ground with fine grass and the cube's
+/// shadow (rays toward the sun against its box, a few for a soft edge) and the dark under it, the lake rippling.
+fn scene_fragment() -> String {
+    format!(
+        "#version 300 es
+precision highp float;
+in vec3 v_pos; in vec3 v_normal; in vec3 v_color; in vec3 v_face;
+uniform vec4 u_eye, u_cube, u_ax, u_ay, u_az, u_time;
+out vec4 o;
+{SKY}
+float blocked(vec3 p, vec3 d) {{
+  vec3 l = p - u_cube.xyz;
+  vec3 ro = vec3(dot(l, u_ax.xyz), dot(l, u_ay.xyz), dot(l, u_az.xyz));
+  vec3 rd = vec3(dot(d, u_ax.xyz), dot(d, u_ay.xyz), dot(d, u_az.xyz));
+  vec3 inv = 1.0 / (rd + 1e-6);
+  vec3 a = (-{HALF:.1} - ro) * inv, b = ({HALF:.1} - ro) * inv;
+  vec3 near = min(a, b), far = max(a, b);
+  float t0 = max(max(near.x, near.y), near.z), t1 = min(min(far.x, far.y), far.z);
+  return t1 > max(t0, 0.0) ? 1.0 : 0.0;
+}}
+float hash(vec2 p) {{ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }}
+float noise(vec2 p) {{
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+}}
+void main() {{
+  vec3 n = normalize(v_normal), v = normalize(u_eye.xyz - v_pos), l = u_light.xyz;
+  float kind = v_face.z, far = distance(v_pos, u_eye.xyz);
+  if (kind > 2.5 && kind < 3.5) {{
+    float t = u_time.x;
+    vec3 w = normalize(vec3(sin(v_pos.x * 0.9 + t * 1.3) * 0.05 + sin(v_pos.z * 1.7 + t * 1.9) * 0.03, 1.0, cos(v_pos.z * 0.8 - t * 1.1) * 0.05));
+    float fresnel = 0.04 + 0.96 * pow(1.0 - max(dot(w, v), 0.0), 5.0);
+    vec3 c = mix(vec3(0.07, 0.3, 0.42), sky(reflect(-v, w)), fresnel) + vec3(1.0, 0.95, 0.85) * pow(max(dot(w, normalize(l + v)), 0.0), 300.0) * 2.0;
+    o = vec4(haze(c, far), 1.0);
+    return;
+  }}
+  vec3 base = v_color;
+  if (kind > 1.5 && kind < 2.5) {{
+    float g = noise(v_pos.xz * 2.3) * 0.5 + noise(v_pos.xz * 0.6) * 0.5;
+    base *= mix(0.86, 1.12, g);
+  }}
+  float sun = max(dot(n, l), 0.0);
+  if (distance(v_pos.xz, u_cube.xz) < 16.0) {{
+    // A spiral of rays, turned at random from one pixel to the next: a fine grain rather than layered copies.
+    float shade = 0.0, spin = hash(gl_FragCoord.xy) * 6.2832;
+    for (int k = 0; k < 12; k++) {{
+      float a = spin + float(k) * 2.39996;
+      shade += blocked(v_pos + n * 0.02, normalize(l + vec3(cos(a), 0.0, sin(a)) * 0.05 * sqrt((float(k) + 0.5) / 12.0)));
+    }}
+    sun *= 1.0 - shade / 12.0;
+  }}
+  vec3 ambient = mix(vec3(0.36, 0.36, 0.3), vec3(0.6, 0.7, 0.92), n.y * 0.5 + 0.5);
+  vec3 c = base * (ambient * 0.62 + vec3(1.0, 0.94, 0.82) * sun * 0.82);
+  if (kind > 4.5 && kind < 5.5) c = mix(vec3(0.82, 0.86, 0.95), vec3(1.0), clamp(sun * 0.6 + n.y * 0.3, 0.0, 1.0));
+  if (kind > 1.5 && kind < 2.5) {{
+    float height = max(u_cube.y - {HALF:.1}, 0.0);
+    c *= 1.0 - (1.0 - smoothstep(0.0, 2.6 + height * 0.3, length(v_pos.xz - u_cube.xz))) * 0.35 / (1.0 + height * 0.3);
+  }}
+  o = vec4(haze(c, far), 1.0);
+}}"
+    )
+}
+
+/// The cube: glossy plastic, rounded stickers with soft edges, a sky's light from above and the sun's.
+fn cube_fragment() -> String {
+    format!(
+        "#version 300 es
+precision highp float;
+in vec3 v_pos; in vec3 v_normal; in vec3 v_color; in vec3 v_face;
+uniform vec4 u_eye;
+out vec4 o;
+{SKY}
+void main() {{
+  vec3 n = normalize(v_normal), v = normalize(u_eye.xyz - v_pos), l = u_light.xyz, h = normalize(l + v);
+  vec2 q = abs(v_face.xy);
+  vec3 base; float gloss, shine;
+  if (v_face.z > 0.5) {{
+    vec2 k = q - vec2(0.7);
+    float d = length(max(k, 0.0)) + min(max(k.x, k.y), 0.0) - 0.3, aa = fwidth(d);
+    float m = 1.0 - smoothstep(-aa, aa, d);
+    base = mix(vec3(0.03), v_color, m); gloss = mix(0.35, 0.7, m); shine = 90.0;
+  }} else {{
+    base = vec3(0.03) + vec3(0.05) * smoothstep(0.86, 1.0, max(q.x, q.y)); gloss = 0.35; shine = 40.0;
+  }}
+  vec3 ambient = mix(vec3(0.36, 0.38, 0.3), vec3(0.7, 0.78, 0.98), n.y * 0.5 + 0.5);
+  vec3 c = base * (ambient * 0.6 + vec3(1.0, 0.93, 0.86) * max(dot(n, l), 0.0) * 0.8);
+  c += vec3(1.0, 0.95, 0.9) * gloss * pow(max(dot(n, h), 0.0), shine);
+  c += sky(reflect(-v, n)) * pow(1.0 - max(dot(n, v), 0.0), 4.0) * 0.25;
+  o = vec4(haze(c, distance(v_pos, u_eye.xyz)), 1.0);
+}}"
+    )
+}
+
+/// The programs and buffers, made on the first frame.
+struct Gpu {
+    sky: u32,
+    scene: u32,
+    cube: u32,
+    buffers: [u32; 3],
+    /// The scenery's numbers, uploaded once.
+    scenery: usize,
+}
+
 struct World {
     width: usize,
     height: usize,
-    pixels: Vec<u8>,
-    depth: Vec<f32>,
     /// 54 stickers, 7 numbers each: the cubie's centre, the sticker's normal (in the cube's own axes) and its colour,
     /// 0xRRGGBB. The page writes them (`stickers`).
     stickers: [f32; 54 * 7],
@@ -114,20 +338,26 @@ struct World {
     held_spin: V,
     since_held: f32,
     turn: Option<Turn>,
+    /// The camera: where it looks, and from which side (about the vertical, then above the floor).
     look: V,
+    yaw: f32,
+    pitch: f32,
     rest: f32,
-    seed: u32,
+    time: f32,
+    items: Vec<Item>,
+    colliders: Vec<Collider>,
+    gpu: Option<Gpu>,
+    mesh: Vec<f32>,
 }
 
 impl World {
     fn new() -> World {
+        let (items, colliders) = scenery::scatter(&mut scenery::Rng(0x9e37_79b9));
         World {
             width: 0,
             height: 0,
-            pixels: Vec::new(),
-            depth: Vec::new(),
             stickers: [0.0; 54 * 7],
-            pos: V(0.0, 16.0, 0.0),
+            pos: V(0.0, 9.0, 0.0),
             vel: V(0.0, 0.0, 0.0),
             q: Q::around(V(1.0, 0.0, 1.0).unit(), 0.5),
             spin: V(2.0, 1.0, -1.5),
@@ -136,16 +366,15 @@ impl World {
             since_held: 0.0,
             turn: None,
             look: V(0.0, 1.5, 0.0),
+            yaw: 0.0,
+            pitch: 0.45,
             rest: 0.0,
-            seed: 0x9e37_79b9,
+            time: 0.0,
+            items,
+            colliders,
+            gpu: None,
+            mesh: Vec::new(),
         }
-    }
-
-    fn random(&mut self) -> f32 {
-        self.seed ^= self.seed << 13;
-        self.seed ^= self.seed >> 17;
-        self.seed ^= self.seed << 5;
-        self.seed as f32 / u32::MAX as f32
     }
 
     fn push(&mut self, impulse: V, at: V) {
@@ -156,8 +385,11 @@ impl World {
     fn step(&mut self, dt: f32) {
         self.vel.1 -= GRAVITY * dt;
         if let Some(held) = self.held {
-            let error = held.then(self.q.inverse()).vector();
-            let torque = error * FOLLOW + (self.held_spin - self.spin) * FOLLOW_DAMPING;
+            // Held as the player holds theirs, seen from where the camera is.
+            let target = Q::around(V(0.0, 1.0, 0.0), self.yaw).then(held);
+            let error = target.then(self.q.inverse()).vector();
+            let held_spin = Q::around(V(0.0, 1.0, 0.0), self.yaw).rotate(self.held_spin);
+            let torque = error * FOLLOW + (held_spin - self.spin) * FOLLOW_DAMPING;
             self.spin = self.spin + torque * (dt / INERTIA);
         }
         self.vel = self.vel * (1.0 - 0.1 * dt);
@@ -169,15 +401,31 @@ impl World {
         self.collide();
     }
 
-    /// Each corner against the floor and the walls: an impulse stopping it going in, with friction along the surface.
+    /// An impulse at `r` (from the cube's centre) stopping it going into a surface of normal `n`, `gap` deep, with
+    /// friction along it.
+    fn contact(&mut self, r: V, n: V, gap: f32, bounce: bool) {
+        self.pos = self.pos + n * (-gap * 0.4);
+        let going = (self.vel + self.spin.cross(r)).dot(n);
+        if going >= 0.0 {
+            return;
+        }
+        let rn = r.cross(n);
+        let bounce = if bounce && going < -3.0 { BOUNCE } else { 0.0 };
+        let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) / INERTIA);
+        self.push(n * j, r);
+        let v = self.vel + self.spin.cross(r);
+        let slide = v - n * v.dot(n);
+        let speed = slide.len();
+        if speed > 1e-5 {
+            let t = slide * (1.0 / speed);
+            let rt = r.cross(t);
+            let jt = (speed / (1.0 / MASS + rt.dot(rt) / INERTIA)).min(FRICTION * j);
+            self.push(t * -jt, r);
+        }
+    }
+
+    /// Each corner against the ground and the meadow's edge, the cube's box against the trunks and rocks near it.
     fn collide(&mut self) {
-        const PLANES: [(V, f32); 5] = [
-            (V(0.0, 1.0, 0.0), 0.0),
-            (V(1.0, 0.0, 0.0), -ARENA),
-            (V(-1.0, 0.0, 0.0), -ARENA),
-            (V(0.0, 0.0, 1.0), -ARENA),
-            (V(0.0, 0.0, -1.0), -ARENA),
-        ];
         for pass in 0..3 {
             for corner in 0..8 {
                 let local = V(
@@ -186,29 +434,28 @@ impl World {
                     if corner & 4 == 0 { -HALF } else { HALF },
                 );
                 let r = self.q.rotate(local);
-                for (n, offset) in PLANES {
-                    let gap = n.dot(self.pos + r) - offset;
-                    if gap >= 0.0 {
-                        continue;
-                    }
-                    self.pos = self.pos + n * (-gap * 0.4);
-                    let going = (self.vel + self.spin.cross(r)).dot(n);
-                    if going >= 0.0 {
-                        continue;
-                    }
-                    let rn = r.cross(n);
-                    let bounce = if pass == 0 && going < -3.0 { BOUNCE } else { 0.0 };
-                    let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) / INERTIA);
-                    self.push(n * j, r);
-                    let v = self.vel + self.spin.cross(r);
-                    let slide = v - n * v.dot(n);
-                    let speed = slide.len();
-                    if speed > 1e-5 {
-                        let t = slide * (1.0 / speed);
-                        let rt = r.cross(t);
-                        let jt = (speed / (1.0 / MASS + rt.dot(rt) / INERTIA)).min(FRICTION * j);
-                        self.push(t * -jt, r);
-                    }
+                let p = self.pos + r;
+                if p.1 < 0.0 {
+                    self.contact(r, V(0.0, 1.0, 0.0), p.1, pass == 0);
+                }
+                let out = (p.0 * p.0 + p.2 * p.2).sqrt();
+                if out > PLAY {
+                    self.contact(r, V(-p.0 / out, 0.0, -p.2 / out), PLAY - out, pass == 0);
+                }
+            }
+            for k in 0..self.colliders.len() {
+                let Collider { centre, radius, trunk } = self.colliders[k];
+                if (centre.0 - self.pos.0).abs() > radius + 2.7 || (centre.2 - self.pos.2).abs() > radius + 2.7 {
+                    continue;
+                }
+                let c = if trunk > 0.0 { V(centre.0, self.pos.1.clamp(centre.1, centre.1 + trunk), centre.2) } else { centre };
+                let local = self.q.inverse().rotate(c - self.pos);
+                let nearest = self.pos + self.q.rotate(V(local.0.clamp(-HALF, HALF), local.1.clamp(-HALF, HALF), local.2.clamp(-HALF, HALF)));
+                let apart = nearest - c;
+                let d = apart.len();
+                if d < radius {
+                    let n = if d > 1e-4 { apart * (1.0 / d) } else { V(self.pos.0 - c.0, 0.0, self.pos.2 - c.2).unit() };
+                    self.contact(nearest - self.pos, n, d - radius, pass == 0);
                 }
             }
         }
@@ -227,155 +474,114 @@ impl World {
             }
         }
         self.rest += dt;
+        self.time += dt;
         while self.rest >= STEP {
             self.rest -= STEP;
             self.step(STEP);
         }
-        // Behind the cube, it looks a little lazily.
-        let to = V(self.pos.0 * 0.6, 1.5 + (self.pos.1 - 1.5).max(0.0) * 0.25, self.pos.2 * 0.4);
+        // It follows the cube a little lazily.
+        let to = V(self.pos.0, 1.5 + (self.pos.1 - 1.5).max(0.0) * 0.5, self.pos.2);
         self.look = self.look + (to - self.look) * (1.0 - (-dt * 4.0).exp());
     }
 
-    fn render(&mut self) {
-        let (w, h) = (self.width, self.height);
-        if w == 0 || h == 0 {
-            return;
-        }
-        let eye = self.look + V(0.0, 7.0, 14.0);
-        let fwd = (self.look - eye).unit();
-        let right = fwd.cross(V(0.0, 1.0, 0.0)).unit();
-        let up = right.cross(fwd);
-        let focal = h as f32 * 0.5 / (25.0f32.to_radians()).tan();
-        let (cx, cy) = (w as f32 / 2.0, h as f32 / 2.0);
-        self.background(eye, fwd, right, up, focal);
-        self.depth.iter_mut().for_each(|d| *d = 0.0);
-
-        let light = V(-0.45, 1.0, 0.6).unit();
-        let project = |p: V| -> Option<(f32, f32, f32)> {
-            let d = p - eye;
-            let z = d.dot(fwd);
-            if z < 0.1 {
-                return None;
-            }
-            Some((cx + d.dot(right) / z * focal, cy - d.dot(up) / z * focal, 1.0 / z))
-        };
+    /// The cube's cubies and stickers, where they are now, each layer turning as it is drawn.
+    fn build_cube(&mut self) {
         let turn = self.turn.as_ref().map(|t| {
             let e = 1.0 - (1.0 - t.t.min(1.0)).powi(3);
             (t.axis, t.layer, Q::around(V::axis(t.axis), t.from * (1.0 - e)))
         });
-        // A cubie's own turn, then the cube's.
+        let (body, q, pos) = (self.q, self.q, self.pos);
         let place = |centre: V| -> Q {
             match turn {
-                Some((axis, layer, q)) if (centre.at(axis) - layer).abs() < 0.5 => self.q.then(q),
-                _ => self.q,
+                Some((axis, layer, t)) if (centre.at(axis) - layer).abs() < 0.5 => body.then(t),
+                _ => q,
             }
         };
-        let mut quads: Vec<([V; 4], V, u32)> = Vec::with_capacity(26 * 6 + 54);
-        let face = |centre: V, n: V, half: f32, out: f32| -> [V; 4] {
+        let mesh = &mut self.mesh;
+        mesh.clear();
+        let mut quad = |centre: V, n: V, half: f32, out: f32, q: Q, colour: V, kind: f32| {
             let u = if n.0.abs() > 0.5 { V(0.0, 1.0, 0.0) } else { V(1.0, 0.0, 0.0) };
             let v = n.cross(u);
             let c = centre + n * out;
-            [c + (u + v) * half, c + (u - v) * half, c - (u + v) * half, c - (u - v) * half]
+            let corner = |a: f32, b: f32| (pos + q.rotate(c + (u * a + v * b) * half), [a, b]);
+            let normal = q.rotate(n);
+            let corners = [corner(-1.0, -1.0), corner(1.0, -1.0), corner(1.0, 1.0), corner(-1.0, 1.0)];
+            for k in [0, 1, 2, 0, 2, 3] {
+                let (p, f) = corners[k];
+                mesh.extend_from_slice(&[p.0, p.1, p.2, normal.0, normal.1, normal.2, colour.0, colour.1, colour.2, f[0], f[1], kind]);
+            }
         };
         for i in 0..27 {
             let centre = V((i % 3) as f32 - 1.0, ((i / 3) % 3) as f32 - 1.0, (i / 9) as f32 - 1.0);
             if centre == V::default() {
                 continue;
             }
-            let q = place(centre);
             for axis in 0..3 {
                 for sign in [-1.0, 1.0] {
-                    let n = V::axis(axis) * sign;
-                    let corners = face(centre, n, 0.49, 0.49).map(|c| self.pos + q.rotate(c));
-                    quads.push((corners, q.rotate(n), 0x16161c));
+                    quad(centre, V::axis(axis) * sign, 0.49, 0.49, place(centre), V::default(), 0.0);
                 }
             }
         }
         for s in self.stickers.chunks_exact(7) {
-            let (centre, n) = (V(s[0], s[1], s[2]), V(s[3], s[4], s[5]));
-            let q = place(centre);
-            let corners = face(centre, n, 0.42, 0.495).map(|c| self.pos + q.rotate(c));
-            quads.push((corners, q.rotate(n), s[6] as u32));
-        }
-        for (corners, n, rgb) in quads {
-            let middle = (corners[0] + corners[2]) * 0.5;
-            if n.dot(middle - eye) >= 0.0 {
-                continue;
-            }
-            let shade = 0.42 + 0.58 * n.dot(light).max(0.0);
-            let colour = [(rgb >> 16) as f32 * shade, ((rgb >> 8) & 255) as f32 * shade, (rgb & 255) as f32 * shade].map(|c| c.min(255.0) as u8);
-            let Some(p) = corners.iter().map(|&c| project(c)).collect::<Option<Vec<_>>>() else { continue };
-            self.triangle(p[0], p[1], p[2], colour);
-            self.triangle(p[0], p[2], p[3], colour);
+            let (centre, rgb) = (V(s[0], s[1], s[2]), s[6] as u32);
+            let colour = V((rgb >> 16) as f32, ((rgb >> 8) & 255) as f32, (rgb & 255) as f32) * (1.0 / 255.0);
+            quad(centre, V(s[3], s[4], s[5]), 0.46, 0.4925, place(centre), colour, 1.0);
         }
     }
 
-    /// The sky, and the floor with its tiles, the cube's shadow and the haze far off: a ray per pixel.
-    fn background(&mut self, eye: V, fwd: V, right: V, up: V, focal: f32) {
-        let (w, h) = (self.width, self.height);
-        let shadow_radius = 2.4 + self.pos.1 * 0.12;
-        let shadow_strength = 0.5 / (1.0 + (self.pos.1 - HALF).max(0.0) * 0.25);
-        let (sky_top, horizon) = (V(34.0, 30.0, 84.0), V(255.0, 176.0, 196.0));
-        for y in 0..h {
-            let row = fwd + up * ((h as f32 / 2.0 - y as f32) / focal);
-            for x in 0..w {
-                let d = row + right * ((x as f32 - w as f32 / 2.0) / focal);
-                let colour = if d.1 < 0.0 {
-                    let t = -eye.1 / d.1;
-                    let (px, pz) = (eye.0 + d.0 * t, eye.2 + d.2 * t);
-                    let mut c = if px.abs() > ARENA || pz.abs() > ARENA {
-                        V(126.0, 104.0, 168.0)
-                    } else if px.abs() > ARENA - 0.25 || pz.abs() > ARENA - 0.25 {
-                        V(255.0, 255.0, 255.0)
-                    } else if ((px / 2.0).floor() + (pz / 2.0).floor()) as i32 & 1 == 0 {
-                        V(240.0, 234.0, 255.0)
-                    } else {
-                        V(210.0, 200.0, 246.0)
-                    };
-                    let (dx, dz) = (px - self.pos.0, pz - self.pos.2);
-                    let near = 1.0 - (dx * dx + dz * dz) / (shadow_radius * shadow_radius);
-                    if near > 0.0 {
-                        c = c * (1.0 - shadow_strength * near.min(1.0).sqrt());
-                    }
-                    let haze = 1.0 - (-t * 0.018).exp();
-                    c + (horizon - c) * haze
-                } else {
-                    let k = (d.1 / d.len()).min(1.0).sqrt();
-                    horizon + (sky_top - horizon) * k
-                };
-                let i = (y * w + x) * 4;
-                self.pixels[i..i + 4].copy_from_slice(&[colour.0 as u8, colour.1 as u8, colour.2 as u8, 255]);
-            }
-        }
-    }
-
-    /// A flat triangle, kept where it is nearer than what is drawn (depth is 1/z, larger nearer).
-    fn triangle(&mut self, a: (f32, f32, f32), b: (f32, f32, f32), c: (f32, f32, f32), rgb: [u8; 3]) {
-        let area = (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0);
-        if area.abs() < 1e-6 {
+    fn render(&mut self) {
+        if self.width == 0 || self.height == 0 {
             return;
         }
-        let (w, h) = (self.width as f32, self.height as f32);
-        let x0 = a.0.min(b.0).min(c.0).floor().max(0.0) as usize;
-        let x1 = a.0.max(b.0).max(c.0).ceil().min(w) as usize;
-        let y0 = a.1.min(b.1).min(c.1).floor().max(0.0) as usize;
-        let y1 = a.1.max(b.1).max(c.1).ceil().min(h) as usize;
-        let edge = |p: (f32, f32, f32), q: (f32, f32, f32), x: f32, y: f32| (q.0 - p.0) * (y - p.1) - (q.1 - p.1) * (x - p.0);
-        for y in y0..y1 {
-            for x in x0..x1 {
-                let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
-                let (l0, l1, l2) = (edge(b, c, px, py) / area, edge(c, a, px, py) / area, edge(a, b, px, py) / area);
-                if l0 < 0.0 || l1 < 0.0 || l2 < 0.0 {
-                    continue;
-                }
-                let z = l0 * a.2 + l1 * b.2 + l2 * c.2;
-                let i = y * self.width + x;
-                if z > self.depth[i] {
-                    self.depth[i] = z;
-                    self.pixels[i * 4..i * 4 + 3].copy_from_slice(&rgb);
-                }
+        let items = &self.items;
+        let gpu = self.gpu.get_or_insert_with(|| {
+            let buffers = [gl::buffer(), gl::buffer(), gl::buffer()];
+            let scenery = scenery::build(items, &mut scenery::Rng(0x85eb_ca6b));
+            gl::upload(buffers[1], &scenery);
+            Gpu {
+                sky: gl::program(SKY_VERTEX, &sky_fragment()),
+                scene: gl::program(VERTEX, &scene_fragment()),
+                cube: gl::program(VERTEX, &cube_fragment()),
+                buffers,
+                scenery: scenery.len(),
             }
+        });
+        let (sky, scene, cube, buffers, scenery) = (gpu.sky, gpu.scene, gpu.cube, gpu.buffers, gpu.scenery);
+        let aspect = self.width as f32 / self.height as f32;
+        let eye = self.look + V(self.yaw.sin() * self.pitch.cos(), self.pitch.sin(), self.yaw.cos() * self.pitch.cos()) * 16.0;
+        let vp = multiply(&perspective(FOV, aspect, 0.2, 800.0), &look_at(eye, self.look));
+        let light = LIGHT.unit();
+        let (forward, tan) = ((self.look - eye).unit(), (FOV / 2.0).tan());
+        let right = forward.cross(V(0.0, 1.0, 0.0)).unit();
+        let up = right.cross(forward);
+        let v4 = |v: V, w: f32| [v.0, v.1, v.2, w];
+        gl::frame(self.width, self.height);
+
+        for program in [sky, scene, cube] {
+            gl::uniform(program, "u_light", v4(light, 0.0));
+            gl::uniform(program, "u_eye", v4(eye, 0.0));
+            gl::uniform(program, "u_time", [self.time, 0.0, 0.0, 0.0]);
+            gl::matrix(program, "u_vp", &vp);
         }
+        gl::uniform(sky, "u_right", v4(right, tan * aspect));
+        gl::uniform(sky, "u_up", v4(up, tan));
+        gl::uniform(sky, "u_forward", v4(forward, 0.0));
+        let mut screen = [0.0; FLOATS * 3];
+        for (k, (x, y)) in [(-1.0, -1.0), (3.0, -1.0), (-1.0, 3.0)].into_iter().enumerate() {
+            (screen[k * FLOATS], screen[k * FLOATS + 1]) = (x, y);
+        }
+        gl::upload(buffers[0], &screen);
+        gl::draw(sky, buffers[0], screen.len());
+
+        gl::uniform(scene, "u_cube", v4(self.pos, 0.0));
+        for (k, name) in ["u_ax", "u_ay", "u_az"].into_iter().enumerate() {
+            gl::uniform(scene, name, v4(self.q.rotate(V::axis(k)), 0.0));
+        }
+        gl::draw(scene, buffers[1], scenery);
+
+        self.build_cube();
+        gl::upload(buffers[2], &self.mesh);
+        gl::draw(cube, buffers[2], self.mesh.len());
     }
 }
 
@@ -383,16 +589,9 @@ thread_local! {
     static WORLD: RefCell<World> = RefCell::new(World::new());
 }
 
-/// Sizes the picture and gives where its pixels are, RGBA row by row.
+/// The canvas's size, in pixels.
 #[unsafe(no_mangle)]
-pub extern "C" fn resize(width: u32, height: u32) -> *mut u8 {
-    WORLD.with_borrow_mut(|w| {
-        (w.width, w.height) = (width as usize, height as usize);
-        w.pixels = vec![255; w.width * w.height * 4];
-        w.depth = vec![0.0; w.width * w.height];
-        w.pixels.as_mut_ptr()
-    })
-}
+pub extern "C" fn resize(width: u32, height: u32) { WORLD.with_borrow_mut(|w| (w.width, w.height) = (width as usize, height as usize)) }
 
 /// Where the page writes the stickers (`World::stickers`).
 #[unsafe(no_mangle)]
@@ -427,13 +626,12 @@ pub extern "C" fn hold(qw: f32, qx: f32, qy: f32, qz: f32) {
     })
 }
 
-/// A tap: the cube jumps and spins.
+/// The camera turned around the cube by a drag of the mouse, in radians.
 #[unsafe(no_mangle)]
-pub extern "C" fn poke() {
+pub extern "C" fn orbit(yaw: f32, pitch: f32) {
     WORLD.with_borrow_mut(|w| {
-        let (a, b, c, d) = (w.random(), w.random(), w.random(), w.random());
-        w.vel = w.vel + V((a - 0.5) * 6.0, 13.0, (b - 0.5) * 6.0);
-        w.spin = w.spin + V(c - 0.5, d - 0.5, a - b).unit() * 9.0;
+        w.yaw -= yaw;
+        w.pitch = (w.pitch + pitch).clamp(0.08, 1.35);
     })
 }
 
@@ -462,20 +660,38 @@ mod tests {
         settle(&mut w, 8.0);
         assert!((w.pos.1 - HALF).abs() < 0.05, "rests at {:?}", w.pos);
         assert!(w.vel.len() < 0.05 && w.spin.len() < 0.05, "still moving: {:?} {:?}", w.vel, w.spin);
-        assert!(w.pos.0.abs() < ARENA && w.pos.2.abs() < ARENA);
+        assert!(w.pos.0.hypot(w.pos.2) < PLAY);
     }
 
     #[test]
-    fn the_cube_follows_how_the_player_holds_theirs() {
+    fn the_cube_follows_how_the_player_holds_theirs_seen_from_the_camera() {
         let mut w = World::new();
         let held = Q::around(V(0.0, 1.0, 0.0), 0.7);
         w.held = Some(held);
+        w.yaw = 0.3;
         settle(&mut w, 6.0);
-        assert!(held.then(w.q.inverse()).vector().len() < 0.1, "{:?}", w.q);
+        let seen = Q::around(V(0.0, 1.0, 0.0), 0.3).then(held);
+        assert!(seen.then(w.q.inverse()).vector().len() < 0.1, "{:?}", w.q);
     }
 
     #[test]
-    fn a_turn_makes_it_hop_and_draws_it() {
+    fn trees_stop_it() {
+        let mut w = World::new();
+        let tree = w.colliders.iter().find(|c| c.trunk > 0.0 && c.centre.0.hypot(c.centre.2) < 30.0).map(|c| c.centre).unwrap();
+        // Rolled hard at the trunk from 8 away.
+        let toward = V(1.0, 0.0, 0.3).unit();
+        (w.pos, w.q, w.spin) = (tree - toward * 8.0 + V(0.0, HALF, 0.0), Q::around(V(0.0, 1.0, 0.0), 0.0), V::default());
+        w.vel = toward * 20.0;
+        let mut nearest = f32::MAX;
+        for _ in 0..120 {
+            w.advance(1.0 / 60.0);
+            nearest = nearest.min((w.pos.0 - tree.0).hypot(w.pos.2 - tree.2));
+        }
+        assert!(nearest > HALF, "went through the trunk: {nearest}");
+    }
+
+    #[test]
+    fn a_turn_makes_it_hop_and_turns_its_layer() {
         resize(64, 48);
         for _ in 0..360 {
             frame(1.0 / 60.0);
@@ -487,8 +703,8 @@ mod tests {
         }
         WORLD.with_borrow(|w| {
             assert!(w.pos.1 > before + 0.3, "{} then {}", before, w.pos.1);
-            // The cube covers the middle of the picture.
-            assert!(w.depth[24 * 64 + 32] > 0.0);
+            // 26 cubies of 6 faces and 54 stickers, two triangles each.
+            assert_eq!(w.mesh.len(), (26 * 6 + 54) * 6 * FLOATS);
         });
     }
 }
