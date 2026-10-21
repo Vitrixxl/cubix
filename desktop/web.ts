@@ -137,8 +137,9 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // one after the other as each is read; the engine's bridge and the i18n start with them (main.tsx).
   const start = chunks(app, ["desktop/renderer/app.tsx", "desktop/renderer/bridge.ts", "src/client/i18n/index.ts"]).filter((path) => path !== app.entry);
   const styles = app.files.filter((path) => path.endsWith(".css"));
-  // The app and the landing page draw in Bricolage alone (globals.css): Geist is only the first launch's (firstLaunch.ts).
-  const face = preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage"))));
+  // The app and the landing page draw in Bricolage alone (globals.css): Geist is only the first launch's (firstLaunch.ts),
+  // and the fixed weights in .ttf only a printed sheet's (printSheet.tsx), preloaded for nothing on every page.
+  const face = preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage") && name.endsWith(".woff2"))));
   // Before anything is drawn: whether this device shows the pages written ahead of time, and which app it loads, the
   // desktop one or the phone one (boot.ts writes either's tags).
   const desktopHead = [...[...styles, CURSORS].map((href) => `<link rel="stylesheet" href="${href}" />`), ...face, ...start.map((href) => `<link rel="modulepreload" href="${href}" />`), `<script type="module" src="${app.entry}"></script>`];
