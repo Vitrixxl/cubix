@@ -9,7 +9,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Box } from "lucide-react";
 import { smartCube, type SmartCubeSnapshot } from "../../src/client/lib/smartCube";
 import { faceOfSlot, SLOTS } from "../../src/shared/cube";
-import { FACE_COLORS, FACE_HEX } from "../../src/shared/cubeAppearance";
+import { FACE_COLORS, HELD_HEX } from "../../src/shared/cubeAppearance";
 import { tr } from "../../src/client/i18n";
 import { Back } from "./ui";
 
@@ -87,7 +87,7 @@ function shim(gl: WebGL2RenderingContext, memory: () => WebAssembly.Memory) {
 /** Writes the cube's stickers where the world reads them: each one's cubie, normal and colour. */
 function writeStickers(world: Exports, state: SmartCubeSnapshot["state"]) {
   const out = new Float32Array(world.memory.buffer, world.stickers(), 54 * 7);
-  SLOTS.forEach(({ p, n }, i) => out.set([...p, ...n, FACE_HEX[faceOfSlot(state[i]!)]], i * 7));
+  SLOTS.forEach(({ p, n }, i) => out.set([...p, ...n, HELD_HEX[faceOfSlot(state[i]!)]], i * 7));
 }
 
 export function CubeWorld() {

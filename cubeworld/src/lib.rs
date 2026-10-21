@@ -10,6 +10,7 @@
 use std::cell::RefCell;
 use std::ops::{Add, Mul, Neg, Sub};
 
+mod model;
 mod scenery;
 use scenery::{Collider, Item, PLAY};
 
@@ -106,9 +107,6 @@ const MASS: f32 = 1.0;
 /// A solid cube's, 3 wide: m s² / 6.
 const INERTIA: f32 = MASS * 9.0 / 6.0;
 const HALF: f32 = 1.5;
-/// How hard the cube follows the held cube's orientation, and how much its spin is damped toward the held one's.
-const FOLLOW: f32 = 55.0;
-const FOLLOW_DAMPING: f32 = 11.0;
 const FRICTION: f32 = 0.6;
 const BOUNCE: f32 = 0.35;
 /// A turn's kick: the cube hops, and spins against the layer it turned.
@@ -283,7 +281,8 @@ void main() {{
     )
 }
 
-/// The cube: glossy plastic, rounded stickers with soft edges, a sky's light from above and the sun's.
+/// The cube, as flat as the app draws it: its colours barely shaded by the light, a thin line of the body along its
+/// edges where two stickers meet.
 fn cube_fragment() -> String {
     format!(
         "#version 300 es
@@ -293,21 +292,14 @@ uniform vec4 u_eye;
 out vec4 o;
 {SKY}
 void main() {{
-  vec3 n = normalize(v_normal), v = normalize(u_eye.xyz - v_pos), l = u_light.xyz, h = normalize(l + v);
-  vec2 q = abs(v_face.xy);
-  vec3 base; float gloss, shine;
+  vec3 n = normalize(v_normal), v = normalize(u_eye.xyz - v_pos), l = u_light.xyz;
+  vec3 base = v_color;
   if (v_face.z > 0.5) {{
-    vec2 k = q - vec2(0.7);
-    float d = length(max(k, 0.0)) + min(max(k.x, k.y), 0.0) - 0.3, aa = fwidth(d);
-    float m = 1.0 - smoothstep(-aa, aa, d);
-    base = mix(vec3(0.03), v_color, m); gloss = mix(0.35, 0.7, m); shine = 90.0;
-  }} else {{
-    base = vec3(0.03) + vec3(0.05) * smoothstep(0.86, 1.0, max(q.x, q.y)); gloss = 0.35; shine = 40.0;
+    float e = max(abs(v_face.x), abs(v_face.y)), w = fwidth(e);
+    base = mix(base, vec3(0.071, 0.071, 0.086), smoothstep(1.0 - w * 1.5, 1.0 - w * 0.5, e));
   }}
-  vec3 ambient = mix(vec3(0.36, 0.38, 0.3), vec3(0.7, 0.78, 0.98), n.y * 0.5 + 0.5);
-  vec3 c = base * (ambient * 0.6 + vec3(1.0, 0.93, 0.86) * max(dot(n, l), 0.0) * 0.8);
-  c += vec3(1.0, 0.95, 0.9) * gloss * pow(max(dot(n, h), 0.0), shine);
-  c += sky(reflect(-v, n)) * pow(1.0 - max(dot(n, v), 0.0), 4.0) * 0.25;
+  vec3 c = base * (0.74 + 0.26 * max(dot(n, l), 0.0) + 0.05 * n.y);
+  c += vec3(0.06) * pow(max(dot(n, normalize(l + v)), 0.0), 40.0);
   o = vec4(haze(c, distance(v_pos, u_eye.xyz)), 1.0);
 }}"
     )
@@ -366,8 +358,9 @@ impl World {
             since_held: 0.0,
             turn: None,
             look: V(0.0, 1.5, 0.0),
-            yaw: 0.0,
-            pitch: 0.45,
+            // As the app shows a held cube (`CUBE_YAW`, `CUBE_PITCH` of src/shared/cubeScene.ts).
+            yaw: std::f32::consts::FRAC_PI_4,
+            pitch: 0.55,
             rest: 0.0,
             time: 0.0,
             items,
@@ -377,27 +370,27 @@ impl World {
         }
     }
 
+    /// How much a push turns the cube: not at all while it is held, its orientation the player's.
+    fn turnable(&self) -> f32 { if self.held.is_some() { 0.0 } else { 1.0 / INERTIA } }
+
     fn push(&mut self, impulse: V, at: V) {
         self.vel = self.vel + impulse * (1.0 / MASS);
-        self.spin = self.spin + at.cross(impulse) * (1.0 / INERTIA);
+        self.spin = self.spin + at.cross(impulse) * self.turnable();
     }
 
     fn step(&mut self, dt: f32) {
         self.vel.1 -= GRAVITY * dt;
-        if let Some(held) = self.held {
-            // Held as the player holds theirs, seen from where the camera is.
-            let target = Q::around(V(0.0, 1.0, 0.0), self.yaw).then(held);
-            let error = target.then(self.q.inverse()).vector();
-            let held_spin = Q::around(V(0.0, 1.0, 0.0), self.yaw).rotate(self.held_spin);
-            let torque = error * FOLLOW + (held_spin - self.spin) * FOLLOW_DAMPING;
-            self.spin = self.spin + torque * (dt / INERTIA);
-        }
         self.vel = self.vel * (1.0 - 0.1 * dt);
         self.spin = self.spin * (1.0 - 0.3 * dt);
         self.pos = self.pos + self.vel * dt;
-        let w = self.spin;
-        let dq = Q(0.0, w.0, w.1, w.2).then(self.q);
-        self.q = Q(self.q.0 + dq.0 * dt / 2.0, self.q.1 + dq.1 * dt / 2.0, self.q.2 + dq.2 * dt / 2.0, self.q.3 + dq.3 * dt / 2.0).unit();
+        if let Some(held) = self.held {
+            // Turned exactly as the player turns theirs: nothing else turns it.
+            (self.q, self.spin) = (held, self.held_spin);
+        } else {
+            let w = self.spin;
+            let dq = Q(0.0, w.0, w.1, w.2).then(self.q);
+            self.q = Q(self.q.0 + dq.0 * dt / 2.0, self.q.1 + dq.1 * dt / 2.0, self.q.2 + dq.2 * dt / 2.0, self.q.3 + dq.3 * dt / 2.0).unit();
+        }
         self.collide();
     }
 
@@ -411,7 +404,7 @@ impl World {
         }
         let rn = r.cross(n);
         let bounce = if bounce && going < -3.0 { BOUNCE } else { 0.0 };
-        let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) / INERTIA);
+        let j = -(1.0 + bounce) * going / (1.0 / MASS + rn.dot(rn) * self.turnable());
         self.push(n * j, r);
         let v = self.vel + self.spin.cross(r);
         let slide = v - n * v.dot(n);
@@ -419,7 +412,7 @@ impl World {
         if speed > 1e-5 {
             let t = slide * (1.0 / speed);
             let rt = r.cross(t);
-            let jt = (speed / (1.0 / MASS + rt.dot(rt) / INERTIA)).min(FRICTION * j);
+            let jt = (speed / (1.0 / MASS + rt.dot(rt) * self.turnable())).min(FRICTION * j);
             self.push(t * -jt, r);
         }
     }
@@ -484,49 +477,13 @@ impl World {
         self.look = self.look + (to - self.look) * (1.0 - (-dt * 4.0).exp());
     }
 
-    /// The cube's cubies and stickers, where they are now, each layer turning as it is drawn.
+    /// The cube as the app draws it (model.rs), the layer turning as it is drawn.
     fn build_cube(&mut self) {
         let turn = self.turn.as_ref().map(|t| {
             let e = 1.0 - (1.0 - t.t.min(1.0)).powi(3);
             (t.axis, t.layer, Q::around(V::axis(t.axis), t.from * (1.0 - e)))
         });
-        let (body, q, pos) = (self.q, self.q, self.pos);
-        let place = |centre: V| -> Q {
-            match turn {
-                Some((axis, layer, t)) if (centre.at(axis) - layer).abs() < 0.5 => body.then(t),
-                _ => q,
-            }
-        };
-        let mesh = &mut self.mesh;
-        mesh.clear();
-        let mut quad = |centre: V, n: V, half: f32, out: f32, q: Q, colour: V, kind: f32| {
-            let u = if n.0.abs() > 0.5 { V(0.0, 1.0, 0.0) } else { V(1.0, 0.0, 0.0) };
-            let v = n.cross(u);
-            let c = centre + n * out;
-            let corner = |a: f32, b: f32| (pos + q.rotate(c + (u * a + v * b) * half), [a, b]);
-            let normal = q.rotate(n);
-            let corners = [corner(-1.0, -1.0), corner(1.0, -1.0), corner(1.0, 1.0), corner(-1.0, 1.0)];
-            for k in [0, 1, 2, 0, 2, 3] {
-                let (p, f) = corners[k];
-                mesh.extend_from_slice(&[p.0, p.1, p.2, normal.0, normal.1, normal.2, colour.0, colour.1, colour.2, f[0], f[1], kind]);
-            }
-        };
-        for i in 0..27 {
-            let centre = V((i % 3) as f32 - 1.0, ((i / 3) % 3) as f32 - 1.0, (i / 9) as f32 - 1.0);
-            if centre == V::default() {
-                continue;
-            }
-            for axis in 0..3 {
-                for sign in [-1.0, 1.0] {
-                    quad(centre, V::axis(axis) * sign, 0.49, 0.49, place(centre), V::default(), 0.0);
-                }
-            }
-        }
-        for s in self.stickers.chunks_exact(7) {
-            let (centre, rgb) = (V(s[0], s[1], s[2]), s[6] as u32);
-            let colour = V((rgb >> 16) as f32, ((rgb >> 8) & 255) as f32, (rgb & 255) as f32) * (1.0 / 255.0);
-            quad(centre, V(s[3], s[4], s[5]), 0.46, 0.4925, place(centre), colour, 1.0);
-        }
+        model::cube(&self.stickers, turn, self.q, self.pos, &mut self.mesh);
     }
 
     fn render(&mut self) {
@@ -664,14 +621,16 @@ mod tests {
     }
 
     #[test]
-    fn the_cube_follows_how_the_player_holds_theirs_seen_from_the_camera() {
+    fn the_cube_follows_how_the_player_holds_theirs_whatever_the_camera() {
         let mut w = World::new();
-        let held = Q::around(V(0.0, 1.0, 0.0), 0.7);
+        let held = Q::around(V(1.0, 0.3, 0.5).unit(), 0.9);
         w.held = Some(held);
         w.yaw = 0.3;
         settle(&mut w, 6.0);
-        let seen = Q::around(V(0.0, 1.0, 0.0), 0.3).then(held);
-        assert!(seen.then(w.q.inverse()).vector().len() < 0.1, "{:?}", w.q);
+        assert!(held.then(w.q.inverse()).vector().len() < 1e-5, "{:?}", w.q);
+        // Its corner on the ground, the rest of it above.
+        let lowest = (0..8).map(|c| w.pos.1 + w.q.rotate(V(if c & 1 == 0 { -HALF } else { HALF }, if c & 2 == 0 { -HALF } else { HALF }, if c & 4 == 0 { -HALF } else { HALF })).1).fold(f32::MAX, f32::min);
+        assert!(lowest.abs() < 0.05, "{lowest}");
     }
 
     #[test]
@@ -703,8 +662,7 @@ mod tests {
         }
         WORLD.with_borrow(|w| {
             assert!(w.pos.1 > before + 0.3, "{} then {}", before, w.pos.1);
-            // 26 cubies of 6 faces and 54 stickers, two triangles each.
-            assert_eq!(w.mesh.len(), (26 * 6 + 54) * 6 * FLOATS);
+            assert!(!w.mesh.is_empty() && w.mesh.len() % (3 * FLOATS) == 0);
         });
     }
 }

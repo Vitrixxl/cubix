@@ -83,6 +83,7 @@ pub enum Item {
     Rock(V, f32),
     Bush(V, f32),
     Flower(V, V),
+    Grass(V),
     Cloud(V, f32),
 }
 
@@ -119,10 +120,17 @@ pub fn scatter(rng: &mut Rng) -> (Vec<Item>, Vec<Collider>) {
         }
     }
     const PETALS: [V; 5] = [V(1.0, 1.0, 1.0), V(1.0, 0.85, 0.25), V(0.95, 0.45, 0.65), V(0.6, 0.55, 1.0), V(1.0, 0.55, 0.3)];
-    for _ in 0..1800 {
+    // Flowers in patches, grass everywhere.
+    for _ in 0..1400 {
         let p = at(rng, 3.0, 80.0);
-        if lake(p.0, p.2) == 0.0 && noise(p.0 * 0.07, p.2 * 0.07) > 0.45 {
+        if lake(p.0, p.2) == 0.0 && noise(p.0 * 0.07, p.2 * 0.07) > 0.5 {
             items.push(Item::Flower(p, PETALS[(rng.next() * 5.0) as usize % 5]));
+        }
+    }
+    for _ in 0..9000 {
+        let p = at(rng, 2.5, 75.0);
+        if lake(p.0, p.2) == 0.0 && p.1 < 6.0 {
+            items.push(Item::Grass(p));
         }
     }
     for _ in 0..30 {
@@ -136,6 +144,14 @@ pub fn scatter(rng: &mut Rng) -> (Vec<Item>, Vec<Collider>) {
 struct Mesh(Vec<f32>);
 impl Mesh {
     fn vertex(&mut self, p: V, n: V, c: V, kind: f32) { self.0.extend_from_slice(&[p.0, p.1, p.2, n.0, n.1, n.2, c.0, c.1, c.2, 0.0, 0.0, kind]) }
+    /// A blade of grass or a stem from `base` to `tip`, darker at its foot, lit as the ground is (seen from both sides).
+    fn blade(&mut self, base: V, tip: V, width: f32, foot: V, top: V, side: f32) {
+        let across = V(side.cos(), 0.0, side.sin()) * (width / 2.0);
+        let up = V(0.0, 1.0, 0.0);
+        self.vertex(base - across, up, foot, LEAVES);
+        self.vertex(base + across, up, foot, LEAVES);
+        self.vertex(tip, up, top, LEAVES);
+    }
     fn triangle(&mut self, a: V, b: V, c: V, colour: V, kind: f32) {
         let n = (b - a).cross(c - a).unit();
         for p in [a, b, c] {
@@ -250,8 +266,41 @@ pub fn build(items: &[Item], rng: &mut Rng) -> Vec<f32> {
             Item::Rock(p, s) => m.blob(p + V(0.0, s * 0.25, 0.0), V(1.1, 0.75, 0.95) * s, V(0.55, 0.54, 0.56) * rng.range(0.85, 1.1), SOLID, rng, 0.5),
             Item::Bush(p, s) => m.blob(p + V(0.0, s * 0.45, 0.0), V(1.1, 0.75, 1.1) * s, V(0.27, 0.52, 0.22) * rng.range(0.85, 1.15), LEAVES, rng, 0.4),
             Item::Flower(p, colour) => {
-                m.prism(p, 0.03, 0.03, 0.35, 3, V(0.3, 0.55, 0.2), LEAVES, 0.0);
-                m.blob(p + V(0.0, 0.42, 0.0), V(0.12, 0.08, 0.12), colour, LEAVES, rng, 0.2);
+                let (height, side, lean) = (rng.range(0.35, 0.6), rng.range(0.0, 3.14), V(rng.range(-0.06, 0.06), 0.0, rng.range(-0.06, 0.06)));
+                let head = p + V(0.0, height, 0.0) + lean;
+                let green = V(0.24, 0.48, 0.16);
+                m.blade(p, head, 0.05, green * 0.7, green, side);
+                m.blade(p, head, 0.05, green * 0.7, green, side + 1.57);
+                // Five petals lying open around a heart, facing up.
+                let (turn, r) = (rng.range(0.0, 1.3), rng.range(0.13, 0.19));
+                let up = V(0.0, 1.0, 0.0);
+                for k in 0..5 {
+                    let a = turn + k as f32 * std::f32::consts::TAU / 5.0;
+                    let at = |a: f32, d: f32| head + V(a.cos() * d, 0.02 * d / r, a.sin() * d);
+                    let (left, tip, right) = (at(a - 0.4, r * 0.62), at(a, r), at(a + 0.4, r * 0.62));
+                    for (x, y, z) in [(head, left, tip), (head, tip, right)] {
+                        m.vertex(x, up, colour * 0.88, LEAVES);
+                        m.vertex(y, up, colour, LEAVES);
+                        m.vertex(z, up, colour, LEAVES);
+                    }
+                }
+                let heart = head + V(0.0, 0.025, 0.0);
+                for k in 0..5 {
+                    let a = k as f32 * std::f32::consts::TAU / 5.0;
+                    let edge = |a: f32| heart + V(a.cos() * r * 0.3, -0.01, a.sin() * r * 0.3);
+                    m.vertex(heart, up, V(1.0, 0.82, 0.25), LEAVES);
+                    m.vertex(edge(a), up, V(0.95, 0.7, 0.15), LEAVES);
+                    m.vertex(edge(a + std::f32::consts::TAU / 5.0), up, V(0.95, 0.7, 0.15), LEAVES);
+                }
+            }
+            Item::Grass(p) => {
+                let shade = rng.range(0.85, 1.15);
+                let (foot, top) = (V(0.2, 0.42, 0.14) * shade, V(0.48, 0.72, 0.28) * shade);
+                for _ in 0..5 {
+                    let (a, lean, height) = (rng.range(0.0, 6.28), rng.range(0.05, 0.25), rng.range(0.25, 0.55));
+                    let base = p + V(rng.range(-0.12, 0.12), -0.02, rng.range(-0.12, 0.12));
+                    m.blade(base, base + V(a.cos() * lean, height, a.sin() * lean), 0.07, foot, top, a + 1.57);
+                }
             }
             Item::Cloud(p, s) => {
                 for k in 0..5 {
