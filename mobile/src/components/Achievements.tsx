@@ -36,39 +36,33 @@ import { localFormat, said, tr } from "../../../src/client/i18n";
 
 type A = AchievementDto;
 
-/** The categories in their order: each one's name, icon and colour token (its badges, its card). */
-export const CATEGORIES: { id: AchievementCategory; label: string; icon: LucideIcon; token: string }[] = [
-  { id: "speed", label: "Speed", icon: Timer, token: "primary" },
-  { id: "average", label: "Averages", icon: Gauge, token: "lilac" },
-  { id: "volume", label: "Volume", icon: Layers, token: "warning" },
-  { id: "knowledge", label: "Knowledge", icon: BookOpen, token: "success" },
-  { id: "dedication", label: "Dedication", icon: Flame, token: "destructive" },
+/** The categories in their order: each one's name and icon (its badges, its card). */
+export const CATEGORIES: { id: AchievementCategory; label: string; icon: LucideIcon }[] = [
+  { id: "speed", label: "Speed", icon: Timer },
+  { id: "average", label: "Averages", icon: Gauge },
+  { id: "volume", label: "Volume", icon: Layers },
+  { id: "knowledge", label: "Knowledge", icon: BookOpen },
+  { id: "dedication", label: "Dedication", icon: Flame },
 ];
 export const categoryOf = (a: { category: string }) => CATEGORIES.find(c => c.id === a.category) ?? CATEGORIES[0]!;
-/** A category's colour in the current theme. */
-export function useCategoryColour() {
-  const colors = useColors();
-  return (a: { category: string }) => colors.variables[`--${categoryOf(a).token}`] ?? colors.primary;
-}
 
 /**
- * An achievement's badge, the same wherever one shows: its goal (10, 1:00, OLL…) over its unit, on a disc filled with
- * its category's colour once unlocked; until then a quiet disc whose ring fills with the progress. Small ones keep the
- * goal only.
+ * An achievement's badge, the same wherever one shows: its category's icon over its goal (10, 1:00, OLL…), tinted with
+ * the app's colour once unlocked; until then a quiet disc whose ring fills with the progress. Small ones keep the goal
+ * only.
  */
 export const AchievementBadge = memo(function AchievementBadge({ a, size = 44 }: { a: A; size?: number }) {
-  const colors = useColors(), colour = useCategoryColour()(a);
-  const { value, unit } = achievementBadge(a, catalogSets), small = size < 36, r = 18, round = 2 * Math.PI * r;
-  return <View importantForAccessibility="no-hide-descendants" className="items-center justify-center rounded-full"
-    style={{ width: size, height: size, backgroundColor: a.unlocked ? colour : colors.muted }}>
+  const colors = useColors();
+  const value = achievementBadge(a, catalogSets), small = size < 44, r = 18, round = 2 * Math.PI * r, tone = a.unlocked ? "text-primary" : "text-muted-foreground";
+  return <View importantForAccessibility="no-hide-descendants" className={cn("items-center justify-center rounded-full", a.unlocked ? "bg-primary/15" : "bg-muted")}
+    style={{ width: size, height: size }}>
     {!a.unlocked && <Svg width={size} height={size} viewBox="0 0 40 40" style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}>
       <Circle cx={20} cy={20} r={r} fill="none" strokeWidth={2.6} stroke={colors.variables["--accent"] ?? colors.border} />
-      <Circle cx={20} cy={20} r={r} fill="none" strokeWidth={2.6} stroke={colour} strokeLinecap="round" strokeDasharray={`${Math.max(0.005, a.ratio) * round} ${round}`} />
+      <Circle cx={20} cy={20} r={r} fill="none" strokeWidth={2.6} stroke={colors.primary} strokeLinecap="round" strokeDasharray={`${Math.max(0.005, a.ratio) * round} ${round}`} />
     </Svg>}
-    <Numeric className={cn("font-extrabold tracking-[-0.03em]", a.unlocked ? "text-background" : "text-muted-foreground")}
-      style={{ fontSize: Math.round(size * (value.length > 4 ? 0.22 : small ? 0.42 : 0.3)), lineHeight: Math.round(size * (value.length > 4 ? 0.26 : small ? 0.48 : 0.34)) }}>{value}</Numeric>
-    {!small && <Text className={cn("font-bold opacity-80", a.unlocked ? "text-background" : "text-muted-foreground")}
-      style={{ fontSize: Math.round(size * 0.17), lineHeight: Math.round(size * 0.2) }}>{said(unit)}</Text>}
+    {!small && <Icon as={categoryOf(a).icon} size={Math.round(size * 0.3)} strokeWidth={2.4} className={cn("mb-0.5", tone)} />}
+    <Numeric className={cn("font-extrabold tracking-[-0.03em]", tone)}
+      style={{ fontSize: Math.round(size * (value.length > 4 ? 0.2 : small ? 0.36 : 0.26)), lineHeight: Math.round(size * (value.length > 4 ? 0.24 : small ? 0.42 : 0.3)) }}>{value}</Numeric>
   </View>;
 });
 
@@ -260,7 +254,7 @@ function Categories({ items, category, onChange }: { items: A[]; category: strin
   const colors = useColors();
   const [open, setOpen] = useState(false);
   const all = [{ id: "all", label: "All", icon: Trophy, colour: colors.foreground, list: items },
-    ...CATEGORIES.map(c => ({ id: c.id as string, label: c.label, icon: c.icon, colour: colors.variables[`--${c.token}`] ?? colors.primary, list: items.filter(a => a.category === c.id) }))];
+    ...CATEGORIES.map(c => ({ id: c.id as string, label: c.label, icon: c.icon, colour: colors.primary, list: items.filter(a => a.category === c.id) }))];
   const current = all.find(c => c.id === category) ?? all[0]!, unlocked = (list: A[]) => list.filter(a => a.unlocked).length;
   const card = ({ id, label, icon, colour, list }: (typeof all)[number]) => {
     const done = unlocked(list), on = category === id;

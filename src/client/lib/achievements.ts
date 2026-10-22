@@ -155,14 +155,12 @@ function setShort(label: string) {
   if (label.length <= 6) return label;
   return label.split(/\s+/).find(w => /^[A-Z0-9]{2,}$/.test(w)) ?? label.split(/\s+/).filter(w => /^\w/.test(w)).map(w => w[0]!.toUpperCase()).join("");
 }
-/** What an achievement's badge reads: the goal itself (10, 1:00, 1k, OLL…) over its unit (sec, ao5, solves…). */
-export function achievementBadge(a: Pick<AchievementDto, "id" | "group" | "target">, sets: readonly Pick<SetDto, "id" | "label">[]): { value: string; unit: string } {
+/** What an achievement's badge reads: the goal itself (10, 1:00, 1k, OLL…). */
+export function achievementBadge(a: Pick<AchievementDto, "id">, sets: readonly Pick<SetDto, "id" | "label">[]): string {
   const kind = achievementKind(a), goal = a.id.slice(a.id.lastIndexOf(":") + 1);
-  if (kind === "sets") return { value: setShort(sets.find(set => `learn:${set.id}` === a.id)?.label ?? goal), unit: String(a.target) };
-  if (goal === "first") return { value: "1", unit: "BLD" };
+  if (kind === "sets") return setShort(sets.find(set => `learn:${set.id}` === a.id)?.label ?? goal);
+  if (goal === "first") return "1";
   const n = Number(goal);
-  if (kind === "single") return { value: seconds(n), unit: msg("sec") };
-  if (kind === "ao5" || kind === "oh" || kind === "bld") return { value: seconds(n), unit: { ao5: "ao5", oh: "OH", bld: "BLD" }[kind] };
-  const units = { solves: msg("solves"), algorithms: msg("algs"), times: msg("times"), drills: msg("drills"), days: msg("days"), streak: msg("in a row") };
-  return { value: n >= 1000 ? n / 1000 + "k" : String(n), unit: units[kind] };
+  if (kind === "single" || kind === "ao5" || kind === "oh" || kind === "bld") return seconds(n);
+  return n >= 1000 ? n / 1000 + "k" : String(n);
 }
