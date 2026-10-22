@@ -1,4 +1,4 @@
-import { attemptMode, EVENTS, PUZZLES, matchesPractice, puzzleOf, solveModeOf, scrambleTypeOf, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { attemptMode, EVENTS, PUZZLES, matchesPractice, puzzleOf, scrambleTypesOf, solveModeOf, scrambleTypeOf, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { CaseHistoryDto, EventRecordDto, SessionDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
 import { effective, best, bestAverage, mean, rollingAverages, solveResult } from "../lib/format";
 import { cases } from "./catalog";
@@ -74,24 +74,24 @@ export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput =
     activity: rows.map(s => ({ at: s.created_at, time: timed.has(s.id) ? solveResult(s) : null, timer: timed.has(s.id) })) };
 }
 
-/** Each event's timer records on its standard scrambles; a declared best stands until beaten. */
+/** Each event's timer records on each of its scramble types; a declared best stands on its standard ones until beaten. */
 export function records(rows: SolveDto[], bests: Partial<Record<string, number>> = {}): EventRecordDto[] {
   return orderedRecords(inOrder(rows), bests);
 }
 function orderedRecords(rows: SolveDto[], bests: Partial<Record<string, number>>): EventRecordDto[] {
   const groups = new Map<string, SolveDto[]>();
   for (const solve of rows) {
-    if (solve.case_id || scrambleTypeOf(solve) !== defaultScrambles.get(puzzleOf(solve))) continue;
-    const key = `${puzzleOf(solve)}:${solveModeOf(solve)}`, group = groups.get(key);
+    if (solve.case_id) continue;
+    const key = `${puzzleOf(solve)}:${solveModeOf(solve)}:${scrambleTypeOf(solve)}`, group = groups.get(key);
     if (group) group.push(solve); else groups.set(key, [solve]);
   }
-  return EVENTS.flatMap(e => {
-    const solves = groups.get(`${e.puzzle}:${e.solveMode}`) ?? [];
-    const declared = e.solveMode === "standard" ? bests[e.puzzle] ?? null : null;
+  return EVENTS.flatMap(e => scrambleTypesOf(e.puzzle, e.solveMode).flatMap(scrambleType => {
+    const solves = groups.get(`${e.puzzle}:${e.solveMode}:${scrambleType}`) ?? [];
+    const declared = e.solveMode === "standard" && scrambleType === defaultScrambles.get(e.puzzle) ? bests[e.puzzle] ?? null : null;
     if (!solves.length && declared === null) return [];
     const times = solves.map(solveResult), single = best(times);
     const given = declared !== null && (single === null || declared < single);
-    return [{ event: e.id, puzzle: e.puzzle, solveMode: e.solveMode, count: solves.length, best: given ? declared : single,
+    return [{ event: e.id, puzzle: e.puzzle, solveMode: e.solveMode, scrambleType, count: solves.length, best: given ? declared : single,
       bestAo5: bestAverage(times, 5), bestAo12: bestAverage(times, 12), bestAo100: bestAverage(times, 100), lastAt: solves.at(-1)?.created_at ?? null, ...(given ? { declared: true } : {}) }];
-  });
+  }));
 }

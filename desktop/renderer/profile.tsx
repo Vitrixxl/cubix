@@ -1,45 +1,37 @@
 /**
- * The account page, a practice notebook: who they are and their records, the journal of their days, the month and
- * the weeks' best averages, the whole overview inside the window. Each section opens its own page.
+ * The account page. On the desktop, a sidebar of its own (profile/nav.tsx) beside the page open: the overview (the
+ * activity, the records by event and scramble type, the journal) or one of its sections. On phones, tabs over them.
  */
 import { useRef, type RefObject } from "react";
 import { store as s } from "./store";
-import { PAGE, usePhone } from "./ui";
+import { PAGE, Surface, usePhone } from "./ui";
 import { StatsPage } from "./stats";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BattlesPage, TrainingPage } from "./profile/pages";
 import { AchievementsPage } from "./profile/achievements";
 import { AnalysisPage } from "./profile/analysis";
-import { useProfileData } from "./profile/data";
+import { useProfileData, type ProfileData } from "./profile/data";
 import { IdentityCard, Journal, MonthCard, RecordPlates, WeeksCard } from "./profile/journal";
+import { ActivityBand, RecordGrid } from "./profile/grid";
+import { ProfileNav } from "./profile/nav";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { ProfileSkeleton } from "./skeletons";
 
 const SECTIONS: Record<string, string> = { playground: "Timer", training: "Training", achievements: "Awards", duels: "Battles", analysis: "Analysis" };
 
-/** The reading column: the page's padding, centred and capped like GitHub's. */
-const COLUMN = cn(PAGE, "mx-auto w-full max-w-7xl");
-
-/**
- * The notebook fills the window under the header in three columns: who they are and their records; the journal of
- * their days; the month and the best Ao5 of each week. Each column scrolls inside itself when the window is short.
- */
-function Overview() {
-  const d = useProfileData();
+/** The overview: the activity on a band, then the records' grid beside the journal of the days. */
+function Overview({ d }: { d: ProfileData }) {
   return (
-    <div className={PAGE}>
-      <div data-tour="profile-overview" className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)_19rem] gap-5 xl:grid-cols-[18.75rem_minmax(0,1fr)_22.5rem] xl:gap-[22px]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <IdentityCard />
-          <RecordPlates d={d} />
-        </div>
-        <Journal d={d} phone={false} />
-        <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1">
-          <MonthCard d={d} />
-          <WeeksCard d={d} />
-        </div>
+    <div data-tour="profile-overview" className="flex min-h-0 flex-1 flex-col gap-4">
+      <ActivityBand d={d} />
+      {/* Narrow windows put the journal under the grid. */}
+      <div className="grid min-h-0 flex-1 grid-rows-2 gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <RecordGrid d={d} />
+        <Surface className="flex min-h-0 flex-col px-5 pt-4 pb-2">
+          <Journal d={d} phone={false} />
+        </Surface>
       </div>
     </div>
   );
@@ -73,21 +65,23 @@ function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
   );
 }
 
-/** Account page: the overview, or one of its sections opened from it as a page of its own. */
+/** Account page: the overview, or one of its sections opened from the sidebar. */
 export function Profile() {
   const phone = usePhone(),
-    p = s.profile,
     mode = s.profileMode in SECTIONS ? s.profileMode : "overview";
   if (phone) return <PhoneProfile mode={mode} />;
-  if (!p) return <ProfileSkeleton phone={false} />;
-  return mode === "overview" ? (
-    <section className="h-full min-h-0" aria-label={tr("Profile")}>
-      <Overview />
-    </section>
-  ) : (
-    // The statistics, a dashboard, take the window's width as the overview does; the other sections keep the column.
-    <section className={cn(mode === "playground" ? PAGE : COLUMN, "profile-main")} aria-label={said(SECTIONS[mode])}>
-      <SubPage mode={mode} phone={false} />
+  if (!s.profile) return <ProfileSkeleton phone={false} />;
+  return <DesktopProfile mode={mode} />;
+}
+
+function DesktopProfile({ mode }: { mode: string }) {
+  const d = useProfileData();
+  return (
+    <section className={cn(PAGE, "profile-main")} aria-label={mode === "overview" ? tr("Profile") : said(SECTIONS[mode])}>
+      <div className="flex min-h-0 flex-1 gap-5">
+        <ProfileNav d={d} />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">{mode === "overview" ? <Overview d={d} /> : <SubPage mode={mode} phone={false} />}</div>
+      </div>
     </section>
   );
 }

@@ -4052,5 +4052,16 @@
  "Step done": "Schritt fertig",
  "Learn with my cube": "Mit meinem Würfel lernen",
  "Connected or painted": "Verbunden oder ausgemalt",
- "« {0} » is not a turn": "„{0}“ ist kein Zug"
+ "« {0} » is not a turn": "„{0}“ ist kein Zug",
+ "{0} cases learned": "{0} Fälle gelernt",
+ "{0} training": "{0} im Training",
+ "by event and scramble": "nach Disziplin und Scramble",
+ "Every opponent": "Alle Gegner",
+ "Every set": "Alle Sets",
+ "Import, export, account": "Import, Export, Konto",
+ "In all": "Insgesamt",
+ "Not played yet": "Noch nicht gespielt",
+ "Other": "Andere",
+ "Profile pages": "Profilseiten",
+ "record {0}": "Rekord {0}"
 }

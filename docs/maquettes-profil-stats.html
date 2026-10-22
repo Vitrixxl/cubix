@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1540">
+<title>Qbix · Maquettes : le profil et ses pages, par cube et par mélange</title>
+<style>
+@font-face { font-family: "Bricolage Grotesque"; src: url("../desktop/assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; font-stretch: 75% 100%; }
+/* Ember dark: themeTokens("ember", "dark") from src/client/lib/theme.ts */
+:root {
+  --bg: #231816; --card: #281e1c; --pop: #2f2422; --muted: #2f2422; --acc: #382c2b;
+  --fg: #f4ebe9; --mfg: #bcb0b0; --faint: #887a7b; --pri: #ff9d6b; --pri-fg: #1c1317;
+  --ok: #8fe0c2; --warn: #ffd98a; --lilac: #c9b4ff; --bad: #ff8f80; --border: rgba(244, 235, 233, .08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Bricolage Grotesque", system-ui, sans-serif; background: #140d0c; color: var(--fg); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+svg.lucide { width: 18px; height: 18px; stroke-width: 2; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* The document */
+.doc { padding: 48px 48px 120px; display: flex; flex-direction: column; gap: 72px; }
+.doc > header h1 { font-size: 44px; font-weight: 800; letter-spacing: -.04em; }
+.doc > header p { color: var(--mfg); max-width: 980px; line-height: 1.5; margin-top: 10px; font-size: 16px; }
+.series h2 { font-size: 32px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 8px; }
+.series > p { color: var(--mfg); max-width: 980px; line-height: 1.5; margin-bottom: 28px; }
+figure { display: flex; flex-direction: column; gap: 14px; margin-bottom: 56px; }
+figcaption { max-width: 1440px; display: flex; flex-direction: column; gap: 6px; }
+figcaption b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; display: flex; gap: 10px; align-items: center; }
+figcaption b i { font-style: normal; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--pri); color: var(--pri-fg); font-size: 16px; }
+figcaption span { color: var(--mfg); line-height: 1.5; font-size: 15px; }
+figcaption ul { color: var(--mfg); font-size: 14px; line-height: 1.5; padding-left: 20px; }
+
+/* A desktop window, 1440 × 900 */
+.win { width: 1440px; height: 900px; background: var(--bg); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); position: relative; }
+.top { height: 76px; flex: none; display: flex; align-items: center; gap: 36px; padding: 0 32px; }
+.brand { display: flex; align-items: center; gap: 9px; font-size: 25px; font-weight: 800; letter-spacing: -.04em; }
+.logo { display: grid; grid-template-columns: repeat(3, 8px); gap: 2.5px; }
+.logo span { width: 8px; height: 8px; border-radius: 2px; background: #d9cfcd; }
+.logo span:nth-child(3) { background: var(--pri); }
+.nav { display: flex; gap: 6px; }
+.nav a { position: relative; padding: 8px 12px; font-size: 16px; font-weight: 600; color: var(--mfg); text-decoration: none; }
+.nav a.on { color: var(--fg); }
+.nav a.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -4px; height: 3px; border-radius: 3px; background: var(--pri); }
+.nav a .dot { position: absolute; top: 6px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--pri); }
+.sp { flex: 1; }
+.chip { height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 12px; background: var(--muted); font-size: 14px; font-weight: 700; color: var(--fg); white-space: nowrap; }
+.chip.pri { background: color-mix(in srgb, var(--pri) 16%, var(--bg)); color: var(--pri); }
+.chip.ghost { background: transparent; color: var(--mfg); }
+.chip svg.lucide { width: 16px; height: 16px; }
+.avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--acc); color: var(--pri); font-weight: 800; font-size: 13px; flex: none; }
+.avatar.sm { width: 30px; height: 30px; border-radius: 10px; font-size: 11px; }
+.avatar.c1 { background: #4a3b2e; color: #ffd98a; } .avatar.c2 { background: #3d3249; color: #c9b4ff; } .avatar.c3 { background: #2b4038; color: #8fe0c2; } .avatar.c4 { background: #4a2f2c; color: #ff8f80; }
+.main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; padding: 6px 32px 28px; }
+.card { background: var(--card); border-radius: 26px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.card.pop { background: var(--pop); }
+.h { display: flex; align-items: center; gap: 10px; }
+.h h3 { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.h .cnt { color: var(--faint); font-weight: 700; font-size: 15px; }
+.tile { width: 40px; height: 40px; border-radius: 13px; background: var(--muted); display: grid; place-items: center; color: var(--pri); flex: none; }
+.tile.big { width: 52px; height: 52px; border-radius: 16px; }
+.tile.big svg.lucide { width: 24px; height: 24px; }
+.cap { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.mfg { color: var(--mfg); } .faint { color: var(--faint); } .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .pri { color: var(--pri); }
+.btn { height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; font-weight: 800; font-size: 15px; background: var(--muted); color: var(--fg); white-space: nowrap; }
+.btn.pri { background: var(--pri); color: var(--pri-fg); }
+.btn.sm { height: 34px; border-radius: 11px; font-size: 13px; padding: 0 12px; }
+.btn.ghost { background: transparent; color: var(--mfg); }
+.big { font-size: 64px; font-weight: 800; letter-spacing: -.05em; line-height: 1; }
+.mid { font-size: 34px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.row { display: flex; align-items: center; gap: 12px; }
+.list { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
+.li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--muted); font-size: 15px; }
+.li .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.li .t b { font-weight: 700; } .li .t small { color: var(--mfg); font-size: 13px; }
+.pill { font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 999px; background: var(--acc); color: var(--mfg); white-space: nowrap; }
+.pill.w { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.l { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.pill.p { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.pill.live { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.scramble { font-size: 20px; font-weight: 700; letter-spacing: .02em; line-height: 1.5; word-spacing: 4px; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+.bars span { flex: 1; border-radius: 4px 4px 2px 2px; background: var(--acc); }
+.bars span.me { background: var(--pri); }
+.spark { width: 100%; height: 64px; }
+.grid { display: grid; gap: 20px; min-height: 0; }
+.seg { display: inline-flex; padding: 4px; gap: 4px; background: var(--muted); border-radius: 14px; }
+.seg a { height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 700; color: var(--mfg); text-decoration: none; }
+.seg a.on { background: var(--acc); color: var(--fg); }
+.seg a .n { font-size: 12px; color: var(--faint); font-weight: 700; }
+.ring { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--acc); flex: none; }
+.ring.half { border-color: var(--pri) var(--pri) var(--acc) var(--acc); transform: rotate(45deg); }
+.ring.full { border-color: var(--ok); }
+.progress { height: 8px; border-radius: 8px; background: var(--acc); overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--pri); border-radius: 8px; }
+.cube { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 72px; height: 72px; padding: 4px; border-radius: 12px; background: #120c0b; flex: none; }
+.cube span { border-radius: 3px; background: #ffd34d; }
+.cube span.g { background: #3a3030; }
+.title { font-size: 34px; font-weight: 800; letter-spacing: -.04em; }
+.side { width: 248px; flex: none; background: var(--card); border-radius: 26px; padding: 18px 14px; display: flex; flex-direction: column; gap: 4px; }
+.side a { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 46px; border-radius: 14px; color: var(--mfg); font-weight: 700; font-size: 15px; text-decoration: none; }
+.side a.on { background: var(--acc); color: var(--fg); }
+.side a.on svg.lucide { color: var(--pri); }
+.side a .n { margin-left: auto; font-size: 12px; color: var(--faint); }
+.secbar { display: flex; align-items: flex-end; gap: 28px; margin: 0 32px; border-bottom: 1px solid var(--border); flex: none; }
+.secbar .title { padding-bottom: 10px; font-size: 30px; }
+.rechead { display: flex; align-items: center; gap: 12px; padding: 14px 32px 0; flex: none; }
+.rechead b { font-size: 28px; font-weight: 800; letter-spacing: -.03em; }
+.rechead .back { width: 36px; height: 36px; border-radius: 11px; background: var(--muted); display: grid; place-items: center; }
+.alg { font-size: 34px; font-weight: 800; letter-spacing: .01em; word-spacing: 8px; text-align: center; }
+.alg .done { color: var(--faint); } .alg .now { color: var(--pri); }
+.kbd { font-size: 12px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(28,19,23,.15); margin-left: 4px; }
+.btn:not(.pri) .kbd { background: var(--acc); }
+.player { display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-radius: 18px; background: var(--card); color: var(--mfg); }
+.player .playb { width: 40px; height: 40px; border-radius: 12px; background: var(--pri); color: var(--pri-fg); display: grid; place-items: center; }
+.dia { width: 64px; height: 64px; flex: none; }
+.flow { display: flex; gap: 22px; align-items: flex-start; }
+.screen { display: flex; flex-direction: column; gap: 10px; }
+.scap { font-size: 15px; font-weight: 800; color: var(--mfg); }
+.win.mini { zoom: .33; }
+.secbar.nob { border-bottom: 0; }
+.coursebar { display: flex; align-items: center; gap: 10px; padding: 16px 32px 8px; flex: none; }
+.coursebar .back { width: 38px; height: 38px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; }
+.coursebar b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin-right: 8px; }
+.stepchip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 11px; border-radius: 12px; background: var(--muted); color: var(--mfg); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.stepchip.on { background: var(--pri); color: var(--pri-fg); }
+.stepchip.on .ring { border-color: var(--pri-fg); }
+.stepline { flex: 1; height: 1px; background: var(--border); min-width: 4px; }
+.lesson { padding: 36px 40px; }
+.lead { font-size: 22px; line-height: 1.5; color: var(--fg); max-width: 760px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--acc); }
+.dot.on { background: var(--pri); width: 26px; border-radius: 6px; }
+.btn.big { height: 56px; font-size: 17px; padding: 0 24px; border-radius: 16px; }
+.num-badge { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--pri); font-weight: 800; font-size: 14px; flex: none; }
+.li.tip.done { background: color-mix(in srgb, var(--ok) 8%, var(--muted)); }
+.tick { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 11px; background: var(--acc); color: var(--fg); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.tick svg.lucide { width: 15px; height: 15px; opacity: .35; }
+.tick.on { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.tick.on svg.lucide { opacity: 1; }
+.locked { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 16px; background: var(--muted); color: var(--mfg); font-weight: 700; }
+.choice { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; border-radius: 22px; background: var(--muted); box-shadow: inset 0 0 0 2px transparent; }
+.choice.picked { box-shadow: inset 0 0 0 3px var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--muted)); }
+.choice b { font-size: 20px; }
+
+/* Ajouts de cette série */
+.doc > nav.toc { display: flex; gap: 8px; position: sticky; top: 0; z-index: 5; padding: 12px 0; background: #140d0c; }
+.doc > nav.toc a { text-decoration: none; }
+.screens { display: flex; flex-direction: column; gap: 28px; }
+.scap2 { font-size: 15px; font-weight: 800; color: var(--mfg); margin-bottom: -16px; }
+.plates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+.plate { background: var(--card); border-radius: 18px; padding: 11px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plate .e { font-size: 13px; font-weight: 700; color: var(--mfg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plate .v { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.plate .a { font-size: 13px; font-weight: 700; color: var(--faint); }
+.plate.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
+.plate.off .v { color: var(--faint); }
+.sc { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border-radius: 10px; background: var(--muted); color: var(--mfg); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.sc.on { background: var(--pri); color: var(--pri-fg); }
+.sc .n { font-size: 11px; opacity: .7; }
+.sc.add { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
+.sc svg.lucide { width: 14px; height: 14px; }
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.tbl th { text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding: 0 10px 8px; white-space: nowrap; }
+.tbl td { padding: 9px 10px; border-top: 1px solid var(--border); white-space: nowrap; }
+.tbl td.r, .tbl th.r { text-align: right; }
+.tbl tr.on td { background: color-mix(in srgb, var(--pri) 9%, transparent); }
+.tbl tr.on td:first-child { border-radius: 12px 0 0 12px; } .tbl tr.on td:last-child { border-radius: 0 12px 12px 0; }
+.mx { display: grid; gap: 6px; font-size: 14px; }
+.mx .hd { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding: 0 12px 2px; align-self: end; }
+.mx .cb { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; padding: 0 6px; }
+.mx .cell { background: var(--muted); border-radius: 14px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; }
+.mx .cell b { font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
+.mx .cell small { color: var(--faint); font-size: 12px; font-weight: 700; }
+.mx .cell.on { box-shadow: inset 0 0 0 2px var(--pri); }
+.mx .cell.no { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); color: var(--faint); align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.mx .cell.na { background: transparent; }
+.pz { width: 26px; height: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5px; padding: 2px; border-radius: 7px; background: #120c0b; flex: none; }
+.pz i { border-radius: 1.5px; background: var(--pri); }
+.pz.n2 { grid-template-columns: repeat(2, 1fr); } .pz.n4 { grid-template-columns: repeat(4, 1fr); }
+.pz.tri { background: none; clip-path: polygon(50% 4%, 96% 92%, 4% 92%); background: var(--warn); }
+.pz.sk { background: none; transform: rotate(45deg) scale(.78); border-radius: 5px; background: var(--lilac); }
+.tree { display: flex; flex-direction: column; gap: 2px; }
+.tree .cube-row { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px; border-radius: 14px; font-weight: 800; font-size: 15px; }
+.tree .cube-row .n { margin-left: auto; color: var(--faint); font-size: 12px; font-weight: 700; }
+.tree .sub { white-space: nowrap; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px 0 46px; border-radius: 12px; color: var(--mfg); font-weight: 700; font-size: 14px; }
+.tree .sub .t { margin-left: auto; font-size: 13px; color: var(--fg); }
+.tree .sub .n { width: 44px; text-align: right; color: var(--faint); font-size: 12px; }
+.tree .sub.on { background: var(--acc); color: var(--fg); }
+.tree .sub.on::before { content: ""; width: 4px; height: 18px; border-radius: 4px; background: var(--pri); margin-left: -18px; margin-right: 10px; }
+.heat { display: grid; grid-template-rows: repeat(7, 11px); grid-auto-flow: column; grid-auto-columns: 11px; gap: 3px; }
+.heat.cal { grid-template-rows: none; grid-auto-flow: row; grid-template-columns: repeat(7, 1fr); grid-auto-columns: auto; gap: 5px; }
+.heat.cal i { width: auto; height: 22px; border-radius: 6px; }
+.heat i { width: 11px; height: 11px; border-radius: 3px; background: var(--muted); }
+.heat i.l1 { background: color-mix(in srgb, var(--pri) 35%, var(--muted)); } .heat i.l2 { background: color-mix(in srgb, var(--pri) 60%, var(--muted)); }
+.heat i.l3 { background: color-mix(in srgb, var(--pri) 85%, var(--muted)); } .heat i.l4 { background: var(--pri); }
+.day { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--muted); }
+.day .d { display: flex; align-items: baseline; gap: 10px; } .day .d b { font-weight: 800; } .day .d small { color: var(--faint); font-weight: 700; font-size: 12px; }
+.day .m { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mfg); }
+.day .m svg.lucide { width: 15px; height: 15px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--mfg); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span i { width: 12px; height: 4px; border-radius: 3px; }
+.legend span.off { opacity: .4; }
+.chart { width: 100%; flex: 1; min-height: 0; }
+.kpi { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 18px; background: var(--muted); min-width: 0; }
+.kpi .cap { font-size: 11px; }
+.kpi b { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+.kpi small { font-size: 12px; font-weight: 700; color: var(--faint); }
+.cmp { background: var(--muted); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cmp.on { box-shadow: inset 0 0 0 2px var(--pri); }
+.cmp .top2 { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; }
+.cmp .top2 .n { margin-left: auto; color: var(--faint); font-size: 12px; font-weight: 700; }
+.cmp .vals { display: flex; align-items: baseline; gap: 12px; }
+.cmp .vals b { font-size: 28px; font-weight: 800; letter-spacing: -.03em; }
+.cmp .vals span { color: var(--mfg); font-size: 13px; font-weight: 700; }
+.cmp svg.sp-c { width: 100%; height: 72px; flex: none; margin-top: auto; }
+.mini { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--muted); font-size: 14px; }
+.mini b { font-weight: 800; } .mini .sp { flex: 1; }
+.note { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); font-size: 13px; font-weight: 700; }
+.note svg.lucide { width: 15px; height: 15px; }
+.fix { padding: 18px 22px; border-radius: 22px; background: var(--card); max-width: 1440px; color: var(--mfg); line-height: 1.55; font-size: 15px; }
+.fix b { color: var(--fg); }
+
+/* Pages du profil */
+.avatar.me { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--pri); }
+.ptabs { display: flex; align-items: center; gap: 4px; flex: none; }
+.ptabs a { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 12px; font-weight: 700; font-size: 15px; color: var(--mfg); text-decoration: none; white-space: nowrap; }
+.ptabs a .n { font-size: 12px; color: var(--faint); }
+.ptabs a.on { background: var(--acc); color: var(--fg); }
+.ptabs a.on svg.lucide { color: var(--pri); }
+.ptabs.under { border-bottom: 1px solid var(--border); gap: 22px; padding: 0 2px; }
+.ptabs.under a { height: 46px; padding: 0; border-radius: 0; position: relative; }
+.ptabs.under a.on { background: none; }
+.ptabs.under a.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px; background: var(--pri); }
+.pagehead { display: flex; align-items: center; gap: 12px; flex: none; min-height: 40px; }
+.pagehead h1 { font-size: 28px; font-weight: 800; letter-spacing: -.03em; white-space: nowrap; }
+.pagehead .back { width: 36px; height: 36px; border-radius: 11px; background: var(--muted); display: grid; place-items: center; flex: none; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; align-content: start; }
+.ct { aspect-ratio: 1; border-radius: 16px; background: var(--muted); padding: 7px 8px 6px; display: flex; flex-direction: column; min-width: 0; }
+.ct .d { flex: 1; min-height: 0; display: grid; place-items: center; }
+.ct .d svg { width: 100%; height: 100%; max-width: 62px; }
+.ct .f { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 700; }
+.ct .f .t { color: var(--mfg); font-variant-numeric: tabular-nums; }
+.ct.learned .f .t { color: var(--ok); }
+.ct.untrained { opacity: .42; }
+.ct.on { background: var(--acc); box-shadow: inset 0 0 0 2px var(--pri); opacity: 1; }
+.ct.usual { background: color-mix(in srgb, var(--ok) 12%, var(--muted)); }
+.ct.slow { background: color-mix(in srgb, var(--warn) 16%, var(--muted)); }
+.ct.slowest { background: color-mix(in srgb, var(--bad) 20%, var(--muted)); }
+.ct.never { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
+.setrow { display: flex; align-items: center; gap: 10px; height: 40px; font-weight: 800; font-size: 15px; }
+.setrow .n { color: var(--faint); font-size: 13px; font-weight: 700; }
+.setrow .progress { width: 120px; }
+.bd { display: inline-grid; place-items: center; border-radius: 50%; flex: none; position: relative; text-align: center; line-height: 1; }
+.bd b { font-weight: 800; letter-spacing: -.03em; position: relative; } .bd i { font-style: normal; font-weight: 700; opacity: .8; display: block; margin-top: 1px; position: relative; }
+.bd svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.catrow { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 14px; border-radius: 16px; font-weight: 800; font-size: 15px; }
+.catrow .n { margin-left: auto; color: var(--faint); font-size: 13px; font-weight: 700; }
+.catrow.on { background: var(--acc); }
+.catrow .ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; }
+.catrow .ic svg.lucide { width: 17px; height: 17px; }
+.aw { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 16px; background: var(--muted); }
+.aw .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aw .t b { font-weight: 800; font-size: 15px; } .aw .t small { color: var(--mfg); font-size: 13px; }
+.aw.on { background: var(--acc); box-shadow: inset 0 0 0 2px var(--pri); }
+.res { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
+.res.w { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.res.l { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.res.d { background: var(--muted); color: var(--mfg); }
+.rounds { display: grid; grid-template-columns: repeat(5, 46px); gap: 2px 10px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rounds span:nth-child(n+6) { color: var(--faint); }
+.stepbar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--acc); }
+.stepbar span { display: block; height: 100%; }
+.stepbar span.rec { opacity: .45; }
+.steps .st { display: grid; grid-template-columns: 110px 70px minmax(0,1fr) 92px 56px 56px; align-items: center; gap: 14px; padding: 9px 4px; border-top: 1px solid var(--border); font-size: 14px; font-variant-numeric: tabular-nums; }
+.steps .st.h { border-top: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding-top: 0; }
+.steps .st b { font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.steps .st b::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.sheet { position: absolute; top: 0; right: 0; bottom: 0; width: 520px; background: var(--pop); border-radius: 26px 0 0 26px; box-shadow: -20px 0 60px rgba(0,0,0,.45); padding: 24px 26px; display: flex; flex-direction: column; gap: 16px; z-index: 3; }
+.shade { position: absolute; inset: 0; background: rgba(10,6,5,.55); z-index: 2; }
+.modal { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 760px; background: var(--pop); border-radius: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.6); padding: 26px 28px; display: flex; flex-direction: column; gap: 16px; z-index: 3; }
+.menu { position: absolute; background: var(--pop); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.55); padding: 8px; display: flex; flex-direction: column; gap: 2px; z-index: 4; min-width: 240px; }
+.menu a { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border-radius: 11px; font-size: 14px; font-weight: 700; color: var(--fg); text-decoration: none; white-space: nowrap; }
+.menu a .n { margin-left: auto; color: var(--faint); font-size: 12px; }
+.menu a.on { background: var(--acc); } .menu a.on::after { content: "✓"; color: var(--pri); margin-left: 8px; }
+.menu .lab { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 12px 4px; }
+.menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 6px; }
+.timer { font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 12px; font-weight: 700; }
+.cal span { height: 28px; display: grid; place-items: center; border-radius: 8px; color: var(--mfg); }
+.cal .h { color: var(--faint); height: 18px; }
+.cal .l1 { background: color-mix(in srgb, var(--pri) 30%, var(--muted)); color: var(--fg); } .cal .l2 { background: color-mix(in srgb, var(--pri) 55%, var(--muted)); color: var(--fg); }
+.cal .l3 { background: color-mix(in srgb, var(--pri) 80%, var(--muted)); color: var(--pri-fg); } .cal .l4 { background: var(--pri); color: var(--pri-fg); }
+.cal .today { box-shadow: inset 0 0 0 2px var(--fg); }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.facts div { display: flex; flex-direction: column; } .facts b { font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; } .facts small { font-size: 12px; color: var(--faint); font-weight: 700; }
+.doors { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.door { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); font-weight: 800; font-size: 14px; }
+.door small { margin-left: auto; color: var(--faint); font-weight: 700; }
+.door svg.lucide { color: var(--pri); }
+.wcab { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 9px; background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); font-size: 12px; font-weight: 800; }
+.pages { display: flex; gap: 8px; flex-wrap: wrap; }
+.pages a { text-decoration: none; }
+.tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 7px; background: var(--acc); color: var(--mfg); font-size: 11px; font-weight: 800; white-space: nowrap; }
+.tag.p { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.tag.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.why { color: var(--mfg); font-size: 14px; line-height: 1.5; max-width: 1440px; margin: -14px 0 4px; }
+.why b { color: var(--fg); }
+/* Téléphone */
+.phones { display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+.phone { width: 390px; height: 844px; border-radius: 48px; background: var(--bg); box-shadow: 0 0 0 10px #0b0706, 0 24px 60px rgba(0,0,0,.5); display: flex; flex-direction: column; overflow: hidden; padding: 50px 16px 26px; gap: 12px; position: relative; flex: none; }
+.phone::before { content: ""; position: absolute; top: 14px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: #0b0706; }
+.phone .ptitle { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.phone .ptitle h1 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; flex: 1; }
+.phone .card { border-radius: 22px; padding: 14px 16px; gap: 10px; }
+.phone .tabbar { margin-top: auto; display: flex; justify-content: space-around; padding: 10px 6px; border-radius: 24px; background: var(--card); flex: none; }
+.phone .tabbar span { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--faint); }
+.phone .tabbar span.on { color: var(--pri); }
+.phone .seg a { height: 32px; padding: 0 10px; font-size: 13px; }
+.pcap { font-size: 14px; font-weight: 800; color: var(--mfg); margin-bottom: 12px; }
+.menu a.faint { color: var(--faint); }
+.seg a { white-space: nowrap; }
+.sheet .card { background: var(--acc) !important; }
+.psheet .sc { background: var(--acc); } .psheet .sc.on { background: var(--pri); } .psheet .sc.add { background: transparent; }
+/* B : la barre latérale du profil */
+.sideb { width: 268px; flex: none; background: var(--card); border-radius: 26px; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; }
+.sideb .me { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.sideb .me b { font-size: 17px; font-weight: 800; } .sideb .me small { display: block; color: var(--faint); font-size: 12px; font-weight: 700; }
+.sideb .it { display: flex; align-items: center; gap: 11px; height: 40px; padding: 0 10px; border-radius: 12px; font-weight: 800; font-size: 15px; color: var(--mfg); white-space: nowrap; }
+.sideb .it .n { margin-left: auto; font-size: 12px; color: var(--faint); font-weight: 700; }
+.sideb .it.on { color: var(--fg); } .sideb .it.on svg.lucide { color: var(--pri); }
+.sideb .it.sel { background: var(--acc); color: var(--fg); }
+.sideb .cb { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px 0 22px; border-radius: 11px; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.sideb .cb .pz { width: 20px; height: 20px; border-radius: 6px; }
+.sideb .cb .n { margin-left: auto; font-size: 12px; color: var(--faint); font-weight: 700; }
+.sideb .cb.sel { background: var(--acc); }
+.sideb .sb { display: flex; align-items: center; gap: 8px; height: 31px; padding: 0 10px 0 52px; border-radius: 10px; font-weight: 700; font-size: 13px; color: var(--mfg); white-space: nowrap; position: relative; }
+.sideb .sb .t { margin-left: auto; color: var(--fg); font-variant-numeric: tabular-nums; }
+.sideb .sb .n { width: 40px; text-align: right; color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sideb .sb.sel { background: var(--acc); color: var(--fg); }
+.sideb .sb.sel::before { content: ""; position: absolute; left: 38px; width: 4px; height: 16px; border-radius: 4px; background: var(--pri); }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.phone .li { font-size: 13px; }
+.mx .cell small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* C : l'en-tête commun du profil */
+.chead { display: flex; align-items: center; gap: 14px; flex: none; }
+.chead .who { display: flex; align-items: center; gap: 10px; padding-right: 8px; }
+.chead .who b { font-size: 18px; font-weight: 800; } .chead .who small { display: block; color: var(--faint); font-size: 12px; font-weight: 700; }
+.ptabs.pills a { height: 42px; border-radius: 14px; background: var(--muted); }
+.ptabs.pills a.on { background: var(--pri); color: var(--pri-fg); } .ptabs.pills a.on svg.lucide, .ptabs.pills a.on .n { color: var(--pri-fg); }
+.ring2 { width: 58px; height: 58px; flex: none; position: relative; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.ring2 svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.setc { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: var(--muted); }
+.setc.on { box-shadow: inset 0 0 0 2px var(--pri); }
+.setc b { font-size: 17px; font-weight: 800; } .setc small { display: block; color: var(--mfg); font-size: 12px; font-weight: 700; }
+.gbar { display: flex; flex-direction: column; gap: 4px; }
+.gbar span { height: 10px; border-radius: 5px; }
+.gbar { gap: 6px; } .gbar span { height: 16px; border-radius: 6px; }
+
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Qbix · le profil et toutes ses pages, par cube et par mélange</h1>
+  <p>Trois pistes complètes pour le profil : la vue d'ensemble et chacune de ses pages (Statistiques par solve et par
+  session avec un solve ouvert, Training, Awards, Battles, Analysis), sur ordinateur à 1440 × 900 sans défilement de la
+  page, puis sur téléphone. Thème sombre de l'app, données du compte <b>dev</b> seedé (3×3 CFOP vers 12 s, du 2×2, du
+  4×4, un peu de OH, Pyraminx et Skewb ; duels contre lena_speed, alex_cubes, kenji_cfop…).</p>
+  <p>Le fil rouge des trois : <b>un chiffre appartient à un cube et à un type de mélange</b>. Un 4.71 en 2-gen R U n'est
+  pas un record 3×3, une Ao5 de « Last layer » ne se compare pas à une Ao5 normale. Chaque piste range ces mélanges
+  autrement.</p>
+</header>
+
+<div class="fix">
+  <b>Déjà fait dans le code (non commité, à valider sur le dev Docker) :</b> le moteur calcule les records de chaque cube
+  pour chaque type de mélange (champ <code>scrambleType</code> sur chaque record). Les plaques « Records » du profil
+  (web et téléphone) et les compteurs du menu des épreuves des Statistiques suivent le mélange choisi ; un cube qui n'a
+  pas ce mélange montre ses records en mélange normal ; une plaque hors normal porte le nom du mélange
+  (« 3×3 · 2-gen · R U »). La page WCA compare toujours avec les records en mélange normal. Avant, seuls les solves en
+  mélange normal comptaient dans les records : tes records en 2-gen ou en Cross n'apparaissaient nulle part.
+</div>
+
+<div class="card" style="max-width: 1440px; gap: 10px;">
+  <div class="h"><h3>Les trois pistes en bref</h3></div>
+  <table class="tbl">
+    <tr><th></th><th>Où vit le choix du mélange</th><th>Navigation entre les pages</th><th>Ce qui change le plus</th><th>Effort</th></tr>
+    <tr><td><b class="pri">A</b> · Carnet filtré</td><td>Une rangée de mélanges pratiqués, en haut de chaque page qui a des temps</td><td>Onglets du profil sous le titre, toujours visibles</td><td>Presque rien : la page d'aujourd'hui, filtrée</td><td>Petit</td></tr>
+    <tr><td><b class="pri">B</b> · Grille et arbre</td><td>Une grille cube × mélange sur le profil, un arbre à gauche des pages</td><td>Barre latérale du profil, ses pages et leurs sous-parties</td><td>Tout voir d'un coup, un clic pour passer d'un mélange à l'autre</td><td>Moyen</td></tr>
+    <tr><td><b class="pri">C</b> · Cube en vedette</td><td>Les mélanges d'un cube côte à côte, comparés au Normal</td><td>En-tête du profil commun, pages en grandes pilules</td><td>On mesure si un entraînement (2-gen, Cross) fait progresser le Normal</td><td>Plus grand</td></tr>
+  </table>
+</div>
+
+<nav class="toc">
+  <a class="chip" href="#a"><b class="pri">A</b>&nbsp;Carnet filtré</a>
+  <a class="chip" href="#b"><b class="pri">B</b>&nbsp;Grille et arbre</a>
+  <a class="chip" href="#c"><b class="pri">C</b>&nbsp;Cube en vedette</a>
+</nav>
+
+
+<!-- ===================================================================== A -->
+<section class="series" id="a">
+<h2>A · Carnet filtré : le profil d'aujourd'hui, ses pages en onglets, un mélange choisi partout</h2>
+<p>Le moins de changement. Les pages du profil deviennent des onglets toujours visibles (fini « Back to the profile »).
+Chaque page qui montre des temps porte, en haut, la rangée des mélanges <b>que tu as pratiqués</b> sur ce cube, avec
+leur nombre de solves ; les autres sont dans « + ». Le mélange choisi suit d'une page à l'autre (Overview, Statistics,
+Analysis) et le timer le reprend à l'ouverture du profil, comme aujourd'hui.</p>
+<div class="pages">
+  <a class="chip" href="#a1">Overview</a><a class="chip" href="#a2">Statistics · par solve</a><a class="chip" href="#a3">Statistics · par session, un solve ouvert</a>
+  <a class="chip" href="#a4">Training</a><a class="chip" href="#a5">Awards</a><a class="chip" href="#a6">Battles</a><a class="chip" href="#a7">Analysis</a><a class="chip" href="#a8">Téléphone</a>
+</div>
+
+<div class="screens">
+<!-- A1 · Overview -->
+<div class="scap2" id="a1">A1 · Overview</div>
+<p class="why">Les trois colonnes d'aujourd'hui. Les records se filtrent par mélange ; la plaque d'un cube qui n'a pas ce
+mélange garde son Normal, en gris, pour qu'on ne les confonde pas. Le journal et les meilleures Ao5 de la semaine suivent
+le même mélange. Le menu « ⋯ » de la carte d'identité garde Import, Export, Account et Log out.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 18px;">
+    <nav class="ptabs under" data-ptabs="overview"></nav>
+    <div class="grid" style="grid-template-columns: 300px minmax(0,1fr) 350px; flex: 1; gap: 22px;">
+      <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+        <div class="card" style="gap: 12px; padding: 18px 20px;">
+          <div class="row"><span class="avatar" style="width: 52px; height: 52px; border-radius: 16px; font-size: 18px;">DE</span>
+            <div style="flex: 1; min-width: 0;"><div style="font-size: 21px; font-weight: 800; letter-spacing: -.02em;">dev</div><div class="mfg" style="font-size: 13px;">Joined March 2026</div></div>
+            <span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="ellipsis"></i></span></div>
+          <div class="row" style="gap: 6px; flex-wrap: wrap;"><span class="wcab"><i data-lucide="badge-check" style="width:14px;height:14px"></i>2019DEVX01</span><span class="tag">CFOP</span><span class="tag">GAN 12 Maglev</span></div>
+          <div><div class="row" style="justify-content: space-between; font-size: 13px; font-weight: 700;"><span>Level 14</span><span class="faint">2 340 / 3 000 XP</span></div><div class="progress" style="margin-top: 6px;"><span style="width: 78%;"></span></div></div>
+        </div>
+        <div class="row"><span class="cap">Records</span><div class="sp"></div><span class="pri" style="font-size: 13px; font-weight: 800;">Statistics ›</span></div>
+        <div class="row" style="flex-wrap: wrap; gap: 6px; margin-top: -4px;">
+          <span class="sc on">Normal <span class="n">1 846</span></span><span class="sc">2-gen R U <span class="n">246</span></span>
+          <span class="sc">Last layer <span class="n">230</span></span><span class="sc">Cross · 5 <span class="n">92</span></span><span class="sc add"><i data-lucide="plus"></i>3</span>
+        </div>
+        <div class="plates">
+          <div class="plate"><span class="e">3×3</span><span class="v num ok">9.84</span><span class="a num">Ao5 11.42</span></div>
+          <div class="plate"><span class="e">2×2</span><span class="v num">2.31</span><span class="a num">Ao5 3.62</span></div>
+          <div class="plate"><span class="e">4×4</span><span class="v num">48.20</span><span class="a num">Ao5 55.71</span></div>
+          <div class="plate"><span class="e">3×3 One-handed</span><span class="v num">21.36</span><span class="a num">Ao5 25.08</span></div>
+          <div class="plate"><span class="e">Pyraminx</span><span class="v num">4.02</span><span class="a num">Ao5 6.37</span></div>
+          <div class="plate"><span class="e">Skewb</span><span class="v num">5.40</span><span class="a num">Ao5 8.11</span></div>
+        </div>
+      </div>
+      <div class="card" style="gap: 12px;">
+        <div class="h"><h3>Journal</h3><span class="cnt">3×3 · Normal</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>Records</a><a>Awards</a><a>Battles</a></div></div>
+        <div class="list" style="gap: 8px; flex: 1;">
+          <div class="day"><div class="d"><b>Today</b><small>48 solves · best 10.21 · Ao5 11.87</small></div>
+            <div class="m ok"><i data-lucide="trophy"></i>Ao12 record · 12.07 <span class="faint">(−0.18)</span></div></div>
+          <div class="day"><div class="d"><b>Yesterday</b><small>31 solves · best 10.88 · Ao5 12.40</small></div>
+            <div class="m"><i data-lucide="award" class="warn"></i>Achievement <b>&nbsp;1 000 solves&nbsp;</b> · 3×3</div></div>
+          <div class="day"><div class="d"><b>Monday 19</b><small>62 solves · best 9.84 · Ao5 11.42</small></div>
+            <div class="m ok"><i data-lucide="trophy"></i>Single record · 9.84 <span class="faint">(−0.41)</span></div>
+            <div class="m ok"><i data-lucide="trophy"></i>Ao5 record · 11.42 <span class="faint">(−0.30)</span></div>
+            <div class="m"><i data-lucide="swords" class="pri"></i>Battle won against lena_speed · 11.82 vs 12.40</div></div>
+          <div class="day"><div class="d"><b>Sunday 18</b><small>24 solves · best 11.02 · Ao5 12.66</small></div>
+            <div class="m"><i data-lucide="swords" class="bad"></i>Battle lost against kenji_cfop · 12.71 vs 11.30</div></div>
+          <div class="day"><div class="d"><b>Saturday 17</b><small>40 solves · best 10.64 · Ao5 12.31</small></div>
+            <div class="m"><i data-lucide="award" class="warn"></i>+3 achievements · PLL learned, 7-day streak…</div></div>
+          <div class="day"><div class="d"><b>Thursday 15</b><small>18 solves · best 11.40 · Ao5 12.92</small></div></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+        <div class="card" style="gap: 10px; padding: 18px 20px;">
+          <div class="h"><h3>October</h3><div class="sp"></div><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="chevron-left"></i></span><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="chevron-right"></i></span></div>
+          <div class="cal" data-cal></div>
+          <div class="facts" style="margin-top: 4px;">
+            <div><b class="warn">12 d</b><small>streak · record 19</small></div><div><b>203</b><small>this week</small></div>
+            <div><b>96</b><small>active days</small></div><div><b>2 418</b><small>solves in all</small></div>
+            <div><b>1 270</b><small>training solves</small></div><div><b>38</b><small>cases learned</small></div>
+          </div>
+        </div>
+        <div class="card" style="flex: 1; padding: 18px 20px;">
+          <div class="h"><h3 style="font-size: 17px;">Best Ao5 per week</h3><span class="cnt">3×3 · Normal</span></div>
+          <div class="bars" style="height: 96px;" data-weeks="13.2,12.9,13.1,12.6,12.5,12.31,12.08,11.72,11.6,11.42"></div>
+          <div class="list" style="gap: 4px;">
+            <div class="mini" style="padding: 7px 12px;"><span class="faint">Oct 19</span><span class="sp"></span><b class="num ok">11.42</b></div>
+            <div class="mini" style="padding: 7px 12px;"><span class="faint">Oct 12</span><span class="sp"></span><b class="num">11.60</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- A2 · Statistics per solve -->
+<div class="scap2" id="a2">A2 · Statistics · par solve, la liste des mélanges ouverte</div>
+<p class="why">Le menu d'épreuve donne le nombre de solves de chaque cube <b>dans le mélange choisi</b> (ou en Normal si ce
+cube ne l'a pas). Les mélanges pratiqués sont des onglets ; « + » ouvre la liste complète du cube, rangée par famille,
+les jamais joués en gris. La période se choisit sur la courbe (préréglages ou mois). Le tableau des chiffres compare la
+période, le dernier et le record — du mélange choisi seulement.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 14px;">
+    <nav class="ptabs under" data-ptabs="stats"></nav>
+    <div class="row" style="gap: 8px;">
+      <span class="chip"><span data-pz="333"></span>3×3 · 1 846<i data-lucide="chevron-down"></i></span>
+      <span class="sc on">Normal <span class="n">1 846</span></span><span class="sc">2-gen R U <span class="n">186</span></span><span class="sc">Last layer <span class="n">230</span></span>
+      <span class="sc">Cross · 5 moves <span class="n">92</span></span><span class="sc">XCross · 6 moves <span class="n">44</span></span>
+      <span class="sc add" style="box-shadow: inset 0 0 0 2px var(--pri); color: var(--fg);"><i data-lucide="plus"></i>All scrambles</span>
+      <div class="sp"></div><div class="seg"><a class="on">Per solve</a><a>Per session</a></div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 380px; flex: 1;">
+      <div class="card">
+        <div class="h"><h3>1 846 solves</h3><span class="cnt">Mar 4 – Oct 22</span><div class="sp"></div>
+          <div class="seg"><a>Week</a><a>Month</a><a>3 months</a><a class="on">All</a><a>October<i data-lucide="chevron-down" style="width:14px;height:14px"></i></a></div><div class="seg"><a class="on">Curve</a><a>Spread</a></div></div>
+        <svg class="chart" viewBox="0 0 800 300" preserveAspectRatio="none" data-curve="7,260,15.2,12.3,1.9,8,20"></svg>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Figures</h3><span class="cnt">3×3 · Normal</span></div>
+        <table class="tbl num">
+          <tr><th></th><th class="r">Period</th><th class="r">Latest</th><th class="r">Record</th></tr>
+          <tr><td>Single</td><td class="r">9.84</td><td class="r">10.92</td><td class="r ok">9.84</td></tr>
+          <tr><td>Ao5</td><td class="r">11.42</td><td class="r">11.87</td><td class="r ok">11.42</td></tr>
+          <tr><td>Ao12</td><td class="r">12.07</td><td class="r">12.07</td><td class="r ok">12.07</td></tr>
+          <tr><td>Ao50</td><td class="r">12.52</td><td class="r">12.61</td><td class="r ok">12.48</td></tr>
+          <tr><td>Ao100</td><td class="r">12.86</td><td class="r">12.94</td><td class="r ok">12.86</td></tr>
+          <tr><td>Mean</td><td class="r">13.31</td><td class="r"></td><td class="r"></td></tr>
+          <tr><td>σ</td><td class="r">1.42</td><td class="r"></td><td class="r"></td></tr>
+          <tr><td>DNF · +2</td><td class="r">14 · 31</td><td class="r"></td><td class="r"></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 380px; height: 236px;">
+      <div class="card"><div class="h"><h3>Solves</h3><div class="sp"></div><span class="btn sm ghost"><i data-lucide="message-square"></i>Commented</span><span class="btn sm ghost"><i data-lucide="arrow-down-up"></i>Newest first</span></div>
+        <div class="list" data-solves="3|12.4|6|1846"></div></div>
+      <div class="card"><div class="h"><h3>Records beaten</h3><span class="cnt">7 in the period</span></div>
+        <div class="list">
+          <div class="li"><i data-lucide="trophy" class="ok"></i><div class="t"><b class="num">Ao12 · 12.07</b><small>Today · −0.18</small></div></div>
+          <div class="li"><i data-lucide="trophy" class="ok"></i><div class="t"><b class="num">Single · 9.84</b><small>Oct 19 · −0.41</small></div></div>
+          <div class="li"><i data-lucide="trophy" class="ok"></i><div class="t"><b class="num">Ao5 · 11.42</b><small>Oct 19 · −0.30</small></div></div>
+        </div></div>
+    </div>
+  </div>
+  <div class="menu" style="left: 650px; top: 186px; width: 420px; max-height: 600px;">
+    <div class="lab">Played</div>
+    <a class="on">Normal<span class="n">1 846</span></a><a>2-gen · R U<span class="n">186</span></a><a>Last layer<span class="n">230</span></a><a>Cross · 5 moves<span class="n">92</span></a><a>XCross · 6 moves<span class="n">44</span></a>
+    <hr><div class="lab">Subsets</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+      <a class="faint">2-gen · L U</a><a class="faint">2-gen · R F</a><a class="faint">2-gen · M U</a><a class="faint">3-gen · R U L</a><a class="faint">Half turns</a><a class="faint">Edges only</a><a class="faint">Corners only</a><a class="faint">OLL cases</a>
+    </div>
+    <hr><div class="lab">Steps</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+      <a class="faint">Cross · 4 moves</a><a class="faint">XCross · 5 moves</a><a class="faint">XXCross · 7 moves</a><a class="faint">F2L · Steps</a><a class="faint">EOLine · 6 moves</a><a class="faint">First block · 7</a><a class="faint">CMLL · Steps</a><a class="faint">ZBLL · Steps</a>
+    </div>
+  </div>
+</div>
+
+<!-- A3 · Statistics per session, a solve open -->
+<div class="scap2" id="a3">A3 · Statistics · par session, répartition, un solve ouvert</div>
+<p class="why">Par session : une ligne par session (meilleur, Ao5, moyenne). La répartition remplace la courbe. Un solve
+s'ouvre en panneau à droite : son mélange (type compris), sa pénalité, son commentaire, et pour un solve de cube connecté
+ses étapes et le lien vers le replay. Changer le mélange d'un solve mal rangé se fait ici.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 14px;">
+    <nav class="ptabs under" data-ptabs="stats"></nav>
+    <div class="row" style="gap: 8px;">
+      <span class="chip"><span data-pz="333"></span>3×3 · 186<i data-lucide="chevron-down"></i></span>
+      <span class="sc">Normal <span class="n">1 846</span></span><span class="sc on">2-gen R U <span class="n">186</span></span><span class="sc">Last layer <span class="n">230</span></span>
+      <span class="sc">Cross · 5 moves <span class="n">92</span></span><span class="sc">XCross · 6 moves <span class="n">44</span></span><span class="sc add"><i data-lucide="plus"></i>All scrambles</span>
+      <div class="sp"></div><div class="seg"><a>Per solve</a><a class="on">Per session</a></div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 380px; flex: 1;">
+      <div class="card">
+        <div class="h"><h3>14 sessions</h3><span class="cnt">2-gen R U · Sep 2 – Oct 22</span><div class="sp"></div><div class="seg"><a class="on">Curve</a><a>Spread</a></div></div>
+        <svg class="chart" viewBox="0 0 800 260" preserveAspectRatio="none" data-spread="5,186,6.1,1.4"></svg>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Figures</h3><span class="cnt">3×3 · 2-gen R U</span></div>
+        <table class="tbl num">
+          <tr><th></th><th class="r">Period</th><th class="r">Latest</th><th class="r">Record</th></tr>
+          <tr><td>Single</td><td class="r">4.71</td><td class="r">5.62</td><td class="r ok">4.71</td></tr>
+          <tr><td>Ao5</td><td class="r">5.88</td><td class="r">6.02</td><td class="r ok">5.88</td></tr>
+          <tr><td>Ao12</td><td class="r">6.30</td><td class="r">6.41</td><td class="r ok">6.30</td></tr>
+          <tr><td>Ao100</td><td class="r">6.92</td><td class="r">6.92</td><td class="r ok">6.92</td></tr>
+          <tr><td>Mean</td><td class="r">7.10</td><td class="r"></td><td class="r"></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="height: 250px;"><div class="h"><h3>Sessions</h3><div class="sp"></div><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">BEST</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">AO5</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right; margin-right: 14px;">MEAN</span></div>
+      <div class="list" data-sessions="4|5"></div></div>
+  </div>
+  <div class="shade"></div>
+  <div class="sheet">
+    <div class="row"><span class="tag p">2-gen R U</span><span class="faint" style="font-weight: 700; font-size: 13px;">#186 · Today 21:07 · Evening practice</span><div class="sp"></div><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="x"></i></span></div>
+    <div class="timer" style="font-size: 72px;">5.<span class="pri">62</span></div>
+    <div class="row" style="gap: 6px;"><span class="btn sm" style="background: var(--acc);">OK</span><span class="btn sm">+2</span><span class="btn sm">DNF</span><div class="sp"></div><span class="btn sm ghost"><i data-lucide="share-2"></i>Share</span><span class="btn sm ghost bad"><i data-lucide="trash-2"></i></span></div>
+    <div class="card" style="background: var(--muted); padding: 14px 16px; gap: 6px;"><span class="cap">Scramble</span><div style="font-size: 18px; font-weight: 700; word-spacing: 4px;">R U2 R' U' R U R2 U' R' U2 R U' R2 U R'</div>
+      <div class="row" style="font-size: 13px; font-weight: 700;"><span class="mfg">Scramble type</span><span class="chip" style="height: 30px;">2-gen R U<i data-lucide="chevron-down"></i></span></div></div>
+    <div class="card" style="background: var(--muted); padding: 14px 16px; gap: 8px;"><div class="row"><span class="cap">Steps</span><div class="sp"></div><span class="pri" style="font-size: 13px; font-weight: 800;"><i data-lucide="play" style="width:14px;height:14px;vertical-align:-2px"></i> Replay</span></div>
+      <div class="stepbar" style="height: 16px;"><span style="width: 12%; background: var(--lilac)"></span><span style="width: 48%; background: var(--pri)"></span><span style="width: 18%; background: var(--warn)"></span><span style="width: 22%; background: var(--ok)"></span></div>
+      <div class="row num" style="font-size: 12px; font-weight: 700; justify-content: space-between;"><span>Cross 0.68</span><span>F2L 2.70</span><span>OLL 1.01</span><span>PLL 1.23</span><span class="faint">46 turns · 8.2 TPS</span></div></div>
+    <div class="card" style="background: var(--muted); padding: 12px 16px; gap: 6px; flex: 1;"><span class="cap">Comment</span><span class="mfg">Good look-ahead on the last pair, PLL skip almost.</span></div>
+    <div class="row num" style="gap: 18px; font-size: 13px; font-weight: 700;"><span class="mfg">Ao5 at this solve <b style="color: var(--fg)">6.02</b></span><span class="mfg">Ao12 <b style="color: var(--fg)">6.41</b></span></div>
+  </div>
+</div>
+
+<!-- A4 · Training -->
+<div class="scap2" id="a4">A4 · Training · un cas ouvert</div>
+<p class="why">Les cas entraînés par set, comme sur la page des algorithmes : appris en vert, entraînés en gris, jamais
+travaillés effacés. En haut, trois chiffres et le filtre d'étape. Ici pas de mélange à choisir : un cas a toujours son
+propre mélange. Ouvrir un cas affiche ses chiffres, sa courbe et ses algorithmes.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 14px;">
+    <nav class="ptabs under" data-ptabs="training"></nav>
+    <div class="row" style="gap: 10px;">
+      <div class="seg"><a class="on">All</a><a>F2L</a><a>OLL</a><a>PLL</a><a>COLL</a><a>ZBLL</a></div>
+      <span class="pill w">38 learned</span><span class="pill">61 trained</span><span class="pill p">7 due today</span>
+      <div class="sp"></div><span class="chip" style="width: 260px; color: var(--faint);"><i data-lucide="search"></i>Search cases…</span>
+    </div>
+    <div class="card" style="flex: 1; gap: 6px;">
+      <div class="setrow"><i data-lucide="chevron-down" class="faint"></i>PLL<span class="n">19 / 21 trained</span><div class="progress"><span style="width: 90%"></span></div></div>
+      <div class="tiles" style="grid-template-columns: repeat(14, 1fr);" data-cases="pll|3|21|1.6|train"></div>
+      <div class="setrow"><i data-lucide="chevron-down" class="faint"></i>OLL<span class="n">31 / 57 trained</span><div class="progress"><span style="width: 54%"></span></div></div>
+      <div class="tiles" style="grid-template-columns: repeat(14, 1fr);" data-cases="oll|5|28|1.4|train"></div>
+      <div class="setrow"><i data-lucide="chevron-right" class="faint"></i>F2L<span class="n">11 / 41 trained</span><div class="progress"><span style="width: 27%"></span></div></div>
+      <div class="setrow"><i data-lucide="chevron-right" class="faint"></i>COLL<span class="n">0 / 40 trained</span></div>
+    </div>
+  </div>
+  <div class="shade"></div>
+  <div class="modal" style="width: 820px;">
+    <div class="row"><span class="d" style="width: 72px; height: 72px;" data-dia="pll|302"></span><div><div style="font-size: 26px; font-weight: 800; letter-spacing: -.03em;">PLL Ga</div><div class="mfg" style="font-size: 14px;">Learned Oct 17 · next review in 3 days</div></div><div class="sp"></div><span class="btn pri"><i data-lucide="target"></i>Train</span><span class="btn ghost" style="padding: 0 10px;"><i data-lucide="x"></i></span></div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
+      <div class="kpi"><span class="cap">Best</span><b class="num ok">1.38</b></div><div class="kpi"><span class="cap">Ao5</span><b class="num">1.72</b></div><div class="kpi"><span class="cap">Ao12</span><b class="num">1.84</b></div><div class="kpi"><span class="cap">Mean</span><b class="num">1.97</b></div><div class="kpi"><span class="cap">Solves</span><b class="num">142</b></div>
+    </div>
+    <svg viewBox="0 0 760 180" preserveAspectRatio="none" style="width: 100%; height: 180px;" data-curve="31,142,2.6,1.7,.4,1,3.5,.5"></svg>
+    <div class="list" style="gap: 6px;">
+      <div class="li"><span class="tag ok">Yours</span><b class="num" style="flex: 1; font-size: 16px;">R2 U R' U R' U' R U' R2 U' D R' U R D'</b><span class="faint num">1.72</span></div>
+      <div class="li"><span class="tag">Alt</span><span class="num mfg" style="flex: 1;">R2 u R' U R' U' R u' R2 y' R' U R</span><span class="faint">–</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- A5 · Awards -->
+<div class="scap2" id="a5">A5 · Awards</div>
+<p class="why">Catégories à gauche, journal mois par mois au milieu (ou « To do » du plus proche au plus lointain), l'award
+choisi à droite avec sa série et la suite. Les awards de vitesse disent maintenant <b>sur quel mélange</b> ils comptent :
+« Sub-10 · 3×3 · Normal » ; un 2-gen ne débloque pas un Sub-10.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 18px;">
+    <nav class="ptabs under" data-ptabs="awards"></nav>
+    <div class="grid" style="grid-template-columns: 260px minmax(0,1fr) 420px; flex: 1;">
+      <div class="card" style="padding: 14px; gap: 4px;">
+        <div class="catrow on"><span class="ic" style="background: var(--acc); color: var(--fg);"><i data-lucide="layout-grid"></i></span>All<span class="n">34 / 112</span></div>
+        <div class="catrow"><span class="ic" style="background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri);"><i data-lucide="timer"></i></span>Speed<span class="n">9 / 30</span></div>
+        <div class="catrow"><span class="ic" style="background: color-mix(in srgb, var(--lilac) 18%, transparent); color: var(--lilac);"><i data-lucide="gauge"></i></span>Averages<span class="n">6 / 24</span></div>
+        <div class="catrow"><span class="ic" style="background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn);"><i data-lucide="layers"></i></span>Volume<span class="n">8 / 20</span></div>
+        <div class="catrow"><span class="ic" style="background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok);"><i data-lucide="book-open"></i></span>Knowledge<span class="n">7 / 22</span></div>
+        <div class="catrow"><span class="ic" style="background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad);"><i data-lucide="flame"></i></span>Dedication<span class="n">4 / 16</span></div>
+        <div class="sp"></div>
+        <div class="card" style="background: var(--muted); padding: 14px; gap: 8px;"><span class="cap">Level 14</span><div class="progress"><span style="width: 78%"></span></div><span class="faint" style="font-size: 12px; font-weight: 700;">660 XP to level 15</span></div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Your journal</h3><div class="sp"></div><div class="seg"><a class="on">Unlocked <span class="n">34</span></a><a>To do <span class="n">78</span></a></div></div>
+        <div class="list" style="gap: 8px;">
+          <span class="cap">October</span>
+          <div class="aw on"><span data-badge="10|s|speed|1"></span><div class="t"><b>Sub-10 single</b><small>3×3 · Normal · Oct 19</small></div><span class="tag p">+120 XP</span></div>
+          <div class="aw"><span data-badge="1k|solves|volume|1"></span><div class="t"><b>1 000 solves</b><small>3×3 · Oct 21</small></div><span class="tag">+80 XP</span></div>
+          <div class="aw"><span data-badge="PLL||knowledge|1"></span><div class="t"><b>Full PLL</b><small>21 cases learned · Oct 17</small></div><span class="tag">+150 XP</span></div>
+          <div class="aw"><span data-badge="7|days|dedication|1"></span><div class="t"><b>A week in a row</b><small>Oct 16</small></div><span class="tag">+40 XP</span></div>
+          <div class="aw"><span data-badge="12|s|average|1"></span><div class="t"><b>Sub-12 Ao5</b><small>3×3 · Normal · Oct 12</small></div><span class="tag">+100 XP</span></div>
+          <span class="cap" style="margin-top: 6px;">September</span>
+          <div class="aw"><span data-badge="3|s|speed|1"></span><div class="t"><b>Sub-3 single</b><small>2×2 · Normal · Sep 28</small></div><span class="tag">+80 XP</span></div>
+          <div class="aw"><span data-badge="50|duels|volume|1"></span><div class="t"><b>50 battles</b><small>Sep 20</small></div><span class="tag">+60 XP</span></div>
+        </div>
+      </div>
+      <div class="card" style="gap: 14px;">
+        <div class="row" style="gap: 16px;"><span data-badge="10|s|speed|1|84"></span><div><div style="font-size: 24px; font-weight: 800; letter-spacing: -.03em;">Sub-10 single</div><div class="mfg" style="font-size: 13px;">3×3 · Normal scrambles · Speed · +120 XP</div></div></div>
+        <div class="row" style="gap: 8px;"><span class="btn sm"><i data-lucide="eye"></i>View</span><span class="btn sm"><i data-lucide="share-2"></i>Share</span></div>
+        <div class="facts"><div><b>Oct 19</b><small>unlocked on</small></div><div><b class="ok">9.84</b><small>your best</small></div></div>
+        <span class="cap">The series · single 3×3</span>
+        <div class="list" style="gap: 6px;">
+          <div class="mini"><span data-badge="20|s|speed|1|30"></span>Sub-20<span class="sp"></span><span class="faint">Mar 9</span></div>
+          <div class="mini"><span data-badge="15|s|speed|1|30"></span>Sub-15<span class="sp"></span><span class="faint">Apr 22</span></div>
+          <div class="mini"><span data-badge="12|s|speed|1|30"></span>Sub-12<span class="sp"></span><span class="faint">Jul 3</span></div>
+          <div class="mini" style="box-shadow: inset 0 0 0 2px var(--pri);"><span data-badge="10|s|speed|1|30"></span><b>Sub-10</b><span class="sp"></span><span class="faint">Oct 19</span></div>
+          <div class="mini"><span data-badge="9|s|speed|.4|30"></span>Next: Sub-9<span class="sp"></span><span class="mfg">0.85 to go</span></div>
+        </div>
+        <span class="cap">Closest in Speed</span>
+        <div class="mini"><span data-badge="2|s|speed|.8|30"></span>Sub-2 · 2×2<span class="sp"></span><span class="mfg">0.32 to go</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- A6 · Battles -->
+<div class="scap2" id="a6">A6 · Battles</div>
+<p class="why">Les duels se courent toujours en mélange normal : la page le dit dans son filtre d'épreuve et ne propose
+pas de mélange. Cinq chiffres, puis chaque duel avec ses cinq manches, les tiennes au-dessus des siennes.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 18px;">
+    <nav class="ptabs under" data-ptabs="battles"></nav>
+    <div class="row"><span class="chip"><span data-pz="333"></span>All events<i data-lucide="chevron-down"></i></span><span class="faint" style="font-size: 13px; font-weight: 700;">Normal scrambles</span><div class="sp"></div><span class="btn pri"><i data-lucide="swords"></i>New battle</span></div>
+    <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 14px;">
+      <div class="kpi"><span class="cap">Played</span><b class="num">23</b></div><div class="kpi"><span class="cap">Won</span><b class="num ok">14</b></div>
+      <div class="kpi"><span class="cap">Lost</span><b class="num bad">8</b></div><div class="kpi"><span class="cap">Win rate</span><b class="num pri">64 %</b></div><div class="kpi"><span class="cap">Best Ao5</span><b class="num pri">11.31</b></div>
+    </div>
+    <div class="card" style="flex: 1;">
+      <table class="tbl num">
+        <tr><th style="width: 40px;"></th><th>Opponent</th><th>You</th><th>Them</th><th>Rounds</th><th class="r">Date</th></tr>
+        <tr><td><span class="res w">W</span></td><td><b>lena_speed</b><br><small class="faint">3×3</small></td><td class="ok">11.82</td><td>12.40</td><td><div class="rounds"><span>11.21</span><span>12.04</span><span>10.92</span><span>12.88</span><span>12.21</span><span>12.11</span><span>12.71</span><span>11.98</span><span>13.02</span><span>12.37</span></div></td><td class="r faint">Oct 19</td></tr>
+        <tr><td><span class="res l">L</span></td><td><b>kenji_cfop</b><br><small class="faint">3×3</small></td><td>12.71</td><td class="ok">11.30</td><td><div class="rounds"><span>12.40</span><span>13.11</span><span>12.62</span><span>DNF</span><span>12.48</span><span>11.02</span><span>11.62</span><span>11.27</span><span>10.88</span><span>12.01</span></div></td><td class="r faint">Oct 18</td></tr>
+        <tr><td><span class="res w">W</span></td><td><b>alex_cubes</b><br><small class="faint">2×2</small></td><td class="ok">3.48</td><td>4.12</td><td><div class="rounds"><span>3.21</span><span>3.87</span><span>2.99</span><span>3.62</span><span>3.61</span><span>4.02</span><span>4.44</span><span>3.80</span><span>4.10</span><span>4.25</span></div></td><td class="r faint">Oct 15</td></tr>
+        <tr><td><span class="res w">W</span></td><td><b>chloe_f2l</b><br><small class="faint">3×3</small></td><td class="ok">11.97</td><td>13.05</td><td><div class="rounds"><span>11.70</span><span>12.31</span><span>11.88</span><span>12.02</span><span>12.44</span><span>13.40</span><span>12.71</span><span>13.12</span><span>12.98</span><span>13.33</span></div></td><td class="r faint">Oct 12</td></tr>
+        <tr><td><span class="res d">=</span></td><td><b>ben_tps</b><br><small class="faint">3×3</small></td><td>12.20</td><td>12.20</td><td><div class="rounds"><span>12.20</span><span>11.98</span><span>12.42</span><span>12.71</span><span>11.62</span><span>12.11</span><span>12.30</span><span>12.19</span><span>12.48</span><span>11.90</span></div></td><td class="r faint">Oct 9</td></tr>
+        <tr><td><span class="res l">L</span></td><td><b>hugo_sub10</b><br><small class="faint">3×3</small></td><td>12.04</td><td class="ok">9.88</td><td><div class="rounds"><span>11.62</span><span>12.48</span><span>12.02</span><span>11.88</span><span>13.01</span><span>9.71</span><span>10.02</span><span>9.48</span><span>10.31</span><span>9.92</span></div></td><td class="r faint">Oct 4</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- A7 · Analysis -->
+<div class="scap2" id="a7">A7 · Analysis · solves de cube connecté</div>
+<p class="why">Mêmes rangées de mélanges qu'aux Statistiques : une analyse en « Cross · 5 moves » ne se mélange plus à
+celle des solves normaux. Méthode, chiffres, étapes avec la reconnaissance (clair) et l'exécution (plein), le tableau des
+cas d'une étape coloré par ce qu'ils coûtent, le cas choisi, l'entraînement proposé et les derniers solves.</p>
+<div class="win">
+  <div class="top" data-top="3×3"></div>
+  <div class="main" style="gap: 14px;">
+    <nav class="ptabs under" data-ptabs="analysis"></nav>
+    <div class="row" style="gap: 8px;">
+      <div class="seg"><a class="on">All</a><a>CFOP</a><a>Roux</a></div>
+      <span class="sc on">Normal <span class="n">268</span></span><span class="sc">Cross · 5 moves <span class="n">31</span></span><span class="sc">2-gen R U <span class="n">13</span></span>
+      <div class="sp"></div>
+      <div class="kpi" style="flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 14px;"><span class="cap">Mean</span><b class="num" style="font-size: 20px;">12.41</b></div>
+      <div class="kpi" style="flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 14px;"><span class="cap">Best</span><b class="num ok" style="font-size: 20px;">9.84</b></div>
+      <div class="kpi" style="flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 14px;"><span class="cap">Turns</span><b class="num" style="font-size: 20px;">58</b></div>
+      <div class="kpi" style="flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 14px;"><span class="cap">TPS</span><b class="num" style="font-size: 20px;">4.7</b></div>
+      <div class="kpi" style="flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 14px;"><span class="cap">XCross</span><b class="num" style="font-size: 20px;">8 %</b></div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 400px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+        <div class="card steps" style="gap: 0; padding: 16px 22px;">
+          <div class="h" style="margin-bottom: 8px;"><h3>Steps</h3><div class="sp"></div><span class="legend"><span><i style="background: var(--mfg); opacity: .45"></i>Recognition</span><span><i style="background: var(--mfg)"></i>Execution</span></span></div>
+          <div class="st h"><span>Step</span><span>Time</span><span></span><span>Last 12 vs mean</span><span>TPS</span><span>Turns</span></div>
+          <div class="st" style="--c: var(--lilac)"><b>Cross</b><span>1.92</span><div class="stepbar"><span class="rec" style="width: 34%; background: var(--lilac)"></span><span style="width: 66%; background: var(--lilac)"></span></div><span class="ok">−0.14</span><span>4.1</span><span>7.9</span></div>
+          <div class="st" style="--c: var(--pri)"><b>F2L</b><span>6.18</span><div class="stepbar"><span class="rec" style="width: 41%; background: var(--pri)"></span><span style="width: 59%; background: var(--pri)"></span></div><span class="ok">−0.31</span><span>4.6</span><span>28.4</span></div>
+          <div class="st" style="--c: var(--warn)"><b>OLL</b><span>2.04</span><div class="stepbar"><span class="rec" style="width: 38%; background: var(--warn)"></span><span style="width: 62%; background: var(--warn)"></span></div><span class="bad">+0.08</span><span>5.2</span><span>10.6</span></div>
+          <div class="st" style="--c: var(--ok)"><b>PLL</b><span>2.27</span><div class="stepbar"><span class="rec" style="width: 29%; background: var(--ok)"></span><span style="width: 71%; background: var(--ok)"></span></div><span class="ok">−0.05</span><span>5.6</span><span>12.7</span></div>
+        </div>
+        <div class="card" style="flex: 1;">
+          <div class="h"><h3>Cases</h3><div class="seg"><a>OLL</a><a class="on">PLL</a></div><div class="sp"></div>
+            <span class="legend"><span><i style="background: var(--ok)"></i>usual</span><span><i style="background: var(--warn)"></i>slow</span><span><i style="background: var(--bad)"></i>slowest</span><span><i style="background: var(--acc)"></i>never seen</span></span></div>
+          <div class="tiles" style="grid-template-columns: repeat(11, 1fr);" data-cases="pll|9|21|2.2|cost|4"></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+        <div class="card" style="gap: 10px;">
+          <div class="row"><span style="width: 56px; height: 56px;" data-dia="pll|904"></span><div><div style="font-size: 20px; font-weight: 800;">PLL Ga</div><div class="mfg" style="font-size: 13px;">seen 14 times in your solves</div></div><div class="sp"></div><span class="btn sm pri"><i data-lucide="dumbbell"></i>Train</span></div>
+          <div class="facts"><div><b class="warn">3.12</b><small>mean</small></div><div><b>2.20</b><small>best</small></div><div><b>1.41 s</b><small>recognition</small></div><div><b>1.71 s</b><small>execution · 14 turns</small></div></div>
+          <div class="num mfg" style="font-size: 13px;">R2 U R' U R' U' R U' R2 U' D R' U R D'</div>
+        </div>
+        <div class="card" style="gap: 8px;">
+          <div class="h"><h3>Suggested training</h3><div class="sp"></div><div class="seg"><a class="on">To work on</a><a>Nothing new</a></div></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="pll|905"></span><b>PLL Gb</b><span class="faint">3.40 · slowest</span><span class="sp"></span><span class="btn sm">Train</span></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="oll|906"></span><b>OLL 32</b><span class="faint">2.88 · slow</span><span class="sp"></span><span class="btn sm">Learn</span></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="pll|907"></span><b>PLL Na</b><span class="faint">never seen</span><span class="sp"></span><span class="btn sm">Train</span></div>
+        </div>
+        <div class="card" style="flex: 1;"><div class="h"><h3>Latest solves</h3></div><div class="list" data-solves="17|12.4|4|268"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- A8 · Phone -->
+<div class="scap2" id="a8">A8 · Téléphone</div>
+<p class="why">Les onglets du profil en tête comme aujourd'hui ; les mélanges en pilules défilantes juste dessous, sur
+l'Overview et les Statistiques. « + » ouvre une feuille avec toute la liste.</p>
+<div class="phones">
+  <div><div class="pcap">Overview</div><div class="phone">
+    <div class="ptitle"><h1>Profile</h1><span class="chip" style="height: 34px;"><span data-pz="333"></span>3×3</span><span class="avatar sm">DE</span></div>
+    <div class="seg" style="width: 100%;"><a class="on" style="flex: 1;">Overview</a><a style="flex: 1;">Stats</a><a style="flex: 1;">Training</a><a style="flex: 1;">Awards</a><a>⋯</a></div>
+    <div class="card"><div class="row"><span class="avatar">DE</span><div style="flex: 1;"><b style="font-size: 18px;">dev</b><div class="mfg" style="font-size: 12px;">Level 14 · 12-day streak</div></div><span class="wcab">WCA</span></div><div class="progress"><span style="width: 78%"></span></div></div>
+    <div class="row" style="gap: 6px; overflow: hidden;"><span class="sc on">Normal</span><span class="sc">2-gen R U</span><span class="sc">Last layer</span><span class="sc add"><i data-lucide="plus"></i></span></div>
+    <div class="card"><span class="cap">Records · Normal</span><div class="row" style="align-items: baseline; gap: 14px;"><b class="num ok" style="font-size: 34px; font-weight: 800;">9.84</b><span class="mfg num">Ao5 11.42 · Ao12 12.07</span></div><span class="faint" style="font-size: 12px; font-weight: 700;">3×3 · tap for every cube</span></div>
+    <div class="card"><div class="h"><h3 style="font-size: 17px;">October</h3><div class="sp"></div><span class="faint" style="font-size: 12px;">412 solves</span></div><div class="cal" data-cal></div></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">Statistics</div><div class="phone">
+    <div class="ptitle"><h1>Statistics</h1><span class="chip" style="height: 34px;"><span data-pz="333"></span>3×3</span></div>
+    <div class="row" style="gap: 6px; overflow: hidden;"><span class="sc">Normal <span class="n">1 846</span></span><span class="sc on">2-gen R U <span class="n">186</span></span><span class="sc">Last layer</span></div>
+    <div class="card" style="gap: 6px;"><div class="row"><b class="num ok" style="font-size: 30px; font-weight: 800;">4.71</b><span class="mfg num">single</span><div class="sp"></div><b class="num" style="font-size: 22px;">5.88</b><span class="mfg">Ao5</span></div>
+      <svg viewBox="0 0 360 170" preserveAspectRatio="none" style="width: 100%; height: 170px;" data-curve="44,186,7.4,6,1,4,10,2"></svg></div>
+    <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 8px;"><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao12</span><b class="num" style="font-size: 20px;">6.30</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao100</span><b class="num" style="font-size: 20px;">6.92</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Mean</span><b class="num" style="font-size: 20px;">7.10</b></div></div>
+    <div class="mini"><i data-lucide="list"></i><b>186 solves</b><span class="sp"></span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="mini"><i data-lucide="trophy" class="ok"></i><b>Records beaten</b><span class="sp"></span><span class="faint">4</span></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">Feuille des mélanges</div><div class="phone">
+    <div class="ptitle"><h1>Statistics</h1></div>
+    <div class="card" style="opacity: .35; height: 200px;"></div>
+    <div class="shade" style="border-radius: 48px;"></div>
+    <div class="psheet" style="position: absolute; left: 0; right: 0; bottom: 0; height: 600px; background: var(--pop); border-radius: 30px 30px 48px 48px; z-index: 3; padding: 18px 18px 30px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="width: 40px; height: 5px; border-radius: 3px; background: var(--acc); margin: 0 auto 4px;"></div>
+      <b style="font-size: 20px;">Scramble · 3×3</b>
+      <span class="cap">Played</span>
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 6px;"><span class="sc">Normal <span class="n">1 846</span></span><span class="sc on">2-gen R U <span class="n">186</span></span><span class="sc">Last layer <span class="n">230</span></span><span class="sc">Cross · 5 <span class="n">92</span></span><span class="sc">XCross · 6 <span class="n">44</span></span></div>
+      <span class="cap">Subsets</span>
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 6px;"><span class="sc add">2-gen · L U</span><span class="sc add">2-gen · R F</span><span class="sc add">3-gen · R U L</span><span class="sc add">Half turns</span><span class="sc add">Edges only</span><span class="sc add">Corners only</span></div>
+      <span class="cap">Steps</span>
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 6px;"><span class="sc add">Cross · 4</span><span class="sc add">XCross · 5</span><span class="sc add">F2L · Steps</span><span class="sc add">EOLine · 6</span><span class="sc add">CMLL · Steps</span><span class="sc add">ZBLL · Steps</span></div>
+    </div>
+  </div></div>
+</div>
+</div>
+</section>
+
+
+<!-- ===================================================================== B -->
+<section class="series" id="b">
+<h2>B · Grille et arbre : toutes les pages dans une barre latérale, chaque cube et chaque mélange à un clic</h2>
+<p>Le profil prend une barre latérale à lui, comme des réglages : ses six pages, et sous la page ouverte son arbre
+(Statistics : les cubes puis leurs mélanges avec Ao5 et nombre ; Training : les cubes puis leurs sets ; Awards : les
+catégories ; Analysis : les mélanges joués sur un cube connecté). La vue d'ensemble remplace les plaques par une grille
+<b>cube × mélange</b> : chaque case est un record, cliquer l'ouvre dans les Statistiques.</p>
+<div class="pages">
+  <a class="chip" href="#b1">Overview</a><a class="chip" href="#b2">Statistics · par solve</a><a class="chip" href="#b3">Statistics · par session, un solve ouvert</a>
+  <a class="chip" href="#b4">Training</a><a class="chip" href="#b5">Awards</a><a class="chip" href="#b6">Battles</a><a class="chip" href="#b7">Analysis</a><a class="chip" href="#b8">Téléphone</a>
+</div>
+
+<div class="screens">
+<!-- B1 · Overview -->
+<div class="scap2" id="b1">B1 · Overview</div>
+<p class="why">En haut, les chiffres de l'activité et ses 18 dernières semaines. Au milieu, la grille : une ligne par cube
+joué, une colonne par mélange pratiqué au moins une fois (Normal toujours en premier, les plus joués ensuite, le reste dans
+« Other »). Un trait : ce cube n'a pas ce mélange ; un cadre pointillé : possible mais jamais joué. La bascule
+Single / Ao5 / Ao12 / Ao100 change ce que montre chaque case. À droite le journal, chaque record avec son mélange.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="overview"></aside>
+    <div class="col">
+      <div class="card" style="flex-direction: row; align-items: center; gap: 10px; padding: 16px 22px; flex: none;">
+        <div class="kpi" style="background: none; padding: 0 12px 0 0;"><span class="cap">Streak</span><b class="num warn">12 d</b><small>record 19</small></div>
+        <div class="kpi" style="background: none; padding: 0 12px;"><span class="cap">This week</span><b class="num">203</b><small>solves</small></div>
+        <div class="kpi" style="background: none; padding: 0 12px;"><span class="cap">In all</span><b class="num">2 418</b><small>1 270 training</small></div>
+        <div class="kpi" style="background: none; padding: 0 12px;"><span class="cap">Active days</span><b class="num">96</b><small>38 cases learned</small></div>
+        <div class="sp"></div>
+        <div class="heat" data-heat="126"></div>
+      </div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 300px; flex: 1;">
+        <div class="card">
+          <div class="h"><h3>Records</h3><span class="cnt">by cube and scramble</span><div class="sp"></div><div class="seg"><a class="on">Single</a><a>Ao5</a><a>Ao12</a><a>Ao100</a></div></div>
+          <div class="mx" style="grid-template-columns: 124px minmax(0,1.3fr) repeat(3, minmax(0,1fr)) minmax(0,1.1fr);">
+            <span></span><span class="hd">Normal</span><span class="hd">2-gen R U</span><span class="hd">Last layer</span><span class="hd">Cross · 5</span><span class="hd">Other</span>
+            <span class="cb"><span data-pz="333"></span>3×3</span>
+            <span class="cell on"><b class="num ok">9.84</b><small>Ao5 11.42 · 1 846</small></span><span class="cell"><b class="num ok">4.71</b><small>Ao5 5.88 · 186</small></span>
+            <span class="cell"><b class="num">2.84</b><small>Ao5 3.91 · 230</small></span><span class="cell"><b class="num">8.12</b><small>Ao5 10.04 · 92</small></span><span class="cell"><b class="num">8.90</b><small>XCross 6 · 44</small></span>
+            <span class="cb"><span data-pz="222"></span>2×2</span>
+            <span class="cell"><b class="num">2.31</b><small>Ao5 3.62 · 412</small></span><span class="cell"><b class="num ok">1.48</b><small>Ao5 2.10 · 60</small></span>
+            <span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell no">Half turns ›</span>
+            <span class="cb"><span data-pz="444"></span>4×4</span>
+            <span class="cell"><b class="num">48.20</b><small>Ao5 55.71 · 88</small></span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell"><b class="num">41.60</b><small>Outer · 12</small></span>
+            <span class="cb"><span data-pz="oh"></span>3×3 OH</span>
+            <span class="cell"><b class="num">21.36</b><small>Ao5 25.08 · 140</small></span><span class="cell no">2-gen ›</span><span class="cell no">LL ›</span><span class="cell no">Cross ›</span><span class="cell na"></span>
+            <span class="cb"><span data-pz="pyra"></span>Pyraminx</span>
+            <span class="cell"><b class="num">4.02</b><small>Ao5 6.37 · 54</small></span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell na"></span>
+            <span class="cb"><span data-pz="skewb"></span>Skewb</span>
+            <span class="cell"><b class="num">5.40</b><small>Ao5 8.11 · 20</small></span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell na faint">—</span><span class="cell na"></span>
+          </div>
+          <div class="sp"></div>
+          <div class="row" style="gap: 16px; font-size: 13px; font-weight: 700;"><span class="mfg"><span class="ok">■</span> set this week</span><span class="mfg"><span class="pri">▢</span> the timer's cube and scramble</span><span class="mfg">▢ never played</span><div class="sp"></div><span class="btn sm"><i data-lucide="plus"></i>Another cube</span></div>
+        </div>
+        <div class="card" style="gap: 10px; padding: 18px;">
+          <div class="h"><h3>Journal</h3><div class="sp"></div><span class="btn sm ghost"><i data-lucide="list-filter"></i>All</span></div>
+          <div class="list" style="gap: 8px;">
+            <div class="day"><div class="d"><b>Today</b><small>48 solves</small></div><div class="m ok"><i data-lucide="trophy"></i>3×3 · Ao12 12.07</div><div class="m ok"><i data-lucide="trophy"></i>3×3 2-gen · single 4.71</div></div>
+            <div class="day"><div class="d"><b>Yesterday</b><small>31 solves</small></div><div class="m"><i data-lucide="award" class="warn"></i>1 000 solves · 3×3</div></div>
+            <div class="day"><div class="d"><b>Monday 19</b><small>62 solves</small></div><div class="m ok"><i data-lucide="trophy"></i>3×3 · single 9.84</div><div class="m ok"><i data-lucide="trophy"></i>3×3 · Ao5 11.42</div><div class="m"><i data-lucide="swords" class="pri"></i>Won vs lena_speed</div></div>
+            <div class="day"><div class="d"><b>Sunday 18</b><small>24 solves</small></div><div class="m ok"><i data-lucide="trophy"></i>2×2 2-gen · Ao5 2.10</div><div class="m"><i data-lucide="swords" class="bad"></i>Lost vs kenji_cfop</div></div>
+            <div class="day"><div class="d"><b>Saturday 17</b><small>40 solves</small></div><div class="m"><i data-lucide="book-open" style="color: var(--lilac)"></i>Learned PLL Ga, Gb</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B2 · Statistics per solve -->
+<div class="scap2" id="b2">B2 · Statistics · 3×3, Normal</div>
+<p class="why">L'arbre montre d'un coup tous les mélanges du cube ouvert, leur Ao5 actuelle et leur nombre de solves :
+passer de Normal à 2-gen est un clic, comparer les deux un coup d'œil. Plus de menu d'épreuve ni de menu de mélange en
+haut de page : le titre dit ce qu'on regarde. « + » en bas de l'arbre ajoute un cube ou un mélange jamais joué.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="stats|333|Normal"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>3×3 · Normal</h1><span class="faint" style="font-weight: 700;">1 846 solves since Mar 4</span><div class="sp"></div><div class="seg"><a class="on">Per solve</a><a>Per session</a></div></div>
+      <div class="grid" style="grid-template-columns: repeat(6, 1fr); gap: 12px;">
+        <div class="kpi"><span class="cap">Single</span><b class="num ok">9.84</b><small>Oct 19</small></div><div class="kpi"><span class="cap">Ao5</span><b class="num ok">11.42</b><small>now 11.87</small></div>
+        <div class="kpi"><span class="cap">Ao12</span><b class="num ok">12.07</b><small>now 12.07</small></div><div class="kpi"><span class="cap">Ao100</span><b class="num">12.86</b><small>now 12.94</small></div>
+        <div class="kpi"><span class="cap">Mean</span><b class="num">13.31</b><small>σ 1.42</small></div><div class="kpi"><span class="cap">DNF · +2</span><b class="num">14 · 31</b><small>0.8 %</small></div>
+      </div>
+      <div class="card" style="flex: 1;">
+        <div class="h"><h3>Progress</h3><div class="sp"></div><div class="seg"><a>Week</a><a>Month</a><a class="on">3 months</a><a>All</a></div><div class="seg"><a class="on">Curve</a><a>Spread</a></div></div>
+        <svg class="chart" viewBox="0 0 800 250" preserveAspectRatio="none" data-curve="11,240,14.4,12.2,1.6,8,20,2"></svg>
+      </div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 300px; height: 230px;">
+        <div class="card"><div class="h"><h3>Solves</h3><div class="sp"></div><span class="btn sm ghost"><i data-lucide="message-square"></i>Commented</span><span class="btn sm ghost"><i data-lucide="arrow-down-up"></i>Newest first</span></div><div class="list" data-solves="5|12.4|5|1846||ao"></div></div>
+        <div class="card"><div class="h"><h3>Records beaten</h3></div><div class="list"><div class="li"><i data-lucide="trophy" class="ok"></i><div class="t"><b class="num">Ao12 · 12.07</b><small>Today · −0.18</small></div></div><div class="li"><i data-lucide="trophy" class="ok"></i><div class="t"><b class="num">Single · 9.84</b><small>Oct 19 · −0.41</small></div></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B3 · Statistics per session, solve open -->
+<div class="scap2" id="b3">B3 · Statistics · 2×2, 2-gen R U, par session, un solve ouvert</div>
+<p class="why">Même page sur un autre cube et un autre mélange : seul l'arbre a changé. Le solve s'ouvre en fenêtre :
+mélange et son type (modifiable), pénalité, commentaire, et où il se situe (son rang parmi les solves de ce mélange).</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="stats|222|2-gen R U"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>2×2 · 2-gen R U</h1><span class="faint" style="font-weight: 700;">60 solves in 6 sessions</span><div class="sp"></div><div class="seg"><a>Per solve</a><a class="on">Per session</a></div></div>
+      <div class="grid" style="grid-template-columns: repeat(6, 1fr); gap: 12px;">
+        <div class="kpi"><span class="cap">Single</span><b class="num ok">1.48</b><small>Oct 18</small></div><div class="kpi"><span class="cap">Ao5</span><b class="num ok">2.10</b><small>now 2.31</small></div>
+        <div class="kpi"><span class="cap">Ao12</span><b class="num">2.44</b><small>now 2.52</small></div><div class="kpi"><span class="cap">Ao100</span><b class="num faint">–</b><small>60 solves</small></div>
+        <div class="kpi"><span class="cap">Mean</span><b class="num">2.61</b><small>σ 0.48</small></div><div class="kpi"><span class="cap">DNF · +2</span><b class="num">0 · 2</b><small></small></div>
+      </div>
+      <div class="card" style="flex: 1;"><div class="h"><h3>Sessions</h3><div class="sp"></div><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">BEST</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">AO5</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right; margin-right: 14px;">MEAN</span></div><div class="list" data-sessions="9|6"></div></div>
+    </div>
+  </div>
+  <div class="shade"></div>
+  <div class="modal" style="width: 700px;">
+    <div class="row"><span class="tag p">2×2 · 2-gen R U</span><span class="faint" style="font-weight: 700; font-size: 13px;">#52 · Sunday 18, 20:41 · Club night</span><div class="sp"></div><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="x"></i></span></div>
+    <div class="row" style="align-items: flex-end; gap: 24px;"><div class="timer" style="font-size: 76px; line-height: 1;">1.<span class="pri">48</span></div><div style="padding-bottom: 8px;"><span class="pill w">Single record</span><div class="mfg" style="font-size: 13px; margin-top: 6px;">1st of 60 · was 1.71</div></div></div>
+    <div class="row" style="gap: 6px;"><span class="btn sm" style="background: var(--acc);">OK</span><span class="btn sm">+2</span><span class="btn sm">DNF</span><div class="sp"></div><span class="btn sm ghost"><i data-lucide="share-2"></i>Share</span><span class="btn sm ghost"><i data-lucide="copy"></i>Copy scramble</span><span class="btn sm ghost"><i data-lucide="trash-2"></i></span></div>
+    <div class="card" style="background: var(--acc); padding: 14px 16px; gap: 8px;"><span class="cap">Scramble</span><div style="font-size: 20px; font-weight: 700; word-spacing: 5px;">R U' R2 U R' U2 R U' R2 U</div>
+      <div class="row" style="font-size: 13px; font-weight: 700;"><span class="mfg">Scramble type</span><span class="chip" style="height: 30px; background: var(--muted);">2-gen R U<i data-lucide="chevron-down"></i></span><span class="faint">A solve filed under the wrong type moves with it.</span></div></div>
+    <div class="card" style="background: var(--acc); padding: 14px 16px; gap: 6px;"><span class="cap">Comment</span><span class="mfg">Add a comment…</span></div>
+  </div>
+</div>
+
+<!-- B4 · Training -->
+<div class="scap2" id="b4">B4 · Training · 3×3, OLL</div>
+<p class="why">L'arbre de Training : les cubes, puis leurs sets avec l'avancement. Un set ouvert prend toute la page, ses cas
+groupés par forme ; le cas choisi s'affiche à droite sans fenêtre (chiffres, courbe, algorithme, Train). Filtre « Due »
+pour ceux à revoir aujourd'hui.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="training|333|OLL"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>3×3 · OLL</h1><span class="faint" style="font-weight: 700;">31 of 57 trained · 22 learned</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>Learned</a><a>Trained</a><a>Due <span class="n">5</span></a><a>Never</a></div><span class="chip" style="width: 180px; color: var(--faint);"><i data-lucide="search"></i>Search…</span></div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 330px; flex: 1;">
+        <div class="card" style="gap: 8px;">
+          <span class="cap">Dot · Line · Cross</span>
+          <div class="tiles" style="grid-template-columns: repeat(10, 1fr);" data-cases="oll|5|20|1.4|train"></div>
+          <span class="cap" style="margin-top: 4px;">T · Square · C · W · P</span>
+          <div class="tiles" style="grid-template-columns: repeat(10, 1fr);" data-cases="oll|8|20|1.4|train|13|20"></div>
+          <span class="cap" style="margin-top: 4px;">Fish · Knight · Awkward · L</span>
+          <div class="tiles" style="grid-template-columns: repeat(10, 1fr);" data-cases="oll|12|10|1.4|train||40"></div>
+        </div>
+        <div class="card" style="gap: 12px;">
+          <div class="row"><span style="width: 64px; height: 64px;" data-dia="oll|813"></span><div><div style="font-size: 22px; font-weight: 800;">OLL 14</div><div class="mfg" style="font-size: 13px;">Trained · due today</div></div></div>
+          <div class="facts"><div><b class="ok">1.12</b><small>best</small></div><div><b>1.46</b><small>Ao5</small></div><div><b>1.58</b><small>mean</small></div><div><b>64</b><small>solves</small></div></div>
+          <svg viewBox="0 0 300 120" preserveAspectRatio="none" style="width: 100%; height: 120px;" data-curve="51,64,2.1,1.4,.35,.8,2.8,.5"></svg>
+          <div class="li" style="flex-direction: column; align-items: flex-start; gap: 4px;"><span class="tag ok">Yours</span><b class="num" style="font-size: 15px;">R' F R U R' U' F' U R</b></div>
+          <div class="sp"></div>
+          <div class="row" style="gap: 8px;"><span class="btn pri" style="flex: 1;"><i data-lucide="target"></i>Train</span><span class="btn"><i data-lucide="boxes"></i>Algorithms</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B5 · Awards -->
+<div class="scap2" id="b5">B5 · Awards · Speed</div>
+<p class="why">Les catégories sont dans l'arbre. La page devient un mur de badges rangés par cube (et par mélange pour la
+vitesse et les moyennes), débloqués en couleur, les autres avec leur anneau d'avancement. Le badge choisi détaille sa série.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="awards||Speed"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>Speed</h1><span class="faint" style="font-weight: 700;">9 of 30 unlocked · 1 080 XP</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>Unlocked</a><a>To do</a></div></div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 360px; flex: 1;">
+        <div class="card" style="gap: 14px;">
+          <div class="row" style="gap: 10px;"><span data-pz="333"></span><b>3×3 · Normal</b><span class="faint" style="font-size: 13px; font-weight: 700;">single</span></div>
+          <div class="row" style="gap: 14px;"><span data-badge="30|s|speed|1|62"></span><span data-badge="20|s|speed|1|62"></span><span data-badge="15|s|speed|1|62"></span><span data-badge="12|s|speed|1|62"></span><span data-badge="10|s|speed|1|62" style="outline: 3px solid var(--fg)"></span><span data-badge="9|s|speed|.45|62"></span><span data-badge="8|s|speed|.2|62"></span><span data-badge="7|s|speed|.05|62"></span></div>
+          <div class="row" style="gap: 10px;"><span data-pz="333"></span><b>3×3 · 2-gen R U</b><span class="faint" style="font-size: 13px; font-weight: 700;">single</span></div>
+          <div class="row" style="gap: 14px;"><span data-badge="8|s|speed|1|62"></span><span data-badge="6|s|speed|1|62"></span><span data-badge="5|s|speed|1|62"></span><span data-badge="4|s|speed|.7|62"></span></div>
+          <div class="row" style="gap: 10px;"><span data-pz="222"></span><b>2×2 · Normal</b></div>
+          <div class="row" style="gap: 14px;"><span data-badge="10|s|speed|1|62"></span><span data-badge="5|s|speed|1|62"></span><span data-badge="3|s|speed|1|62"></span><span data-badge="2|s|speed|.8|62"></span><span data-badge="1.5|s|speed|.2|62"></span></div>
+          <div class="row" style="gap: 10px;"><span data-pz="444"></span><b>4×4 · Normal</b></div>
+          <div class="row" style="gap: 14px;"><span data-badge="1:30||speed|1|62"></span><span data-badge="1:00||speed|1|62"></span><span data-badge="50|s|speed|.9|62"></span><span data-badge="45|s|speed|.4|62"></span></div>
+          <div class="row" style="gap: 10px;"><span data-pz="oh"></span><b>3×3 OH · Normal</b></div>
+          <div class="row" style="gap: 14px;"><span data-badge="40|s|speed|1|62"></span><span data-badge="30|s|speed|1|62"></span><span data-badge="20|s|speed|.3|62"></span></div>
+        </div>
+        <div class="card" style="gap: 12px;">
+          <div class="row" style="gap: 14px;"><span data-badge="10|s|speed|1|76"></span><div><div style="font-size: 22px; font-weight: 800;">Sub-10 single</div><div class="mfg" style="font-size: 13px;">3×3 · Normal · +120 XP</div></div></div>
+          <div class="facts"><div><b>Oct 19</b><small>unlocked on</small></div><div><b class="ok">9.84</b><small>your best</small></div></div>
+          <div class="row" style="gap: 8px;"><span class="btn sm"><i data-lucide="eye"></i>View the solve</span><span class="btn sm"><i data-lucide="share-2"></i>Share</span></div>
+          <span class="cap">Next: Sub-9</span>
+          <div class="progress"><span style="width: 45%"></span></div><span class="mfg" style="font-size: 13px;">0.85 to go · your Ao5 is 11.42</span>
+          <span class="cap" style="margin-top: 6px;">Closest in Speed</span>
+          <div class="mini"><span data-badge="2|s|speed|.8|30"></span>Sub-2 · 2×2<span class="sp"></span><span class="mfg">0.32 to go</span></div>
+          <div class="mini"><span data-badge="4|s|speed|.7|30"></span>Sub-4 · 3×3 2-gen<span class="sp"></span><span class="mfg">0.72 to go</span></div>
+          <div class="mini"><span data-badge="50|s|speed|.9|30"></span>Sub-50 · 4×4<span class="sp"></span><span class="mfg">1.80 to go</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B6 · Battles -->
+<div class="scap2" id="b6">B6 · Battles</div>
+<p class="why">Les chiffres, puis un face-à-face par adversaire (bilan, moyenne de chacun, dernier duel) à côté de
+l'historique ; un duel ouvert montre ses manches.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="battles"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>Battles</h1><span class="faint" style="font-weight: 700;">Normal scrambles only</span><div class="sp"></div><span class="chip">All events<i data-lucide="chevron-down"></i></span><span class="btn pri"><i data-lucide="swords"></i>New battle</span></div>
+      <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 12px;">
+        <div class="kpi"><span class="cap">Played</span><b class="num">23</b></div><div class="kpi"><span class="cap">Won</span><b class="num ok">14</b></div><div class="kpi"><span class="cap">Lost</span><b class="num bad">8</b></div><div class="kpi"><span class="cap">Win rate</span><b class="num pri">64 %</b></div><div class="kpi"><span class="cap">Best Ao5</span><b class="num pri">11.31</b></div>
+      </div>
+      <div class="grid" style="grid-template-columns: 340px minmax(0,1fr); flex: 1;">
+        <div class="card" style="gap: 8px;"><div class="h"><h3>Opponents</h3></div>
+          <div class="aw on"><span class="avatar sm c1">LE</span><div class="t"><b>lena_speed</b><small>5 – 2 · you 12.08, her 12.41</small></div></div>
+          <div class="aw"><span class="avatar sm c2">KE</span><div class="t"><b>kenji_cfop</b><small>1 – 3 · you 12.44, him 11.52</small></div></div>
+          <div class="aw"><span class="avatar sm c3">AL</span><div class="t"><b>alex_cubes</b><small>4 – 0 · 2×2 and 3×3</small></div></div>
+          <div class="aw"><span class="avatar sm c4">CH</span><div class="t"><b>chloe_f2l</b><small>3 – 1</small></div></div>
+          <div class="aw"><span class="avatar sm">BE</span><div class="t"><b>ben_tps</b><small>1 – 1 · 1 draw</small></div></div>
+          <div class="aw"><span class="avatar sm c2">HU</span><div class="t"><b>hugo_sub10</b><small>0 – 1</small></div></div>
+        </div>
+        <div class="card"><div class="h"><h3>lena_speed</h3><span class="cnt">7 battles</span></div>
+          <table class="tbl num">
+            <tr><th style="width: 40px;"></th><th>Event</th><th>You</th><th>Her</th><th>Rounds</th><th class="r">Date</th></tr>
+            <tr><td><span class="res w">W</span></td><td>3×3</td><td class="ok">11.82</td><td>12.40</td><td><div class="rounds"><span>11.21</span><span>12.04</span><span>10.92</span><span>12.88</span><span>12.21</span><span>12.11</span><span>12.71</span><span>11.98</span><span>13.02</span><span>12.37</span></div></td><td class="r faint">Oct 19</td></tr>
+            <tr><td><span class="res w">W</span></td><td>3×3</td><td class="ok">12.02</td><td>12.66</td><td><div class="rounds"><span>12.40</span><span>11.71</span><span>12.02</span><span>11.93</span><span>12.88</span><span>12.80</span><span>12.42</span><span>12.71</span><span>13.40</span><span>12.47</span></div></td><td class="r faint">Oct 11</td></tr>
+            <tr><td><span class="res l">L</span></td><td>2×2</td><td>3.92</td><td class="ok">3.41</td><td><div class="rounds"><span>3.88</span><span>4.21</span><span>3.62</span><span>DNF</span><span>3.97</span><span>3.40</span><span>3.22</span><span>3.61</span><span>3.48</span><span>3.35</span></div></td><td class="r faint">Oct 2</td></tr>
+            <tr><td><span class="res w">W</span></td><td>3×3</td><td class="ok">12.31</td><td>12.40</td><td><div class="rounds"><span>12.01</span><span>12.48</span><span>12.44</span><span>12.21</span><span>12.80</span><span>12.22</span><span>12.48</span><span>12.50</span><span>12.11</span><span>12.67</span></div></td><td class="r faint">Sep 26</td></tr>
+          </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B7 · Analysis -->
+<div class="scap2" id="b7">B7 · Analysis · 3×3, Cross · 5 moves</div>
+<p class="why">L'arbre d'Analysis liste les mélanges joués sur un cube connecté. Ici les solves en « Cross · 5 moves » :
+les étapes se comparent à celles du Normal (colonne « vs Normal »), ce qui montre ce que l'entraînement de la croix
+change vraiment au reste du solve.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="flex-direction: row; gap: 20px;">
+    <aside class="sideb" data-side="analysis|333|Cross · 5 moves"></aside>
+    <div class="col">
+      <div class="pagehead"><h1>3×3 · Cross · 5 moves</h1><span class="faint" style="font-weight: 700;">31 smart cube solves</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>CFOP</a><a>Roux</a></div></div>
+      <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 12px;">
+        <div class="kpi"><span class="cap">Mean</span><b class="num">10.22</b><small class="ok">−2.19 vs Normal</small></div><div class="kpi"><span class="cap">Best</span><b class="num ok">8.12</b></div><div class="kpi"><span class="cap">Turns</span><b class="num">52</b><small>−6 vs Normal</small></div><div class="kpi"><span class="cap">TPS</span><b class="num">5.1</b><small>+0.4</small></div><div class="kpi"><span class="cap">XCross</span><b class="num">23 %</b><small>8 % in Normal</small></div>
+      </div>
+      <div class="card steps" style="gap: 0; padding: 16px 22px; flex: none;">
+        <div class="st h" style="grid-template-columns: 110px 70px minmax(0,1fr) 92px 92px 56px;"><span>Step</span><span>Time</span><span></span><span>vs Normal</span><span>Last 12</span><span>TPS</span></div>
+        <div class="st" style="--c: var(--lilac); grid-template-columns: 110px 70px minmax(0,1fr) 92px 92px 56px;"><b>Cross</b><span>1.21</span><div class="stepbar"><span class="rec" style="width: 22%; background: var(--lilac)"></span><span style="width: 40%; background: var(--lilac)"></span></div><span class="ok">−0.71</span><span class="ok">−0.08</span><span>4.6</span></div>
+        <div class="st" style="--c: var(--pri); grid-template-columns: 110px 70px minmax(0,1fr) 92px 92px 56px;"><b>F2L</b><span>4.92</span><div class="stepbar"><span class="rec" style="width: 30%; background: var(--pri)"></span><span style="width: 50%; background: var(--pri)"></span></div><span class="ok">−1.26</span><span class="ok">−0.20</span><span>5.0</span></div>
+        <div class="st" style="--c: var(--warn); grid-template-columns: 110px 70px minmax(0,1fr) 92px 92px 56px;"><b>OLL</b><span>1.98</span><div class="stepbar"><span class="rec" style="width: 20%; background: var(--warn)"></span><span style="width: 36%; background: var(--warn)"></span></div><span class="mfg">−0.06</span><span class="bad">+0.04</span><span>5.3</span></div>
+        <div class="st" style="--c: var(--ok); grid-template-columns: 110px 70px minmax(0,1fr) 92px 92px 56px;"><b>PLL</b><span>2.11</span><div class="stepbar"><span class="rec" style="width: 16%; background: var(--ok)"></span><span style="width: 42%; background: var(--ok)"></span></div><span class="mfg">−0.16</span><span class="ok">−0.02</span><span>5.7</span></div>
+      </div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 330px; flex: 1;">
+        <div class="card"><div class="h"><h3>Cases</h3><div class="seg"><a class="on">OLL</a><a>PLL</a></div><div class="sp"></div><span class="legend"><span><i style="background: var(--ok)"></i>usual</span><span><i style="background: var(--warn)"></i>slow</span><span><i style="background: var(--bad)"></i>slowest</span></span></div>
+          <div class="tiles" style="grid-template-columns: repeat(9, 1fr);" data-cases="oll|19|27|2|cost|7"></div></div>
+        <div class="card" style="gap: 8px;"><div class="h"><h3>Suggested training</h3></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="oll|921"></span><b>OLL 8</b><span class="faint">slowest</span><span class="sp"></span><span class="btn sm">Train</span></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="oll|922"></span><b>OLL 36</b><span class="faint">slow</span><span class="sp"></span><span class="btn sm">Learn</span></div>
+          <div class="mini"><i data-lucide="timer" class="pri"></i><b>XCross · 6 moves</b><span class="sp"></span><span class="btn sm">Timer</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B8 · Phone -->
+<div class="scap2" id="b8">B8 · Téléphone</div>
+<p class="why">La barre latérale devient la page « Me » elle-même : une liste de pages, chacune ouvre son arbre. La grille
+se lit cube par cube : chaque cube est une carte, ses mélanges en lignes.</p>
+<div class="phones">
+  <div><div class="pcap">Me</div><div class="phone">
+    <div class="ptitle"><h1>Me</h1><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="settings"></i></span></div>
+    <div class="card" style="flex-direction: row; align-items: center;"><span class="avatar">DE</span><div style="flex: 1;"><b style="font-size: 18px;">dev</b><div class="mfg" style="font-size: 12px;">Level 14 · 12-day streak</div></div><span class="wcab">WCA</span></div>
+    <div class="heat" data-heat="126" style="grid-auto-columns: 15px; grid-template-rows: repeat(7, 10px); gap: 3px;"></div>
+    <div class="card" style="padding: 8px; gap: 2px;">
+      <div class="mini" style="background: none;"><i data-lucide="chart-line" class="pri"></i><b>Statistics</b><span class="sp"></span><span class="faint">2 418</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="mini" style="background: none;"><i data-lucide="target" class="pri"></i><b>Training</b><span class="sp"></span><span class="faint">61</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="mini" style="background: none;"><i data-lucide="trophy" class="pri"></i><b>Awards</b><span class="sp"></span><span class="faint">34 / 112</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="mini" style="background: none;"><i data-lucide="swords" class="pri"></i><b>Battles</b><span class="sp"></span><span class="faint">23</span><i data-lucide="chevron-right" class="faint"></i></div>
+      <div class="mini" style="background: none;"><i data-lucide="bluetooth" class="pri"></i><b>Analysis</b><span class="sp"></span><span class="faint">312</span><i data-lucide="chevron-right" class="faint"></i></div>
+    </div>
+    <span class="cap">Records</span>
+    <div class="card" style="gap: 6px;"><div class="row"><span data-pz="333"></span><b>3×3</b><span class="sp"></span><span class="faint" style="font-size: 12px;">2 398</span></div>
+      <div class="mini" style="padding: 7px 10px;">Normal<span class="sp"></span><b class="num ok">9.84</b><span class="faint num" style="width: 44px; text-align: right;">11.42</span></div>
+      <div class="mini" style="padding: 7px 10px;">2-gen R U<span class="sp"></span><b class="num ok">4.71</b><span class="faint num" style="width: 44px; text-align: right;">5.88</span></div>
+      <div class="mini" style="padding: 7px 10px;">Last layer<span class="sp"></span><b class="num">2.84</b><span class="faint num" style="width: 44px; text-align: right;">3.91</span></div></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">Statistics : l'arbre</div><div class="phone">
+    <div class="ptitle"><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="chevron-left"></i></span><h1>Statistics</h1></div>
+    <div class="card" style="gap: 4px; padding: 10px;">
+      <div class="row" style="padding: 6px;"><span data-pz="333"></span><b>3×3</b><span class="sp"></span><span class="faint" style="font-size: 12px;">2 398</span><i data-lucide="chevron-down" class="faint"></i></div>
+      <div class="mini" style="background: var(--acc); padding: 9px 10px;">Normal<span class="sp"></span><b class="num">11.42</b><span class="faint num" style="width: 44px; text-align: right; font-size: 12px;">1 846</span></div>
+      <div class="mini" style="background: none; padding: 9px 10px;">2-gen R U<span class="sp"></span><b class="num">5.88</b><span class="faint num" style="width: 44px; text-align: right; font-size: 12px;">186</span></div>
+      <div class="mini" style="background: none; padding: 9px 10px;">Last layer<span class="sp"></span><b class="num">3.91</b><span class="faint num" style="width: 44px; text-align: right; font-size: 12px;">230</span></div>
+      <div class="mini" style="background: none; padding: 9px 10px;">Cross · 5 moves<span class="sp"></span><b class="num">10.04</b><span class="faint num" style="width: 44px; text-align: right; font-size: 12px;">92</span></div>
+      <div class="mini" style="background: none; padding: 9px 10px;">XCross · 6 moves<span class="sp"></span><b class="num">10.12</b><span class="faint num" style="width: 44px; text-align: right; font-size: 12px;">44</span></div>
+    </div>
+    <div class="mini"><span data-pz="222"></span><b>2×2</b><span class="sp"></span><span class="faint">472</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="mini"><span data-pz="444"></span><b>4×4</b><span class="sp"></span><span class="faint">100</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="mini"><span data-pz="oh"></span><b>3×3 OH</b><span class="sp"></span><span class="faint">140</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="mini"><span data-pz="pyra"></span><b>Pyraminx</b><span class="sp"></span><span class="faint">54</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="mini"><span data-pz="skewb"></span><b>Skewb</b><span class="sp"></span><span class="faint">20</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">3×3 · Normal</div><div class="phone">
+    <div class="ptitle"><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="chevron-left"></i></span><h1>3×3 · Normal</h1></div>
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 8px;"><div class="kpi" style="padding: 10px 12px;"><span class="cap">Single</span><b class="num ok" style="font-size: 22px;">9.84</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao5</span><b class="num" style="font-size: 22px;">11.42</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao12</span><b class="num" style="font-size: 22px;">12.07</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao100</span><b class="num" style="font-size: 22px;">12.86</b></div></div>
+    <div class="card" style="gap: 6px;"><div class="seg" style="align-self: flex-start;"><a>Month</a><a class="on">3 mo</a><a>All</a></div><svg viewBox="0 0 360 160" preserveAspectRatio="none" style="width: 100%; height: 160px;" data-curve="61,200,14,12.2,1.5,8,18,2"></svg></div>
+    <div class="list" data-solves="66|12.4|5|1846"></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+</div>
+</div>
+</section>
+
+
+<!-- ===================================================================== C -->
+<section class="series" id="c">
+<h2>C · Cube en vedette : un cube à la fois, tous ses mélanges comparés</h2>
+<p>Le profil a un en-tête commun (qui tu es, les pages en grandes pilules, le cube). Le cube choisi pilote toutes les
+pages ; ses mélanges ne sont plus un filtre mais <b>des séries qu'on compare</b> : chacun sa carte sur l'Overview, sa
+courbe dans les Statistiques, sa colonne dans l'Analysis. La question à laquelle la piste répond : « est-ce que mon 2-gen,
+mes croix en 5 coups, font progresser mon Normal ? »</p>
+<div class="pages">
+  <a class="chip" href="#c1">Overview</a><a class="chip" href="#c2">Statistics · comparaison</a><a class="chip" href="#c3">Statistics · un mélange, par session, un solve</a>
+  <a class="chip" href="#c4">Training</a><a class="chip" href="#c5">Awards</a><a class="chip" href="#c6">Battles</a><a class="chip" href="#c7">Analysis</a><a class="chip" href="#c8">Téléphone</a>
+</div>
+
+<div class="screens">
+<!-- C1 · Overview -->
+<div class="scap2" id="c1">C1 · Overview</div>
+<p class="why">Le cube du moment en grand (record, Ao5, Ao12, Ao100 du Normal, et leur tendance), puis une carte par mélange
+pratiqué : son Ao5, son évolution sur 30 jours, son nombre de solves ; « Try a scramble » propose un mélange utile à ta
+méthode. Les autres cubes tiennent sur une ligne (un clic en fait le cube en vedette). À droite l'activité, le mois et le
+journal.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="overview" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 340px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+        <div class="card" style="gap: 14px; flex: none;">
+          <div class="row" style="align-items: flex-end; gap: 40px;">
+            <div><div class="cap">3×3 · Normal · single</div><div class="big num ok" style="margin-top: 8px;">9.84</div></div>
+            <div><div class="cap">Ao5</div><div class="mid num" style="margin-top: 8px;">11.42</div></div>
+            <div><div class="cap">Ao12</div><div class="mid num" style="margin-top: 8px;">12.07</div></div>
+            <div><div class="cap">Ao100</div><div class="mid num" style="margin-top: 8px;">12.86</div></div>
+            <svg viewBox="0 0 300 80" preserveAspectRatio="none" style="flex: 1; height: 74px;" data-spark="9,-1.2" class="on"></svg>
+          </div>
+        </div>
+        <div class="row"><span class="cap">3×3 by scramble</span><div class="sp"></div><span class="faint" style="font-size: 13px; font-weight: 700;">Ao5 · last 30 days</span></div>
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px; flex: 1; margin-top: -6px;">
+          <div class="cmp on"><div class="top2">Normal<span class="n">1 846</span></div><div class="vals"><b class="num">11.42</b><span class="ok">▼ 0.61</span></div><svg class="sp-c" data-spark="1,-1"></svg></div>
+          <div class="cmp"><div class="top2">2-gen R U<span class="n">186</span></div><div class="vals"><b class="num">5.88</b><span class="ok">▼ 0.94</span></div><svg class="sp-c" data-spark="2,-1.5"></svg></div>
+          <div class="cmp"><div class="top2">Last layer<span class="n">230</span></div><div class="vals"><b class="num">3.91</b><span class="ok">▼ 0.22</span></div><svg class="sp-c" data-spark="3,-.5"></svg></div>
+          <div class="cmp"><div class="top2">Cross · 5 moves<span class="n">92</span></div><div class="vals"><b class="num">10.04</b><span class="bad">▲ 0.15</span></div><svg class="sp-c" data-spark="4,.3"></svg></div>
+          <div class="cmp"><div class="top2">XCross · 6 moves<span class="n">44</span></div><div class="vals"><b class="num">10.12</b><span class="mfg">new</span></div><svg class="sp-c" data-spark="5,-.2"></svg></div>
+          <div class="cmp" style="background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); align-items: center; justify-content: center; color: var(--mfg); font-weight: 800; gap: 6px;"><i data-lucide="plus"></i>Try a scramble<span class="faint" style="font-size: 12px;">XXCross · 7 for CFOP</span></div>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
+          <div class="mini"><span data-pz="222"></span><b>2×2</b><span class="sp"></span><span class="num">2.31</span></div>
+          <div class="mini"><span data-pz="444"></span><b>4×4</b><span class="sp"></span><span class="num">48.20</span></div>
+          <div class="mini"><span data-pz="oh"></span><b>OH</b><span class="sp"></span><span class="num">21.36</span></div>
+          <div class="mini"><span data-pz="pyra"></span><b>Pyra</b><span class="sp"></span><span class="num">4.02</span></div>
+          <div class="mini"><span data-pz="skewb"></span><b>Skewb</b><span class="sp"></span><span class="num">5.40</span></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+        <div class="card" style="gap: 10px; padding: 18px;"><div class="h"><h3>October</h3><div class="sp"></div><span class="faint" style="font-size: 13px; font-weight: 700;">412 solves</span></div><div class="cal" data-cal></div>
+          <div class="row" style="gap: 6px; flex-wrap: wrap;"><span class="pill p">203 this week</span><span class="pill">96 active days</span><span class="pill">38 learned</span></div></div>
+        <div class="card" style="flex: 1; padding: 18px; gap: 10px;"><div class="h"><h3>Journal</h3><div class="sp"></div><span class="btn sm ghost"><i data-lucide="list-filter"></i>All</span></div>
+          <div class="list" style="gap: 8px;">
+            <div class="day"><div class="d"><b>Today</b><small>48 solves</small></div><div class="m ok"><i data-lucide="trophy"></i>Normal · Ao12 12.07</div><div class="m ok"><i data-lucide="trophy"></i>2-gen R U · single 4.71</div></div>
+            <div class="day"><div class="d"><b>Yesterday</b><small>31 solves</small></div><div class="m"><i data-lucide="award" class="warn"></i>1 000 solves · 3×3</div></div>
+            <div class="day"><div class="d"><b>Monday 19</b><small>62 solves</small></div><div class="m ok"><i data-lucide="trophy"></i>Normal · single 9.84</div><div class="m"><i data-lucide="swords" class="pri"></i>Won vs lena_speed</div></div>
+          </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C2 · Statistics, comparison -->
+<div class="scap2" id="c2">C2 · Statistics · tous les mélanges du 3×3 comparés</div>
+<p class="why">Une courbe par mélange (Ao5, Ao12 ou Ao100), chacune allumable dans la légende. Le tableau met leurs records
+côte à côte. La carte « Carry-over » fait le lien : depuis que tu joues un mélange d'entraînement, comment a bougé ton
+Normal. Les solves se listent tous ensemble, chacun avec son mélange, filtrables.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="stats" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 340px; flex: 1;">
+      <div class="card">
+        <div class="h"><h3>3×3 by scramble</h3><div class="sp"></div><div class="seg"><a>Month</a><a class="on">3 months</a><a>All</a></div><div class="seg"><a class="on">Ao5</a><a>Ao12</a><a>Ao100</a></div></div>
+        <div class="legend"><span><i style="background: var(--pri)"></i>Normal</span><span><i style="background: var(--ok)"></i>2-gen R U</span><span><i style="background: var(--lilac)"></i>Last layer</span><span><i style="background: var(--warn)"></i>Cross · 5 moves</span><span class="off"><i style="background: var(--bad)"></i>XCross · 6 moves</span></div>
+        <svg class="chart" viewBox="0 0 800 280" preserveAspectRatio="none" data-multi="normal,2,16,2"></svg>
+      </div>
+      <div class="card" style="gap: 12px;">
+        <div class="h"><h3>Carry-over</h3><span class="cnt">on your Normal</span></div>
+        <div class="li" style="flex-direction: column; align-items: flex-start; gap: 4px;"><span class="row" style="gap: 8px;"><span class="tag ok">2-gen R U</span><span class="faint" style="font-size: 12px; font-weight: 700;">since Sep 2 · 186 solves</span></span><span>Normal Ao100 <b class="ok num">−0.52</b> · F2L <b class="ok num">−0.31</b></span></div>
+        <div class="li" style="flex-direction: column; align-items: flex-start; gap: 4px;"><span class="row" style="gap: 8px;"><span class="tag" style="color: var(--warn)">Cross · 5</span><span class="faint" style="font-size: 12px; font-weight: 700;">since Sep 20 · 92 solves</span></span><span>Normal cross <b class="ok num">−0.14</b> · XCross rate 8 %</span></div>
+        <div class="li" style="flex-direction: column; align-items: flex-start; gap: 4px;"><span class="row" style="gap: 8px;"><span class="tag" style="color: var(--lilac)">Last layer</span><span class="faint" style="font-size: 12px; font-weight: 700;">since Aug 12 · 230 solves</span></span><span>Normal OLL + PLL <b class="mfg num">−0.03</b></span></div>
+        <span class="faint" style="font-size: 12px; font-weight: 700;">Smart cube solves only for the steps · the guide explains how it is measured</span>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); height: 300px;">
+      <div class="card"><div class="h"><h3>Side by side</h3><span class="cnt">records</span></div>
+        <table class="tbl num">
+          <tr><th>Scramble</th><th class="r">Solves</th><th class="r">Single</th><th class="r">Ao5</th><th class="r">Ao12</th><th class="r">Ao100</th><th class="r">Mean</th></tr>
+          <tr class="on"><td><b style="color: var(--pri)">●</b> Normal</td><td class="r">1 846</td><td class="r ok">9.84</td><td class="r">11.42</td><td class="r">12.07</td><td class="r">12.86</td><td class="r">13.31</td></tr>
+          <tr><td><b class="ok">●</b> 2-gen R U</td><td class="r">186</td><td class="r ok">4.71</td><td class="r">5.88</td><td class="r">6.30</td><td class="r">6.92</td><td class="r">7.10</td></tr>
+          <tr><td><b style="color: var(--lilac)">●</b> Last layer</td><td class="r">230</td><td class="r">2.84</td><td class="r">3.91</td><td class="r">4.20</td><td class="r">4.66</td><td class="r">4.81</td></tr>
+          <tr><td><b class="warn">●</b> Cross · 5 moves</td><td class="r">92</td><td class="r">8.12</td><td class="r">10.04</td><td class="r">10.55</td><td class="r faint">–</td><td class="r">11.20</td></tr>
+          <tr><td><b class="bad">●</b> XCross · 6 moves</td><td class="r">44</td><td class="r">8.90</td><td class="r">10.12</td><td class="r">10.71</td><td class="r faint">–</td><td class="r">11.48</td></tr>
+        </table></div>
+      <div class="card"><div class="h"><h3>Solves</h3><div class="sp"></div><span class="btn sm ghost"><i data-lucide="list-filter"></i>All scrambles</span><span class="btn sm ghost"><i data-lucide="arrow-down-up"></i></span></div>
+        <div class="list" data-solves="8|9|6|2418|Normal,2-gen R U,Normal,Last layer,Cross 5"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- C3 · Statistics, one scramble -->
+<div class="scap2" id="c3">C3 · Statistics · un mélange en avant (2-gen R U), par session, un solve ouvert</div>
+<p class="why">Cliquer une courbe ou une ligne du tableau met ce mélange en avant : les autres pâlissent, les chiffres et
+les sessions deviennent les siens. Le solve s'ouvre à droite à la place de « Carry-over », sans fenêtre par-dessus.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="stats" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 400px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+        <div class="card" style="flex: 1;">
+          <div class="h"><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="arrow-left"></i></span><h3>2-gen R U</h3><span class="cnt">186 solves · 14 sessions</span><div class="sp"></div><div class="seg"><a>Per solve</a><a class="on">Per session</a></div><div class="seg"><a class="on">Curve</a><a>Spread</a></div></div>
+          <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
+            <div class="kpi" style="padding: 10px 14px;"><span class="cap">Single</span><b class="num ok" style="font-size: 22px;">4.71</b></div><div class="kpi" style="padding: 10px 14px;"><span class="cap">Ao5</span><b class="num" style="font-size: 22px;">5.88</b></div><div class="kpi" style="padding: 10px 14px;"><span class="cap">Ao12</span><b class="num" style="font-size: 22px;">6.30</b></div><div class="kpi" style="padding: 10px 14px;"><span class="cap">Ao100</span><b class="num" style="font-size: 22px;">6.92</b></div><div class="kpi" style="padding: 10px 14px;"><span class="cap">Mean</span><b class="num" style="font-size: 22px;">7.10</b></div>
+          </div>
+          <svg class="chart" viewBox="0 0 800 230" preserveAspectRatio="none" data-curve="44,186,7.6,6,1,3,10,1"></svg>
+        </div>
+        <div class="card" style="height: 250px;"><div class="h"><h3>Sessions</h3><div class="sp"></div><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">BEST</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right;">AO5</span><span class="faint" style="font-size: 12px; font-weight: 700; width: 64px; text-align: right; margin-right: 14px;">MEAN</span></div><div class="list" data-sessions="23|4"></div></div>
+      </div>
+      <div class="card" style="gap: 14px; background: var(--pop);">
+        <div class="row"><span class="tag p">2-gen R U</span><span class="faint" style="font-weight: 700; font-size: 13px;">#186 · Today 21:07</span><div class="sp"></div><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="x"></i></span></div>
+        <div class="timer" style="font-size: 64px; line-height: 1;">5.<span class="pri">62</span></div>
+        <div class="row" style="gap: 6px;"><span class="btn sm" style="background: var(--acc);">OK</span><span class="btn sm">+2</span><span class="btn sm">DNF</span><div class="sp"></div><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="share-2"></i></span><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="trash-2"></i></span></div>
+        <div class="card" style="background: var(--acc); padding: 12px 14px; gap: 6px;"><span class="cap">Scramble</span><div style="font-size: 16px; font-weight: 700; word-spacing: 4px;">R U2 R' U' R U R2 U' R' U2 R U' R2 U R'</div><span class="chip" style="height: 30px; align-self: flex-start; background: var(--muted);">2-gen R U<i data-lucide="chevron-down"></i></span></div>
+        <div class="card" style="background: var(--acc); padding: 12px 14px; gap: 8px;"><div class="row"><span class="cap">Steps</span><div class="sp"></div><span class="pri" style="font-size: 13px; font-weight: 800;">Replay ›</span></div>
+          <div class="stepbar" style="height: 14px;"><span style="width: 12%; background: var(--lilac)"></span><span style="width: 48%; background: var(--pri)"></span><span style="width: 18%; background: var(--warn)"></span><span style="width: 22%; background: var(--ok)"></span></div>
+          <div class="row num" style="font-size: 12px; font-weight: 700; justify-content: space-between;"><span>0.68</span><span>2.70</span><span>1.01</span><span>1.23</span><span class="faint">8.2 TPS</span></div></div>
+        <div class="card" style="background: var(--acc); padding: 12px 14px; gap: 6px; flex: 1;"><span class="cap">Comment</span><span class="mfg">Good look-ahead on the last pair.</span></div>
+        <div class="mfg num" style="font-size: 13px; font-weight: 700;">Ao5 at this solve <b style="color: var(--fg)">6.02</b> · 12th of 186</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C4 · Training -->
+<div class="scap2" id="c4">C4 · Training · 3×3</div>
+<p class="why">Les sets du cube en vedette, chacun avec son anneau (appris / à apprendre) et sa moyenne ; la file « à revoir
+aujourd'hui » à droite, prête à lancer. Le set choisi déplie ses cas en dessous, le cas choisi se détaille dans la file.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="training" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 340px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+        <div class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 10px;">
+          <div class="setc on"><span class="ring2" data-ring="90|--ok">19/21</span><div><b>PLL</b><small>mean 1.92</small></div></div>
+          <div class="setc"><span class="ring2" data-ring="54|--ok">31/57</span><div><b>OLL</b><small>mean 1.71</small></div></div>
+          <div class="setc"><span class="ring2" data-ring="27|--ok">11/41</span><div><b>F2L</b><small>mean 2.40</small></div></div>
+          <div class="setc"><span class="ring2" data-ring="0|--ok">0/40</span><div><b>COLL</b><small>not started</small></div></div>
+          <div class="setc"><span class="ring2" data-ring="0|--ok">0/493</span><div><b>ZBLL</b><small>not started</small></div></div>
+        </div>
+        <div class="card" style="flex: 1; gap: 10px;">
+          <div class="h"><h3>PLL</h3><span class="cnt">19 trained · 17 learned · mean 1.92</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>Learned</a><a>To learn</a></div><span class="chip" style="width: 180px; color: var(--faint);"><i data-lucide="search"></i>Search…</span></div>
+          <div class="tiles" style="grid-template-columns: repeat(7, 1fr);" data-cases="pll|3|21|1.6|train|4"></div>
+        </div>
+      </div>
+      <div class="card" style="gap: 10px;">
+        <div class="h"><h3>Due today</h3><span class="cnt">7</span><div class="sp"></div><span class="btn sm pri"><i data-lucide="play"></i>Review</span></div>
+        <div class="aw on"><span style="width: 44px; height: 44px;" data-dia="pll|302"></span><div class="t"><b>PLL Ga</b><small>1.72 Ao5 · last seen 3 days ago</small></div></div>
+        <div class="card" style="background: var(--acc); padding: 12px 14px; gap: 6px;"><div class="facts"><div><b class="ok">1.38</b><small>best</small></div><div><b>142</b><small>solves</small></div></div>
+          <svg viewBox="0 0 300 80" preserveAspectRatio="none" style="width: 100%; height: 80px;" data-curve="31,142,2.6,1.7,.4,1,3.5,1"></svg>
+          <span class="num" style="font-size: 13px; font-weight: 700;">R2 U R' U R' U' R U' R2 U' D R' U R D'</span></div>
+        <div class="aw"><span style="width: 44px; height: 44px;" data-dia="oll|813"></span><div class="t"><b>OLL 14</b><small>1.46 Ao5 · 5 days</small></div></div>
+        <div class="aw"><span style="width: 44px; height: 44px;" data-dia="pll|330"></span><div class="t"><b>PLL Na</b><small>2.10 Ao5 · 6 days</small></div></div>
+        <div class="aw"><span style="width: 44px; height: 44px;" data-dia="f2l|331"></span><div class="t"><b>F2L 27</b><small>2.88 Ao5 · 8 days</small></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C5 · Awards -->
+<div class="scap2" id="c5">C5 · Awards</div>
+<p class="why">En haut, les trois awards les plus proches, avec ce qu'il manque et le bouton pour y aller. Dessous, le journal
+mois par mois en grille de badges, filtrable par catégorie ; le badge choisi se détaille à droite avec sa série.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="awards" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 14px;">
+      <div class="aw" style="padding: 14px 16px;"><span data-badge="2|s|speed|.8|52"></span><div class="t"><b>Sub-2 single · 2×2</b><small>0.32 to go · best 2.31</small></div><span class="btn sm">Timer</span></div>
+      <div class="aw" style="padding: 14px 16px;"><span data-badge="COLL||knowledge|.6|52"></span><div class="t"><b>First COLL set</b><small>4 of 6 cases learned</small></div><span class="btn sm">Learn</span></div>
+      <div class="aw" style="padding: 14px 16px;"><span data-badge="14|days|dedication|.86|52"></span><div class="t"><b>Two weeks in a row</b><small>2 more days</small></div><span class="btn sm">Timer</span></div>
+    </div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) 380px; flex: 1;">
+      <div class="card" style="gap: 12px;">
+        <div class="h"><h3>Unlocked</h3><span class="cnt">34 of 112 · 3 120 XP</span><div class="sp"></div><div class="seg"><a class="on">All</a><a>Speed</a><a>Averages</a><a>Volume</a><a>Knowledge</a><a>Dedication</a></div></div>
+        <span class="cap">October</span>
+        <div class="row" style="gap: 14px; flex-wrap: wrap;"><span data-badge="10|s|speed|1|58" style="outline: 3px solid var(--fg)"></span><span data-badge="1k|solves|volume|1|58"></span><span data-badge="PLL||knowledge|1|58"></span><span data-badge="7|days|dedication|1|58"></span><span data-badge="12|s|average|1|58"></span><span data-badge="5|s|speed|1|58"></span><span data-badge="25|PLL|knowledge|1|58"></span></div>
+        <span class="cap">September</span>
+        <div class="row" style="gap: 14px; flex-wrap: wrap;"><span data-badge="3|s|speed|1|58"></span><span data-badge="50|duels|volume|1|58"></span><span data-badge="13|s|average|1|58"></span><span data-badge="500|solves|volume|1|58"></span><span data-badge="OLL2||knowledge|1|58"></span></div>
+        <span class="cap">August</span>
+        <div class="row" style="gap: 14px; flex-wrap: wrap;"><span data-badge="12|s|speed|1|58"></span><span data-badge="30|days|dedication|1|58"></span><span data-badge="14|s|average|1|58"></span><span data-badge="1:00||speed|1|58"></span><span data-badge="100|LL|volume|1|58"></span><span data-badge="F2L||knowledge|1|58"></span></div>
+        <span class="cap">July</span>
+        <div class="row" style="gap: 14px; flex-wrap: wrap;"><span data-badge="15|s|speed|1|58"></span><span data-badge="100|solves|volume|1|58"></span><span data-badge="CROSS||knowledge|1|58"></span><span data-badge="3|days|dedication|1|58"></span></div>
+      </div>
+      <div class="card" style="gap: 12px;">
+        <div class="row" style="gap: 14px;"><span data-badge="10|s|speed|1|76"></span><div><div style="font-size: 22px; font-weight: 800;">Sub-10 single</div><div class="mfg" style="font-size: 13px;">3×3 · Normal · Speed · +120 XP</div></div></div>
+        <div class="row" style="gap: 8px;"><span class="btn sm"><i data-lucide="eye"></i>View the solve</span><span class="btn sm"><i data-lucide="share-2"></i>Share</span></div>
+        <div class="facts"><div><b>Oct 19</b><small>unlocked on</small></div><div><b class="ok">9.84</b><small>your best</small></div></div>
+        <span class="cap">The series · single 3×3</span>
+        <div class="row" style="gap: 8px;"><span data-badge="20|s|speed|1|40"></span><span data-badge="15|s|speed|1|40"></span><span data-badge="12|s|speed|1|40"></span><span data-badge="10|s|speed|1|40" style="outline: 2px solid var(--fg)"></span><span data-badge="9|s|speed|.45|40"></span><span data-badge="8|s|speed|.2|40"></span></div>
+        <div class="mini"><i data-lucide="flag" class="pri"></i>Next: Sub-9<span class="sp"></span><span class="mfg">0.85 to go</span></div>
+        <span class="cap">Same goal, other scrambles</span>
+        <div class="mini"><span data-badge="5|s|speed|1|30"></span>Sub-5 · 2-gen R U<span class="sp"></span><span class="faint">Oct 22</span></div>
+        <div class="mini"><span data-badge="3|s|speed|.6|30"></span>Sub-3 · Last layer<span class="sp"></span><span class="mfg">0.16 to go</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C6 · Battles -->
+<div class="scap2" id="c6">C6 · Battles · 3×3</div>
+<p class="why">Les duels du cube en vedette : ton Ao5 de duel au fil du temps contre celui de tes adversaires, puis
+l'historique. Les duels sont toujours en mélange normal.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="battles" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: 360px minmax(0,1fr); height: 300px;">
+      <div class="card" style="gap: 12px;">
+        <div class="row" style="align-items: flex-end; gap: 22px;"><div><div class="cap">Win rate · 3×3</div><div class="big num pri" style="margin-top: 8px;">61 %</div></div><div class="mfg" style="font-size: 14px; padding-bottom: 6px;">11 won · 6 lost · 1 draw</div></div>
+        <div class="facts"><div><b class="pri">11.31</b><small>best Ao5</small></div><div><b>12.18</b><small>mean Ao5</small></div><div><b class="ok">5</b><small>won in a row, best</small></div><div><b>lena_speed</b><small>most played</small></div></div>
+        <div class="sp"></div><span class="btn pri"><i data-lucide="swords"></i>New battle</span>
+      </div>
+      <div class="card"><div class="h"><h3>Your battle Ao5</h3><div class="sp"></div><span class="legend"><span><i style="background: var(--pri)"></i>You</span><span><i style="background: var(--mfg)"></i>Opponents</span></span></div>
+        <svg class="chart" viewBox="0 0 800 220" preserveAspectRatio="none" data-curve="71,18,13.2,11.8,.5,10,14.5,1"></svg></div>
+    </div>
+    <div class="card" style="flex: 1;">
+      <table class="tbl num">
+        <tr><th style="width: 40px;"></th><th>Opponent</th><th>You</th><th>Them</th><th>Rounds</th><th class="r">Date</th></tr>
+        <tr><td><span class="res w">W</span></td><td><b>lena_speed</b></td><td class="ok">11.82</td><td>12.40</td><td><div class="rounds"><span>11.21</span><span>12.04</span><span>10.92</span><span>12.88</span><span>12.21</span><span>12.11</span><span>12.71</span><span>11.98</span><span>13.02</span><span>12.37</span></div></td><td class="r faint">Oct 19</td></tr>
+        <tr><td><span class="res l">L</span></td><td><b>kenji_cfop</b></td><td>12.71</td><td class="ok">11.30</td><td><div class="rounds"><span>12.40</span><span>13.11</span><span>12.62</span><span>DNF</span><span>12.48</span><span>11.02</span><span>11.62</span><span>11.27</span><span>10.88</span><span>12.01</span></div></td><td class="r faint">Oct 18</td></tr>
+        <tr><td><span class="res w">W</span></td><td><b>chloe_f2l</b></td><td class="ok">11.97</td><td>13.05</td><td><div class="rounds"><span>11.70</span><span>12.31</span><span>11.88</span><span>12.02</span><span>12.44</span><span>13.40</span><span>12.71</span><span>13.12</span><span>12.98</span><span>13.33</span></div></td><td class="r faint">Oct 12</td></tr>
+        <tr><td><span class="res d">=</span></td><td><b>ben_tps</b></td><td>12.20</td><td>12.20</td><td><div class="rounds"><span>12.20</span><span>11.98</span><span>12.42</span><span>12.71</span><span>11.62</span><span>12.11</span><span>12.30</span><span>12.19</span><span>12.48</span><span>11.90</span></div></td><td class="r faint">Oct 9</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- C7 · Analysis -->
+<div class="scap2" id="c7">C7 · Analysis · les étapes du 3×3, mélange par mélange</div>
+<p class="why">Chaque étape montre une barre par mélange joué sur un cube connecté : on voit où un mélange d'entraînement fait
+gagner (la croix en « Cross · 5 », le F2L en « 2-gen »). Le reste de l'analysis suit le mélange choisi à droite : cas d'une
+étape colorés par leur coût, cas choisi, entraînement proposé.</p>
+<div class="win">
+  <div class="top" data-top=""></div>
+  <div class="main" style="gap: 16px;">
+    <div class="chead"><div class="who"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div><nav class="ptabs pills" data-ptabs="analysis" data-count="no"></nav><div class="sp"></div><span class="chip"><span data-pz="333"></span>3×3<i data-lucide="chevron-down"></i></span></div>
+    <div class="grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr); flex: 1;">
+      <div class="card" style="gap: 14px;">
+        <div class="h"><h3>Steps by scramble</h3><div class="sp"></div><div class="seg"><a class="on">CFOP</a><a>Roux</a></div></div>
+        <div class="legend"><span><i style="background: var(--pri)"></i>Normal · 268</span><span><i style="background: var(--warn)"></i>Cross · 5 · 31</span><span><i style="background: var(--ok)"></i>2-gen R U · 13</span></div>
+        <div style="display: grid; grid-template-columns: 60px minmax(0,1fr) 130px; gap: 14px; align-items: center; align-content: space-evenly; font-size: 15px; flex: 1;">
+          <b>Cross</b><div class="gbar"><span style="width: 38%; background: var(--pri)"></span><span style="width: 24%; background: var(--warn)"></span><span style="width: 0%;"></span></div><span class="num mfg">1.92 · <span class="ok">1.21</span> · –</span>
+          <b>F2L</b><div class="gbar"><span style="width: 100%; background: var(--pri)"></span><span style="width: 80%; background: var(--warn)"></span><span style="width: 52%; background: var(--ok)"></span></div><span class="num mfg">6.18 · 4.92 · <span class="ok">3.20</span></span>
+          <b>OLL</b><div class="gbar"><span style="width: 33%; background: var(--pri)"></span><span style="width: 32%; background: var(--warn)"></span><span style="width: 30%; background: var(--ok)"></span></div><span class="num mfg">2.04 · 1.98 · 1.86</span>
+          <b>PLL</b><div class="gbar"><span style="width: 37%; background: var(--pri)"></span><span style="width: 34%; background: var(--warn)"></span><span style="width: 33%; background: var(--ok)"></span></div><span class="num mfg">2.27 · 2.11 · 2.05</span>
+        </div>
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div class="kpi"><span class="cap">TPS · Normal</span><b class="num">4.7</b><small>5.1 Cross · 6.4 2-gen</small></div>
+          <div class="kpi"><span class="cap">Turns · Normal</span><b class="num">58</b><small>52 Cross · 41 2-gen</small></div>
+          <div class="kpi"><span class="cap">XCross</span><b class="num">8 %</b><small>23 % on Cross · 5</small></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+        <div class="card" style="flex: 1;"><div class="h"><h3>Cases</h3><div class="seg"><a>OLL</a><a class="on">PLL</a></div><div class="sp"></div><span class="chip" style="height: 34px;">Normal<i data-lucide="chevron-down"></i></span></div>
+          <div class="tiles" style="grid-template-columns: repeat(7, 1fr);" data-cases="pll|9|21|2.2|cost|4"></div>
+          <div class="li" style="margin-top: auto; gap: 14px;"><span style="width: 44px; height: 44px;" data-dia="pll|904"></span><div class="t"><b>PLL Ga · Normal</b><small>mean 3.12 · best 2.20 · recognition 1.41 s · execution 1.71 s · seen 14 times</small></div><span class="btn sm pri">Train</span></div></div>
+        <div class="card" style="gap: 8px; flex: none;"><div class="h"><h3>Suggested training</h3></div>
+          <div class="mini"><span style="width: 34px; height: 34px;" data-dia="pll|905"></span><b>PLL Gb</b><span class="faint">3.40 · slowest</span><span class="sp"></span><span class="btn sm">Train</span></div>
+          <div class="mini"><i data-lucide="timer" class="pri"></i><b>2-gen R U</b><span class="faint">your F2L gains most there</span><span class="sp"></span><span class="btn sm">Timer</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C8 · Phone -->
+<div class="scap2" id="c8">C8 · Téléphone</div>
+<p class="why">Le cube en vedette en haut de la page Me ; ses mélanges en cartes qui défilent de côté ; la comparaison des
+courbes et le tableau côte à côte dans les Statistiques.</p>
+<div class="phones">
+  <div><div class="pcap">Me</div><div class="phone">
+    <div class="ptitle"><h1>Me</h1><span class="chip" style="height: 34px;"><span data-pz="333"></span>3×3</span><span class="avatar sm">DE</span></div>
+    <div class="row" style="gap: 6px; overflow: hidden;"><span class="sc on">Overview</span><span class="sc">Stats</span><span class="sc">Training</span><span class="sc">Awards</span><span class="sc">Battles</span></div>
+    <div class="card"><span class="cap">3×3 · Normal · single</span><div class="row" style="align-items: baseline; gap: 14px;"><b class="num ok" style="font-size: 44px; font-weight: 800; letter-spacing: -.04em;">9.84</b><span class="mfg num">Ao5 11.42</span></div><svg viewBox="0 0 300 50" preserveAspectRatio="none" style="width: 100%; height: 44px;" data-spark="9,-1.2" class="on"></svg></div>
+    <span class="cap">By scramble</span>
+    <div class="row" style="gap: 10px; overflow: hidden; flex: none;">
+      <div class="cmp on" style="width: 160px; flex: none;"><div class="top2">Normal</div><div class="vals"><b class="num" style="font-size: 22px;">11.42</b><span class="ok">▼0.61</span></div><svg class="sp-c" data-spark="1,-1" style="height: 40px;"></svg></div>
+      <div class="cmp" style="width: 160px; flex: none;"><div class="top2">2-gen R U</div><div class="vals"><b class="num" style="font-size: 22px;">5.88</b><span class="ok">▼0.94</span></div><svg class="sp-c" data-spark="2,-1.5" style="height: 40px;"></svg></div>
+      <div class="cmp" style="width: 160px; flex: none;"><div class="top2">Last layer</div><div class="vals"><b class="num" style="font-size: 22px;">3.91</b></div></div>
+    </div>
+    <div class="card" style="gap: 8px;"><div class="h"><h3 style="font-size: 17px;">Journal</h3></div><div class="m ok" style="font-size: 13px; display: flex; gap: 8px;"><i data-lucide="trophy" style="width:15px;height:15px"></i>Today · Normal Ao12 12.07</div><div class="m ok" style="font-size: 13px; display: flex; gap: 8px;"><i data-lucide="trophy" style="width:15px;height:15px"></i>Today · 2-gen single 4.71</div><div class="m mfg" style="font-size: 13px; display: flex; gap: 8px;"><i data-lucide="award" class="warn" style="width:15px;height:15px"></i>Yesterday · 1 000 solves</div></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">Statistics</div><div class="phone">
+    <div class="ptitle"><h1>Statistics</h1><span class="chip" style="height: 34px;"><span data-pz="333"></span>3×3</span></div>
+    <div class="card" style="gap: 6px;"><div class="seg" style="align-self: flex-start;"><a class="on">Ao5</a><a>Ao12</a><a>Ao100</a></div>
+      <svg viewBox="0 0 360 190" preserveAspectRatio="none" style="width: 100%; height: 190px;" data-multi="normal,2,16,4"></svg>
+      <div class="legend" style="font-size: 12px;"><span><i style="background: var(--pri)"></i>Normal</span><span><i style="background: var(--ok)"></i>2-gen</span><span><i style="background: var(--lilac)"></i>LL</span><span><i style="background: var(--warn)"></i>Cross 5</span></div></div>
+    <div class="card" style="padding: 8px 10px; gap: 0;">
+      <table class="tbl num" style="font-size: 13px;"><tr><th></th><th class="r">Single</th><th class="r">Ao5</th><th class="r">n</th></tr>
+        <tr class="on"><td>Normal</td><td class="r ok">9.84</td><td class="r">11.42</td><td class="r faint">1 846</td></tr><tr><td>2-gen R U</td><td class="r ok">4.71</td><td class="r">5.88</td><td class="r faint">186</td></tr><tr><td>Last layer</td><td class="r">2.84</td><td class="r">3.91</td><td class="r faint">230</td></tr><tr><td>Cross · 5</td><td class="r">8.12</td><td class="r">10.04</td><td class="r faint">92</td></tr></table></div>
+    <div class="mini"><i data-lucide="arrow-right-left" class="pri"></i><b>Carry-over</b><span class="sp"></span><span class="ok num">−0.52</span><i data-lucide="chevron-right" class="faint"></i></div>
+    <div class="tabbar"><span><i data-lucide="timer"></i>Timer</span><span><i data-lucide="target"></i>Training</span><span><i data-lucide="boxes"></i>Algs</span><span><i data-lucide="swords"></i>Challenges</span><span class="on"><i data-lucide="user-round"></i>Me</span></div>
+  </div></div>
+  <div><div class="pcap">Un mélange, un solve</div><div class="phone">
+    <div class="ptitle"><span class="btn sm ghost" style="padding: 0 6px;"><i data-lucide="chevron-left"></i></span><h1>2-gen R U</h1></div>
+    <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 8px;"><div class="kpi" style="padding: 10px 12px;"><span class="cap">Single</span><b class="num ok" style="font-size: 20px;">4.71</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao5</span><b class="num" style="font-size: 20px;">5.88</b></div><div class="kpi" style="padding: 10px 12px;"><span class="cap">Ao12</span><b class="num" style="font-size: 20px;">6.30</b></div></div>
+    <div class="list" data-solves="81|6.1|3|186"></div>
+    <div class="shade" style="border-radius: 48px;"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 520px; background: var(--pop); border-radius: 30px 30px 48px 48px; z-index: 3; padding: 18px 18px 30px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="width: 40px; height: 5px; border-radius: 3px; background: var(--acc); margin: 0 auto;"></div>
+      <div class="row"><span class="tag p">2-gen R U</span><span class="faint" style="font-size: 12px; font-weight: 700;">#186 · Today 21:07</span></div>
+      <div class="timer" style="font-size: 56px; line-height: 1;">5.<span class="pri">62</span></div>
+      <div class="row" style="gap: 6px;"><span class="btn sm" style="background: var(--acc);">OK</span><span class="btn sm" style="background: var(--acc);">+2</span><span class="btn sm" style="background: var(--acc);">DNF</span><div class="sp"></div><span class="btn sm ghost" style="padding: 0 8px;"><i data-lucide="trash-2"></i></span></div>
+      <div style="font-size: 15px; font-weight: 700; word-spacing: 4px;">R U2 R' U' R U R2 U' R' U2 R U' R2 U R'</div>
+      <div class="stepbar" style="height: 14px;"><span style="width: 12%; background: var(--lilac)"></span><span style="width: 48%; background: var(--pri)"></span><span style="width: 18%; background: var(--warn)"></span><span style="width: 22%; background: var(--ok)"></span></div>
+      <span class="btn" style="background: var(--acc);"><i data-lucide="play"></i>Replay</span>
+      <span class="mfg" style="font-size: 13px;">Good look-ahead on the last pair.</span>
+    </div>
+  </div></div>
+</div>
+</div>
+</section>
+</div>
+
+<script>
+// Données inventées mais réalistes (compte dev seedé) : tout est tiré d'un générateur déterministe.
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function rng(seed) { let s = (seed * 9301 + 49297) % 233280; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
+function series(seed, n, start, end, noise) { const r = rng(seed); return [...Array(n)].map((_, i) => start + (end - start) * (i / Math.max(1, n - 1)) + (r() - .5) * noise * 2 + (r() < .05 ? noise * 3 : 0)); }
+function rolling(v, k) { return v.map((_, i) => i < k - 1 ? null : v.slice(i - k + 1, i + 1).sort((a, b) => a - b).slice(1, -1).reduce((a, b) => a + b, 0) / (k - 2)); }
+const PUZ = { "333": 3, "222": 2, "444": 4, oh: 3 };
+const pz = (k) => k === "pyra" ? `<span class="pz tri"></span>` : k === "skewb" ? `<span class="pz sk"></span>` : `<span class="pz ${PUZ[k] === 2 ? "n2" : PUZ[k] === 4 ? "n4" : ""}">${"<i></i>".repeat(PUZ[k] ** 2)}</span>`;
+$$("[data-pz]").forEach((el) => (el.outerHTML = pz(el.dataset.pz)));
+// Les pages du profil, en onglets (A) ou en grandes pilules (C).
+const PAGES = [["overview", "user-round", "Overview"], ["stats", "chart-line", "Statistics", "2 418"], ["training", "target", "Training", "61"], ["awards", "trophy", "Awards", "34"], ["battles", "swords", "Battles", "23"], ["analysis", "bluetooth", "Analysis", "312"]];
+$$("[data-ptabs]").forEach((el) => (el.innerHTML = PAGES.map(([id, icon, label, n]) => `<a class="${id === el.dataset.ptabs ? "on" : ""}"><i data-lucide="${icon}"></i>${label}${n && el.dataset.count !== "no" ? `<span class="n">${n}</span>` : ""}</a>`).join("")));
+
+// La barre du haut de l'app : le profil s'ouvre depuis l'avatar.
+$$(".top[data-top]").forEach((el) => {
+  const chip = el.dataset.top;
+  el.innerHTML = `<div class="brand"><div class="logo">${"<span></span>".repeat(9)}</div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a>Training</a><a>Algs</a><a>Challenges</a></nav><div class="sp"></div>
+    ${chip ? `<span class="chip">${pz(chip === "2×2" ? "222" : chip === "4×4" ? "444" : "333")}${chip}<i data-lucide="chevron-down"></i></span>` : ""}
+    <span class="avatar me">DE</span>`;
+});
+
+// B : la barre latérale du profil, ouverte sur sa page (et son cube, son mélange…). data-side="page|ouvert|choisi".
+const TREE = {
+  stats: [["333", "3×3", "2 398", [["Normal", "11.42", "1 846"], ["2-gen R U", "5.88", "186"], ["Last layer", "3.91", "230"], ["Cross · 5 moves", "10.04", "92"], ["XCross · 6 moves", "10.12", "44"]]],
+    ["222", "2×2", "472", [["Normal", "3.62", "412"], ["2-gen R U", "2.10", "60"]]], ["444", "4×4", "100", [["Normal", "55.71", "88"], ["Outer layers", "44.02", "12"]]],
+    ["oh", "3×3 OH", "140", [["Normal", "25.08", "140"]]], ["pyra", "Pyraminx", "54", [["Normal", "6.37", "54"]]], ["skewb", "Skewb", "20", [["Normal", "8.11", "20"]]]],
+  training: [["333", "3×3", "61", [["PLL", "19 / 21", ""], ["OLL", "31 / 57", ""], ["F2L", "11 / 41", ""], ["COLL", "0 / 40", ""], ["ZBLL", "0 / 493", ""]]], ["222", "2×2", "12", [["Ortega", "12 / 12", ""], ["CLL", "0 / 42", ""]]]],
+  analysis: [["333", "3×3", "312", [["Normal", "12.41", "268"], ["Cross · 5 moves", "10.22", "31"], ["2-gen R U", "6.40", "13"]]]],
+  awards: [["", "", "", [["Speed", "9 / 30", ""], ["Averages", "6 / 24", ""], ["Volume", "8 / 20", ""], ["Knowledge", "7 / 22", ""], ["Dedication", "4 / 16", ""]]]],
+};
+$$("[data-side]").forEach((el) => {
+  const [page, open, chosen] = el.dataset.side.split("|");
+  const items = [["overview", "user-round", "Overview", ""], ["stats", "chart-line", "Statistics", "2 418"], ["training", "target", "Training", "61"], ["awards", "trophy", "Awards", "34 / 112"], ["battles", "swords", "Battles", "23"], ["analysis", "bluetooth", "Analysis", "312"]];
+  let out = `<div class="me"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div>`;
+  for (const [id, icon, label, n] of items) {
+    out += `<div class="it ${id === page ? "on" : ""} ${id === page && !TREE[id] ? "sel" : ""}"><i data-lucide="${icon}"></i>${label}<span class="n">${n}</span></div>`;
+    if (id !== page || !TREE[id]) continue;
+    for (const [cube, name, count, subs] of TREE[id]) {
+      if (name) out += `<div class="cb">${pz(cube)}${name}<span class="n">${count}</span><i data-lucide="${cube === open ? "chevron-down" : "chevron-right"}" class="faint" style="width:14px;height:14px"></i></div>`;
+      if (name && cube !== open) continue;
+      for (const [sub, t, c] of subs) out += `<div class="sb ${sub === chosen ? "sel" : ""}" ${name ? "" : 'style="padding-left: 46px"'}>${sub}<span class="t">${t}</span>${c ? `<span class="n">${c}</span>` : ""}</div>`;
+    }
+  }
+  el.innerHTML = out + `<div class="sp"></div><div class="it"><i data-lucide="ellipsis"></i>Import, export, account</div>`;
+});
+// Courbes : chaque point est un solve, la ligne l'Ao5 (ou l'Ao12), les points verts les records battus.
+function axes(w, h, min, max, step) {
+  let out = "";
+  for (let v = Math.ceil(min / step) * step; v <= max; v += step) {
+    const y = h - 14 - ((v - min) / (max - min)) * (h - 28);
+    out += `<line x1="0" x2="${w}" y1="${y}" y2="${y}" stroke="rgba(244,235,233,.06)"/><text x="4" y="${y - 4}" fill="${css("--faint")}" font-size="11" font-weight="700">${v}</text>`;
+  }
+  return out;
+}
+const at = (min, max, w, h, pad = 14) => (i, n, v) => [pad + 18 + (i / (n - 1)) * (w - 2 * pad - 18), h - pad - ((Math.min(max, Math.max(min, v)) - min) / (max - min)) * (h - 2 * pad)];
+$$("svg[data-curve]").forEach((svg) => {
+  const [seed, n, start, end, noise, min, max, step = 2, band] = svg.dataset.curve.split(",").map(Number);
+  const [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), v = series(seed, n, start, end, noise), a = rolling(v, 5), sc = at(min, max, w, h);
+  let out = axes(w, h, min, max, step);
+  if (band) { const [x0] = sc(Math.round(n * band), n, min); out += `<rect x="${x0}" y="0" width="${w - x0}" height="${h}" fill="${css("--pri")}" opacity=".07"/>`; }
+  out += v.map((t, i) => { const [x, y] = sc(i, n, t); return `<circle cx="${x}" cy="${y}" r="1.7" fill="rgba(244,235,233,.22)"/>`; }).join("");
+  out += `<polyline fill="none" stroke="${css("--pri")}" stroke-width="2.6" stroke-linejoin="round" points="${a.map((t, i) => (t == null ? "" : sc(i, n, t).join(","))).join(" ")}"/>`;
+  let best = Infinity; v.forEach((t, i) => { if (t < best) { best = t; if (i > n * .08) { const [x, y] = sc(i, n, t); out += `<circle cx="${x}" cy="${y}" r="4.2" fill="${css("--ok")}"/>`; } } });
+  svg.innerHTML = out;
+});
+// Répartition : un histogramme des temps.
+$$("svg[data-spread]").forEach((svg) => {
+  const [seed, n, mid, wid] = svg.dataset.spread.split(",").map(Number), [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), r = rng(seed);
+  const bins = Array(28).fill(0); for (let i = 0; i < n; i++) { const t = mid + (r() + r() + r() - 1.5) * wid; bins[Math.max(0, Math.min(27, Math.round((t - mid + wid * 1.6) / (wid * 3.2) * 27)))]++; }
+  const mx = Math.max(...bins), bw = (w - 40) / 28;
+  svg.innerHTML = bins.map((b, i) => `<rect x="${30 + i * bw}" y="${h - 22 - (b / mx) * (h - 40)}" width="${bw - 4}" height="${(b / mx) * (h - 40)}" rx="4" fill="${i < 8 ? css("--ok") : css("--pri")}" opacity="${i < 8 ? .8 : .85}"/>`).join("") +
+    [0, 7, 14, 21, 27].map((i) => `<text x="${30 + i * bw}" y="${h - 4}" fill="${css("--faint")}" font-size="11" font-weight="700">${(mid - wid * 1.6 + i / 27 * wid * 3.2).toFixed(0)} s</text>`).join("");
+});
+// Plusieurs mélanges sur une même courbe : [couleur, graine, début, fin, bruit, nombre, départ (0 à 1)].
+const MULTI = {
+  normal: [["--pri", 3, 13.4, 11.6, 1.4, 120, 0], ["--ok", 4, 7.2, 5.9, .9, 60, .45], ["--lilac", 5, 4.6, 3.9, .5, 70, .3], ["--warn", 6, 10.4, 10.1, 1.1, 40, .62]],
+  cross: [["--pri", 21, 2.6, 2.1, .5, 120, 0], ["--warn", 22, 1.8, 1.25, .35, 50, .55]],
+};
+$$("svg[data-multi]").forEach((svg) => {
+  const [key, min, max, step] = svg.dataset.multi.split(","), [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), sc = at(+min, +max, w, h);
+  let out = axes(w, h, +min, +max, +step);
+  MULTI[key].forEach(([c, seed, s, e, nz, n, from]) => {
+    const a = rolling(series(seed, n, s, e, nz), 5);
+    out += `<polyline fill="none" stroke="${css(c)}" stroke-width="2.6" stroke-linejoin="round" points="${a.map((t, i) => (t == null ? "" : sc(from * 119 + (i * (119 - from * 119)) / (n - 1), 120, t).join(","))).join(" ")}"/>`;
+  });
+  svg.innerHTML = out;
+});
+// Petites tendances (cartes de mélange, plaques).
+$$("svg[data-spark]").forEach((svg) => {
+  const [seed, trend] = svg.dataset.spark.split(",").map(Number), on = svg.closest(".on");
+  svg.setAttribute("viewBox", "0 0 200 40"); svg.setAttribute("preserveAspectRatio", "none");
+  const v = rolling(series(seed, 40, 10, 10 + trend * 2, .8), 5).filter((x) => x != null), mn = Math.min(...v), mx = Math.max(...v);
+  svg.innerHTML = `<polyline fill="none" stroke="${on ? css("--pri") : css("--mfg")}" stroke-width="2.2" stroke-linejoin="round" points="${v.map((x, i) => `${(i / (v.length - 1)) * 200},${36 - ((x - mn) / (mx - mn || 1)) * 32}`).join(" ")}"/>`;
+});
+// Activité : une case par jour.
+$$("[data-heat]").forEach((el) => { const r = rng(+el.dataset.heat); el.innerHTML = [...Array(+el.dataset.heat)].map(() => { const x = r(); return `<i class="${x < .25 ? "" : x < .5 ? "l1" : x < .72 ? "l2" : x < .9 ? "l3" : "l4"}"></i>`; }).join(""); });
+// Le calendrier du mois (octobre 2026 commence un jeudi).
+$$("[data-cal]").forEach((el) => {
+  const r = rng(12); let out = ["M", "T", "W", "T", "F", "S", "S"].map((d) => `<span class="h">${d}</span>`).join("") + "<span></span>".repeat(3);
+  for (let d = 1; d <= 31; d++) { const x = r(), lv = d > 22 ? "" : x < .2 ? "" : x < .45 ? "l1" : x < .7 ? "l2" : x < .88 ? "l3" : "l4"; out += `<span class="${lv} ${d === 22 ? "today" : ""}">${d}</span>`; }
+  el.innerHTML = out;
+});
+// Meilleure Ao5 de chaque semaine.
+$$("[data-weeks]").forEach((el) => { const v = el.dataset.weeks.split(",").map(Number), mx = Math.max(...v), mn = Math.min(...v); el.innerHTML = v.map((x, i) => `<span class="${i === v.length - 1 ? "me" : ""}" style="height:${18 + ((mx - x) / (mx - mn)) * 82}%"></span>`).join(""); });
+
+// Solves : n°, temps, pénalité, mélange, heure ; un commentaire ou un solve de cube connecté de temps en temps.
+const SCR = ["R2 U' F2 D B2 U2 L2 D' F' L U' B R' D2 F'", "D' L2 U F2 R2 D' B2 U2 R' B U' L F' D R2 U'", "F U2 R2 B' D2 L2 B U2 F' R D' L' U B2 R' F2", "B2 D F2 U' L2 D R2 U2 B' R' F D2 L U' F' D'"];
+$$("[data-solves]").forEach((el) => {
+  const [seed, base, n, first, labels, cols] = el.dataset.solves.split("|"), r = rng(+seed), lab = labels ? labels.split(",") : null, BASE = { "Normal": 12.4, "2-gen R U": 6.1, "Last layer": 4.1, "Cross 5": 10.3 };
+  el.innerHTML = [...Array(+n)].map((_, i) => {
+    const l = lab ? lab[i % lab.length] : null, t = ((l ? BASE[l] : +base) + (r() - .5) * (l ? 1.8 : 3.2)), pen = r() < .08 ? "+2" : r() < .04 ? "DNF" : "", smart = r() < .25, com = r() < .15;
+    const ao = (+base + (r() - .5) * 1.2).toFixed(2);
+    return `<div class="li" style="padding: 7px 12px; gap: 14px;"><span class="faint num" style="width: 46px;">#${+first - i}</span>
+      <b class="num" style="width: 62px;${pen === "DNF" ? "color: var(--bad)" : ""}">${pen === "DNF" ? "DNF" : t.toFixed(2) + (pen ? "+" : "")}</b>
+      ${cols === "ao" ? `<span class="faint num" style="width: 64px; font-size: 13px;">${ao}</span><span class="faint num" style="width: 64px; font-size: 13px;">${(+ao + .5).toFixed(2)}</span>` : ""}
+      ${l ? `<span class="tag ${l === "Normal" ? "" : "p"}">${l}</span>` : ""}
+      <span class="mfg num" style="flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${SCR[i % 4]}</span>
+      ${com ? `<i data-lucide="message-square" class="faint" style="width:15px;height:15px"></i>` : ""}${smart ? `<i data-lucide="bluetooth" class="pri" style="width:15px;height:15px"></i>` : ""}
+      <span class="faint num" style="font-size: 13px;">${String(21 - Math.floor(i / 3)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}</span></div>`;
+  }).join("");
+});
+// Sessions : nom, nombre de solves, meilleur, Ao5, moyenne.
+$$("[data-sessions]").forEach((el) => {
+  const [seed, n] = el.dataset.sessions.split("|").map(Number), r = rng(seed), names = ["Evening practice", "Morning warm-up", "Club night", "Lunch break", "Sunday long run", "Focus: cross", "Before the comp"];
+  el.innerHTML = [...Array(n)].map((_, i) => { const best = 10.2 + r() * 1.6, ao = best + .9 + r() * .8, c = 12 + Math.floor(r() * 50);
+    return `<div class="li" style="padding: 9px 12px; gap: 16px;"><div class="t"><b>${names[i % names.length]}</b><small>${["Today", "Yesterday", "Oct 20", "Oct 19", "Oct 18", "Oct 17", "Oct 15", "Oct 14"][i % 8]} · ${c} solves</small></div>
+      <span class="num ${i === 3 ? "ok" : ""}" style="width: 64px; text-align: right;">${best.toFixed(2)}</span><span class="num" style="width: 64px; text-align: right;">${ao.toFixed(2)}</span><span class="num mfg" style="width: 64px; text-align: right;">${(ao + .6).toFixed(2)}</span></div>`; }).join("");
+});
+
+// Schémas de cas vus de dessus : face U, et une bande de chaque côté.
+const HEX = { y: "#ffd34d", g: "#4a3f3d", r: "#e3636a", o: "#ff9d5c", b: "#6b9be8", G: "#68c48e", w: "#f1ebe6" };
+function diagram(seed, kind) {
+  const r = rng(seed), side = "rboG", U = [...Array(9)].map((_, i) => (kind === "pll" || i === 4 ? "y" : kind === "f2l" ? (r() < .3 ? "y" : "g") : r() < .45 ? "y" : "g"));
+  const S = [...Array(12)].map(() => (kind === "pll" ? side[Math.floor(r() * 4)] : kind === "f2l" ? "g" : r() < .3 ? "y" : "g"));
+  let out = `<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#1c1413"/>`;
+  U.forEach((c, i) => (out += `<rect x="${13 + (i % 3) * 13}" y="${13 + Math.floor(i / 3) * 13}" width="11.5" height="11.5" rx="2.5" fill="${HEX[c]}"/>`));
+  for (let j = 0; j < 3; j++) {
+    out += `<rect x="${13 + j * 13}" y="4" width="11.5" height="6" rx="2" fill="${HEX[S[j]]}"/><rect x="54" y="${13 + j * 13}" width="6" height="11.5" rx="2" fill="${HEX[S[3 + j]]}"/>`;
+    out += `<rect x="${13 + j * 13}" y="54" width="11.5" height="6" rx="2" fill="${HEX[S[6 + j]]}"/><rect x="4" y="${13 + j * 13}" width="6" height="11.5" rx="2" fill="${HEX[S[9 + j]]}"/>`;
+  }
+  if (kind === "f2l") out += `<rect x="39" y="39" width="11.5" height="11.5" rx="2.5" fill="${HEX.r}"/><rect x="54" y="39" width="6" height="11.5" rx="2" fill="${HEX.b}"/>`;
+  return out + "</svg>";
+}
+const NAMES = {
+  pll: ["Aa", "Ab", "E", "F", "Ga", "Gb", "Gc", "Gd", "H", "Ja", "Jb", "Na", "Nb", "Ra", "Rb", "T", "Ua", "Ub", "V", "Y", "Z"],
+  oll: [...Array(57)].map((_, i) => String(i + 1)),
+  f2l: [...Array(41)].map((_, i) => String(i + 1)),
+  coll: [...Array(40)].map((_, i) => ["AS", "H", "L", "Pi", "S", "T", "U"][i % 7] + (1 + Math.floor(i / 7))),
+};
+// data-cases="kind|graine|nombre|base|mode" ; mode : train (appris / entraînés / jamais), cost (habituel / lent / le plus lent / jamais vu).
+$$("[data-cases]").forEach((el) => {
+  const [kind, seed, n, base, mode, onIdx, off = 0] = el.dataset.cases.split("|"), r = rng(+seed), names = NAMES[kind].slice(+off);
+  el.innerHTML = names.slice(0, +n).map((name, i) => {
+    const x = r(), t = (+base + (r() - .5) * +base * .7).toFixed(2);
+    const cls = mode === "cost" ? (x < .12 ? "never" : x < .55 ? "usual" : x < .85 ? "slow" : "slowest") : x < .5 ? "learned" : x < .8 ? "" : "untrained";
+    const shown = cls === "untrained" || cls === "never" ? "–" : t;
+    return `<div class="ct ${cls} ${String(i) === onIdx ? "on" : ""}"><span class="d">${diagram(+seed * 100 + i, kind === "coll" ? "oll" : kind)}</span><span class="f"><span>${name}</span><span class="t">${shown}</span></span></div>`;
+  }).join("");
+});
+$$("[data-dia]").forEach((el) => { const [kind, seed] = el.dataset.dia.split("|"); el.innerHTML = diagram(+seed, kind); });
+
+// Anneaux d'avancement d'un set : pourcentage, couleur.
+$$("[data-ring]").forEach((el) => { const [pc, c] = el.dataset.ring.split("|"); el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 40 40" fill="none" stroke-width="4"><circle cx="20" cy="20" r="17" stroke="${css("--acc")}"/><circle cx="20" cy="20" r="17" stroke="${css(c)}" stroke-linecap="round" pathLength="100" stroke-dasharray="${pc} 100"/></svg>`); });
+// Badges des awards : objectif, unité, catégorie, avancement (1 = débloqué), taille.
+const CAT = { speed: "--pri", average: "--lilac", volume: "--warn", knowledge: "--ok", dedication: "--bad" };
+$$("[data-badge]").forEach((el) => {
+  const [value, unit, cat, ratio, size = 44] = el.dataset.badge.split("|"), done = +ratio >= 1, c = css(CAT[cat]), s = +size;
+  el.className = "bd"; el.style.cssText = `width:${s}px;height:${s}px;background:${done ? c : css("--muted")};color:${done ? "#1c1317" : css("--mfg")}`;
+  el.innerHTML = (done ? "" : `<svg viewBox="0 0 40 40" fill="none" stroke-width="2.6"><circle cx="20" cy="20" r="18" stroke="${css("--acc")}"/><circle cx="20" cy="20" r="18" stroke="${c}" stroke-linecap="round" pathLength="100" stroke-dasharray="${Math.max(.5, ratio * 100)} 100"/></svg>`) +
+    `<span><b style="font-size:${Math.round(s * (value.length > 4 ? .22 : s < 36 ? .42 : .3))}px">${value}</b>${s >= 36 && unit ? `<i style="font-size:${Math.round(s * .17)}px">${unit}</i>` : ""}</span>`;
+});
+</script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>window.lucide?.createIcons();</script>
+</body>
+</html>

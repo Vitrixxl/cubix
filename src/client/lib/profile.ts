@@ -5,6 +5,12 @@
  */
 
 import { localFormat } from "../i18n";
+import { scrambleTypesOf } from "../../shared/puzzles";
+import type { EventRecordDto } from "../../shared/types";
+
+/** Each event's records on a scramble type, its standard ones (the WCA's) where the event has no such scramble. */
+export const recordsOn = (records: readonly EventRecordDto[], scramble: string) =>
+  records.filter((r) => r.scrambleType === ((scrambleTypesOf(r.puzzle, r.solveMode) as string[]).includes(scramble) ? scramble : "normal"));
 
 /** A solve of the activity: when, its time (null for a DNF), and whether it was timed on the timer page. */
 export type ActivitySolve = { at: string; time: number | null; timer: boolean };

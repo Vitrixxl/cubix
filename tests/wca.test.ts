@@ -71,6 +71,6 @@ test("the WCA's events in its order, the Qbix single and Ao5 beside, no Ao5 agai
   const r = (best: number) => ({ best, world_rank: 1, continent_rank: 1, country_rank: 1 });
   const person = { id: "2009ZEMD01", name: "F", country: "AU", countryName: "Australia", competitions: 1,
     records: { "666": { single: r(9000), average: r(9500) }, "222": { single: r(100) }, "333": { single: r(412), average: r(553) }, "magic": { single: r(90) } } } as unknown as WcaPerson;
-  const own = [{ event: "333", best: 7000, bestAo5: 9000 }, { event: "666", best: 99000, bestAo5: 100000 }] as EventRecordDto[];
+  const own = [{ event: "333", scrambleType: "normal", best: 7000, bestAo5: 9000 }, { event: "666", scrambleType: "normal", best: 99000, bestAo5: 100000 }] as EventRecordDto[];
   expect(wcaRows(person, own).map(row => [row.event, row.qbixSingle, row.qbixAverage])).toEqual([["333", 7000, 9000], ["222", null, null], ["666", 99000, null]]);
 });

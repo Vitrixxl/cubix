@@ -46,6 +46,9 @@ type Latest = SmartAnalysisDto["latest"][number] & { displayDate?: string };
 /** Only learned cases are trained: the others are learned first. */
 const learnedOnly = (ids: string[]) => (s.puzzle === "333" ? ids.filter((id) => s.learned.has(id)) : ids);
 
+/** The scramble type analysed: the profile's, when the 3×3 has it (desktop/engine/core.ts reads the same). */
+export const analysedScramble = () => ((s.info("333")?.scrambles ?? []).includes(s.profileScramble) ? s.profileScramble : "normal");
+
 export function AnalysisPage({ phone }: { phone: boolean }) {
   const a: (SmartAnalysisDto & { pending: number }) | null = s.smartAnalysis,
     [methodId, setMethod] = useState("all"),
@@ -53,7 +56,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
   const meta = !a?.count ? undefined : plural(a.count, "smart cube solve") + (a.pending ? " · " + tr("analysing {0} more…", { 0: a.pending }) : "");
   return (
     <>
-      <PageHead title={tr("Analysis")} sub={meta}>
+      <PageHead title={tr("Analysis")} sub={[!phone && said(s.label("scrambles", analysedScramble())), meta].filter(Boolean).join(" · ")}>
         {a && !!a.latest.length && <LatestSolves latest={a.latest} />}
         {a && a.methods.length > 1 && (
           <Segmented label="Method" value={method!.id} options={a.methods.map((m) => ({ id: m.id, label: m.id === "all" ? "All" : m.label, count: m.count }))} onChange={setMethod} />

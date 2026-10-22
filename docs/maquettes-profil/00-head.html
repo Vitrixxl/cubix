@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1540">
+<title>Qbix · Maquettes : le profil et ses pages, par cube et par mélange</title>
+<!--STYLE-->
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Qbix · le profil et toutes ses pages, par cube et par mélange</h1>
+  <p>Trois pistes complètes pour le profil : la vue d'ensemble et chacune de ses pages (Statistiques par solve et par
+  session avec un solve ouvert, Training, Awards, Battles, Analysis), sur ordinateur à 1440 × 900 sans défilement de la
+  page, puis sur téléphone. Thème sombre de l'app, données du compte <b>dev</b> seedé (3×3 CFOP vers 12 s, du 2×2, du
+  4×4, un peu de OH, Pyraminx et Skewb ; duels contre lena_speed, alex_cubes, kenji_cfop…).</p>
+  <p>Le fil rouge des trois : <b>un chiffre appartient à un cube et à un type de mélange</b>. Un 4.71 en 2-gen R U n'est
+  pas un record 3×3, une Ao5 de « Last layer » ne se compare pas à une Ao5 normale. Chaque piste range ces mélanges
+  autrement.</p>
+</header>
+
+<div class="fix">
+  <b>Déjà fait dans le code (non commité, à valider sur le dev Docker) :</b> le moteur calcule les records de chaque cube
+  pour chaque type de mélange (champ <code>scrambleType</code> sur chaque record). Les plaques « Records » du profil
+  (web et téléphone) et les compteurs du menu des épreuves des Statistiques suivent le mélange choisi ; un cube qui n'a
+  pas ce mélange montre ses records en mélange normal ; une plaque hors normal porte le nom du mélange
+  (« 3×3 · 2-gen · R U »). La page WCA compare toujours avec les records en mélange normal. Avant, seuls les solves en
+  mélange normal comptaient dans les records : tes records en 2-gen ou en Cross n'apparaissaient nulle part.
+</div>
+
+<div class="card" style="max-width: 1440px; gap: 10px;">
+  <div class="h"><h3>Les trois pistes en bref</h3></div>
+  <table class="tbl">
+    <tr><th></th><th>Où vit le choix du mélange</th><th>Navigation entre les pages</th><th>Ce qui change le plus</th><th>Effort</th></tr>
+    <tr><td><b class="pri">A</b> · Carnet filtré</td><td>Une rangée de mélanges pratiqués, en haut de chaque page qui a des temps</td><td>Onglets du profil sous le titre, toujours visibles</td><td>Presque rien : la page d'aujourd'hui, filtrée</td><td>Petit</td></tr>
+    <tr><td><b class="pri">B</b> · Grille et arbre</td><td>Une grille cube × mélange sur le profil, un arbre à gauche des pages</td><td>Barre latérale du profil, ses pages et leurs sous-parties</td><td>Tout voir d'un coup, un clic pour passer d'un mélange à l'autre</td><td>Moyen</td></tr>
+    <tr><td><b class="pri">C</b> · Cube en vedette</td><td>Les mélanges d'un cube côte à côte, comparés au Normal</td><td>En-tête du profil commun, pages en grandes pilules</td><td>On mesure si un entraînement (2-gen, Cross) fait progresser le Normal</td><td>Plus grand</td></tr>
+  </table>
+</div>
+
+<nav class="toc">
+  <a class="chip" href="#a"><b class="pri">A</b>&nbsp;Carnet filtré</a>
+  <a class="chip" href="#b"><b class="pri">B</b>&nbsp;Grille et arbre</a>
+  <a class="chip" href="#c"><b class="pri">C</b>&nbsp;Cube en vedette</a>
+</nav>

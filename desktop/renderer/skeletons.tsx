@@ -836,27 +836,18 @@ function ProfileOverview({ phone }: { phone: boolean }) {
         {month}
       </div>
     );
+  // The desktop (profile.tsx Overview): the activity's band, the records' grid beside the journal.
   return (
-    <Page>
-      <div className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)_19rem] gap-5 xl:grid-cols-[18.75rem_minmax(0,1fr)_22.5rem] xl:gap-[22px]">
-        <div className="flex min-h-0 flex-col gap-4">
-          {identity}
-          <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
-            <div className="flex justify-between py-1"><Bone className="h-3.5 w-36" /><Bone className="h-3.5 w-16" /></div>
-            <div className="grid grid-cols-2 gap-2">{times(10).map((i) => <div key={i} className="flex h-[78px] flex-col justify-center gap-2 rounded-[18px] bg-card px-3"><Bone className="h-3 w-10" /><Bone className="h-5 w-16" /><Bone className="h-3 w-14" /></div>)}</div>
-          </div>
+    <>
+      <div className={cn(CARD, "h-[104px] shrink-0 flex-row items-center gap-8 px-6")}>{times(4).map((i) => <div key={i} className="flex flex-col gap-2"><Bone className="h-3 w-14" /><Bone className="h-7 w-16" /><Bone className="h-3 w-20" /></div>)}</div>
+      <div className="grid min-h-0 flex-1 grid-rows-2 gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className={cn(CARD, "gap-2 overflow-hidden p-6 pt-5")}>
+          <div className="flex justify-between pb-2"><Bone className="h-6 w-40" /><Bone className="h-9 w-64" /></div>
+          {times(5).map((i) => <div key={i} className="grid grid-cols-[7.5rem_repeat(4,minmax(0,1fr))] gap-1.5"><Bone className="h-6 w-20 self-center" />{times(4).map((j) => <Bone key={j} className={cn("h-[3.6rem] rounded-[14px]", j > i % 4 && "bg-muted/40")} />)}</div>)}
         </div>
-        {journal}
-        <div className="flex min-h-0 flex-col gap-4">
-          {month}
-          <div className={cn(CARD, "min-h-0 flex-1 gap-3 p-4")}>
-            <Bone className="h-3.5 w-40" />
-            <div className="flex flex-1 items-end gap-1.5">{times(10).map((i) => <Bone key={i} className="h-10 flex-1 rounded-[6px]" />)}</div>
-            <div className="grid grid-cols-2 gap-2">{times(4).map((i) => <Bone key={i} className="h-9" />)}</div>
-          </div>
-        </div>
+        <div className={cn(CARD, "px-5 pt-4")}>{journal}</div>
       </div>
-    </Page>
+    </>
   );
 }
 
@@ -890,8 +881,7 @@ function ProfileSection({ phone, mode }: { phone: boolean; mode: string }) {
         )}
       </div>
     ) : mode === "achievements" ? (
-      <div className={cn("grid min-h-0 flex-1 gap-4", !phone && "grid-cols-[14rem_minmax(0,1fr)_21rem] xl:grid-cols-[15.5rem_minmax(0,1fr)_23rem]")}>
-        {!phone && <div className="flex flex-col gap-2">{[72, 93, 83, 93, 93, 73].map((h, i) => <div key={i} className="flex flex-col gap-2.5 rounded-[18px] bg-card px-4 py-3" style={{ height: h }}><div className="flex items-center gap-3"><Bone className="size-7 rounded-full" /><Bone className="h-4 w-20" /><Bone className="ml-auto h-3.5 w-12" /></div><Bone className="h-2 w-full" /></div>)}</div>}
+      <div className={cn("grid min-h-0 flex-1 gap-4", !phone && "grid-cols-[minmax(0,1fr)_21rem] xl:grid-cols-[minmax(0,1fr)_23rem]")}>
         <div className={cn(CARD, "gap-4 overflow-hidden p-6 pt-5")}>
           <Bone className="h-6 w-56" />
           {[1, 2, 2].map((n, g) => (
@@ -954,17 +944,29 @@ function ProfileSection({ phone, mode }: { phone: boolean; mode: string }) {
       {body}
     </div>
   ) : (
-    <Page className="mx-auto w-full max-w-7xl">
+    <>
       {head}
       {body}
-    </Page>
+    </>
   );
 }
 
 /** The profile on its way: the overview or a section (profile.tsx draws it too, until the profile's figures arrive). */
 export function ProfileSkeleton({ phone, mode = s.profileMode }: { phone: boolean; mode?: string }) {
   const section = ["playground", "training", "achievements", "duels", "analysis"].includes(mode);
-  if (!phone) return section ? <ProfileSection phone={false} mode={mode} /> : <ProfileOverview phone={false} />;
+  // The desktop: the profile's sidebar (profile/nav.tsx) beside the page.
+  if (!phone)
+    return (
+      <Page>
+        <div className="flex min-h-0 flex-1 gap-5">
+          <div className={cn(CARD, "w-52 shrink-0 gap-2 p-3 lg:w-64 xl:w-[17rem]")}>
+            <div className="flex items-center gap-3 border-b border-border/60 px-1 pb-3"><Bone className="size-11 rounded-[14px]" /><div className="flex flex-col gap-2"><Bone className="h-5 w-24" /><Bone className="h-3 w-32" /></div></div>
+            {times(6).map((i) => <Bone key={i} className="mx-2 my-[11px] h-[18px] w-32" />)}
+          </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">{section ? <ProfileSection phone={false} mode={mode} /> : <ProfileOverview phone={false} />}</div>
+        </div>
+      </Page>
+    );
   return section ? <ProfileSection phone mode={mode} /> : <ProfileOverview phone />;
 }
 

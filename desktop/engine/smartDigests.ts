@@ -106,8 +106,16 @@ export function createSmartDigests({ storage, cases, changed }: { storage: Engin
   return {
     /** The digests of these timer solves of one solve mode, analysing what the budget allows (see `read`). */
     digests: read,
-    /** Every figure of the analysis page. */
-    analysis: (digests: SolveDigest[], mode: SolveMode) => ({ ...kept('analysis:' + mode, [], () => smartAnalysis(digests)), pending: queue.length }),
+    /**
+     * Every figure of the analysis page; with each solve's scramble type (`types`), those of one type (`scramble`) and
+     * how many solves each type has, the most played first.
+     */
+    analysis: (digests: SolveDigest[], mode: SolveMode, scramble?: string, types?: ReadonlyMap<number, string>) => {
+      const typeOf = (d: SolveDigest) => types?.get(d.id) ?? 'normal', counts = new Map<string, number>();
+      if (types) for (const d of digests) counts.set(typeOf(d), (counts.get(typeOf(d)) ?? 0) + 1);
+      const shown = scramble ? digests.filter(d => typeOf(d) === scramble) : digests;
+      return { ...kept(`analysis:${mode}:${scramble ?? ''}`, [], () => smartAnalysis(shown)), pending: queue.length, scrambles: [...counts].sort((a, b) => b[1] - a[1]) };
+    },
     /**
      * A case's history from the solves it was done in, or (`all`) with its training too, from `trainingRows`. The
      * solves' attempts are marked with the solve they belong to.

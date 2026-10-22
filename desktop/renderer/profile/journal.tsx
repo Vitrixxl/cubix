@@ -30,6 +30,7 @@ import { fmtResult, fmtTime, fmtValue } from "../../../src/client/lib/format";
 import { attemptMode } from "../../../src/shared/puzzles";
 import {
   dayKey,
+  recordsOn,
   heatDays,
   journalDays,
   weeklyBestAo5,
@@ -197,7 +198,7 @@ export function IdentityCard() {
 }
 
 /** The 3×3 they main, in a row under the name: a search among the known cubes, or any name typed; saved with their setup. */
-function MainCube() {
+export function MainCube() {
   const profile = journeyProfile(s.journey),
     [open, setOpen] = useState(false),
     [query, setQuery] = useState("");
@@ -270,7 +271,7 @@ function Level() {
 /** Each event's best single large and its best Ao5 under it, on small plates; one set this week in mint. */
 export function RecordPlates({ d }: { d: ProfileData }) {
   const week = Date.now() - 7 * 86_400_000,
-    records = d.records.filter((r) => r.best != null);
+    records = recordsOn(d.records, s.profileScramble).filter((r) => r.best != null);
   return (
     <section
       aria-label={tr("Personal bests")}
@@ -290,6 +291,7 @@ export function RecordPlates({ d }: { d: ProfileData }) {
             >
               <p className="truncate text-xs font-bold text-muted-foreground">
                 {said(eventLabel(r.puzzle, r.solveMode))}
+                {r.scrambleType !== "normal" && ` · ${said(s.label("scrambles", r.scrambleType))}`}
               </p>
               <p
                 className={cn(

@@ -3,7 +3,7 @@ import { BookOpen, CalendarDays, ChartLine, Check, Pencil, ChevronLeft, ChevronR
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtResult, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
-import { achievementLists, dayKey, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
+import { achievementLists, dayKey, recordsOn, journalDays, weeklyBestAo5, type JournalDay } from "../../../src/client/lib/profile";
 import { level } from "../../../src/client/lib/achievements";
 import { PROFILE_KEY, journeyProfile, type JourneyProfile } from "../../../src/client/lib/journey";
 import { CUBES_333 } from "../../../src/shared/cubes";
@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { api } from "../api";
 import { METHODS } from "../../../src/shared/methods";
-import { attemptMode, eventInfo, eventLabel, eventOf, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
+import { attemptMode, eventInfo, eventLabel, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -20,7 +20,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useLayout } from "../hooks/useLayout";
 import { journeyAtom } from "../journey";
-import { profileAchievementsAtom, profileCatalogAtom, profileDataAtom, profileKeyAtom, profilePuzzleAtom, profileSolveModeAtom, type PreparedProfile } from "../profile";
+import { profileAchievementsAtom, profileCatalogAtom, profileDataAtom, profileKeyAtom, profilePuzzleAtom, profileScrambleTypeAtom, profileSolveModeAtom, type PreparedProfile } from "../profile";
 import { AchievementBadge, AchievementDialog, AchievementsScreen } from "../components/Achievements";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Bar, Empty, Figure, HeadButton, Numeric, Segmented, Surface } from "../components/layout";
@@ -192,12 +192,12 @@ function Records({ d, onStatistics, list, className }: { d: PreparedProfile | nu
   const [open, setOpen] = useState(false);
   const event = useProfileEvent();
   const week = Date.now() - 7 * 86_400_000;
-  const records = (d?.profile.records ?? []).filter(r => r.best != null);
+  const records = recordsOn(d?.profile.records ?? [], useAtomValue(profileScrambleTypeAtom)).filter(r => r.best != null);
   const recent = (r: (typeof records)[number]) => !!r.lastAt && new Date(r.lastAt).getTime() > week;
   const current = records.find(r => r.event === event.value) ?? records[0];
   const row = (r: (typeof records)[number]) => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
     <View className="min-w-0 flex-1">
-      <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
+      <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}{r.scrambleType !== "normal" && ` · ${tr(scrambleLabel(r.scrambleType))}`}</Text>
       <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtResult(r.best, r.solveMode)}</Numeric>
     </View>
     <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null && !attemptMode(r.solveMode) ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>

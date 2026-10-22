@@ -200,6 +200,8 @@ export interface EventRecordDto {
   event: EventId;
   puzzle: PuzzleId;
   solveMode: SolveMode;
+  /** The records are each scramble type's own: `normal`'s are the WCA's. */
+  scrambleType: ScrambleType;
   count: number;
   best: number | null;
   bestAo5: number | null;

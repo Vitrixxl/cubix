@@ -60,7 +60,7 @@ export function StatsScreen() {
   const eventId = (event?.id ?? cube) as EventId;
   const eventLabel = tr(event?.label ?? puzzleInfo(cube).label);
   const data = profile?.playground;
-  const count = profile?.records?.find(r => r.event === eventId)?.count ?? data?.summary.count ?? 0;
+  const count = profile?.records?.find(r => r.event === eventId && r.scrambleType === scrambleType)?.count ?? data?.summary.count ?? 0;
   const sessions = !!data?.sessions?.some(x => x.count > 0);
   const setEvent = (id: EventId) => { const e = eventInfo(id); if (e) setFilters(f => ({ ...f, cube: e.puzzle, solveMode: e.solveMode })); };
   const scrambles = puzzleInfo(cube).scrambles;

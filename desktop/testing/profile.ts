@@ -53,8 +53,11 @@ try {
     await page.screenshot({ path: `${OUT}/overview-${width}x${height}.png` });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
-  // The notebook: the account's card, the records as plates, the journal of the days with its puzzle, the month.
-  for (const label of ["Account", "Personal bests", "Journal", "Calendar"]) assert.equal(await page.locator(`[aria-label="${label}"]`).count(), 1, `the ${label} card`);
+  // The sidebar of the profile's pages; the activity, the records by event and scramble type, the journal of the days.
+  for (const label of ["Profile pages", "Activity", "Personal bests", "Journal"]) assert.equal(await page.locator(`[aria-label="${label}"]`).count(), 1, `the ${label} card`);
+  const grid = page.locator('[aria-label="Personal bests"]');
+  assert.ok(await grid.getByRole("button", { name: /^3×3 · Normal/ }).count(), "the grid has the 3×3 on normal scrambles");
+  assert.ok(await grid.getByRole("button", { name: /^2×2 · Normal/ }).count(), "and the 2×2");
   const journal = page.locator('[aria-label="Journal"]');
   assert.ok((await journal.locator("article").count()) >= 1, "the journal has a day");
   assert.match((await journal.locator("article h3").first().textContent()) ?? "", /3×3 best/, "a day names the puzzle's best");
@@ -65,11 +68,17 @@ try {
   await journal.locator('[data-action="menu:profilePuzzles"]').click();
   await page.getByRole("menuitemradio", { name: "3×3", exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[aria-label="Journal"] article h3')?.textContent?.includes("3×3"));
+  // A cell opens its statistics, the sidebar unfolding the event into its scramble types.
+  await grid.getByRole("button", { name: /^2×2 · Normal/ }).click();
+  await page.waitForFunction(() => document.querySelector("h1")?.textContent?.includes("2×2"));
+  assert.equal(await page.locator('nav[aria-label="Profile pages"] [data-action="profileView:playground|222|normal"][aria-current="page"]').count(), 1, "the sidebar marks the 2×2's normal scrambles");
+  await page.locator('nav[aria-label="Profile pages"] [data-action="profileMode:overview"]').click();
+  await page.locator('[data-tour="profile-overview"]').waitFor();
   assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
   assert.equal(await page.locator('[data-tour="profile-overview"]').count(), 1, "the tour can show the profile");
   // The header: the brand, the five sections, the coffee in plain view, the puzzle and the account's menu with sign-out.
   assert.equal(await page.locator(".rail").getByLabel("Qbix", { exact: true }).count(), 1, "the header carries the Qbix name");
-  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] a').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-section"))), ["timer", "learn", "algorithms", "compete", "me"]);
+  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] a').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-section"))), ["timer", "training", "algorithms", "compete", "social"]);
   assert.equal(await page.locator('.rail a[href="https://buymeacoffee.com/vitrixxl"]').count(), 1, "the header links to Buy Me a Coffee");
   await page.locator('.rail [data-action="menu:account"]').click();
   await page.locator('[data-slot="dropdown-menu-item"][data-action="logout"]').waitFor({ timeout: 3000 }); // the account menu signs out

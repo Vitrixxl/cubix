@@ -7,7 +7,7 @@ import { useState } from "react";
 import { BookOpen, Eye, Share2, Target, Timer, Trophy, type LucideIcon } from "lucide-react";
 import { catalog, store as s } from "../store";
 import { goPage } from "../navigation";
-import { Back, Bar, Choice, Empty, FOCUS, Modal, NUMERIC, PageHead, SelectMenu, Surface, Tip, plural } from "../ui";
+import { Choice, Empty, FOCUS, Modal, NUMERIC, PageHead, SelectMenu, Surface, Tip, plural } from "../ui";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,9 @@ const closest = (list: A[]) => list.filter((a) => !a.unlocked && a.ratio > 0).so
 
 export function AchievementsPage({ phone }: { phone: boolean }) {
   const all: A[] = s.achievements?.achievements ?? [],
-    [category, setCategory] = useState("all"),
+    // Phones choose the category in a menu, the desktop in the profile's sidebar.
+    [phoneCategory, setCategory] = useState("all"),
+    category = phone ? phoneCategory : s.achievementCategory,
     [picked, setPicked] = useState(""),
     [sheet, setSheet] = useState(false),
     mode = s.achievementFilter === "locked" ? "locked" : "unlocked",
@@ -90,7 +92,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
   const head = (
     <PageHead
       title={tr("Awards")}
-      lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
+      sub={!phone && category !== "all" ? said(categoryOf({ category }).label) : undefined}
     >
       {!phone && <Filters groups={groups} unlocked={unlocked} locked={inGroup.length - unlocked} />}
     </PageHead>
@@ -129,8 +131,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
   return (
     <>
       {head}
-      <div className="grid min-h-0 flex-1 grid-cols-[14rem_minmax(0,1fr)_21rem] gap-4 xl:grid-cols-[15.5rem_minmax(0,1fr)_23rem]">
-        <Categories items={inGroup} category={category} onChange={setCategory} />
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_21rem] gap-4 xl:grid-cols-[minmax(0,1fr)_23rem]">
         {journal}
         <Surface aria-label={tr("Achievement")} className="overflow-y-auto p-6">
           {chosen ? <Detail a={chosen} all={all} pick={(a) => setPicked(a.id)} /> : <Empty icon={Trophy} />}
@@ -158,54 +159,6 @@ function Filters({ groups, unlocked, locked }: { groups: string[]; unlocked: num
         ]}
       />
     </>
-  );
-}
-
-/** The categories as cards that filter the journal: each one's count, and a dot per achievement, coloured once unlocked. */
-function Categories({ items, category, onChange }: { items: A[]; category: string; onChange: (id: string) => void }) {
-  const card = (id: string, label: string, Icon: LucideIcon, colour: string, list: A[]) => {
-    const done = list.filter((a) => a.unlocked).length;
-    return (
-      <button
-        key={id}
-        type="button"
-        aria-pressed={category === id}
-        data-action={"achievementCategory:" + id}
-        onClick={() => onChange(id)}
-        className={cn("grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 rounded-[18px] bg-card px-4 py-3 text-left transition-colors hover:bg-muted aria-pressed:bg-accent", FOCUS)}
-      >
-        <span className="flex size-8 items-center justify-center rounded-full text-background [&_svg]:size-4" style={{ background: colour }}>
-          <Icon />
-        </span>
-        <b className="truncate text-sm font-bold">{said(label)}</b>
-        <span className={cn(NUMERIC, "text-xs font-bold text-muted-foreground")}>
-          {done} / {list.length}
-        </span>
-        {id === "all" ? (
-          <Bar ratio={list.length ? done / list.length : 0} fill="bg-foreground" className="col-span-full" />
-        ) : (
-          <span className="col-span-full flex flex-wrap gap-[3px]" aria-hidden="true">
-            {list.map((a) => (
-              <i key={a.id} className={cn("size-[7px] rounded-full", !a.unlocked && "bg-muted-foreground/30")} style={a.unlocked ? { background: colour } : undefined} />
-            ))}
-          </span>
-        )}
-      </button>
-    );
-  };
-  return (
-    <nav aria-label={tr("Category")} className="-m-1 flex min-h-0 flex-col gap-2 overflow-y-auto p-1">
-      {card("all", "All", Trophy, "var(--foreground)", items)}
-      {CATEGORIES.map((c) =>
-        card(
-          c.id,
-          c.label,
-          c.icon,
-          c.colour,
-          items.filter((a) => a.category === c.id),
-        ),
-      )}
-    </nav>
   );
 }
 

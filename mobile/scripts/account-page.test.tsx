@@ -35,7 +35,7 @@ mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, l
       profileCalls.push({ cube, filter });
       return {
         user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 2, activeDays: 1,
-        records: timerCount ? [{ event: "333", puzzle: "333", solveMode: "standard", count: timerCount, best: 10000, bestAo5: null, bestAo12: null, bestAo100: null, lastAt: "2026-09-23T20:00:00Z" }] : [],
+        records: timerCount ? [{ event: "333", puzzle: "333", solveMode: "standard", scrambleType: "normal", count: timerCount, best: 10000, bestAo5: null, bestAo12: null, bestAo100: null, lastAt: "2026-09-23T20:00:00Z" }] : [],
       };
     },
     achievements: () => achievements,

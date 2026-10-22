@@ -1,0 +1,179 @@
+
+<script>
+// Données inventées mais réalistes (compte dev seedé) : tout est tiré d'un générateur déterministe.
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function rng(seed) { let s = (seed * 9301 + 49297) % 233280; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
+function series(seed, n, start, end, noise) { const r = rng(seed); return [...Array(n)].map((_, i) => start + (end - start) * (i / Math.max(1, n - 1)) + (r() - .5) * noise * 2 + (r() < .05 ? noise * 3 : 0)); }
+function rolling(v, k) { return v.map((_, i) => i < k - 1 ? null : v.slice(i - k + 1, i + 1).sort((a, b) => a - b).slice(1, -1).reduce((a, b) => a + b, 0) / (k - 2)); }
+const PUZ = { "333": 3, "222": 2, "444": 4, oh: 3 };
+const pz = (k) => k === "pyra" ? `<span class="pz tri"></span>` : k === "skewb" ? `<span class="pz sk"></span>` : `<span class="pz ${PUZ[k] === 2 ? "n2" : PUZ[k] === 4 ? "n4" : ""}">${"<i></i>".repeat(PUZ[k] ** 2)}</span>`;
+$$("[data-pz]").forEach((el) => (el.outerHTML = pz(el.dataset.pz)));
+// Les pages du profil, en onglets (A) ou en grandes pilules (C).
+const PAGES = [["overview", "user-round", "Overview"], ["stats", "chart-line", "Statistics", "2 418"], ["training", "target", "Training", "61"], ["awards", "trophy", "Awards", "34"], ["battles", "swords", "Battles", "23"], ["analysis", "bluetooth", "Analysis", "312"]];
+$$("[data-ptabs]").forEach((el) => (el.innerHTML = PAGES.map(([id, icon, label, n]) => `<a class="${id === el.dataset.ptabs ? "on" : ""}"><i data-lucide="${icon}"></i>${label}${n && el.dataset.count !== "no" ? `<span class="n">${n}</span>` : ""}</a>`).join("")));
+
+// La barre du haut de l'app : le profil s'ouvre depuis l'avatar.
+$$(".top[data-top]").forEach((el) => {
+  const chip = el.dataset.top;
+  el.innerHTML = `<div class="brand"><div class="logo">${"<span></span>".repeat(9)}</div>Qbix</div>
+    <nav class="nav"><a>Timer</a><a>Training</a><a>Algs</a><a>Challenges</a></nav><div class="sp"></div>
+    ${chip ? `<span class="chip">${pz(chip === "2×2" ? "222" : chip === "4×4" ? "444" : "333")}${chip}<i data-lucide="chevron-down"></i></span>` : ""}
+    <span class="avatar me">DE</span>`;
+});
+
+// B : la barre latérale du profil, ouverte sur sa page (et son cube, son mélange…). data-side="page|ouvert|choisi".
+const TREE = {
+  stats: [["333", "3×3", "2 398", [["Normal", "11.42", "1 846"], ["2-gen R U", "5.88", "186"], ["Last layer", "3.91", "230"], ["Cross · 5 moves", "10.04", "92"], ["XCross · 6 moves", "10.12", "44"]]],
+    ["222", "2×2", "472", [["Normal", "3.62", "412"], ["2-gen R U", "2.10", "60"]]], ["444", "4×4", "100", [["Normal", "55.71", "88"], ["Outer layers", "44.02", "12"]]],
+    ["oh", "3×3 OH", "140", [["Normal", "25.08", "140"]]], ["pyra", "Pyraminx", "54", [["Normal", "6.37", "54"]]], ["skewb", "Skewb", "20", [["Normal", "8.11", "20"]]]],
+  training: [["333", "3×3", "61", [["PLL", "19 / 21", ""], ["OLL", "31 / 57", ""], ["F2L", "11 / 41", ""], ["COLL", "0 / 40", ""], ["ZBLL", "0 / 493", ""]]], ["222", "2×2", "12", [["Ortega", "12 / 12", ""], ["CLL", "0 / 42", ""]]]],
+  analysis: [["333", "3×3", "312", [["Normal", "12.41", "268"], ["Cross · 5 moves", "10.22", "31"], ["2-gen R U", "6.40", "13"]]]],
+  awards: [["", "", "", [["Speed", "9 / 30", ""], ["Averages", "6 / 24", ""], ["Volume", "8 / 20", ""], ["Knowledge", "7 / 22", ""], ["Dedication", "4 / 16", ""]]]],
+};
+$$("[data-side]").forEach((el) => {
+  const [page, open, chosen] = el.dataset.side.split("|");
+  const items = [["overview", "user-round", "Overview", ""], ["stats", "chart-line", "Statistics", "2 418"], ["training", "target", "Training", "61"], ["awards", "trophy", "Awards", "34 / 112"], ["battles", "swords", "Battles", "23"], ["analysis", "bluetooth", "Analysis", "312"]];
+  let out = `<div class="me"><span class="avatar">DE</span><div><b>dev</b><small>Level 14 · 12-day streak</small></div></div>`;
+  for (const [id, icon, label, n] of items) {
+    out += `<div class="it ${id === page ? "on" : ""} ${id === page && !TREE[id] ? "sel" : ""}"><i data-lucide="${icon}"></i>${label}<span class="n">${n}</span></div>`;
+    if (id !== page || !TREE[id]) continue;
+    for (const [cube, name, count, subs] of TREE[id]) {
+      if (name) out += `<div class="cb">${pz(cube)}${name}<span class="n">${count}</span><i data-lucide="${cube === open ? "chevron-down" : "chevron-right"}" class="faint" style="width:14px;height:14px"></i></div>`;
+      if (name && cube !== open) continue;
+      for (const [sub, t, c] of subs) out += `<div class="sb ${sub === chosen ? "sel" : ""}" ${name ? "" : 'style="padding-left: 46px"'}>${sub}<span class="t">${t}</span>${c ? `<span class="n">${c}</span>` : ""}</div>`;
+    }
+  }
+  el.innerHTML = out + `<div class="sp"></div><div class="it"><i data-lucide="ellipsis"></i>Import, export, account</div>`;
+});
+// Courbes : chaque point est un solve, la ligne l'Ao5 (ou l'Ao12), les points verts les records battus.
+function axes(w, h, min, max, step) {
+  let out = "";
+  for (let v = Math.ceil(min / step) * step; v <= max; v += step) {
+    const y = h - 14 - ((v - min) / (max - min)) * (h - 28);
+    out += `<line x1="0" x2="${w}" y1="${y}" y2="${y}" stroke="rgba(244,235,233,.06)"/><text x="4" y="${y - 4}" fill="${css("--faint")}" font-size="11" font-weight="700">${v}</text>`;
+  }
+  return out;
+}
+const at = (min, max, w, h, pad = 14) => (i, n, v) => [pad + 18 + (i / (n - 1)) * (w - 2 * pad - 18), h - pad - ((Math.min(max, Math.max(min, v)) - min) / (max - min)) * (h - 2 * pad)];
+$$("svg[data-curve]").forEach((svg) => {
+  const [seed, n, start, end, noise, min, max, step = 2, band] = svg.dataset.curve.split(",").map(Number);
+  const [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), v = series(seed, n, start, end, noise), a = rolling(v, 5), sc = at(min, max, w, h);
+  let out = axes(w, h, min, max, step);
+  if (band) { const [x0] = sc(Math.round(n * band), n, min); out += `<rect x="${x0}" y="0" width="${w - x0}" height="${h}" fill="${css("--pri")}" opacity=".07"/>`; }
+  out += v.map((t, i) => { const [x, y] = sc(i, n, t); return `<circle cx="${x}" cy="${y}" r="1.7" fill="rgba(244,235,233,.22)"/>`; }).join("");
+  out += `<polyline fill="none" stroke="${css("--pri")}" stroke-width="2.6" stroke-linejoin="round" points="${a.map((t, i) => (t == null ? "" : sc(i, n, t).join(","))).join(" ")}"/>`;
+  let best = Infinity; v.forEach((t, i) => { if (t < best) { best = t; if (i > n * .08) { const [x, y] = sc(i, n, t); out += `<circle cx="${x}" cy="${y}" r="4.2" fill="${css("--ok")}"/>`; } } });
+  svg.innerHTML = out;
+});
+// Répartition : un histogramme des temps.
+$$("svg[data-spread]").forEach((svg) => {
+  const [seed, n, mid, wid] = svg.dataset.spread.split(",").map(Number), [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), r = rng(seed);
+  const bins = Array(28).fill(0); for (let i = 0; i < n; i++) { const t = mid + (r() + r() + r() - 1.5) * wid; bins[Math.max(0, Math.min(27, Math.round((t - mid + wid * 1.6) / (wid * 3.2) * 27)))]++; }
+  const mx = Math.max(...bins), bw = (w - 40) / 28;
+  svg.innerHTML = bins.map((b, i) => `<rect x="${30 + i * bw}" y="${h - 22 - (b / mx) * (h - 40)}" width="${bw - 4}" height="${(b / mx) * (h - 40)}" rx="4" fill="${i < 8 ? css("--ok") : css("--pri")}" opacity="${i < 8 ? .8 : .85}"/>`).join("") +
+    [0, 7, 14, 21, 27].map((i) => `<text x="${30 + i * bw}" y="${h - 4}" fill="${css("--faint")}" font-size="11" font-weight="700">${(mid - wid * 1.6 + i / 27 * wid * 3.2).toFixed(0)} s</text>`).join("");
+});
+// Plusieurs mélanges sur une même courbe : [couleur, graine, début, fin, bruit, nombre, départ (0 à 1)].
+const MULTI = {
+  normal: [["--pri", 3, 13.4, 11.6, 1.4, 120, 0], ["--ok", 4, 7.2, 5.9, .9, 60, .45], ["--lilac", 5, 4.6, 3.9, .5, 70, .3], ["--warn", 6, 10.4, 10.1, 1.1, 40, .62]],
+  cross: [["--pri", 21, 2.6, 2.1, .5, 120, 0], ["--warn", 22, 1.8, 1.25, .35, 50, .55]],
+};
+$$("svg[data-multi]").forEach((svg) => {
+  const [key, min, max, step] = svg.dataset.multi.split(","), [w, h] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number), sc = at(+min, +max, w, h);
+  let out = axes(w, h, +min, +max, +step);
+  MULTI[key].forEach(([c, seed, s, e, nz, n, from]) => {
+    const a = rolling(series(seed, n, s, e, nz), 5);
+    out += `<polyline fill="none" stroke="${css(c)}" stroke-width="2.6" stroke-linejoin="round" points="${a.map((t, i) => (t == null ? "" : sc(from * 119 + (i * (119 - from * 119)) / (n - 1), 120, t).join(","))).join(" ")}"/>`;
+  });
+  svg.innerHTML = out;
+});
+// Petites tendances (cartes de mélange, plaques).
+$$("svg[data-spark]").forEach((svg) => {
+  const [seed, trend] = svg.dataset.spark.split(",").map(Number), on = svg.closest(".on");
+  svg.setAttribute("viewBox", "0 0 200 40"); svg.setAttribute("preserveAspectRatio", "none");
+  const v = rolling(series(seed, 40, 10, 10 + trend * 2, .8), 5).filter((x) => x != null), mn = Math.min(...v), mx = Math.max(...v);
+  svg.innerHTML = `<polyline fill="none" stroke="${on ? css("--pri") : css("--mfg")}" stroke-width="2.2" stroke-linejoin="round" points="${v.map((x, i) => `${(i / (v.length - 1)) * 200},${36 - ((x - mn) / (mx - mn || 1)) * 32}`).join(" ")}"/>`;
+});
+// Activité : une case par jour.
+$$("[data-heat]").forEach((el) => { const r = rng(+el.dataset.heat); el.innerHTML = [...Array(+el.dataset.heat)].map(() => { const x = r(); return `<i class="${x < .25 ? "" : x < .5 ? "l1" : x < .72 ? "l2" : x < .9 ? "l3" : "l4"}"></i>`; }).join(""); });
+// Le calendrier du mois (octobre 2026 commence un jeudi).
+$$("[data-cal]").forEach((el) => {
+  const r = rng(12); let out = ["M", "T", "W", "T", "F", "S", "S"].map((d) => `<span class="h">${d}</span>`).join("") + "<span></span>".repeat(3);
+  for (let d = 1; d <= 31; d++) { const x = r(), lv = d > 22 ? "" : x < .2 ? "" : x < .45 ? "l1" : x < .7 ? "l2" : x < .88 ? "l3" : "l4"; out += `<span class="${lv} ${d === 22 ? "today" : ""}">${d}</span>`; }
+  el.innerHTML = out;
+});
+// Meilleure Ao5 de chaque semaine.
+$$("[data-weeks]").forEach((el) => { const v = el.dataset.weeks.split(",").map(Number), mx = Math.max(...v), mn = Math.min(...v); el.innerHTML = v.map((x, i) => `<span class="${i === v.length - 1 ? "me" : ""}" style="height:${18 + ((mx - x) / (mx - mn)) * 82}%"></span>`).join(""); });
+
+// Solves : n°, temps, pénalité, mélange, heure ; un commentaire ou un solve de cube connecté de temps en temps.
+const SCR = ["R2 U' F2 D B2 U2 L2 D' F' L U' B R' D2 F'", "D' L2 U F2 R2 D' B2 U2 R' B U' L F' D R2 U'", "F U2 R2 B' D2 L2 B U2 F' R D' L' U B2 R' F2", "B2 D F2 U' L2 D R2 U2 B' R' F D2 L U' F' D'"];
+$$("[data-solves]").forEach((el) => {
+  const [seed, base, n, first, labels, cols] = el.dataset.solves.split("|"), r = rng(+seed), lab = labels ? labels.split(",") : null, BASE = { "Normal": 12.4, "2-gen R U": 6.1, "Last layer": 4.1, "Cross 5": 10.3 };
+  el.innerHTML = [...Array(+n)].map((_, i) => {
+    const l = lab ? lab[i % lab.length] : null, t = ((l ? BASE[l] : +base) + (r() - .5) * (l ? 1.8 : 3.2)), pen = r() < .08 ? "+2" : r() < .04 ? "DNF" : "", smart = r() < .25, com = r() < .15;
+    const ao = (+base + (r() - .5) * 1.2).toFixed(2);
+    return `<div class="li" style="padding: 7px 12px; gap: 14px;"><span class="faint num" style="width: 46px;">#${+first - i}</span>
+      <b class="num" style="width: 62px;${pen === "DNF" ? "color: var(--bad)" : ""}">${pen === "DNF" ? "DNF" : t.toFixed(2) + (pen ? "+" : "")}</b>
+      ${cols === "ao" ? `<span class="faint num" style="width: 64px; font-size: 13px;">${ao}</span><span class="faint num" style="width: 64px; font-size: 13px;">${(+ao + .5).toFixed(2)}</span>` : ""}
+      ${l ? `<span class="tag ${l === "Normal" ? "" : "p"}">${l}</span>` : ""}
+      <span class="mfg num" style="flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${SCR[i % 4]}</span>
+      ${com ? `<i data-lucide="message-square" class="faint" style="width:15px;height:15px"></i>` : ""}${smart ? `<i data-lucide="bluetooth" class="pri" style="width:15px;height:15px"></i>` : ""}
+      <span class="faint num" style="font-size: 13px;">${String(21 - Math.floor(i / 3)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}</span></div>`;
+  }).join("");
+});
+// Sessions : nom, nombre de solves, meilleur, Ao5, moyenne.
+$$("[data-sessions]").forEach((el) => {
+  const [seed, n] = el.dataset.sessions.split("|").map(Number), r = rng(seed), names = ["Evening practice", "Morning warm-up", "Club night", "Lunch break", "Sunday long run", "Focus: cross", "Before the comp"];
+  el.innerHTML = [...Array(n)].map((_, i) => { const best = 10.2 + r() * 1.6, ao = best + .9 + r() * .8, c = 12 + Math.floor(r() * 50);
+    return `<div class="li" style="padding: 9px 12px; gap: 16px;"><div class="t"><b>${names[i % names.length]}</b><small>${["Today", "Yesterday", "Oct 20", "Oct 19", "Oct 18", "Oct 17", "Oct 15", "Oct 14"][i % 8]} · ${c} solves</small></div>
+      <span class="num ${i === 3 ? "ok" : ""}" style="width: 64px; text-align: right;">${best.toFixed(2)}</span><span class="num" style="width: 64px; text-align: right;">${ao.toFixed(2)}</span><span class="num mfg" style="width: 64px; text-align: right;">${(ao + .6).toFixed(2)}</span></div>`; }).join("");
+});
+
+// Schémas de cas vus de dessus : face U, et une bande de chaque côté.
+const HEX = { y: "#ffd34d", g: "#4a3f3d", r: "#e3636a", o: "#ff9d5c", b: "#6b9be8", G: "#68c48e", w: "#f1ebe6" };
+function diagram(seed, kind) {
+  const r = rng(seed), side = "rboG", U = [...Array(9)].map((_, i) => (kind === "pll" || i === 4 ? "y" : kind === "f2l" ? (r() < .3 ? "y" : "g") : r() < .45 ? "y" : "g"));
+  const S = [...Array(12)].map(() => (kind === "pll" ? side[Math.floor(r() * 4)] : kind === "f2l" ? "g" : r() < .3 ? "y" : "g"));
+  let out = `<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#1c1413"/>`;
+  U.forEach((c, i) => (out += `<rect x="${13 + (i % 3) * 13}" y="${13 + Math.floor(i / 3) * 13}" width="11.5" height="11.5" rx="2.5" fill="${HEX[c]}"/>`));
+  for (let j = 0; j < 3; j++) {
+    out += `<rect x="${13 + j * 13}" y="4" width="11.5" height="6" rx="2" fill="${HEX[S[j]]}"/><rect x="54" y="${13 + j * 13}" width="6" height="11.5" rx="2" fill="${HEX[S[3 + j]]}"/>`;
+    out += `<rect x="${13 + j * 13}" y="54" width="11.5" height="6" rx="2" fill="${HEX[S[6 + j]]}"/><rect x="4" y="${13 + j * 13}" width="6" height="11.5" rx="2" fill="${HEX[S[9 + j]]}"/>`;
+  }
+  if (kind === "f2l") out += `<rect x="39" y="39" width="11.5" height="11.5" rx="2.5" fill="${HEX.r}"/><rect x="54" y="39" width="6" height="11.5" rx="2" fill="${HEX.b}"/>`;
+  return out + "</svg>";
+}
+const NAMES = {
+  pll: ["Aa", "Ab", "E", "F", "Ga", "Gb", "Gc", "Gd", "H", "Ja", "Jb", "Na", "Nb", "Ra", "Rb", "T", "Ua", "Ub", "V", "Y", "Z"],
+  oll: [...Array(57)].map((_, i) => String(i + 1)),
+  f2l: [...Array(41)].map((_, i) => String(i + 1)),
+  coll: [...Array(40)].map((_, i) => ["AS", "H", "L", "Pi", "S", "T", "U"][i % 7] + (1 + Math.floor(i / 7))),
+};
+// data-cases="kind|graine|nombre|base|mode" ; mode : train (appris / entraînés / jamais), cost (habituel / lent / le plus lent / jamais vu).
+$$("[data-cases]").forEach((el) => {
+  const [kind, seed, n, base, mode, onIdx, off = 0] = el.dataset.cases.split("|"), r = rng(+seed), names = NAMES[kind].slice(+off);
+  el.innerHTML = names.slice(0, +n).map((name, i) => {
+    const x = r(), t = (+base + (r() - .5) * +base * .7).toFixed(2);
+    const cls = mode === "cost" ? (x < .12 ? "never" : x < .55 ? "usual" : x < .85 ? "slow" : "slowest") : x < .5 ? "learned" : x < .8 ? "" : "untrained";
+    const shown = cls === "untrained" || cls === "never" ? "–" : t;
+    return `<div class="ct ${cls} ${String(i) === onIdx ? "on" : ""}"><span class="d">${diagram(+seed * 100 + i, kind === "coll" ? "oll" : kind)}</span><span class="f"><span>${name}</span><span class="t">${shown}</span></span></div>`;
+  }).join("");
+});
+$$("[data-dia]").forEach((el) => { const [kind, seed] = el.dataset.dia.split("|"); el.innerHTML = diagram(+seed, kind); });
+
+// Anneaux d'avancement d'un set : pourcentage, couleur.
+$$("[data-ring]").forEach((el) => { const [pc, c] = el.dataset.ring.split("|"); el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 40 40" fill="none" stroke-width="4"><circle cx="20" cy="20" r="17" stroke="${css("--acc")}"/><circle cx="20" cy="20" r="17" stroke="${css(c)}" stroke-linecap="round" pathLength="100" stroke-dasharray="${pc} 100"/></svg>`); });
+// Badges des awards : objectif, unité, catégorie, avancement (1 = débloqué), taille.
+const CAT = { speed: "--pri", average: "--lilac", volume: "--warn", knowledge: "--ok", dedication: "--bad" };
+$$("[data-badge]").forEach((el) => {
+  const [value, unit, cat, ratio, size = 44] = el.dataset.badge.split("|"), done = +ratio >= 1, c = css(CAT[cat]), s = +size;
+  el.className = "bd"; el.style.cssText = `width:${s}px;height:${s}px;background:${done ? c : css("--muted")};color:${done ? "#1c1317" : css("--mfg")}`;
+  el.innerHTML = (done ? "" : `<svg viewBox="0 0 40 40" fill="none" stroke-width="2.6"><circle cx="20" cy="20" r="18" stroke="${css("--acc")}"/><circle cx="20" cy="20" r="18" stroke="${c}" stroke-linecap="round" pathLength="100" stroke-dasharray="${Math.max(.5, ratio * 100)} 100"/></svg>`) +
+    `<span><b style="font-size:${Math.round(s * (value.length > 4 ? .22 : s < 36 ? .42 : .3))}px">${value}</b>${s >= 36 && unit ? `<i style="font-size:${Math.round(s * .17)}px">${unit}</i>` : ""}</span>`;
+});
+</script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>window.lucide?.createIcons();</script>
+</body>
+</html>

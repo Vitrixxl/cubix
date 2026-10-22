@@ -227,11 +227,15 @@ export class Store {
   guideMethod = "";
   profileMode = "overview";
   profileStage = "all";
+  /** The set the profile's training shows on its own, chosen in its sidebar; every set when empty. */
+  profileSet = "";
   profilePuzzle = "333";
   profileSolveMode = "standard";
   profileScramble = "normal";
   achievementGroup = "all";
   achievementFilter = "all";
+  /** The awards' category, chosen in the profile's sidebar. */
+  achievementCategory = "all";
   /** Whether solve statistics show the progress chart or the solves table. */
   statsView = "chart";
   /** Where a 3×3 case's times come from: its training, the smart cube solves it was done in, or both. */
@@ -1481,7 +1485,7 @@ export class Store {
             this.per("cubix.algs.stageByCube", (this.catalogStage = shown.stage));
           }
           if (this.page === "profile") {
-            this.profilePuzzle = event.puzzle; this.profileSolveMode = event.solveMode;
+            this.profilePuzzle = event.puzzle; this.profileSolveMode = event.solveMode; this.profileSet = "";
             if (!this.info(event.puzzle).scrambles.includes(this.profileScramble)) this.profileScramble = this.info(event.puzzle).scrambles[0];
           }
           // The page stays, on the same view of the new puzzle: a case's list, the course of the same method (else
@@ -1623,6 +1627,7 @@ export class Store {
           if (!event) break;
           this.profilePuzzle = event.puzzle;
           this.profileSolveMode = event.solveMode;
+          this.profileSet = "";
           if (!this.info(event.puzzle).scrambles.includes(this.profileScramble))
             this.profileScramble = this.info(event.puzzle).scrambles[0];
           this.overlay = "";
@@ -1639,6 +1644,30 @@ export class Store {
           break;
         case "profileStage":
           this.profileStage = arg;
+          break;
+        case "profileView": {
+          // A page of the profile on an event and a scramble type at once, from its sidebar: `page|event|scramble`.
+          const [mode, id, scramble] = arg.split("|"),
+            event = id ? eventInfo(id) : undefined;
+          if (event && (event.puzzle !== this.profilePuzzle || event.solveMode !== this.profileSolveMode)) {
+            this.profilePuzzle = event.puzzle;
+            this.profileSolveMode = event.solveMode;
+            this.profileSet = "";
+          }
+          const types = this.info(this.profilePuzzle).scrambles;
+          this.profileScramble = scramble && types.includes(scramble) ? scramble : types.includes(this.profileScramble) ? this.profileScramble : types[0];
+          this.overlay = "";
+          if (mode !== this.profileMode) goPage("profile", { profileMode: mode, puzzle: this.puzzle as PuzzleId });
+          else await this.refresh();
+          break;
+        }
+        case "profileSet":
+          this.profileSet = arg;
+          if (this.profileMode !== "training") goPage("profile", { profileMode: "training", puzzle: this.puzzle as PuzzleId });
+          break;
+        case "achievementCategory":
+          this.achievementCategory = arg;
+          if (this.profileMode !== "achievements") goPage("profile", { profileMode: "achievements", puzzle: this.puzzle as PuzzleId });
           break;
         case "achievementGroup":
           this.achievementGroup = arg;

@@ -4,20 +4,18 @@
  * Inside a case dialog (`TimerStats`): the figures, then the chart or the table.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownUp, ChartLine, List, MessageSquare, Plus, Rotate3d, Timer } from "lucide-react";
+import { ArrowDownUp, ChartLine, List, MessageSquare, Rotate3d, Timer } from "lucide-react";
 import { store as s } from "./store";
 import type { SolveDto } from "../../src/shared/types";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtDate, fmtValue, joinedDate, rollingAverages, shortDate, solveResult } from "../../src/client/lib/format";
 import { sessionName } from "../../src/client/lib/sessions";
 import { historyRecords, periodFigures, periodSpread, singleRecords, SPREAD_LABEL, solveTone, timerFigures, type PeriodFigure, type SpreadFigure } from "../../src/client/lib/practiceSummary";
-import { Back, Button, Choice, Empty, MenuChoice, Modal, NUMERIC, PuzzleButton, PuzzlePicker, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
+import { Button, Choice, Empty, MenuChoice, Modal, NUMERIC, PageHead, PuzzleButton, ROW, SelectMenu, Segmented, SolveActions, SolveMenu, Surface, Tip, plural, run } from "./ui";
 import { InHead, MoreMenu, StatCard, Stats, dots, useViewport } from "./base";
 import { TONE_TEXT } from "../../src/client/lib/tone";
-import { EVENTS } from "../../src/shared/puzzles";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { language, tr } from "../../src/client/i18n";
 import { msg } from "../../src/client/i18n/msg";
@@ -69,11 +67,9 @@ export function StatsPage({ phone }: { phone: boolean }) {
   );
 }
 
-/** The way back, the title, the events with solves (the others in a menu), the scramble and per solve or per session. */
+/** The title (the event and the scramble type), per solve or per session; on phones, the puzzle and the scramble too. */
 function StatsHead({ phone, by }: { phone: boolean; by: string }) {
   const current = s.event(s.profilePuzzle, s.profileSolveMode).id,
-    counts = new Map<string, number>((s.profile?.records ?? []).map((r: any) => [r.event, r.count])),
-    events = EVENTS.filter((e) => e.id === current || (counts.get(e.id) ?? 0) > 0),
     scrambles = s.info(s.profilePuzzle).scrambles.map((id: string) => ({ id, label: s.label("scrambles", id) })),
     sessions = !!s.profile?.playground?.sessions?.length,
     byOptions = [
@@ -93,35 +89,12 @@ function StatsHead({ phone, by }: { phone: boolean; by: string }) {
         </header>
       </InHead.Provider>
     );
+  // The desktop's event and scramble type are chosen in the profile's sidebar: the title says them.
+  const count = (s.profile?.records ?? []).find((r: any) => r.event === current && r.scrambleType === s.profileScramble)?.count ?? 0;
   return (
-    <InHead.Provider value={true}>
-      <header className="flex min-h-10 shrink-0 items-center gap-3">
-        <Back action="profileMode:overview" label="Back to the profile" />
-        <h1 className="shrink-0 text-[28px] font-extrabold tracking-[-0.03em]">{tr("Statistics")}</h1>
-        {/* The events as one menu: tabs ran past the window with no way to reach the last ones. */}
-        <div className="flex min-w-0 items-center gap-1">
-          <SelectMenu
-            action="profilePuzzle"
-            caption="Event"
-            align="start"
-            value={current}
-            options={events.map((e) => ({ id: e.id, label: `${said(e.label)} · ${(counts.get(e.id) ?? 0).toLocaleString()}` }))}
-          />
-          <PuzzlePicker
-            profile
-            trigger={
-              <UiButton variant="ghost" size="icon" aria-label={tr("Other events")}>
-                <Plus />
-              </UiButton>
-            }
-          />
-        </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <SelectMenu action="profileScramble" caption="Scramble" value={s.profileScramble} options={scrambles} />
-          {sessions && <Choice prefix="statsBy:" label={tr("Show")} value={by} options={byOptions} />}
-        </div>
-      </header>
-    </InHead.Provider>
+    <PageHead title={`${said(s.event(s.profilePuzzle, s.profileSolveMode).label)} · ${said(s.label("scrambles", s.profileScramble))}`} sub={plural(count, "solve")}>
+      {sessions && <Choice prefix="statsBy:" label={tr("Show")} value={by} options={byOptions} />}
+    </PageHead>
   );
 }
 

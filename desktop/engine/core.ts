@@ -13,7 +13,7 @@ import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { EVENTS, puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
+import { EVENTS, puzzleInfo, scrambleTypeOf, scrambleTypesOf, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
 import { fmtDate, joinedDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { competitionEvent, generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
@@ -210,8 +210,11 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       if (onProfile || (ahead && !q.known?.achievements)) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {
         const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
-        jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => digestsOf(timer, mode)))
-          .then(digests => smart.analysis(digests, mode));
+        // The profile's analysis reads one scramble type's solves (the WCA's when the 3×3 has no such type); the training's, every one.
+        const asked = q.profileFilter?.scrambleType ?? 'normal', scramble = trainingMode ? undefined : (scrambleTypesOf('333', mode) as string[]).includes(asked) ? asked : 'normal';
+        jobs.analysis = scramble === undefined && inSolves && mode === context.solveMode
+          ? inSolves.then(([digests]) => smart.analysis(digests, mode))
+          : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(async timer => smart.analysis(await digestsOf(timer, mode), mode, scramble, new Map(timer.map(v => [v.id, scrambleTypeOf(v)]))));
       }
       if (q.caseId) {
         const training = local.read.caseHistory(q.caseId, filter);

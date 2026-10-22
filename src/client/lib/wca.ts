@@ -107,7 +107,7 @@ export const wcaAttempts = (event: string, attempts: number[]) => attempts.filte
 /** Each WCA event the person has a result in, in the WCA's order, with the player's Qbix single and Ao5 beside. */
 export function wcaRows(person: WcaPerson, records: readonly EventRecordDto[]) {
   return WCA_EVENTS.filter((id) => person.records[id]?.single).map((id) => {
-    const own = records.find((r) => r.event === id);
+    const own = records.find((r) => r.event === id && r.scrambleType === "normal");
     return {
       event: id,
       label: wcaEventLabel(id),

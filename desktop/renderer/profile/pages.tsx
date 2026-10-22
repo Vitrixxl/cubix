@@ -1,10 +1,11 @@
 /** The profile's sub-pages: training cases and battles (the achievements have their own file); a heading, then one card that scrolls inside. */
+import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
 import { fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { eventLabelOf } from "../../../src/shared/puzzles";
-import { Back, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, run } from "../ui";
+import { Avatar, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, ROW, SearchField, run } from "../ui";
 import { TILES } from "../algorithms";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
@@ -13,27 +14,28 @@ import { NoBattles, ResultMark } from "./sections";
 import { battles } from "./data";
 import { Figures } from "./card";
 import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function TrainingPage({ phone }: { phone: boolean }) {
   const p = s.profile,
-    cases: any[] = s.cases(s.profilePuzzle);
+    cases: any[] = s.cases(s.profilePuzzle),
+    // The desktop's sidebar picks a set (or every one); phones filter by stage.
+    set = phone ? undefined : s.allSets(s.profilePuzzle).find((v: any) => v.id === s.profileSet),
+    stage = phone ? s.profileStage : "all";
   return (
     <>
-      <PageHead
-        title={tr("Training")}
-        lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
-      >
-        {!phone && <PuzzleButton profile />}
-      </PageHead>
+      <PageHead title={phone ? tr("Training") : `${said(s.info(s.profilePuzzle)?.label ?? "")} · ${set ? said(set.label) : tr("Every set")}`} />
       <PageCard
         toolbar={
           <>
-            <Choice
-              prefix="profileStage:"
-              label={tr("Stage")}
-              value={s.profileStage}
-              options={["all", ...new Set<string>(cases.map((c) => c.stage).filter(Boolean))].map((stage) => ({ id: stage, label: stage === "all" ? "All" : stage }))}
-            />
+            {phone && (
+              <Choice
+                prefix="profileStage:"
+                label={tr("Stage")}
+                value={s.profileStage}
+                options={["all", ...new Set<string>(cases.map((c) => c.stage).filter(Boolean))].map((stage) => ({ id: stage, label: stage === "all" ? "All" : stage }))}
+              />
+            )}
             <SearchField
               placeholder="Search cases…"
               label="Search cases"
@@ -47,8 +49,8 @@ export function TrainingPage({ phone }: { phone: boolean }) {
           </>
         }
       >
-        {s.allSets(s.profilePuzzle).map((set: any) => {
-          const chosen = s.setCases(set.id).filter((c: any) => (s.profileStage === "all" || s.profileStage === c.stage) && matches(c, s.query));
+        {s.allSets(s.profilePuzzle).filter((v: any) => !set || v === set).map((set: any) => {
+          const chosen = s.setCases(set.id).filter((c: any) => (stage === "all" || stage === c.stage) && matches(c, s.query));
           if (!chosen.length) return null;
           const key = "profile:" + set.id,
             done = chosen.filter((c) => p.cases?.some((v: any) => v.summary?.caseId === c.id)).length,
@@ -105,14 +107,28 @@ export function TrainingPage({ phone }: { phone: boolean }) {
 
 const battleEvent = (b: DuelRecord) => eventLabelOf(b.event);
 
+/** Each opponent with the battles won, lost and drawn against them, the most played first. */
+function rivalsOf(list: DuelRecord[]) {
+  const by = new Map<string, Record<DuelRecord["result"], number>>();
+  for (const b of list) {
+    const r = by.get(b.opponent) ?? { win: 0, loss: 0, draw: 0 };
+    r[b.result]++;
+    by.set(b.opponent, r);
+  }
+  return [...by].sort((a, b) => b[1].win + b[1].loss + b[1].draw - (a[1].win + a[1].loss + a[1].draw));
+}
+
 export function BattlesPage({ phone }: { phone: boolean }) {
-  const list = battles(),
+  // The desktop lists the opponents beside the battles: one of them shows only theirs.
+  const [rival, setRival] = useState(""),
+    all = battles(),
+    list = rival ? all.filter((b) => b.opponent === rival) : all,
     count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length,
     averages = list.map((b) => b.ao5[0]).filter((v): v is number => v != null);
   return (
     <>
-      <PageHead title={tr("Battles")} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />} />
-      {!list.length ? (
+      <PageHead title={tr("Battles")} sub={rival} />
+      {!all.length ? (
         <PageCard scroll={false}>
           <NoBattles />
         </PageCard>
@@ -130,6 +146,18 @@ export function BattlesPage({ phone }: { phone: boolean }) {
               ]}
             />
           </section>
+          <div className={cn("flex min-h-0 flex-1 flex-col", !phone && "grid grid-cols-[17rem_minmax(0,1fr)] gap-4")}>
+          {!phone && (
+            <PageCard className="gap-1">
+              {[["", null] as const, ...rivalsOf(all)].map(([name, r]) => (
+                <button key={name} type="button" data-action={"battleRival:" + name} aria-pressed={rival === name} onClick={() => setRival(name)} className={cn(ROW, "flex h-12 w-full shrink-0 items-center gap-3 px-2.5")}>
+                  {r ? <Avatar name={name} size={30} className="rounded-[10px]" /> : <span className="size-[30px]" />}
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{r ? name : tr("Every opponent")}</span>
+                  <span className={cn(NUMERIC, "text-xs font-semibold text-muted-foreground")}>{r ? `${r.win} – ${r.loss}${r.draw ? ` · ${r.draw}` : ""}` : all.length}</span>
+                </button>
+              ))}
+            </PageCard>
+          )}
           <PageCard>
             <Table aria-label={battleRecord(list)}>
               <TableHeader>
@@ -174,6 +202,7 @@ export function BattlesPage({ phone }: { phone: boolean }) {
               </TableBody>
             </Table>
           </PageCard>
+          </div>
         </>
       )}
     </>
