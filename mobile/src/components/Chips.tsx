@@ -1,7 +1,6 @@
-import { ChevronDown, type LucideIcon } from "lucide-react-native";
+import { type LucideIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable } from "react-native";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -19,27 +18,4 @@ export function Chip({ icon, children, on = false, success = false, onPress, dis
     {icon ? <Icon as={icon} size={16} className={text} /> : null}
     {typeof children === "string" ? <Text numberOfLines={1} className={cn("text-sm font-bold", on && text)}>{said(children)}</Text> : children}
   </Pressable>;
-}
-
-/** A pill showing a setting; a tap opens its choices as a menu, the chosen one marked. `extra` adds items under them. */
-export function ChipMenu<T extends string>({ label, value, options, onChange, icon, children, disabled, extra }: {
-  label: string; value: T; options: { id: T; label: string; disabled?: boolean }[]; onChange: (id: T) => void;
-  icon?: LucideIcon; children: ReactNode; disabled?: boolean; extra?: ReactNode;
-}) {
-  return <DropdownMenu>
-    <DropdownMenuTrigger asChild disabled={disabled}>
-      <Pressable accessibilityRole="button" accessibilityLabel={said(label)} disabled={disabled} className={cn(CHIP, "bg-muted active:bg-muted/70", disabled && "opacity-45")}>
-        {icon ? <Icon as={icon} size={16} className="text-muted-foreground" /> : null}
-        {typeof children === "string" ? <Text numberOfLines={1} className="shrink text-sm font-bold">{said(children)}</Text> : children}
-        <Icon as={ChevronDown} size={15} className="text-muted-foreground" />
-      </Pressable>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="start" className="min-w-52">
-      <DropdownMenuLabel><Text className="text-xs text-muted-foreground">{said(label)}</Text></DropdownMenuLabel>
-      <DropdownMenuRadioGroup value={value} onValueChange={id => onChange(id as T)}>
-        {options.map(o => <DropdownMenuRadioItem key={o.id} value={o.id} disabled={o.disabled} className="min-h-11"><Text className="text-base">{said(o.label)}</Text></DropdownMenuRadioItem>)}
-      </DropdownMenuRadioGroup>
-      {extra}
-    </DropdownMenuContent>
-  </DropdownMenu>;
 }

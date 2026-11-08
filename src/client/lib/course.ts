@@ -4,10 +4,10 @@
  * keep their own learned marks (synchronised with the account); everything here is a device preference of the account.
  */
 import { BLD_METHODS, METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../shared/methods";
+import { BASICS, CONCEPTS, type Lesson, type LessonPage } from "../../shared/lessons";
 import { invertAlg } from "../../shared/cube";
 import { puzzleOf, type PuzzleId, type SolveMode } from "../../shared/puzzles";
 import type { CaseDto, SetDto } from "../../shared/types";
-import { groupCases } from "./practiceCatalog";
 import { msg } from "../i18n/msg";
 
 export interface CourseEntry {
@@ -15,6 +15,10 @@ export interface CourseEntry {
   step: number;
   /** Inline algorithms marked learned, by `algId`, and intuitive steps marked mastered, by `stepId`. */
   learned: string[];
+  /** The course's lesson shown, among all its chapters (`courseChapters`). */
+  lesson?: number;
+  /** The lessons finished, by their ids. */
+  done?: string[];
 }
 export interface CourseProgress {
   /** The method last opened on each puzzle. */
@@ -38,7 +42,7 @@ export function readCourseProgress(raw: unknown): CourseProgress {
   const courses: CourseProgress["courses"] = {};
   for (const [key, entry] of Object.entries(value.courses ?? {})) {
     if (!entry || typeof entry !== "object") continue;
-    courses[key] = { step: Number.isInteger(entry.step) && entry.step >= 0 ? entry.step : 0, learned: strings(entry.learned) };
+    courses[key] = { step: Number.isInteger(entry.step) && entry.step >= 0 ? entry.step : 0, learned: strings(entry.learned), ...(Number.isInteger(entry.lesson) && entry.lesson! >= 0 ? { lesson: entry.lesson } : {}), ...(strings(entry.done).length ? { done: strings(entry.done) } : {}) };
   }
   return { methods, courses };
 }
@@ -83,9 +87,6 @@ export const toggleAlgLearned = (progress: CourseProgress, puzzle: PuzzleId, met
 export function stepSets<S extends Pick<SetDto, "id" | "puzzle_id" | "cube_size">>(step: MethodStep, sets: readonly S[], puzzle: PuzzleId): S[] {
   return (step.sets ?? []).flatMap(id => sets.filter(s => s.id === id && puzzleOf(s) === puzzle));
 }
-/** A set's cases grouped by family, in the catalogue's order. */
-export const setGroups = <C extends Pick<CaseDto, "set" | "group">>(cases: readonly C[], setId: string): [string, C[]][] =>
-  [...groupCases(cases.filter(c => c.set === setId))];
 
 /** How many algorithms a step teaches: the cases of its sets and its own algorithms. */
 export function stepAlgorithmCount(step: MethodStep, cases: readonly Pick<CaseDto, "set">[]): number {
@@ -121,19 +122,10 @@ export function methodShare(method: SolvingMethod, cases: readonly Pick<CaseDto,
 }
 /** An intuitive step marked mastered: nothing to learn, so it is the learner's word. */
 export const stepMastered = (step: Pick<MethodStep, "title">, entry: CourseEntry) => entry.learned.includes(stepId(step));
-/** Where a device keeps that an intuitive step was read (`cubix.learn.read`), on the web and the phone alike. */
-export const stepReadKey = (puzzle: PuzzleId, method: string, step: Pick<MethodStep, "title">) => `${puzzle}:${method}:${stepId(step)}`;
-/** An intuitive step is read before it is marked or trained: every tip ticked once (`readOnce`), unless mastered or without tips. */
-export const stepRead = (step: Pick<MethodStep, "title" | "tips">, entry: CourseEntry, readOnce: boolean) => stepMastered(step, entry) || !step.tips?.length || readOnce;
 /** A step is done once every algorithm it teaches is learned; an intuitive one once marked mastered; one whose algorithms are to come never is. */
 /** `count`: the step's `stepLearned`, when the caller has it already. */
 export function stepDone(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry, count = stepLearned(step, cases, learned, entry)) {
   return count.total > 0 ? count.learned === count.total : !step.missing && stepMastered(step, entry);
-}
-
-/** The set a step opens on: the first one with cases still to learn, the first otherwise. */
-export function firstOpenSet<S extends Pick<SetDto, "id">>(sets: readonly S[], cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>): S | undefined {
-  return sets.find(s => cases.some(c => c.set === s.id && !learned.has(c.id))) ?? sets[0];
 }
 /** Learned algorithms of a step against its total: catalogue cases by their marks, the step's own by the course's. */
 export function stepLearned(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
@@ -160,3 +152,33 @@ export function stepPicture(method: SolvingMethod, index: number) {
   const step = method.steps[index]!, picture = step.picture ?? {};
   return { before: picture.from ?? method.steps[index - 1]?.picture?.done ?? "", after: picture.done ?? "", mask: picture.mask ?? step.mask ?? "full", held: !!picture.held };
 }
+
+export interface CourseChapter { id: string; title: string; lessons: Lesson[] }
+const stepLesson = (puzzle: PuzzleId, method: SolvingMethod, index: number): Lesson => {
+  const step = method.steps[index]!, picture = stepPicture(method, index), pages: LessonPage[] = [
+    { title: step.title, text: step.text, picture: { setup: picture.after, mask: picture.mask, held: picture.held } },
+  ];
+  if (step.tips?.length) pages.push({ title: msg("To remember"), text: "", points: step.tips });
+  for (const a of [...(step.algs ?? []), ...(step.help ?? [])]) pages.push({ title: a.name, text: a.note ?? "", alg: a.alg, algSetup: algSetup(a), mask: step.mask });
+  if (step.sets?.length) pages.push({ title: msg("Its cases"), text: msg("Learn them one at a time: open a case, then follow its lesson."), sets: step.sets });
+  if (assistedSteps(puzzle, method.id) > index) pages.push({ title: msg("On your own cube"), text: msg("Solve this step on your real cube, connected or read by the camera. Qbix shows which pieces matter."), ownCube: true, picture: { setup: picture.after, mask: picture.mask, held: picture.held } });
+  return { id: stepId(step), title: step.title, pages };
+};
+/** The steps a course can play on the player's own cube (the methods `methodSolver.ts` plans), the 3×3's only. */
+const OWN_CUBE: Record<string, number> = { beginner: 6, cfop: 4, roux: 4, zz: 3 };
+const assistedSteps = (puzzle: PuzzleId, method: string) => (puzzle === "333" ? OWN_CUBE[method] ?? 0 : 0);
+/** A method's course from zero: the 3×3's basics, what the method rests on, then each of its steps. */
+export function courseChapters(puzzle: PuzzleId, method: SolvingMethod): CourseChapter[] {
+  const concepts = CONCEPTS[method.id] ?? [];
+  return [
+    ...(puzzle === "333" ? [{ id: "basics", title: msg("The basics"), lessons: BASICS }] : []),
+    ...(concepts.length ? [{ id: "concepts", title: msg("The ideas"), lessons: concepts }] : []),
+    { id: "steps", title: msg("The steps"), lessons: method.steps.map((_, i) => stepLesson(puzzle, method, i)) },
+  ];
+}
+export const courseLessons = (chapters: readonly CourseChapter[]) => chapters.flatMap((chapter) => chapter.lessons.map((lesson) => ({ chapter, lesson, key: `${chapter.id}:${lesson.id}` })));
+/** The course's progress with `index` as its lesson, and `done` among those finished when given. */
+export function goToLesson(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number, done?: string): CourseProgress {
+  return update(progress, puzzle, method, (entry) => ({ ...entry, lesson: index, done: done && !entry.done?.includes(done) ? [...(entry.done ?? []), done] : entry.done }));
+}
+

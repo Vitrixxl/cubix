@@ -4,7 +4,7 @@ import { caseDetail, casePlayItem, displayAlg, leftHandAlgs, moveCount, shortId 
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Route, Search, SquareCheck, Timer, Video, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, GraduationCap, ChevronLeft, ChevronRight, Filter, FlipHorizontal2, Grid3x3, LayoutGrid, PlayCircle, Printer, Route, Search, SquareCheck, Timer, Video, X } from "lucide-react";
 import { methodSets, store as s, type PlayItem } from "./store";
 import { METHODS, type SolvingMethod } from "../../src/shared/methods";
 import { algSetup, stepSets } from "../../src/client/lib/course";
@@ -26,6 +26,10 @@ import { Link } from "react-router";
 import { PrintDialog } from "./printSheet";
 import { pageUrl } from "./navigation";
 import { AssistedSolve } from "./AssistedSolve";
+import { CaseLessonFlow, MasteryMeter } from "./caseLesson";
+import { MethodCourse } from "./MethodCourse";
+import { KNOWN } from "../../src/client/lib/mastery";
+import { courseChapters, courseEntry, courseLessons } from "../../src/client/lib/course";
 import { assisted as solvable } from "../../src/client/lib/methodSolver";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 
@@ -145,10 +149,15 @@ function Catalog({ mobile }: { mobile: boolean }) {
         <div className="flex w-[min(19rem,32%)] shrink-0 flex-col gap-3">
           {/* The chosen method explained, and learned on the player's own cube (AssistedSolve). */}
           <div className="flex shrink-0 flex-col gap-2">
-            <Button action={"methods:" + (byMethod.chosen?.id ?? "")} icon={BookOpen} variant="secondary" className="justify-start">
-              {byMethod.chosen ? tr("Explain the method") : tr("Solving methods")}</Button>
+            {byMethod.chosen ? (
+              <ActionCard primary icon={GraduationCap} title={tr("Learn the method")} text={tr("{0} of {1} lessons", { 0: courseEntry(s.course, s.puzzle as PuzzleId, byMethod.chosen.id).done?.length ?? 0, 1: courseLessons(courseChapters(s.puzzle as PuzzleId, byMethod.chosen)).length })} onClick={run("course")} action="course" className="py-2.5" />
+            ) : (
+              <Button action="methods:" icon={BookOpen} variant="secondary" className="justify-start">
+                {tr("Solving methods")}</Button>
+            )}
             {byMethod.chosen && solvable(s.puzzle as PuzzleId, byMethod.chosen.id) && (
-              <ActionCard icon={Route} title={tr("Learn with my cube")} text={tr("Connected or painted")} onClick={run("assisted")} action="assisted" className="py-2.5" />
+              <Button action="assisted" icon={Route} variant="secondary" className="justify-start">
+                {tr("My cube")}</Button>
             )}
           </div>
           <Surface data-tour="algorithms" className="min-h-0 flex-1 gap-3 p-3 pt-4">
@@ -195,6 +204,7 @@ function Catalog({ mobile }: { mobile: boolean }) {
           {grid}
           {picked && <PickBar picked={picked} clear={() => setPicked(null)} />}
         </section>}
+        {byMethod.chosen && <MethodCourse />}
         {byMethod.chosen && <AssistedSolve method={byMethod.chosen.id} />}
       </div>
     </div>
@@ -591,7 +601,7 @@ export function CaseTile({
       <span className="flex max-w-full items-center">
         {marks && !small && (
           <span className="relative z-10 -my-1.5 -ml-1">
-            <LearnedMark id={c.id} learned={learned} touch={false} />
+            <LearnedMark id={c.id} learned={learned} level={s.level(c.id)} touch={false} />
           </span>
         )}
         {/* The search's results show the whole id, on two lines if need be: "CMLL Sune Left". */}
@@ -830,7 +840,9 @@ function CaseCard({ id }: { id: string }) {
     [chosenIndex, pick] = useState(order[0] ?? 0),
     picked = Math.min(chosenIndex, algs.length - 1),
     play = casePlayItem(c),
-    name = caseDetail(c);
+    name = caseDetail(c),
+    level = s.level(c.id),
+    [learning, setLearning] = useState(false);
   // On the algorithms page the arrows are links: a crawler follows them from one case to the next.
   const stepper = <Stepper action="caseStep" index={index} count={count} tips={caseTips()} to={s.caseDialog ? undefined : to} />;
   const size = phone ? 80 : 96,
@@ -852,11 +864,18 @@ function CaseCard({ id }: { id: string }) {
         <span>{tr("Setup")}</span>
         <Alg text={c.setup} size={14} className="text-foreground/80" />
       </div>
+      <MasteryMeter level={level} className="pt-1" />
     </div>
   );
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
-      <Button action="train" icon={Timer} variant="default" className={cn(phone && "flex-1")}>
+      {level < KNOWN && !!algs.length && (
+        <UiButton data-action="caseLesson:open" aria-pressed={learning} className={cn(phone && "flex-1")} onClick={() => setLearning(!learning)}>
+          <GraduationCap />
+          {tr("Learn")}
+        </UiButton>
+      )}
+      <Button action="train" icon={Timer} variant={level < KNOWN ? "secondary" : "default"} className={cn(phone && "flex-1")}>
         {tr("Train")}
       </Button>
       <LearnToggle action={"learn:" + c.id} learned={learned} className={cn(phone && "flex-1")} />
@@ -905,8 +924,10 @@ function CaseCard({ id }: { id: string }) {
             {who}
           </div>
           {actions}
-          {tabs}
-          {tab === "algorithms" ? (
+          {!learning && tabs}
+          {learning ? (
+            <CaseLessonFlow c={c} alg={algs[picked]} phone onClose={() => setLearning(false)} />
+          ) : tab === "algorithms" ? (
             <>
               {stage}
               {list}
@@ -928,8 +949,10 @@ function CaseCard({ id }: { id: string }) {
           {actions}
         </div>
       </header>
-      <div className="px-6 pb-3.5">{tabs}</div>
-      {tab === "algorithms" ? (
+      {!learning && <div className="px-6 pb-3.5">{tabs}</div>}
+      {learning ? (
+        <CaseLessonFlow c={c} alg={algs[picked]} phone={false} onClose={() => setLearning(false)} />
+      ) : tab === "algorithms" ? (
         <div className="grid min-h-0 flex-1 grid-cols-[27rem_minmax(0,1fr)] gap-4 px-5 pb-5">
           {/* Room for the rows' focus ring, which the scrolling would clip. */}
           <div className="-m-1 min-h-0 overflow-y-auto p-1 pr-2">{list}</div>

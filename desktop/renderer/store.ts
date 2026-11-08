@@ -1,5 +1,6 @@
 import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../../src/client/lib/appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
+import { KNOWN, masteryOf, usualTimes, type Mastery } from "../../src/client/lib/mastery";
 import { dueCases, nextRecognition, recognitionCases, recognitionTurn, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { resumedSession, type SessionSummary } from "../../src/client/lib/sessions";
@@ -135,6 +136,8 @@ export class Store {
   caseView: "algorithms" | "statistics" = "algorithms";
   /** The assisted solve of the 3×3 course shown is open (AssistedSolve). */
   assisted = false;
+  /** The method's course, open over the algorithms page. */
+  courseOpen = false;
   puzzle = "333";
   solveMode = "standard";
   scrambleType = "normal";
@@ -166,6 +169,8 @@ export class Store {
   learned = new Set<string>();
   /** The algorithm each learned case was learned with, when one was chosen. */
   learnedAlgs: Record<string, string[]> = {};
+  /** How far the cases not yet known have come (`mastery.ts`). */
+  stages: Record<string, number> = {};
   journey: Journey = {};
   private introducedAccount = "";
   introductionReady = false;
@@ -494,6 +499,27 @@ export class Store {
       this.recommendation = { key, value: recommend(this.cases(), this.learned, this.stats ?? [], this.puzzle === "333" ? (this.smartAnalysis?.methods?.[0]?.cases ?? []) : []) };
     return this.recommendation.value;
   }
+  /** Each set's usual time, and a case's rung on the ladder (`mastery.ts`). */
+  private usual?: { key: unknown[]; value: Map<string, number> };
+  level(id: string): Mastery {
+    const key = [this.stats, this.learned, this.puzzle];
+    if (!this.usual || key.some((v, i) => v !== this.usual!.key[i])) this.usual = { key, value: usualTimes(this.cases(), this.learned, this.stats ?? []) };
+    const c = this.find(id);
+    return masteryOf({ learned: this.learned.has(id), stage: this.stages[id], stat: this.stat(id), usual: c ? this.usual.value.get(c.set) : null });
+  }
+  /** The rung a case's lesson reached: known at the top, learned with the algorithm it was taught. */
+  async lessonReached(id: string, stage: number, alg: string) {
+    if (this.learned.has(id) || stage <= (this.stages[id] ?? 0)) return;
+    if (stage >= KNOWN) {
+      this.learned = new Set(this.learned).add(id);
+      this.learnedAlgs = { ...this.learnedAlgs, [id]: [alg] };
+      await call("setLearned", id, true, [alg]);
+    } else {
+      this.stages = { ...this.stages, [id]: stage };
+      await call("setLearned", id, false, null, stage);
+    }
+    await this.refresh();
+  }
   /** The learned cases due for review now (`dueCases`). */
   dueCases(): string[] { return dueCases(this.cases(), this.learned, this.stats ?? []); }
   /** The learned cases of the recommended picked, the whole sets and the cases picked by hand. */
@@ -571,6 +597,7 @@ export class Store {
       this.crossMoves = crossMovesFor(this.crossTarget, this.prefs["cubix.training.crossMoves"]);
       this.learned = new Set(v.learned);
       this.learnedAlgs = v.learnedAlgs ?? {};
+      this.stages = v.stages ?? {};
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
       const wcaTicket = takeWcaTicket();
@@ -780,6 +807,7 @@ export class Store {
       this.prefs["cubix.duels"] = v.duels;
       this.learned = new Set(v.learned);
       this.learnedAlgs = v.learnedAlgs ?? {};
+      this.stages = v.stages ?? {};
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.journey = v.journey ?? {};
       this.checkIntroduction();
@@ -1128,7 +1156,7 @@ export class Store {
       this.caseHistory = null;
       delete this.known.caseHistory;
     }
-    this.page = page; this.caseId = caseId; this.caseDialog = ""; this.assisted = false; this.profileMode = route.profileMode;
+    this.page = page; this.caseId = caseId; this.caseDialog = ""; this.assisted = false; this.courseOpen = false; this.profileMode = route.profileMode;
     this.trainingStep = route.trainingStep; this.learnMethod = method;
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
@@ -1814,6 +1842,9 @@ export class Store {
           break;
         case "assisted":
           this.assisted = arg !== "off";
+          break;
+        case "course":
+          this.courseOpen = arg !== "off";
           break;
         case "learnFinish": {
           const course = this.learning;

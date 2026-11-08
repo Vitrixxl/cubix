@@ -102,7 +102,7 @@ const PACE = 12;
  * start of its day; done badly, it goes back to the first box and is due again at once. An attempt before it is due
  * changes nothing. A case never trained is due.
  */
-export function caseDue(attempts: readonly { time: number | null; at: string }[]): string {
+export function reviewOf(attempts: readonly { time: number | null; at: string }[]): { due: string; box: number } {
   let box = 0, due = -Infinity;
   const recent: number[] = [];
   for (const { time, at } of attempts) {
@@ -118,8 +118,9 @@ export function caseDue(attempts: readonly { time: number | null; at: string }[]
     }
     if (time !== null) recent.splice(0, recent.push(time) - PACE);
   }
-  return new Date(Number.isFinite(due) ? due : 0).toISOString();
+  return { due: new Date(Number.isFinite(due) ? due : 0).toISOString(), box };
 }
+export const caseDue = (attempts: readonly { time: number | null; at: string }[]) => reviewOf(attempts).due;
 
 /** The learned cases due for review now (`caseDue`, never trained ones included), in catalogue order. */
 export function dueCases(cases: readonly PoolCase[], learned: ReadonlySet<string>, stats: readonly { caseId: string; dueAt?: string }[], now = Date.now()): string[] {

@@ -5,6 +5,7 @@ import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { eventInfo, eventOf, isPuzzle, puzzleInfo, type EventId, type PuzzleId, type ScrambleType, type SolveMode, scrambleTypesOf } from "../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, SolveDto, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
+import { masteryOf, usualTimes } from "../../src/client/lib/mastery";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
 import { coachingShown, pageUrl, readRoute } from "../../src/client/lib/route";
 import { API_ORIGIN, api, authToken, local } from "./api";
@@ -62,14 +63,14 @@ export type Page = Route["page"];
 export type Tab = "timer" | "learn" | "algorithms" | "challenges" | "social" | "me";
 export const TABS: readonly Tab[] = ["timer", "learn", "algorithms", "challenges", "social"];
 const TAB_OF: Record<Page, Tab> = {
-  playground: "timer", analysis: "timer", solve: "timer", learn: "learn", assisted: "learn", training: "learn", algorithms: "algorithms",
+  playground: "timer", analysis: "timer", solve: "timer", learn: "algorithms", assisted: "algorithms", training: "learn", algorithms: "algorithms",
   duel: "challenges", tournaments: "challenges", match: "challenges", daily: "challenges", wca: "challenges", community: "social", coaching: "social",
   profile: "me", settings: "me",
 };
 export const tabOf = (page: Page): Tab => TAB_OF[page];
 /** The page a section opens on the first time, and goes back to when its button is tapped again. */
 export const TAB_ROOT: Record<Tab, Route> = {
-  timer: { page: "playground" }, learn: { page: "learn" }, algorithms: { page: "algorithms" }, challenges: { page: "duel" }, social: { page: "community" }, me: { page: "profile" },
+  timer: { page: "playground" }, learn: { page: "training" }, algorithms: { page: "algorithms" }, challenges: { page: "duel" }, social: { page: "community" }, me: { page: "profile" },
 };
 /**
  * A page of a section, as its tab under the app bar shows it: its name, where it leads, and whether a route is in it;
@@ -83,10 +84,9 @@ export const SECTION_PAGES: Record<Tab, SectionPage[]> = {
     { id: "analysis", label: "Analysis", route: { page: "analysis" }, has: r => r.page === "analysis" },
   ],
   learn: [
-    { id: "learn", label: "Courses", route: { page: "learn" }, has: r => r.page === "learn" || r.page === "assisted" },
     { id: "training", label: "Training", route: { page: "training" }, has: r => r.page === "training" },
   ],
-  algorithms: [{ id: "algorithms", label: "Algorithms", route: { page: "algorithms" }, has: r => r.page === "algorithms" }],
+  algorithms: [{ id: "algorithms", label: "Algorithms", route: { page: "algorithms" }, has: r => r.page === "algorithms" || r.page === "learn" || r.page === "assisted" }],
   challenges: [
     { id: "duel", label: "Duel", route: { page: "duel" }, has: r => r.page === "duel" },
     { id: "tournaments", label: "Tournaments", route: { page: "tournaments" }, has: r => r.page === "tournaments" || r.page === "match" },
@@ -282,6 +282,13 @@ const steadyStats = steady<Map<string, CaseStatsDto>>((a, b) => a.size === b.siz
 }));
 /** Case IDs are unique across puzzles and sets; learning is independent of timed solves.
  * Marks live in the local-first workspace, so they sync across devices; writing toggles one case. */
+/** A case's rung on the ladder (`mastery.ts`), read afresh whenever the account's practice changes. */
+export const masteryAtom = atom(get => {
+  get(statsVersionAtom);
+  const learned = new Set(local.learned()), stages = local.stages(), catalogue = get(casesAtom), rows = local.read.stats(get(puzzleAtom), {}),
+    stats = new Map(rows.map(row => [row.caseId, row])), usual = usualTimes(catalogue, learned, rows), sets = new Map(catalogue.map(c => [c.id, c.set]));
+  return (id: string) => masteryOf({ learned: learned.has(id), stage: stages[id], stat: stats.get(id), usual: usual.get(sets.get(id) ?? "") });
+});
 export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return steadyLearned(local.learned()); }, (_get, _set, caseId: string) => {
   void api.setLearned(caseId, !local.learned().includes(caseId)).catch(() => { /* Reported by the sync indicator. */ });
 });

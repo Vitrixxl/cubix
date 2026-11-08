@@ -7,7 +7,7 @@ import { colorOf, cubeSize, FACES, slotsFor, type CubeState, type Face } from '.
  * and edges (`edges`), Roux's two blocks (`blocks`) or its first (`FB`, the left one), or Petrus's blocks (`2x2x2` at
  * the back left, `2x2x3` on the left).
  */
-export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'CMLL' | 'F2L' | 'F1L' | 'cross' | 'centres' | 'edges' | 'blocks' | 'FB' | '2x2x2' | '2x2x3';
+export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'CMLL' | 'F2L' | 'F1L' | 'cross' | 'centres' | 'edges' | 'corners' | 'blocks' | 'FB' | '2x2x2' | '2x2x3';
 // Fixed viewing references: blue front, red right, yellow top.
 // Softened to sit with the app's warm palette, same hue for each face.
 export const FACE_HEX: Record<Face, number> = {
@@ -80,6 +80,7 @@ export function stickerColors(final: CubeState, mask: CubeMask, held = false): n
       : mask === 'cross' && !center(origin) && (corner(origin) || height(origin) !== -(size - 1) / 2) ? GREY
       : mask === 'centres' && !center(origin) ? GREY
       : mask === 'edges' && corner(origin) ? GREY
+      : mask === 'corners' && !corner(origin) ? GREY
       : mask === 'blocks' && (originOnTop(origin) || Math.abs(slots[origin].p[0]) !== (size - 1) / 2) ? GREY
       : mask === 'FB' && (originOnTop(origin) || slots[origin].p[0] !== -(size - 1) / 2) ? GREY
       : (mask === '2x2x2' || mask === '2x2x3') && (originOnTop(origin) || slots[origin].p[0] === (size - 1) / 2 || (mask === '2x2x2' && slots[origin].p[2] === (size - 1) / 2)) ? GREY

@@ -1219,6 +1219,15 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if !learned {
 			algs = algs[:0]
 		}
+		// How far a case not yet known has come (mastery.ts); a known case has none. An older client sends none.
+		stage := int64(0)
+		if value := idx(body, "stage"); value != nil && !learned {
+			n, ok := asInt(value)
+			if !ok || n < 0 || n > 2 {
+				return nil, validation()
+			}
+			stage = n
+		}
 		known, _ := asArray(entry["algorithms"])
 		for _, alg := range algs {
 			found := false
@@ -1246,12 +1255,12 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		}
 		// Two statements rather than UPSERT: an UPSERT's conflict clause would override the
 		// INSERT OR REPLACE inside the sync journal trigger.
-		updated, err := db.Exec("UPDATE learned_cases SET learned=?,alg=?,algs=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?", learned, alg, list, uid, caseID)
+		updated, err := db.Exec("UPDATE learned_cases SET learned=?,alg=?,algs=?,stage=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?", learned, alg, list, stage, uid, caseID)
 		if err != nil {
 			return nil, err
 		}
 		if updated == 0 {
-			if _, err := db.Exec("INSERT INTO learned_cases(user_id,case_id,learned,alg,algs) VALUES(?,?,?,?,?)", uid, caseID, learned, alg, list); err != nil {
+			if _, err := db.Exec("INSERT INTO learned_cases(user_id,case_id,learned,alg,algs,stage) VALUES(?,?,?,?,?,?)", uid, caseID, learned, alg, list, stage); err != nil {
 				return nil, err
 			}
 		}

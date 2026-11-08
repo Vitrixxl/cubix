@@ -120,6 +120,8 @@ export interface LearnedCaseDto {
   algs?: string[];
   /** The first of them, for older clients. */
   alg?: string | null;
+  /** How far a case not yet known has come: 1 discovered, 2 guided (`mastery.ts`). */
+  stage?: number;
   updated_at: string;
 }
 
@@ -139,6 +141,8 @@ export interface CaseStatsDto {
   memo?: number | null;
   /** When the case is due for review (spaced repetition, `caseDue`); read on the device only. */
   dueAt?: string;
+  /** Its box of the spaced repetition, reviews passed in a row (`reviewOf`); read on the device only. */
+  box?: number;
 }
 
 export interface HistoryPoint {

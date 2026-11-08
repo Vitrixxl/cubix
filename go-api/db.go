@@ -236,6 +236,8 @@ func dbMigrate(db *Conn) error {
 			}
 			return db.ExecBatch("ALTER TABLE learned_cases ADD COLUMN algs TEXT; UPDATE learned_cases SET algs=json_array(alg) WHERE alg IS NOT NULL;")
 		},
+		// How far a case still being learned has come: discovered, then guided.
+		func() error { return addColumnIfMissing(db, "learned_cases", "stage", "INTEGER NOT NULL DEFAULT 0") },
 		// A coach may offer to move a session.
 		func() error { return addColumnIfMissing(db, "coach_bookings", "proposed_start", "INTEGER") },
 		func() error { return addColumnIfMissing(db, "coach_bookings", "proposed_end", "INTEGER") },

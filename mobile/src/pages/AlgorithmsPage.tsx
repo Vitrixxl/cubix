@@ -1,6 +1,7 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import {
+  GraduationCap,
   BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CirclePlay, FlipHorizontal2, Grid3x3, LayoutGrid, List, ListChecks, Plus, Search, SearchX, SlidersHorizontal, SquareCheckBig, Timer, Trash2, Video, X,
   type LucideIcon,
 } from "lucide-react-native";
@@ -25,6 +26,8 @@ import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from
 import { AppBar, PuzzleChip, PushedBar } from "../components/AppBar";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
+import { CaseLesson, MasteryMeter } from "../components/CaseLesson";
+import { KNOWN } from "../../../src/client/lib/mastery";
 import { Alg, Empty, Figure, HeadButton, MenuItem, MoreMenu, Numeric, SearchField, StatusMark } from "../components/layout";
 import { PuzzleIcon } from "../components/PuzzlePicker";
 import { Sheet, SheetInput, SheetScrollView } from "../components/Sheet";
@@ -36,7 +39,7 @@ import { casePlayItem, displayAlg, maskForStage, shortId } from "../lib/caseStat
 import { storage } from "../platform/storage";
 import {
   casesAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, leftHandAtom, ownAlgsAtom, perPuzzleAtom, puzzleAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom,
-  solveModeAtom, statsAtom, statsVersionAtom, type Route,
+  solveModeAtom, statsAtom, statsVersionAtom, masteryAtom, type Route,
 } from "../state";
 import type { OwnAlgs as OwnAlgsByCase } from "../../../src/client/lib/bld";
 import { said, tr } from "../../../src/client/i18n";
@@ -57,7 +60,7 @@ const searchScopeAtom = atom<"all" | "puzzle">("all");
 
 type Status = "learned" | "trained" | "new";
 const statusOf = (id: string, learned: ReadonlySet<string>, stats: Map<string, CaseStatsDto>): Status =>
-  learned.has(id) ? "learned" : stats.has(id) ? "trained" : "new";
+  learned.has(id) ? "learned" : stats.has(id) || local.stages()[id] ? "trained" : "new";
 const Mark = ({ status }: { status: Status }) => <StatusMark done={status === "learned"} current={status === "trained"} />;
 function useLearned() {
   const ids = useAtomValue(learnedCaseIdsAtom);
@@ -129,7 +132,7 @@ function Catalogue() {
   const learned = useLearned();
   const setRoute = useSetAtom(routeAtom), openGuides = useSetAtom(guidesAtom), setPuzzle = useSetAtom(puzzleAtom);
   const train = useTrain();
-  const [methods, setMethods] = useState(false), [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState(false);
   // The puzzle's methods that teach sets of the catalogue, and the one chosen (none: every set under its stage).
   const [methodId, setMethodId] = useAtom(algsMethodAtom);
   const methodChoices = useMemo(() => METHODS[puzzle].filter(m => m.steps.some(step => stepSets(step, sets, puzzle).length)), [puzzle, sets]);
@@ -224,7 +227,6 @@ function Catalogue() {
     <HeadButton icon={CircleHelp} label={tr("Algorithms guide")} onPress={() => openGuides("algorithms")} />
   </AppBar>;
   const sheets = <>
-    <MethodsSheet open={methods} onClose={() => setMethods(false)} />
     <Sheet open={picking} onClose={() => setPicking(false)} title={tr("Method")} contentClassName="gap-0.5 px-3">
       {[{ id: "all", label: tr("All") }, ...methodChoices.map(m => ({ id: m.id, label: said(m.name) }))].map(({ id, label }) => {
         const on = id === (method?.id ?? "all");
@@ -247,7 +249,7 @@ function Catalogue() {
         </View>
         <Progress learned={learnedTotal} trained={trainedTotal} total={cases.length} className="mx-1" />
         <View className="min-h-0 flex-1">{list}</View>
-        <Button variant="secondary" className="h-11 gap-2 rounded-2xl" accessibilityLabel={tr("Solving methods")} onPress={() => setMethods(true)}>
+        <Button variant="secondary" className="h-11 gap-2 rounded-2xl" accessibilityLabel={tr("Solving methods")} onPress={() => setRoute({ page: "learn" })}>
           <Icon as={BookOpen} size={16} className="text-secondary-foreground" /><Text>{tr("Methods")}</Text>
         </Button>
       </View>
@@ -267,7 +269,7 @@ function Catalogue() {
             <Text numberOfLines={1} className="text-lg font-extrabold tracking-[-0.02em]">{said(puzzleInfo(puzzle)?.label ?? puzzle)}</Text>
             <Text className="text-sm text-muted-foreground">{tr("{0} of {1} learned", { 0: learnedTotal, 1: cases.length })}</Text>
           </View>
-          <Pressable onPress={() => setMethods(true)} accessibilityRole="button" accessibilityLabel={tr("Solving methods")} className="h-10 flex-row items-center gap-2 rounded-full bg-primary/15 px-3.5 active:bg-primary/25">
+          <Pressable onPress={() => setRoute({ page: "learn" })} accessibilityRole="button" accessibilityLabel={tr("Solving methods")} className="h-10 flex-row items-center gap-2 rounded-full bg-primary/15 px-3.5 active:bg-primary/25">
             <Icon as={BookOpen} size={16} className="text-primary" />
             <Text className="text-sm font-bold text-primary">{tr("Methods")}</Text>
           </Pressable>
@@ -913,7 +915,8 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     if (item.own) save(chosen, on ? usedOwn.filter(a => a !== item.alg) : [...usedOwn, item.alg]);
     else save(on ? chosen.filter(a => a !== item.alg) : [...chosen, item.alg], usedOwn);
   };
-  const [drawer, setDrawer] = useState(false), [writing, setWriting] = useState(false);
+  const [drawer, setDrawer] = useState(false), [writing, setWriting] = useState(false), [learning, setLearning] = useState(false);
+  const level = useAtomValue(masteryAtom)(c.id);
   const addOwn = (alg: string) => {
     setOwnAll(all => ({ ...all, [c.id]: { algs: [...own.algs.filter(a => a !== alg), alg], used: [alg] } }));
     void api.setLearned(c.id, true, []).catch(() => {});
@@ -928,14 +931,18 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
       <Alg text={cube ? formatAlg(c.setup) : c.setup} size={15} selectable className="min-w-0 flex-1" />
     </View>
   </View>;
+  const ladder = <MasteryMeter level={level} className={cn("px-4 pt-3", tablet && "px-0 pt-0")} />;
   const actions = <View className={cn("flex-row gap-2 px-4 pt-3", tablet && "px-0 pt-0")}>
-    <Pressable onPress={onTrain} accessibilityRole="button" className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-primary active:bg-primary/85">
-      <Icon as={Timer} size={18} className="text-primary-foreground" /><Text className="text-base font-bold text-primary-foreground">{tr("Train")}</Text>
+    {level < KNOWN && current && !current.own && !current.mirrored ? <Pressable onPress={() => setLearning(v => !v)} accessibilityRole="button" accessibilityState={{ selected: learning }} className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-primary active:bg-primary/85">
+      <Icon as={GraduationCap} size={18} className="text-primary-foreground" /><Text className="text-base font-bold text-primary-foreground">{tr("Learn")}</Text>
+    </Pressable> : null}
+    <Pressable onPress={onTrain} accessibilityRole="button" className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl", level < KNOWN ? "bg-muted active:bg-muted/70" : "bg-primary active:bg-primary/85")}>
+      <Icon as={Timer} size={18} className={level < KNOWN ? "text-foreground" : "text-primary-foreground"} /><Text className={cn("text-base font-bold", level < KNOWN ? "text-foreground" : "text-primary-foreground")}>{tr("Train")}</Text>
     </Pressable>
     <Pressable onPress={() => toggleLearned(c.id)} accessibilityRole="switch" accessibilityState={{ checked: learned }}
       className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl", learned ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
       <Icon as={Check} size={18} className={learned ? "text-success" : "text-muted-foreground"} />
-      <Text className={cn("text-base font-bold", learned ? "text-success" : "text-muted-foreground")}>{tr("Learned")}</Text>
+      <Text numberOfLines={1} className={cn("text-base font-bold", learned ? "text-success" : "text-muted-foreground")}>{tr("I know it")}</Text>
     </Pressable>
   </View>;
   const tabs = <View className={cn("mt-2 flex-row gap-5 border-b border-border px-5", tablet && "mt-0 px-1")} accessibilityRole="tablist">
@@ -953,7 +960,8 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
       <Text className={cn("text-[15px] font-bold", left ? "text-primary" : "text-muted-foreground")}>{tr("Left hand")}</Text>
     </Pressable>}
   </View>;
-  const head = <>{ident}{actions}{tabs}</>;
+  const lesson = learning && current && !current.own && !current.mirrored ? <CaseLesson key={current.key} c={c} alg={{ alg: current.alg, pre_auf: current.entry?.pre_auf }} onClose={() => setLearning(false)} /> : null;
+  const head = <>{ident}{ladder}{actions}{!lesson && tabs}</>;
   const others = items.length - used.length;
   const addYours = <Pressable onPress={() => setWriting(true)} accessibilityRole="button" accessibilityLabel={tr("Add yours")} className="h-10 flex-row items-center gap-1.5 rounded-full px-2 active:bg-muted/50">
     <Icon as={Plus} size={16} className="text-muted-foreground" /><Text className="text-sm font-bold text-muted-foreground">{tr("Add")}</Text>
@@ -1032,12 +1040,12 @@ function CaseView({ c, onTrain, sheet = false }: { c: CaseDto; onTrain: () => vo
     </>;
   }
   if (sheet) return <>
-    <SheetScrollView contentContainerClassName="pb-4">{head}{tab === "algorithms" ? algorithms : times}</SheetScrollView>
+    <SheetScrollView contentContainerClassName="pb-4">{head}{lesson ?? (tab === "algorithms" ? algorithms : times)}</SheetScrollView>
     {sheets}
   </>;
   return <View className="min-h-0 flex-1">
     {head}
-    {tab === "algorithms" ? <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>{algorithms}</ScrollView> : times}
+    {lesson ? <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>{lesson}</ScrollView> : tab === "algorithms" ? <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>{algorithms}</ScrollView> : times}
     {sheets}
   </View>;
 }

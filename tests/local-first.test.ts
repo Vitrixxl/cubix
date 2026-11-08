@@ -19,7 +19,7 @@ class Storage {
 }
 const cleanup: (()=>void)[] = [];
 /** A case's summary as the server makes it: when it is due for review is worked out on the device only. */
-const served = ({ dueAt: _, ...summary }: CaseStatsDto) => summary;
+const served = ({ dueAt: _, box: __, ...summary }: CaseStatsDto) => summary;
 afterEach(() => cleanup.splice(0).forEach(fn => fn()));
 function setup() {
   const db = openDb(); const server = startApi(db.path);
@@ -413,6 +413,19 @@ test('niche training sessions, case statistics and modes survive guest import an
     expect(local.trainingSolves).toBe(1);expect(local.cases.map(c=>served(c.summary))).toEqual(server);
   }
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(puzzles.length*2);
+});
+
+test("how far a case's lesson has come follows the account, and is dropped once it is known",async () => {
+  const {remote} = setup();
+  const a = device(remote), b = device(remote);
+  await a.api.devLogin("stage_a"); await b.api.devLogin("stage_a"); await a.local.sync(); await b.local.sync();
+  await a.api.setLearned("PLL Aa",false,null,2);
+  expect(a.local.stages()).toEqual({"PLL Aa":2});
+  await a.local.sync(); await b.local.sync();
+  expect(b.local.stages()).toEqual({"PLL Aa":2});
+  await b.api.setLearned("PLL Aa",true,["x R' U R' D2 R U' R' D2 R2 x'"]); await b.local.sync(); await a.local.sync();
+  expect(a.local.stages()).toEqual({});
+  expect(a.local.learned()).toEqual(["PLL Aa"]);
 });
 
 test("learning marks are local for guests, imported on sign-in, synchronized between devices and migrated from the old preference",async () => {

@@ -21,7 +21,7 @@ import { clock } from "../../src/client/lib/duel";
 import { colours, type CatalogCase } from "../../src/client/lib/solveAnalysis";
 import { SmartCube, smartCube, stateToFacelets } from "../../src/client/lib/smartCube";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
-import { CubeScan, HoldNote, Notice, useSquare } from "./CubeScan";
+import { CubeScan, HoldNote, Notice, hex, useSquare } from "./CubeScan";
 import { LiveCube } from "./LiveCube";
 import { ViewButtons } from "./AlgPlayer";
 import { CubeView } from "../../src/client/lib/cubeView";
@@ -59,7 +59,7 @@ export function AssistedSolve({ method }: { method: string }) {
       aria-label={tr("Assisted solve")}
       className={cn(
         "flex min-h-0 flex-col bg-background motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
-        phone || !host ? "fixed inset-0 z-50 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" : "absolute inset-0 z-30",
+        phone || !host ? "fixed inset-0 z-50 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" : "absolute inset-0 z-40",
       )}
     >
       <Course.Provider value={course}>
@@ -204,7 +204,7 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
   return (
     <Page phase={0} back={() => void s.action("assisted:off")}>
       <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-3 md:gap-5">
-        <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("How does Qbix see your cube?")}</h2>
+        <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("Show Qbix your cube")}</h2>
         <div className={cn("grid min-h-0 gap-2.5 max-md:auto-rows-min md:w-full md:content-center md:justify-self-center md:gap-4", ways.length === 3 ? "md:max-w-5xl md:grid-cols-3" : "md:max-w-3xl md:grid-cols-2")}>
           {ways.map((way) => (
             <button key={way.id} type="button" data-action={way.action} disabled={"disabled" in way && way.disabled} onClick={way.onClick} className={cn(TILE, "group flex min-h-0 flex-col gap-3 p-3.5 md:gap-4 md:rounded-[26px] md:p-4")}>
@@ -342,6 +342,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
     { method, steps } = useContext(Course),
     link = useSyncExternalStore(cube.subscribe, () => cube.snapshot, () => cube.snapshot),
     [first] = useState(() => stepOf(method.id, cube.snapshot.state, steps.length)),
+    [plan] = useState(() => solveMethod(method.id, cube.snapshot.state, s.cases("333") as CatalogCase[])),
     [at, setAt] = useState(first ?? 0),
     [box, setBox] = useState<HTMLDivElement | null>(null),
     side = useSquare(box),
@@ -399,6 +400,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
     );
 
   const step = steps[at]!,
+    pieces = [...new Map((plan ?? []).filter((part) => part.step === at && part.piece).map((part) => [part.piece!.join(""), part.piece!])).values()],
     eyebrow = <span className="truncate text-[13px] font-bold text-primary">{tr("Step {0}", { 0: at + 1 })}</span>;
   return (
     <Page phase={2} skipped={!manual} back={leave}>
@@ -417,6 +419,18 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
                 </li>
               ))}
             </ol>
+          )}
+          {!!pieces.length && (
+            <div className="flex flex-col gap-1.5" aria-label={tr("Pieces to place")}>
+              <span className={SAY}>{tr("Pieces to place")}</span>
+              <ul className="flex flex-wrap gap-1.5">
+                {pieces.map((faces) => (
+                  <li key={faces.join("")} className="flex items-center gap-0.5 rounded-lg bg-muted p-1.5">
+                    {faces.map((face) => <i key={face} className="size-3.5 rounded-[3px]" style={{ background: hex(face) }} />)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {!manual && (
             <figure className="mt-auto flex flex-col items-center gap-1 rounded-[18px] bg-background px-3 py-3">

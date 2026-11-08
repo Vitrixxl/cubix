@@ -58,12 +58,15 @@ for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("
 }
 
 /** Every string of a data structure, but the fields that are notation, identifiers or addresses. */
-function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url", "train", "picture"])) {
+function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url", "train", "picture", "algSetup", "task"])) {
   if (typeof value === "string") return add(value);
   if (Array.isArray(value)) return value.forEach((v) => walk(v, skip));
   if (value && typeof value === "object") for (const [key, v] of Object.entries(value)) if (!skip.has(key)) walk(v, skip);
 }
 const { BLD_METHODS, METHODS } = await import("../src/shared/methods");
+const { BASICS, CONCEPTS } = await import("../src/shared/lessons");
+walk(BASICS);
+walk(CONCEPTS);
 walk(METHODS);
 walk(BLD_METHODS);
 const content = await import("../desktop/renderer/landing/content");

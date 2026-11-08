@@ -21,7 +21,7 @@ type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
 type Operation = { id: string; kind: "session" | "session-name" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; /** The mark of this written workspace, which its journal's entries carry (see `append`). */ base?: string; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
+interface Workspace { version: 1; /** The mark of this written workspace, which its journal's entries carry (see `append`). */ base?: string; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** How far the cases not yet learned have come (`mastery.ts`). */ stages?: Record<string, number>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
@@ -324,6 +324,8 @@ export function createLocalClient(options: {
           const algs = row.algs?.length ? row.algs : row.alg ? [row.alg] : [];
           workspace.learnedAlgs ??= {};
           if (row.learned && algs.length) workspace.learnedAlgs[row.case_id] = algs; else delete workspace.learnedAlgs[row.case_id];
+          workspace.stages ??= {};
+          if (row.stage && !row.learned) workspace.stages[row.case_id] = row.stage; else delete workspace.stages[row.case_id];
           whole = true;
         } else if (change.kind === "sessions") {
           const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
@@ -773,8 +775,8 @@ export function createLocalClient(options: {
       return order;
     }),
     learnedCases: async () => learnedIds(),
-    /** Learned or not; learned with `algs`, some of the case's algorithms, records them. */
-    setLearned: async (caseId: string, learned: boolean, algs?: string[] | null) => localMutation((workspace,id) => {
+    /** Learned or not; learned with `algs`, some of the case's algorithms, records them. `stage`: how far a case not learned has come. */
+    setLearned: async (caseId: string, learned: boolean, algs?: string[] | null, stage = 0) => localMutation((workspace,id) => {
       const known = cases.find(c => c.id === caseId);
       if (!known) throw new Error("Unknown case.");
       const chosen = learned ? [...new Set(algs ?? [])] : [];
@@ -782,7 +784,9 @@ export function createLocalClient(options: {
       workspace.learnedAlgs ??= {};
       if (learned) workspace.learned[caseId] = true; else delete workspace.learned[caseId];
       if (chosen.length) workspace.learnedAlgs[caseId] = chosen; else delete workspace.learnedAlgs[caseId];
-      operation(workspace,id,"learned",0,{ caseId, learned, ...(chosen.length ? { algs: chosen } : {}) });
+      workspace.stages ??= {};
+      if (stage && !learned) workspace.stages[caseId] = stage; else delete workspace.stages[caseId];
+      operation(workspace,id,"learned",0,{ caseId, learned, ...(chosen.length ? { algs: chosen } : {}), ...(stage && !learned ? { stage } : {}) });
       return { caseId, learned, algs: chosen };
     }),
     /** Per case, how many players learned it and with which algorithm; nothing for a guest or offline. */
@@ -824,6 +828,7 @@ export function createLocalClient(options: {
     /** Whether a guest's workspace holds times or learned cases, which signing in brings to the account. */
     guestData: () => current().isGuest && (Object.values(data().solves).some(s => !s.deleted) || learnedIds().length > 0),
     learnedAlgs: () => ({ ...data().learnedAlgs }),
+    stages: () => ({ ...data().stages }),
     learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: cursorChanged,

@@ -23,6 +23,7 @@
       learned INTEGER NOT NULL DEFAULT 1 CHECK(learned IN (0, 1)),
       alg TEXT,
       algs TEXT,
+      stage INTEGER NOT NULL DEFAULT 0 CHECK(stage BETWEEN 0 AND 2),
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE(user_id, case_id)
     );

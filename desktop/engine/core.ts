@@ -176,7 +176,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'init') void reserve.fill();
     // Today's daily scrambles, searched from the launch too: their page never waits on them.
     if (req.method === 'init') for (const event of DAILY_EVENTS) void daily(dailyDay(), event).catch(() => {});
-    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
+    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), stages: local.stages(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
       const trainingMode = q.page === 'training';
@@ -233,7 +233,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory', 'solves']), tokens: Record<string, number> = {};
       const values = await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise] as const));
       const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: readonly [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : 'added' in v ? [[key + 'Added', v.added]] : []; }));
-      return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
+      return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), stages: local.stages(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);

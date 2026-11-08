@@ -4,7 +4,7 @@ import { effective, best, bestAverage, mean, rollingAverages, solveResult } from
 import { cases } from "./catalog";
 import { sessionSummaries } from "../lib/sessions";
 import { memoMean } from "../lib/practiceSummary";
-import { caseDue } from "../lib/trainingPicks";
+import { reviewOf } from "../lib/trainingPicks";
 
 // ISO timestamps of one format order like their characters: a plain comparison, many times faster than localeCompare.
 export const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
@@ -16,11 +16,11 @@ const defaultScrambles = new Map(PUZZLES.map(p => [p.id, p.scrambles[0]]));
 function summary(caseId: string, solves: SolveDto[], times: (number | null)[], ao5: (number | null)[], ao12: (number | null)[]): CaseHistoryDto["summary"] {
   let worst: number | null = null;
   for (const time of times) if (time !== null) worst = worst === null ? time : Math.max(worst, time);
-  const memo = memoMean(solves);
+  const memo = memoMean(solves), review = reviewOf(solves.map((s, i) => ({ time: times[i] ?? null, at: s.created_at })));
   return { caseId, count: solves.length, best: best(times), worst, mean: mean(times), ...(memo !== null ? { memo } : {}),
     ao5: ao5.at(-1) ?? null, ao12: ao12.at(-1) ?? null, bestAo5: best(ao5), bestAo12: best(ao12), last: times.at(-1) ?? null, lastAt: solves.at(-1)?.created_at ?? null,
     // Cases only are reviewed: the timer's history has no due date.
-    ...(caseId === "playground" ? {} : { dueAt: caseDue(solves.map((s, i) => ({ time: times[i] ?? null, at: s.created_at }))) }) };
+    ...(caseId === "playground" ? {} : { dueAt: review.due, box: review.box }) };
 }
 
 /** A case attempt made during a smart cube solve (smartDigests.ts): `solveId` names the solve. */

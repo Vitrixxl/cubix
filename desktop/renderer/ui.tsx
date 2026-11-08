@@ -313,7 +313,7 @@ export function SolveActions({ solve, full = false, className }: { solve: { id: 
  * learned, a quiet dashed circle otherwise, clearer while the row (`group/row`) is hovered or focused. A click toggles
  * it without opening the row.
  */
-export function LearnedMark({ id, learned, touch = false, action = "learn:" + id }: { id: string; learned: boolean; touch?: boolean; action?: string }) {
+export function LearnedMark({ id, learned, level, touch = false, action = "learn:" + id }: { id: string; learned: boolean; level?: number; touch?: boolean; action?: string }) {
   const label = learned ? "Learned" : "Mark learned";
   return (
     <Tip content={label}>
@@ -332,7 +332,7 @@ export function LearnedMark({ id, learned, touch = false, action = "learn:" + id
           learned ? "text-success" : "text-muted-foreground/40 group-hover/row:text-muted-foreground/80 group-focus-within/row:text-muted-foreground/80 hover:text-foreground",
         )}
       >
-        <StatusMark state={learned ? "done" : "todo"} />
+        {level !== undefined && !learned && level > 0 ? <ProgressRing done={false} share={level / 5} /> : <StatusMark state={learned ? "done" : "todo"} />}
       </button>
     </Tip>
   );
@@ -389,7 +389,7 @@ export function LearnToggle({ action, learned, mastery = false, className }: { a
       tip={learned ? undefined : mastery ? tr("Mark as mastered") : tr("Mark learned")}
       className={cn("text-muted-foreground aria-pressed:bg-success/15 aria-pressed:text-success", className)}
     >
-      {mastery ? tr("Mastered") : tr("Learned")}
+      {mastery ? tr("Mastered") : tr("I know it")}
     </ActionToggle>
   );
 }

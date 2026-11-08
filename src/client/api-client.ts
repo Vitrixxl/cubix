@@ -49,7 +49,7 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     deleteAccount: () => request<{ ok: true }>("/account/delete", "POST", {}, undefined, true),
     /** The account's new username: 3–24 letters, numbers or underscores, no other account's. */
     setUsername: (username: string) => request<{ user: UserDto }>("/account/username", "POST", { username }),
-    setLearned: (caseId: string, learned: boolean, algs?: string[]) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}) }),
+    setLearned: (caseId: string, learned: boolean, algs?: string[], stage?: number) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}), ...(stage ? { stage } : {}) }),
     algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
     /** The app's socket (owned by src/client/live.ts): incremental account sync over it, durable uploads falling back
      * to HTTP after a disconnection, and every other live channel. */
