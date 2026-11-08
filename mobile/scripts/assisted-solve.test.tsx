@@ -27,7 +27,7 @@ mock.module("../src/platform/storage", () => ({ storage: {
   setItem: (key: string, value: string) => { stored.set(key, value); },
   removeItem: (key: string) => { stored.delete(key); },
 } }));
-mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
+mock.module("../src/api", () => ({ API_ORIGIN: "https://qbix.test", api: {}, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => [], read: { catalog: () => catalog, stats: () => [] },
 } }));
 mock.module("../src/scan/scan-html", () => ({ SCAN_HTML: "<html></html>" }));
@@ -79,34 +79,32 @@ async function paint(method: string, target: ReturnType<typeof colours>) {
   await act(() => button("Looks right")!.props.onPress());
   await layout();
 }
-/** Every turn of the plan said done, to the end. */
+/** Every step the cube still needs said done, to the end. */
 async function finish() {
-  let turns = 0;
-  while (button("Next") && turns < 500) { await act(() => button("Next")!.props.onPress()); turns++; }
-  return turns;
+  let steps = 0;
+  while (button("Step done") && steps < 20) { await act(() => button("Step done")!.props.onPress()); steps++; }
+  return steps;
 }
-const turnsOf = (method: string, target: ReturnType<typeof colours>) => solveMethod(method, scannedState(target), catalog.cases as any)!.reduce((sum, p) => sum + p.alg.split(" ").length, 0);
+const stepsOf = (method: string, target: ReturnType<typeof colours>) => new Set(solveMethod(method, scannedState(target), catalog.cases as any)!.map(p => p.step)).size;
 
-test("a cube painted by hand is planned, then solved turn by turn to the end", async () => {
+test("a cube painted by hand is planned, then solved step by step, never told the turns", async () => {
   const target = colours(applyAlg(solved(3), "R U2 F' L D2 B R' U F2 L'"));
   await paint("beginner", target);
   expect(shows("Step 1 · White cross")).toBe(true);
-  expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
-  // A turn made, then taken back.
-  await act(() => button("Next")!.props.onPress());
-  expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
-  await press("Previous turn");
-  expect(controls("Previous turn")[0]!.props.disabled).toBe(true);
-  // A step's lesson opens over the solve, from the part under way or any step across the top, and the solve stays where it was.
-  await act(() => button("Next")!.props.onPress());
+  expect(controls("Previous step")[0]!.props.disabled).toBe(true);
+  expect(controls("Done, next turn")).toHaveLength(0);
+  // A step done, then taken back.
+  await act(() => button("Step done")!.props.onPress());
+  expect(controls("Previous step")[0]!.props.disabled).toBe(false);
+  await press("Previous step");
+  expect(shows("Step 1 · White cross")).toBe(true);
+  // A step's lesson opens over the solve, and the solve stays where it was.
   await press("Review the lesson");
   expect(shows("lesson:0")).toBe(true);
   await press("Yellow cross · Lesson");
   expect(shows("lesson:3")).toBe(true);
   expect(shows("Step 1 · White cross")).toBe(true);
-  expect(controls("Previous turn")[0]!.props.disabled).toBe(false);
-  await press("Previous turn");
-  expect(await finish()).toBe(turnsOf("beginner", target));
+  expect(await finish()).toBe(stepsOf("beginner", target));
   expect(shows("Solved!")).toBe(true);
   expect(button("Again")).toBeDefined();
 });
@@ -115,14 +113,11 @@ test("another course plans with its own steps and opens their lessons", async ()
   const target = colours(applyAlg(solved(3), "F2 D' L B2 U R' F L2 D B' R2 U'"));
   await paint("roux", target);
   expect(shows("Step 1 · First block")).toBe(true);
-  // Roux's four steps across the top, CMLL's lesson from its tile.
   await press("CMLL · Lesson");
   expect(shows("lesson:2")).toBe(true);
   expect(controls("LSE · Lesson")).toHaveLength(1);
-  expect(await finish()).toBe(turnsOf("roux", target));
+  expect(await finish()).toBe(stepsOf("roux", target));
   expect(shows("Solved!")).toBe(true);
-  // The turns per step are Roux's.
-  expect(shows("LSE")).toBe(true);
 });
 
 test("a solved cube says so instead of planning", async () => {
