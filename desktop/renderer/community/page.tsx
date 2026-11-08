@@ -56,7 +56,7 @@ export function CommunityPage() {
   return (
     <div className={PAGE}>
       <div className="flex min-h-0 flex-1 gap-5">
-        {(!phone || !id) && <ConversationList id={id} onFriends={() => go(peopleUrl())} className={phone ? "w-full" : undefined} />}
+        {(!phone || !id) && <ConversationList id={id} className={phone ? "w-full" : undefined} />}
         {(!phone || id) && (
           <Surface className="relative min-w-0 flex-1 flex-row overflow-hidden">
             {current ? (

@@ -137,6 +137,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
     phone = usePhone(),
     hubbed = hub && !phone,
     [open, setOpen] = useState<"" | "friends" | "history">(""),
+    [challenged, setChallenged] = useState<string | null>(null),
     [adding, setAdding] = useState(false);
   const event = s.event(),
     seconds = (ms: number) => (ms / 1000).toFixed(1),
@@ -211,7 +212,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
                   {tr("Face off")}
                 </UiButton>
               )}
-              {tool(Send, "Challenge", "Challenge a friend", "duel:friends", () => setOpen("friends"), false)}
+              {tool(Send, "Challenge", "Challenge a friend", "duel:friends", () => (setChallenged(null), setOpen("friends")), false)}
             </div>
           </Surface>
           {/* The races played and the friends, each its own box under the duel's. */}
@@ -228,7 +229,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
             </Surface>
             <Surface className="min-h-0 gap-2.5 p-6">
               <PanelHead title={tr("Friends")} meta={community.me?.friends.length || undefined} />
-              <FriendList onChallenge={() => setOpen("friends")} onAdd={() => setAdding(true)} />
+              <FriendList onChallenge={(id) => (setChallenged(id), setOpen("friends"))} onAdd={() => setAdding(true)} />
             </Surface>
           </div>
         </div>
@@ -268,7 +269,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
         </Stage>
       )}
       <Modal open={open === "friends"} onOpenChange={(next) => !next && setOpen("")} title={tr("Challenge")} tall className="flex max-h-[min(40rem,90svh)] flex-col">
-        <Friends onAdd={() => (setOpen(""), setAdding(true))} onSent={() => setOpen("")} />
+        <Friends first={challenged} onAdd={() => (setOpen(""), setAdding(true))} onSent={() => setOpen("")} />
       </Modal>
       <Modal open={open === "history"} onOpenChange={(next) => !next && setOpen("")} title={tr("Races played")} tall className="flex max-h-[min(40rem,90svh)] flex-col">
         <Played />
@@ -279,7 +280,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
 }
 
 /** The friends on the hub, each a click from the challenge dialog; adding one last. */
-function FriendList({ onChallenge, onAdd }: { onChallenge: () => void; onAdd: () => void }) {
+function FriendList({ onChallenge, onAdd }: { onChallenge: (id: string) => void; onAdd: () => void }) {
   const signedIn = s.signedIn,
     friends = community.me?.friends;
   useEffect(() => {
@@ -300,7 +301,7 @@ function FriendList({ onChallenge, onAdd }: { onChallenge: () => void; onAdd: ()
         <div key={f.id} className="flex items-center gap-3 rounded-[14px] bg-muted px-3 py-2" data-friend={f.username}>
           <Avatar name={f.username} src={f.avatar} size={30} />
           <b className="min-w-0 flex-1 truncate text-sm font-bold">{f.username}</b>
-          <UiButton variant="secondary" onClick={onChallenge}>
+          <UiButton variant="secondary" onClick={() => onChallenge(f.id)}>
             {tr("Challenge")}
           </UiButton>
         </div>
@@ -317,12 +318,12 @@ function FriendList({ onChallenge, onAdd }: { onChallenge: () => void; onAdd: ()
  * The friends to challenge, found by name: their faces, the one picked outlined, adding one last; under them the
  * challenge to send (a battle on the puzzle chosen, first to three solves) and the link that adds the account as a friend.
  */
-function Friends({ onAdd, onSent }: { onAdd: () => void; onSent: () => void }) {
+function Friends({ first, onAdd, onSent }: { first?: string | null; onAdd: () => void; onSent: () => void }) {
   const signedIn = s.signedIn,
     me = community.me,
     [query, setQuery] = useState(""),
     list = (me?.friends ?? []).filter((f) => f.username.toLowerCase().includes(query.trim().toLowerCase())),
-    [picked, setPicked] = useState<string | null>(null),
+    [picked, setPicked] = useState<string | null>(first ?? null),
     [busy, setBusy] = useState(false),
     [copied, setCopied] = useState(false),
     friend = list.find((f) => f.id === picked),

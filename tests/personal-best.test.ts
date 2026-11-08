@@ -43,6 +43,6 @@ test("records are judged at the solve, ignoring later ones", () => {
 test("the message names every beaten record", () => {
   expect(recordMessage([])).toBeNull();
   expect(recordMessage(["single"])).toBe("New personal best: single!");
-  expect(recordMessage(["single", "ao5"])).toBe("New personal best: single and Ao5!");
-  expect(recordMessage(["single", "ao5", "ao12"])).toBe("New personal best: single, Ao5 and Ao12!");
+  expect(recordMessage(["single", "ao5"])).toBe("New personal best: single · Ao5!");
+  expect(recordMessage(["single", "ao5", "ao12"])).toBe("New personal best: single · Ao5 · Ao12!");
 });

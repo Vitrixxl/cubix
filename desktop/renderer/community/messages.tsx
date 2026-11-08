@@ -45,7 +45,7 @@ const FILTERS = [
  * The inbox: its title with the requests waiting, the friends and a new group; then the search, the filters (all,
  * unread, friends, groups), the groups the account is invited to as envelopes, and every conversation, the latest first.
  */
-export function ConversationList({ id, onFriends, className }: { id: number | null; onFriends: () => void; className?: string }) {
+export function ConversationList({ id, className }: { id: number | null; className?: string }) {
   useEffect(() => {
     void community.load("conversations");
   }, []);
@@ -65,11 +65,6 @@ export function ConversationList({ id, onFriends, className }: { id: number | nu
         <>
           <h1 className="mr-auto text-2xl font-extrabold tracking-[-0.02em]">{tr("Messages")}</h1>
           <Requests />
-          <Tip content={tr("Friends")}>
-            <Button variant="outline" size="icon" aria-label={tr("Friends")} onClick={onFriends} data-action="community:friends">
-              <UserPlus />
-            </Button>
-          </Tip>
           <NewGroupDialog
             trigger={
               <Tip content={tr("New group")}>

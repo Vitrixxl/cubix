@@ -220,6 +220,14 @@
 /* The floating surfaces (menus, context menus, selects, popovers): the popover's colour, opaque so the page never shows
    through, a hairline edge and a shadow warmed by the accent; they scale in briefly, at once when motion is reduced. */
 @layer components {
+  .pill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    transition: background-color 120ms;
+  }
   .menu-surface {
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) + 4px);
@@ -326,6 +334,46 @@ html.landing ::selection {
     from {
         opacity: 0;
         transform: translateY(1.25rem);
+    }
+}
+
+/* What moves in the app, always briefly and never in the way of a solve; with reduced motion only colour still changes. */
+@keyframes page-in {
+    from {
+        opacity: 0;
+        translate: 0 6px;
+    }
+}
+@keyframes solve-in {
+    from {
+        opacity: 0;
+        translate: 0 -8px;
+    }
+}
+/* A record: the accent of the hundredths floods the whole time, then ebbs. */
+@keyframes record-flood {
+    15%, 45% {
+        color: var(--primary);
+    }
+}
+@keyframes record-settle {
+    15% {
+        scale: 1.035;
+    }
+}
+.timer[data-record] .timer-digits,
+.timer[data-record] .timer-digits * {
+    animation: record-flood 1.1s ease-out;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .page-in {
+        animation: page-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .solve-in {
+        animation: solve-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .timer[data-record] .timer-digits {
+        animation: record-flood 1.1s ease-out, record-settle 620ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 }
 

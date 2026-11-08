@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { COACHING, pageUrl, readRoute, type AppRoute } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import { language, tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { PILL, said, useSlidingPill } from "./base";
 import { LevelBar } from "./xp";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { canInstall, install, onInstallChange } from "../../src/client/lib/pwaInstall";
@@ -303,7 +303,7 @@ export const Header = memo(function Header() {
               aria-keyshortcuts={first[2] || undefined}
               className={cn(
                 "relative rounded-xl px-2 py-2.5 text-[15px] font-semibold text-faint transition-colors hover:bg-card hover:text-foreground aria-[current=page]:text-foreground lg:px-4",
-                "after:absolute after:inset-x-2 after:bottom-0.5 after:h-[3px] after:rounded-full after:bg-primary after:opacity-0 aria-[current=page]:after:opacity-100 lg:after:inset-x-4",
+                "after:absolute after:inset-x-2 after:bottom-0.5 after:h-[3px] after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-300 after:ease-[cubic-bezier(0.16,1,0.3,1)] aria-[current=page]:after:scale-x-100 lg:after:inset-x-4",
                 FOCUS,
               )}
             >
@@ -350,12 +350,13 @@ const PAGE_ICONS: Record<string, LucideIcon> = {
 export const SectionBar = memo(function SectionBar() {
   useShell();
   const section = currentSection(),
-    here = currentPage();
+    here = currentPage(),
+    track = useSlidingPill<HTMLDivElement>(here, "[data-active]");
   if (!section || section.pages.length < 2) return null;
   return (
     <nav aria-label={said(section.label)} className={cn("mx-6 shrink-0 pb-1 lg:mx-9", FADE)}>
       <Tabs value={here}>
-        <TabsList>
+        <TabsList ref={track} className="isolate">
           {section.pages.map(([page, label, shortcut]) => {
             const I = PAGE_ICONS[page] ?? section.icon,
               n = waiting[page]?.() ?? 0;
@@ -369,7 +370,7 @@ export const SectionBar = memo(function SectionBar() {
                 aria-current={here === page ? "page" : undefined}
                 aria-keyshortcuts={shortcut || undefined}
                 title={shortcut ? `${tr(label)} · ${shortcut}` : undefined}
-                className="group/tab px-3.5"
+                className={cn(PILL, "group/tab px-3.5 data-active:bg-transparent! data-active:before:bg-accent")}
               >
                 <I className="group-data-active/tab:text-primary" />
                 {said(label)}

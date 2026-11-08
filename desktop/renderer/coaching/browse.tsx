@@ -601,7 +601,7 @@ export function Booking({ id, preset = null }: { id: string; preset?: number | n
           </button>
         ))}
       </div>
-      <Textarea id="booking-note" aria-label={tr("What would you like to work on?")} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={1} placeholder={tr("What you want to work on: your average, the step you struggle with… (optional)")} className="min-h-10 resize-none" />
+      <Textarea id="booking-note" aria-label={tr("What would you like to work on?")} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={1} placeholder={tr("What you want to work on (optional)")} className="min-h-10 resize-none" />
       <div className="mt-auto flex flex-col gap-3 rounded-[18px] bg-muted px-4 py-3.5" data-slot="booking-details">
         <p className={cn(NUMERIC, "text-[17px] leading-snug font-bold")}>
           {chosen ? (

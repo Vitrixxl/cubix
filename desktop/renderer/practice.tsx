@@ -925,6 +925,7 @@ export function Practice() {
               <section
                 className={cn("timer relative flex flex-1 touch-manipulation flex-col items-center justify-center select-none [container-type:size]", mobile ? (training ? "min-h-24" : "min-h-32") : "min-h-0")}
                 data-phase={timer.phase[0]!.toUpperCase() + timer.phase.slice(1)}
+                data-record={notice && !training ? "" : undefined}
               >
                 {live && (
                   <div ref={setLiveBox} className={cn("flex min-h-0 w-full flex-1 items-center justify-center", FADE)} data-no-timer>
@@ -1267,7 +1268,7 @@ function SessionBoard() {
             row={(_, i, measure) => {
               const v = s.solves[s.solves.length - 1 - i]!;
               return (
-                <div ref={measure} className="shrink-0">
+                <div ref={measure} className={cn("shrink-0", i === 0 && v.id === s.lastSolve && "solve-in")}>
                   <TimeRow solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={false} lang={lang} caption={tr(s.find(v.case_id)?.name ?? "")} />
                 </div>
               );
@@ -1608,7 +1609,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
             row={(_, i, measure) => {
               const v = s.solves[s.solves.length - 1 - i]!;
               return (
-                <div ref={measure} className="shrink-0">
+                <div ref={measure} className={cn("shrink-0", i === 0 && v.id === s.lastSolve && "solve-in")}>
                   <TimeRow solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={touch} lang={lang} />
                 </div>
               );

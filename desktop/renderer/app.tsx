@@ -1,4 +1,4 @@
-import { createElement, lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
+import { createElement, lazy, Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { catalogDetails, store as s, TIMES_OPEN_WIDTH } from "./store";
 import { language, onLanguage, preferred, setLanguage } from "../../src/client/i18n";
@@ -110,7 +110,7 @@ const FloatingCall = later(() => import("./coaching/floating"), (m) => m.Floatin
 const SharedSolve = later(() => import("./SolveView"), (m) => m.SharedSolve);
 function App() {
   useSyncExternalStore(s.subscribe, () => s.version, () => s.version);
-  const location = useLocation(), navigate = useNavigate();
+  const location = useLocation(), navigate = useNavigate(), frame = useRef<HTMLDivElement>(null), lastFrame = useRef("");
   const route = readRoute(location.pathname, location.search);
   useLayoutEffect(() => bindNavigation(navigate), [navigate]);
   useLayoutEffect(() => {
@@ -244,6 +244,11 @@ function App() {
         // The community is one page, a conversation opening in place; a tournament or a match is a page of its own.
         (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "") +
         (s.page === "community" && s.view.startsWith("people") ? ":people" : "");
+  // A page comes in when one is left for it, not when the app opens: the page written ahead of time stands where it is.
+  useLayoutEffect(() => {
+    if (lastFrame.current && lastFrame.current !== frameKey) frame.current?.classList.add("page-in");
+    if (s.ready) lastFrame.current = frameKey;
+  }, [frameKey, s.ready]);
   // On its way to the page under the sign-in dialog (above).
   if (asked !== null) return <AppSkeleton phone={mobile} />;
   if (s.ready && s.signedIn && !s.introductionReady) return <AppSkeleton phone={mobile} />;
@@ -275,7 +280,7 @@ function App() {
             {!s.ready ? (
               <PageFallback phone={mobile} />
             ) : (
-              <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col">
+              <div key={frameKey} ref={frame} className="absolute inset-0 flex min-h-0 flex-col">
                 <Suspense fallback={<PageFallback phone={mobile} />}>
                   <Shown />
                   {s.page === "training" && s.trainingStep === "setup" ? (

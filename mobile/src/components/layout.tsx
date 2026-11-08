@@ -1,5 +1,5 @@
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Search, X, type LucideIcon } from "lucide-react-native";
-import { Children, lazy, Suspense, useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { Children, lazy, Suspense, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { Animated, Platform, Pressable, TextInput, View, type ViewProps } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { useColors } from "../theme";
 import { useLayout } from "../hooks/useLayout";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { SLIDE } from "../hooks/useSlide";
 import { said, tr } from "../../../src/client/i18n";
 
 export type { Tone };
@@ -73,15 +75,31 @@ export function HeadButton({ icon, label, onPress, disabled, active, badge, prim
   </Pressable>;
 }
 
+/** The mark of the chosen one of `count` equal options, sliding along their row to the next one chosen. */
+export function SlidingPill({ index, count, className, children }: { index: number; count: number; className?: string; children: ReactNode }) {
+  const [width, setWidth] = useState(0), x = useRef(new Animated.Value(0)).current, placed = useRef(false), reduced = useReducedMotion(), cell = width / count;
+  useEffect(() => {
+    if (!cell || index < 0) return;
+    if (placed.current && !reduced) Animated.timing(x, { ...SLIDE, duration: 240, toValue: index * cell }).start();
+    else x.setValue(index * cell);
+    placed.current = true;
+  }, [index, cell, reduced, x]);
+  return <View pointerEvents="none" className={cn("absolute", className)} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
+    {cell > 0 && index >= 0 && <Animated.View style={{ width: cell, height: "100%", transform: [{ translateX: x }] }}>{children}</Animated.View>}
+  </View>;
+}
+
 /** Two or three parts of one page as a segmented control, the chosen part raised; `locked` ones are greyed but answer a tap. */
 export function Segmented<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; locked?: boolean; count?: number; accent?: boolean }[]; onChange: (id: T) => void; label: string; className?: string }) {
   // Each tab takes the track's whole height (44 px, a finger's reach), the chosen one raised on a pill drawn inside it.
   return <View accessibilityRole="tablist" accessibilityLabel={said(label)} className={cn("h-11 flex-row rounded-xl bg-muted px-1", className)}>
+    <SlidingPill index={options.findIndex(o => o.id === value)} count={options.length} className="inset-1">
+      <View className="h-full rounded-lg bg-background shadow-sm shadow-black/20" />
+    </SlidingPill>
     {options.map(o => {
       const on = o.id === value;
       return <Pressable key={o.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { if (!on) onChange(o.id); }}
         className={cn("flex-1 flex-row items-center justify-center gap-1", o.locked && "opacity-45")}>
-        {on ? <View className="absolute top-1 right-0 bottom-1 left-0 rounded-lg bg-background shadow-sm shadow-black/20" /> : null}
         <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("shrink text-sm", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{said(o.label)}</Text>
         {o.count ? <Numeric className={cn("text-xs font-bold", o.accent ? "text-primary" : "text-muted-foreground")}>{o.count}</Numeric> : null}
       </Pressable>;

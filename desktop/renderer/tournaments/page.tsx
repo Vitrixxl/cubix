@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Crown, FastForward, Flag, Play, Swords, Trophy, Users, X } from "lucide-react";
 import { store as s } from "../store";
-import { go, pageUrl } from "../navigation";
+import { go } from "../navigation";
 import { ask } from "../confirm";
 import { Avatar, Empty, FADE, ListSkeleton, NUMERIC, PAGE, PageHead, Surface, usePhone, useViewport } from "../ui";
 import { Back, day, relative, time } from "../coaching/parts";
@@ -90,9 +90,7 @@ function TournamentList() {
     [picked, setPicked] = useState<number | null>(null),
     scroller = useRef<HTMLDivElement>(null),
     shown = ordered.find((t) => t.id === picked) ?? mine ?? ordered.find((t) => t.status === "open") ?? ordered[0],
-    past = list?.filter(SECTIONS[2]![1]) ?? [],
-    // A desktop's way back to the Challenges' hub (duel.tsx), as the section has no tabs there.
-    hub = <Back to={pageUrl("duel")} />;
+    past = list?.filter(SECTIONS[2]![1]) ?? [];
   // ponytail: every past tournament drawn at once; a VirtualList in the dialog when they run to hundreds.
   const history = past.length > 0 && (
     <HistoryDialog action="tournaments:history">
@@ -146,12 +144,9 @@ function TournamentList() {
         <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "md:grid-cols-[320px_minmax(0,1fr)]", wide && "md:grid-cols-[340px_minmax(0,1fr)_320px]")}>
           <Surface className="gap-3.5 p-4 pt-5">
             {!phone && (
-              <div className="flex items-center gap-2">
-                {hub}
-                <PanelHead title="Tournaments" meta={list.length - past.length || undefined} className="min-w-0 flex-1 px-1">
-                  {history}
-                </PanelHead>
-              </div>
+              <PanelHead title="Tournaments" meta={list.length - past.length || undefined} className="px-1">
+                {history}
+              </PanelHead>
             )}
             {rows}
             {mine && (
@@ -211,9 +206,11 @@ function TournamentStage({ t }: { t: Tournament }) {
       lead={
         <div className="-mt-1 flex flex-wrap items-center justify-center gap-2">
           {t.registered && t.status === "open" && <RegisterButton t={t} />}
-          <Button variant="ghost" onClick={open} data-action="tournament:open">
-            {tr("Open")}
-          </Button>
+          {(t.myMatch || t.status === "open") && (
+            <Button variant="ghost" onClick={open} data-action="tournament:open">
+              {tr("Details")}
+            </Button>
+          )}
         </div>
       }
       figures={

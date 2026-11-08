@@ -223,7 +223,7 @@ function CasesBar() {
       <div className="flex min-w-0 items-baseline gap-2">
         <strong className={cn(NUMERIC, "text-3xl font-extrabold tracking-[-0.04em]")}>{pool.size}</strong>
         <span className="text-sm font-semibold text-faint">{tr(pool.size === 1 ? "case" : "cases")}</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-muted-foreground">{said(parts.join(" · "))}</span>
+        {parts.length > 1 && <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-muted-foreground">{said(parts.join(" · "))}</span>}
       </div>
       <div className="flex items-center justify-end gap-2">
         <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
@@ -620,23 +620,23 @@ function RecommendedRow({ r, scale, picked }: { r: Recommendation; scale: number
     why = recommendedWhy(r);
   return (
     <li>
-      <label className="grid cursor-pointer grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-2xl bg-muted px-3.5 py-2.5 transition-colors hover:bg-accent md:grid-cols-[auto_auto_minmax(0,1fr)_12.5rem]">
+      <label className="grid cursor-pointer grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-2xl bg-muted px-3.5 py-2.5 transition-colors hover:bg-accent xl:grid-cols-[auto_auto_minmax(0,1fr)_12.5rem]">
         <Checkbox checked={picked} onCheckedChange={() => void s.action("trainPick:" + r.id)} data-action={"trainPick:" + r.id} />
         <Diagram c={c} size={52} />
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="flex min-w-0 items-baseline gap-2">
-            <b className="truncate text-base font-extrabold">{tr(c.name)}</b>
-            <span className="truncate text-[13px] font-semibold text-faint">{tr(c.setLabel)} · {tr(c.group)}</span>
+            <b className="max-w-full shrink-0 truncate text-base font-extrabold">{tr(c.name)}</b>
+            <span className="min-w-0 truncate text-[13px] font-semibold text-faint">{tr(c.setLabel)} · {tr(c.group)}</span>
           </span>
-          <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 text-[13px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 font-semibold text-faint">
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 text-[13px] text-muted-foreground xl:flex-nowrap">
+            <span className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-faint">
               <Source className="size-3.5" aria-hidden="true" />
-              {r.source === "solves" ? tr("seen in {0} of your solves", { 0: r.count }) : tr("{0} in training", { 0: plural(r.count, "attempt") })}
+              <span className="xl:max-2xl:sr-only">{r.source === "solves" ? tr("seen in {0} of your solves", { 0: r.count }) : tr("{0} in training", { 0: plural(r.count, "attempt") })}</span>
             </span>
-            {why}
+            <span className="min-w-0 xl:truncate">{why}</span>
           </span>
         </span>
-        <span className="col-start-3 flex flex-col gap-1.5 md:col-start-4">
+        <span className="col-start-3 flex flex-col gap-1.5 xl:col-start-4">
           <span className="relative h-2 rounded-full bg-card" aria-hidden="true">
             <span className="absolute inset-y-0 left-0 rounded-full bg-destructive" style={{ width: (r.time / scale) * 100 + "%" }} />
             <span className="absolute -inset-y-1 w-0.5 rounded-full bg-foreground" style={{ left: (r.usual / scale) * 100 + "%" }} />

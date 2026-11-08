@@ -59,7 +59,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
       <PageHead title={tr("Analysis")} sub={[!phone && said(s.label("scrambles", analysedScramble())), meta].filter(Boolean).join(" · ")}>
         {a && !!a.latest.length && <LatestSolves latest={a.latest} />}
         {a && a.methods.length > 1 && (
-          <Segmented label="Method" value={method!.id} options={a.methods.map((m) => ({ id: m.id, label: m.id === "all" ? "All" : m.label, count: m.count }))} onChange={setMethod} />
+          <Segmented label="Method" value={method!.id} options={a.methods.filter((m) => m.count || m.id === method!.id).map((m) => ({ id: m.id, label: m.id === "all" ? "All" : m.label, count: m.count }))} onChange={setMethod} />
         )}
       </PageHead>
       {!a ? (
@@ -224,7 +224,7 @@ function CaseSheet({ tile, usual, step, className }: { tile?: Tile; usual: numbe
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className="truncate text-2xl font-extrabold tracking-[-0.03em]">{said(tile.name)}</h3>
           <span className="text-[13px] font-semibold text-muted-foreground">
-            {stage} · {c ? tr("seen {0} times in your solves", { 0: c.count }) : tr("never seen in your solves")}
+            {stage} · {c ? `${tr("seen {0} times in your solves", { 0: c.count })} · ${tr("{0} turns", { 0: c.turns.toFixed(1) })}` : tr("never seen in your solves")}
           </span>
           {c && Math.abs(delta) >= 50 && (
             <span className={cn(NUMERIC, "text-[13px] font-bold", delta > 0 ? "text-destructive" : "text-success")}>
@@ -252,7 +252,7 @@ function CaseSheet({ tile, usual, step, className }: { tile?: Tile; usual: numbe
           <StatCard label={tr("Mean")} value={`${seconds(c.duration)} s`} dot={DOT.accent} size="sm" className="bg-muted" />
           <StatCard label={tr("Best")} value={`${seconds(c.best)} s`} dot={DOT.good} size="sm" className="bg-muted" />
           <StatCard label={tr("Recognition")} value={`${seconds(c.recognition)} s`} dot={DOT.warning} size="sm" className="bg-muted" />
-          <StatCard label={`${tr("Execution")} · ${tr("{0} turns", { 0: c.turns.toFixed(1) })}`} value={`${seconds(c.execution)} s`} dot={DOT.lilac} size="sm" className="bg-muted" />
+          <StatCard label={tr("Execution")} value={`${seconds(c.execution)} s`} dot={DOT.lilac} size="sm" className="bg-muted" />
         </div>
       )}
       {alg && (
@@ -383,9 +383,7 @@ function Proposal({ suggestion: t }: { suggestion: TrainingSuggestion }) {
         <b className="min-w-0 flex-1 truncate text-sm" title={said(t.title)}>
           {said(t.title)}
         </b>
-        <Button action={action} icon={learn ? GraduationCap : Dumbbell} variant="secondary" className="shrink-0" tip={learn && cases ? tr("Only learned cases are trained") : undefined}>
-          {learn ? tr("Learn") : tr("Train")}
-        </Button>
+        <Button action={action} icon={learn ? GraduationCap : Dumbbell} variant="secondary" className="shrink-0" label={learn ? tr("Learn") : tr("Train")} tip={learn && cases ? tr("Only learned cases are trained") : learn ? tr("Learn") : tr("Train")} />
       </div>
       <span className="line-clamp-2 text-xs font-medium text-muted-foreground" title={said(t.detail)}>
         {said(t.detail)}

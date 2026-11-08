@@ -33,6 +33,8 @@ const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at
 /** Full-scramble solves only: partial-scramble drills (2-gen, last layer…) are not solves. */
 const fullScramble = (s: SolveDto) => !s.case_id && scrambleTypeOf(s) === "normal";
 const seconds = (n: number) => n >= 60 && n % 60 === 0 ? `${n / 60}:00` : String(n);
+/** A goal in a sentence: "5:00", or "45 s" when it reads as seconds alone. */
+const limit = (n: number) => seconds(n).includes(":") ? seconds(n) : `${n} s`;
 
 /** Counts up: `points` in order, the goal-th one unlocking it (with its solve, when a solve is what is counted). */
 function counter(id: string, title: string, description: string, category: AchievementDto["category"], group: string, unit: string, goal: number, points: { at: string; id?: number }[], puzzle?: PuzzleId): AchievementDto {
@@ -69,19 +71,19 @@ export function achievements(rows: SolveDto[], learned: readonly string[], { cas
     const series = (mode: string) => own.filter(s => fullScramble(s) && solveModeOf(s) === mode).map(s => ({ at: s.created_at, id: s.id, value: effective(s.time_ms, s.penalty) }));
     const standard = series("standard");
     for (const goal of SINGLE_GOALS[puzzle] ?? [])
-      out.push(timeGoal(msg("{0}:single:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0}", { 0: seconds(goal) }), msg("Solve {0} in under {1} seconds on a full scramble.", { 0: group, 1: seconds(goal) }), "speed", group, goal, standard, puzzle));
+      out.push(timeGoal(msg("{0}:single:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0}", { 0: seconds(goal) }), msg("Solve {0} in under {1} on a full scramble.", { 0: group, 1: limit(goal) }), "speed", group, goal, standard, puzzle));
     const ao5 = rollingAverages(standard.map(p => p.value), 5), averages = standard.map((point, i) => ({ ...point, value: ao5[i] ?? null }));
     for (const goal of AVERAGE_GOALS[puzzle] ?? [])
-      out.push(timeGoal(msg("{0}:ao5:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0} average", { 0: seconds(goal) }), msg("Average of 5 under {0} seconds on {1}.", { 0: seconds(goal), 1: group }), "average", group, goal, averages, puzzle));
+      out.push(timeGoal(msg("{0}:ao5:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0} average", { 0: seconds(goal) }), msg("Average of 5 under {0} on {1}.", { 0: limit(goal), 1: group }), "average", group, goal, averages, puzzle));
     if (puzzle === "333") {
       const oneHanded = series("one-handed");
       for (const goal of ONE_HANDED_GOALS)
-        out.push(timeGoal(`333:oh:${goal}`, msg("Sub-{0} one-handed", { 0: seconds(goal) }), msg("Solve 3×3 one-handed in under {0} seconds.", { 0: seconds(goal) }), "speed", group, goal, oneHanded, puzzle));
+        out.push(timeGoal(`333:oh:${goal}`, msg("Sub-{0} one-handed", { 0: seconds(goal) }), msg("Solve 3×3 one-handed in under {0}.", { 0: limit(goal) }), "speed", group, goal, oneHanded, puzzle));
       const blind = series("blindfolded");
       const successes = blind.filter(p => p.value !== null);
       out.push(counter("333:bld:first", msg("Blindfolded success"), msg("Complete a 3×3 blindfolded solve without a DNF."), "speed", group, "solve", 1, successes, puzzle));
       for (const goal of BLINDFOLDED_GOALS)
-        out.push(timeGoal(`333:bld:${goal}`, msg("Sub-{0} blindfolded", { 0: seconds(goal) }), msg("Solve 3×3 blindfolded, memorisation included, in under {0} seconds.", { 0: seconds(goal) }), "speed", group, goal, blind, puzzle));
+        out.push(timeGoal(`333:bld:${goal}`, msg("Sub-{0} blindfolded", { 0: seconds(goal) }), msg("Solve 3×3 blindfolded, memorisation included, in under {0}.", { 0: limit(goal) }), "speed", group, goal, blind, puzzle));
     }
     for (const goal of VOLUME_GOALS)
       out.push(counter(msg("{0}:solves:{1}", { 0: puzzle, 1: goal }), goal === 1 ? msg("First solve") : msg("{0} solves", { 0: goal.toLocaleString() }), goal === 1 ? msg("Record a first {0} time.", { 0: group }) : msg("Record {0} {1} times.", { 0: goal.toLocaleString(), 1: group }), "volume", group, "solves", goal, timed.map(s => ({ at: s.created_at, id: s.id })), puzzle));

@@ -2,7 +2,7 @@
  * The store-free half of the visual primitives: class names, figures, bars, headings and the viewport hooks. The app
  * reaches them through ui.tsx; the administration (admin/*), which has no store, imports them from here.
  */
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isPhone } from "../../src/client/lib/viewport";
 import { TONE_TEXT, type Tone } from "../../src/client/lib/tone";
 import { ChevronLeft, Ellipsis, Play, Search, Star, X, type LucideIcon } from "lucide-react";
@@ -84,7 +84,7 @@ export function StateMark({ tone = "", children, className }: { tone?: "" | "goo
 
 /** A large clickable card (a choice of method, of mode): its outline lights up under the pointer, chosen when pressed. */
 export const TILE = cn(
-  "rounded-[20px] bg-card text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-accent aria-checked:bg-accent",
+  "rounded-[20px] bg-card text-left transition-[background-color,scale] hover:bg-muted motion-safe:active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-accent aria-checked:bg-accent",
   FOCUS,
 );
 
@@ -228,7 +228,7 @@ export function keyed(hint: React.ReactNode) {
   return (
     <span>
       {before}
-      <kbd className="mx-1 rounded-md bg-muted px-2 py-0.5 font-sans font-bold text-foreground">{key}</kbd>
+      <kbd className={cn("ml-1 rounded-md bg-muted px-2 py-0.5 font-sans font-bold text-foreground", !/^[,.;:]/.test(after ?? "") && "mr-1")}>{key}</kbd>
       {after}
     </span>
   );
@@ -277,7 +277,7 @@ export function ActionCard({ icon: I, title, text, kbd, primary = false, pressed
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "flex min-w-0 items-center gap-3 rounded-xl px-4 py-3 text-left transition-[background-color,scale] motion-safe:active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50",
         primary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-card hover:bg-muted in-data-[slot=notice]:bg-muted in-data-[slot=notice]:hover:bg-accent",
         FOCUS,
         className,
@@ -543,6 +543,28 @@ export function Back({ onClick, label = "Back", action }: { onClick: () => void;
  * One choice among a few, side by side (a segmented control): the chosen one raised. Its counts follow the labels.
  * Bordered in a header.
  */
+/** The chosen option's tint, drawn on its `::before` under every label (`PILL`), so that it can leave its button. */
+export const PILL = "pill relative";
+
+/**
+ * On the track of a control whose options carry `PILL`: the tint slides over from the option chosen before, and takes
+ * its width. `chosen` selects the option in the track, `value` says when it changes.
+ */
+export function useSlidingPill<T extends HTMLElement>(value: unknown, chosen: string) {
+  const track = useRef<T>(null),
+    last = useRef<{ left: number; right: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const option = track.current?.querySelector<HTMLElement>(chosen),
+      was = last.current,
+      now = option ? { left: option.offsetLeft, right: option.offsetLeft + option.offsetWidth, top: option.offsetTop } : null;
+    last.current = now;
+    // Options wrapped on two lines have no path between them.
+    if (!option || !now || !was || was.top !== now.top || was.left === now.left || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    option.animate({ left: [`${was.left - now.left}px`, "0px"], right: [`${now.right - was.right}px`, "0px"] }, { duration: 240, easing: "cubic-bezier(0.16, 1, 0.3, 1)", pseudoElement: "::before" });
+  }, [value, chosen]);
+  return track;
+}
+
 export function Segmented({
   value,
   options,
@@ -559,8 +581,10 @@ export function Segmented({
   action?: string;
   className?: string;
 }) {
+  const track = useSlidingPill<HTMLDivElement>(value, '[aria-pressed="true"]');
   return (
     <ToggleGroup
+      ref={track}
       aria-label={said(label)}
       variant="default"
       size="segment"
@@ -569,7 +593,7 @@ export function Segmented({
       onValueChange={(next: string[]) => {
         if (next[0] && next[0] !== value) onChange(next[0]);
       }}
-      className={cn("max-w-full flex-wrap rounded-[12px] bg-card p-1 inset-ring-1 inset-ring-edge", className)}
+      className={cn("isolate max-w-full flex-wrap rounded-[12px] bg-card p-1 inset-ring-1 inset-ring-edge", className)}
     >
       {spaced(options.map((o) => {
         const item = (
@@ -577,7 +601,7 @@ export function Segmented({
             key={o.id}
             value={o.id}
             data-action={action != null ? action + o.id : undefined}
-            className="text-muted-foreground hover:bg-muted aria-pressed:bg-accent aria-pressed:text-foreground"
+            className={cn(PILL, "text-muted-foreground hover:bg-muted aria-pressed:bg-transparent! aria-pressed:text-foreground aria-pressed:before:bg-accent")}
           >
             {said(o.label)}
             {o.count != null && " "}
@@ -813,7 +837,7 @@ export function Digits({ text, phase, className, digitsRef, live, "data-tour": t
       ref={digitsRef}
       data-tour={tour}
       className={cn(
-        "flex items-baseline font-sans leading-[0.9] font-extrabold tracking-[-0.025em] tabular-nums whitespace-nowrap transition-[transform,color] duration-[380ms,80ms] ease-[cubic-bezier(0.2,0,0,1)] will-change-transform",
+        "timer-digits flex items-baseline font-sans leading-[0.9] font-extrabold tracking-[-0.025em] tabular-nums whitespace-nowrap transition-[transform,color] duration-[380ms,80ms] ease-[cubic-bezier(0.2,0,0,1)] will-change-transform",
         armed ? (phase === "holding" ? "text-destructive" : "text-success") : "text-timer-ink",
         className,
       )}

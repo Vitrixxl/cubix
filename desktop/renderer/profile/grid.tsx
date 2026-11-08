@@ -120,7 +120,7 @@ export function RecordGrid({ d }: { d: ProfileData }) {
       </div>
       {events.length ? (
         <div className="-mr-2 min-h-0 overflow-y-auto pr-2">
-          <div className="grid auto-rows-[3.6rem] grid-rows-[auto] gap-1.5" style={{ gridTemplateColumns: `minmax(0,8.5rem) repeat(${columns.length + Number(other)}, minmax(0,1fr))` }}>
+          <div className="grid auto-rows-[3.6rem] grid-rows-[auto] gap-1.5" style={{ gridTemplateColumns: `minmax(0,10.5rem) repeat(${columns.length + Number(other)}, minmax(0,1fr))` }}>
             <span />
             {[...columns.map((id) => s.label("scrambles", id)), ...(other ? ["Other"] : [])].map((label) => (
               <span key={label} className="line-clamp-2 self-end px-3 text-[11px] leading-tight font-extrabold tracking-[0.06em] text-muted-foreground uppercase">

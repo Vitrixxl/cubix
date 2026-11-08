@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, CalendarDays, History, Play, Undo2 } from "lucide-react";
 import { store as s } from "./store";
 import { call } from "./bridge";
-import { Alg, Back, Button, Empty, Modal, NUMERIC, PAGE, PageHead, Segmented, Surface, Tip, isPhone, useViewport } from "./ui";
+import { Alg, Button, Empty, Modal, NUMERIC, PAGE, PageHead, Segmented, Surface, Tip, isPhone, useViewport } from "./ui";
 import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, opens } from "./tournaments/format";
 import { cn } from "@/lib/utils";
 import { VirtualList } from "./virtual";
@@ -253,12 +253,6 @@ export function DailyPage() {
           }
           figures={!phone && <Figures board={loaded} place={place} />}
         >
-          {/* A desktop's way back to the Challenges' hub (duel.tsx), as the section has no tabs there. */}
-          {!phone && (
-            <div className="absolute top-0 left-0">
-              <Back action="nav:duel" />
-            </div>
-          )}
           <div className="flex flex-col items-center gap-2.5">
             {!phone && (
               <span className={KICKER}>

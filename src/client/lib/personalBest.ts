@@ -33,9 +33,8 @@ export function solveRecords(solves: readonly SolveDto[], solveId: number): Reco
 
 const LABELS: Record<RecordKind, string> = { single: "single", ao5: "Ao5", ao12: "Ao12" };
 
-/** "New personal best: single and Ao5!", or null when nothing was beaten. */
+/** "New personal best: single · Ao5!", or null when nothing was beaten. */
 export function recordMessage(kinds: readonly RecordKind[]): string | null {
   if (!kinds.length) return null;
-  const labels = kinds.map(kind => LABELS[kind]);
-  return msg("New personal best: {0}!", { 0: labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}` : labels[0] });
+  return msg("New personal best: {0}!", { 0: kinds.map(kind => LABELS[kind]).join(" · ") });
 }
