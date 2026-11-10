@@ -132,7 +132,7 @@ test("the Community tab lists the friends; a friend opens their page, with the s
   const store = createStore();
   store.set(routeAtom, { page: "community", view: "people" });
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
-  expect(all("SearchField")[0]!.props.placeholder).toBe("A friend, a group or a Qbix player");
+  expect(all("SearchField")[0]!.props.placeholder).toBe("Friends, groups…");
   expect(all("Segmented")[0]!.props.options.map((o: { id: string; count?: number }) => [o.id, o.count])).toEqual([["all", undefined], ["friends", 1], ["groups", 0], ["requests", 0]]);
   // Adding a friend is a button beside the search, opening its sheet with the link to share.
   const adding = () => all("Sheet").find(n => n.props.title === "Add a friend")!;

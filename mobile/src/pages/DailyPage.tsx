@@ -125,8 +125,8 @@ const eventLabel = (id: string) => tr(eventInfo(id)?.label ?? id);
 function Today() {
   const { wide } = useLayout(), event = useEvent(), [history, setHistory] = useState(false);
   return <View className="flex-1">
-    <AppBar>{wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}</AppBar>
-    <SectionTabs />
+    <AppBar />
+    <SectionTabs>{wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}</SectionTabs>
     <DayWithResults day={dailyDay()} />
     {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} description={eventLabel(event)}>
       <YourResults event={event} onPick={() => setHistory(false)} />

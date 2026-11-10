@@ -97,8 +97,8 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   // A tablet: the methods as large cards two by two, the course to carry on peeking above the bar, or docked beside them when wide.
   if (tablet) return <View className="flex-1 flex-row">
     <View className="min-w-0 flex-1">
-      <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></AppBar>
-      <SectionTabs />
+      <AppBar />
+      <SectionTabs><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></SectionTabs>
       <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3.5 px-7 pt-3.5 pb-3" showsVerticalScrollIndicator={false}>
         <View {...list} accessibilityLabel={tr("Methods")} className="gap-3.5">
           {pairs(rows).map(pair => <View key={pair[0]!.method.id} className="flex-row gap-3.5">
@@ -112,13 +112,14 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
     {wide && hero && <View className={DOCKED}><HeroCourse puzzle={puzzle} row={hero} onOpen={() => open(hero.method.id)} onStep={i => open(hero.method.id, i)} variant="side" /></View>}
   </View>;
   return <View className="flex-1">
-    <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></AppBar>
-    <SectionTabs />
+    <AppBar />
+    <SectionTabs><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></SectionTabs>
     <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3">
       {hero && <HeroCourse puzzle={puzzle} row={hero} onOpen={() => open(hero.method.id)} />}
       <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2 pb-3" showsVerticalScrollIndicator={false}>
         <View {...list} accessibilityLabel={tr("Methods")} className="gap-2">
-          {rows.map(row => <MethodTile key={row.method.id} row={row} onPress={() => open(row.method.id)} />)}
+          {/* The course to carry on is the card above: the list holds the others. */}
+          {rows.filter(row => row !== hero).map(row => <MethodTile key={row.method.id} row={row} onPress={() => open(row.method.id)} />)}
         </View>
       </ScrollView>
     </View>

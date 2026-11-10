@@ -1,4 +1,4 @@
-import { ChevronRight, MessagesSquare, PanelRight, SearchX, Swords, Trophy, UserPlus, UserRoundPlus } from "lucide-react-native";
+import { ChevronRight, MessagesSquare, SearchX, Swords, Trophy, UserPlus, UserRoundPlus } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { useSetAtom } from "jotai";
 import { AppState, FlatList, Pressable, View } from "react-native";
@@ -131,7 +131,6 @@ export function Chat({ conversation: c, onDetails, back }: { conversation: Conve
       title={title(c)}>
       {c.open ? <Pill icon={Swords} text={tr("Battle")} tone="soft" onPress={() => setBattle(true)} /> : null}
       {group && organiser(group.role) ? <Pill icon={Trophy} label={tr("Tournament")} onPress={() => setTournament(true)} /> : null}
-      <Pill icon={PanelRight} label={tr("Details")} onPress={onDetails} />
     </ChatHeader>
     <Agenda messages={messages} />
     <MessageList<Message> key={c.id} messages={messages} me={me()}

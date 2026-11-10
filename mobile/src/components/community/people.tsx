@@ -137,7 +137,7 @@ export function Contacts({ onAddFriend, onNewGroup, selected, aside = false }: {
   const { tablet } = useLayout();
   return <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-2", tablet && "px-7")}>
     <View className="flex-row items-center gap-2">
-      <SearchField value={query} onChangeText={setQuery} placeholder={tr("A friend, a group or a Qbix player")} className="min-w-0 flex-1" />
+      <SearchField value={query} onChangeText={setQuery} placeholder={tr("Friends, groups…")} className="min-w-0 flex-1" />
       <Pill icon={UserPlus} label={tr("Add a friend")} onPress={onAddFriend} className="size-11" />
       <Pill icon={Plus} text={tr("Group")} label={tr("New group")} tone="soft" onPress={onNewGroup} className="h-11" />
     </View>

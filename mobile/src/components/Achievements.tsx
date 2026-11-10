@@ -200,7 +200,7 @@ function Journal({ summary, initialGroup, head }: { summary: AchievementSummaryD
           ? <View className="flex-row items-baseline gap-2 pt-2.5"><Text className="text-[15px] font-extrabold capitalize">{row.title}</Text><Numeric className="text-xs text-muted-foreground">{plural(row.count, "achievement")}</Numeric></View>
           : <View className={cn("flex-row gap-1.5", tablet && "gap-2")}>
             {row.items.map(a => tablet ? <Line key={a.id} a={a} on={a.id === docked?.id} onPress={() => setPicked(a)} /> : <Tile key={a.id} a={a} onPress={() => setPicked(a)} />)}
-            {Array.from({ length: per - row.items.length }, (_, i) => <View key={i} className="flex-1" />)}
+            {Array.from({ length: per - row.items.length }, (_, i) => <View key={i} className="min-w-0 flex-1 px-1.5" />)}
           </View>} />
     </View>
   </View>;
@@ -225,9 +225,11 @@ const Tile = memo(function Tile({ a, onPress }: { a: A; onPress: () => void }) {
     className="min-w-0 flex-1 items-center gap-0.5 rounded-[18px] bg-background px-1.5 pt-3 pb-2.5 active:bg-muted">
     <View className="mb-1"><AchievementBadge a={a} size={48} /></View>
     <Text numberOfLines={2} className="text-center text-[13px] leading-tight font-bold">{said(a.title)}</Text>
-    <Numeric numberOfLines={1} className={cn("text-center text-xs font-semibold", a.unlocked ? "text-muted-foreground" : "text-primary")}>
-      {a.unlocked ? `${said(a.group)}${a.unlockedAt ? " · " + DAY.format(new Date(a.unlockedAt)) : ""}` : left(a)}
-    </Numeric>
+    {/* The puzzle, then the day (or what is left) on a line of its own: three tiles across leave no room for both on one. */}
+    <Text numberOfLines={1} className="text-center text-xs font-semibold text-muted-foreground">{said(a.group)}</Text>
+    {(!a.unlocked || a.unlockedAt) && <Numeric numberOfLines={1} className={cn("text-center text-xs font-semibold", a.unlocked ? "text-muted-foreground/70" : "text-primary")}>
+      {a.unlocked ? DAY.format(new Date(a.unlockedAt!)) : left(a)}
+    </Numeric>}
   </Pressable>;
 });
 

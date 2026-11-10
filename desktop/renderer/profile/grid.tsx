@@ -131,7 +131,7 @@ export function RecordGrid({ d }: { d: ProfileData }) {
               <div key={e.id} className="contents">
                 <span className="flex min-w-0 items-center gap-2.5 pr-2 text-sm font-extrabold">
                   <Icon name={"Puzzle" + e.id} size={22} />
-                  <span className="truncate">{said(e.label)}</span>
+                  <span className="line-clamp-2 leading-tight text-balance">{said(e.label)}</span>
                 </span>
                 {columns.map((type) => cell(e, type))}
                 {other && cell(e, null)}

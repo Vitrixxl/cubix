@@ -85,7 +85,7 @@ test("the seven ways of training, each with its count and one action; Train dril
   // No bar under the ways: each starts from its own card, without a line of settings.
   expect(pressable("Train")).toBeUndefined();
   expect(texts().some(t => t.includes("picked by hand") || t.includes(" s · "))).toBe(false);
-  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.children)).length).toBe(7);
+  expect(renderer.root.findAll((n: any) => n.type === "Chip" && ["Start", "Pick…"].includes(n.props.accessibilityLabel)).length).toBe(7);
   // The whole sets are chosen in their drawer.
   expect(chip("OLL, 3 learned")).toBeUndefined();
   await act(() => pressable("Whole sets")!.props.onPress());
@@ -108,7 +108,8 @@ test("a way's settings are in its drawer, and its Start runs it with them", asyn
   const seconds = renderer.root.findAll((n: any) => n.type === "Segmented" && n.props.label === "Seconds per case")[0]!;
   await act(() => seconds.props.onChange("5"));
   expect(texts()).not.toContain("OLL · 3 of 3 · 5 s · AUF");
-  await act(() => pressable("Start")!.props.onPress());
+  // The drawer's own Start, a button; the cards' are round chips of the same name.
+  await act(() => renderer.root.findAll((n: any) => n.type === "Button" && n.props.accessibilityLabel === "Start")[0]!.props.onPress());
   expect(store.get(recognitionSecondsAtom)).toBe(5);
   expect(store.get(trainingRunAtom)).toBe("recognition");
   expect(store.get(trainingStepAtom)).toBe("practice");

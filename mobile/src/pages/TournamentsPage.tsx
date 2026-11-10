@@ -101,11 +101,11 @@ function TournamentList() {
       onPress={() => t.id === unfolded && !sheet ? openUrl(tournamentUrl(t.id)) : setPicked(t.id)} />
     : <TournamentRow key={t.id} t={t} />;
   return <View className="flex-1">
-    <AppBar puzzle={false}>
+    <AppBar puzzle={false} />
+    <SectionTabs>
       {past.length ? <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} /> : null}
       <NewTournament />
-    </AppBar>
-    <SectionTabs />
+    </SectionTabs>
     <View className="min-h-0 flex-1 flex-row">
       <View className="min-h-0 flex-1">
         {!list ? <View accessibilityLabel={tr("Loading")} className="gap-2.5 px-4 pt-3">

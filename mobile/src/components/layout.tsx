@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Search, X, type LucideIcon } from "lucide-react-native";
 import { Children, lazy, Suspense, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { Animated, Platform, Pressable, TextInput, View, type ViewProps } from "react-native";
+import { Animated, Platform, Pressable, ScrollView, TextInput, View, type ViewProps } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -314,18 +314,21 @@ export function Fade({ hidden, children, className, style }: { hidden: boolean; 
   return <Animated.View pointerEvents={hidden ? "none" : "box-none"} className={className} style={[style, { opacity }]}>{children}</Animated.View>;
 }
 
-/** Small toggles in a row (a set, a filter), the chosen one filled; `count` in muted text after the label. */
-export function Choice<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (id: T) => void; label: string; className?: string }) {
-  return <View accessibilityRole="radiogroup" accessibilityLabel={said(label)} className={cn("flex-row flex-wrap gap-1", className)}>
-    {options.map(o => {
-      const on = o.id === value;
-      return <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(o.id)}
-        className={cn("h-11 flex-row items-center gap-1.5 rounded-lg px-2.5 active:bg-muted/50", on && "bg-muted")}>
-        <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{said(o.label)}</Text>
-        {o.count !== undefined ? <Numeric className="text-xs text-muted-foreground">{o.count}</Numeric> : null}
-      </Pressable>;
-    })}
-  </View>;
+/**
+ * Small toggles (a set, a filter), the chosen one filled; `count` in muted text after the label. On a page they hold on
+ * one row that scrolls sideways past the screen's edge; `wrap` (a sheet's settings) folds them onto as many rows as needed.
+ */
+export function Choice<T extends string>({ value, options, onChange, label, className, wrap }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (id: T) => void; label: string; className?: string; wrap?: boolean }) {
+  const chips = options.map(o => {
+    const on = o.id === value;
+    return <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(o.id)}
+      className={cn("h-11 flex-row items-center gap-1.5 rounded-lg px-2.5 active:bg-muted/50", on && "bg-muted")}>
+      <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{said(o.label)}</Text>
+      {o.count !== undefined ? <Numeric className="text-xs text-muted-foreground">{o.count}</Numeric> : null}
+    </Pressable>;
+  });
+  return wrap ? <View accessibilityRole="radiogroup" accessibilityLabel={said(label)} className={cn("flex-row flex-wrap gap-1", className)}>{chips}</View>
+    : <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="radiogroup" accessibilityLabel={said(label)} className={cn("shrink-0 grow-0", className)} contentContainerClassName="gap-1">{chips}</ScrollView>;
 }
 
 /** A search field: the magnifier, the text and a clear button once something is typed. */

@@ -1140,10 +1140,12 @@ function Verdict({ solve }: { solve: any }) {
 
 /** The previous or the next case of a training: one button, its name and its key (the key left out when short). */
 function CaseStep({ action, label, keys, disabled, short }: { action: string; label: string; keys: string; disabled: boolean; short: boolean }) {
+  // Going on is the one filled button; going back stays quiet beside it.
+  const next = action === "next";
   return (
-    <Button action={action} variant="default" disabled={disabled} tip={label + " · " + keys}>
+    <Button action={action} variant={next ? "default" : "secondary"} disabled={disabled} tip={label + " · " + keys}>
       {label}
-      {!short && <kbd className="rounded-md bg-black/10 px-1.5 text-xs">{keys}</kbd>}
+      {!short && <kbd className={cn("rounded-md px-1.5 text-xs", next ? "bg-black/10" : "bg-foreground/10")}>{keys}</kbd>}
     </Button>
   );
 }

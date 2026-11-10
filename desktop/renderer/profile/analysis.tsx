@@ -58,6 +58,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
     <>
       <PageHead title={tr("Analysis")} sub={[!phone && said(s.label("scrambles", analysedScramble())), meta].filter(Boolean).join(" · ")}>
         {a && !!a.latest.length && <LatestSolves latest={a.latest} />}
+        {/* A method never solved with is no choice: the row holds on the page's head. */}
         {a && a.methods.length > 1 && (
           <Segmented label="Method" value={method!.id} options={a.methods.filter((m) => m.count || m.id === method!.id).map((m) => ({ id: m.id, label: m.id === "all" ? "All" : m.label, count: m.count }))} onChange={setMethod} />
         )}
@@ -380,7 +381,7 @@ function Proposal({ suggestion: t }: { suggestion: TrainingSuggestion }) {
   return (
     <div className="flex min-w-0 flex-col gap-1 rounded-[20px] bg-card px-4 pt-3 pb-3">
       <div className="flex min-w-0 items-center gap-3">
-        <b className="min-w-0 flex-1 truncate text-sm" title={said(t.title)}>
+        <b className="line-clamp-2 min-w-0 flex-1 text-sm leading-tight" title={said(t.title)}>
           {said(t.title)}
         </b>
         <Button action={action} icon={learn ? GraduationCap : Dumbbell} variant="secondary" className="shrink-0" label={learn ? tr("Learn") : tr("Train")} tip={learn && cases ? tr("Only learned cases are trained") : learn ? tr("Learn") : tr("Train")} />

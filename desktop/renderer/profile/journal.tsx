@@ -376,7 +376,6 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
   const own = useRef<HTMLDivElement>(null),
     list = useRef<Virtualizer<HTMLElement, Element>>(null),
     [filter, setFilter] = useState<Filter>("all"),
-    event = s.event(s.profilePuzzle, s.profileSolveMode),
     days = useMemo(() => {
       const duels = new Map<string, ReturnType<typeof battles>>(),
         unlocked = new Map<string, any[]>();
@@ -494,11 +493,10 @@ export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean
                       <span
                         className={cn(
                           NUMERIC,
-                          "font-semibold text-muted-foreground",
+                          // On its own line under the count: the journal's head already names the puzzle.
+                          "mt-0.5 block text-sm font-semibold text-muted-foreground",
                         )}
                       >
-                        {" · "}
-                        {said(event.label)}{" "}
                         {tr("best {0}", { 0: fmtValue(day.best, s.profileSolveMode) })}
                         {day.ao5 != null &&
                           " · " + tr("Ao5 {0}", { 0: fmtTime(day.ao5) })}

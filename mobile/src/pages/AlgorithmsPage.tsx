@@ -222,7 +222,7 @@ function Catalogue() {
   </Pressable>;
   const list = <FlatList {...scroll} data={lines} keyExtractor={row => row.key} renderItem={renderRow} className="flex-1" contentContainerClassName={cn("px-4 pb-4", tablet && !wide && "px-7", wide && "px-0")}
     initialNumToRender={16} ListEmptyComponent={<Empty icon={LayoutGrid}>{tr("No cases for this puzzle.")}</Empty>} />;
-  const bar = <AppBar title={tr("Algorithms")}>
+  const bar = <AppBar>
     {methodChoices.length > 0 && <HeadButton icon={SlidersHorizontal} label={tr("Method")} badge={method ? 1 : undefined} onPress={() => setPicking(true)} />}
     <HeadButton icon={CircleHelp} label={tr("Algorithms guide")} onPress={() => openGuides("algorithms")} />
   </AppBar>;

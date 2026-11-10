@@ -15,7 +15,8 @@ export const Toasts = memo(function Toasts({ light }: { light: boolean }) {
     <Toaster
       position="top-right"
       theme={light ? "light" : "dark"}
-      offset={16}
+      // Under the header, whose navigation and menus stay in reach while a notice shows.
+      offset={{ top: 76, right: 16 }}
       mobileOffset={12}
       gap={10}
       // Each notice in full, one under the other, never folded into a pile.

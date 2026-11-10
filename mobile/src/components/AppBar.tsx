@@ -72,9 +72,10 @@ function ProfileButton() {
 
 /**
  * The pages of the current section as one row of underlined tabs, with what waits on each; none for a single page.
- * Pages of one group share a tab (Messages, Challenges), the group's own pages switching in a row under it.
+ * Pages of one group share a tab (Messages, Challenges), the group's own pages switching in a row under it. The page's
+ * own buttons (`children`) close the row: the bar above keeps its room for the section's name, never cut short.
  */
-export function SectionTabs() {
+export function SectionTabs({ children }: { children?: ReactNode }) {
   const route = useAtomValue(routeAtom), replace = useSetAtom(replaceRouteAtom);
   const waiting = useWaiting();
   const { tablet } = useLayout();
@@ -89,7 +90,8 @@ export function SectionTabs() {
   const count = (list: SectionPage[]) => list.reduce((n, page) => n + (waiting[page.id] ?? 0), 0);
   return <View className="border-b border-border">
     {/* Four tabs at most: they hold on one row. */}
-    <View className={cn("flex-row gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
+    <View className={cn("flex-row items-center pr-1.5", tablet && "pr-4")}>
+    <View className={cn("min-w-0 flex-1 flex-row gap-4 pl-5", tablet && "gap-6 pl-7")} accessibilityRole="tablist">
       {tabs.map(tab => {
         const here = tab === open, n = count(tab.pages);
         return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected: here }} onPress={() => { if (!here) replace(tab.pages[0]!.route); }}
@@ -99,6 +101,8 @@ export function SectionTabs() {
           {here && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
         </Pressable>;
       })}
+    </View>
+    {children}
     </View>
     {open && shown && open.pages.length > 1 && <Segmented label={tr(open.label)} value={shown.id} className={cn("mx-4 mb-2.5", tablet && "mx-7")}
       onChange={id => replace(open.pages.find(page => page.id === id)!.route)}

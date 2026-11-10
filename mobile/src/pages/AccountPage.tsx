@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChartLine, Check, Pencil, ChevronLeft, ChevronRight, Flame, Gauge, History, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, ChartLine, Check, Pencil, ChevronLeft, ChevronRight, Flame, Gauge, NotebookPen, Settings, SlidersHorizontal, Swords, Trophy, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { fmtResult, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
@@ -26,7 +26,7 @@ import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Bar, Empty, Figure, HeadButton, Numeric, Segmented, Surface } from "../components/layout";
 import { ProfileCaseDialog, TrainingProgress } from "../components/ProfileProgress";
 import { Caption as SheetCaption, EventPicker, PuzzleGrid } from "../components/PuzzlePicker";
-import { Sheet, SheetFlatList } from "../components/Sheet";
+import { Sheet } from "../components/Sheet";
 import { StatsScreen } from "../components/Stats";
 import { UserAvatar } from "../components/UserAvatar";
 import { WcaPill } from "../components/Wca";
@@ -268,9 +268,9 @@ function Moment({ icon, badge, tone, children }: { icon?: LucideIcon; badge?: Re
 /**
  * The journal of the active days, newest first, scrolling inside its card: each day's solves, the event's best single
  * and Ao5, then what happened (records, achievements, battles). Its head names the puzzle (the profile's own) and the
- * kind shown; both are chosen in a sheet, which also opens the activity. `sheet`: drawn in a phone's drawer, not a card.
+ * kind shown; both are chosen in a sheet, which also opens the activity.
  */
-function Journal({ d, onActivity, sheet = false }: { d: PreparedProfile | null; onActivity: () => void; sheet?: boolean }) {
+function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () => void }) {
   useDuel();
   const event = useProfileEvent();
   const summary = useAtomValue(profileAchievementsAtom);
@@ -287,8 +287,7 @@ function Journal({ d, onActivity, sheet = false }: { d: PreparedProfile | null; 
   const shown = days.filter(day => filter === "all" || (filter === "records" ? day.records.length : filter === "achievements" ? day.unlocked.length : day.duels.length));
   const today = dayKey(new Date());
   const kinds: { id: Filter; label: string }[] = [{ id: "all", label: tr("All") }, { id: "records", label: tr("Records") }, { id: "achievements", label: tr("Awards") }, { id: "battles", label: tr("Battles") }];
-  const List = (sheet ? SheetFlatList : FlatList) as typeof FlatList;
-  return <View className={sheet ? "min-h-0 shrink gap-2 px-5" : "min-h-0 flex-1 gap-2 rounded-3xl bg-card px-3.5 pt-3"}>
+  return <View className="min-h-0 flex-1 gap-2 rounded-3xl bg-card px-3.5 pt-3">
     <View className="flex-row items-center gap-2">
       <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
         <Text accessibilityRole="header" className="text-lg font-extrabold tracking-tight">{tr("Journal")}</Text>
@@ -307,10 +306,10 @@ function Journal({ d, onActivity, sheet = false }: { d: PreparedProfile | null; 
       </Button>
     </Sheet>
     {!d ? <View className="flex-1 gap-3 pt-2"><Skeleton className="h-16 rounded-xl" /><Skeleton className="h-16 rounded-xl" /></View>
-      : <List data={shown} keyExtractor={day => day.key} className={sheet ? undefined : "flex-1"} contentContainerClassName="pb-3" showsVerticalScrollIndicator={false}
+      : <FlatList data={shown} keyExtractor={day => day.key} className="flex-1" contentContainerClassName="pb-3" showsVerticalScrollIndicator={false}
         initialNumToRender={8} windowSize={7}
         ListEmptyComponent={<Empty icon={NotebookPen} title={days.length ? tr("Nothing of this kind yet.") : tr("Your practice days appear here.")} />}
-        renderItem={({ item: day, index }) => <View className={cn("flex-row gap-3 pt-3 pb-3.5", index > 0 && (sheet ? "border-t border-border" : "border-t border-background"))}>
+        renderItem={({ item: day, index }) => <View className={cn("flex-row gap-3 pt-3 pb-3.5", index > 0 && "border-t border-background")}>
           <View className="w-11 items-center">
             <Numeric className={cn("text-[28px] leading-8 font-extrabold tracking-[-0.04em]", day.key === today && "text-primary")}>{day.date.getDate()}</Numeric>
             <Text className="text-xs font-bold text-muted-foreground">{day.date.toLocaleDateString(locale(), { weekday: "short" })}</Text>
@@ -350,7 +349,6 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   const unlocked = useAtomValue(profileAchievementsAtom)?.unlocked ?? null;
   useDuel();
   const tour = useTourTarget("profile-overview");
-  const [history, setHistory] = useState(false);
   const shortcuts = (layout?: "row" | "grid") => <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} layout={layout} />;
   if (tablet && (wide || height < 900)) return <View className="flex-1 flex-row">
     <View className="min-w-0 flex-1">
@@ -396,17 +394,9 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
         <Records d={d} onStatistics={() => show("playground")} />
       </View>
       <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} />
-      {/* The journal is a history: behind this button, in a drawer. */}
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("History")} onPress={() => setHistory(true)}
-        className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-card px-3.5 active:bg-muted">
-        <Icon as={History} size={19} className="text-primary" />
-        <Text className="min-w-0 flex-1 text-[15px] font-bold">{tr("History")}</Text>
-        <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
-      </Pressable>
+      {/* The journal takes the rest of the screen, scrolling in its card. */}
+      <Journal d={d} onActivity={() => show("activity")} />
     </View>
-    <Sheet open={history} onClose={() => setHistory(false)} title={tr("Journal")} hideTitle contentClassName="gap-0 px-0">
-      <Journal sheet d={d} onActivity={() => { setHistory(false); show("activity"); }} />
-    </Sheet>
   </View>;
 }
 

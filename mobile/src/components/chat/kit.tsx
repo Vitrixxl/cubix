@@ -157,8 +157,8 @@ export function turnsOf<T extends Said>(messages: T[], me: string, event?: (m: T
 }
 
 /**
- * The messages as a transcript, newest at the bottom: split by day, each sender's run one turn with their name (in
- * their colour, "You" in the accent) and its time in the margin. A message `event` returns something for (a battle, a
+ * The messages as a transcript, newest at the bottom: split by day, each sender's run one turn under their name (in
+ * their colour, "You" in the accent, never cut short) and its time. A message `event` returns something for (a battle, a
  * tournament) is a turn of its own. `them` names the other party when the messages do not carry their sender. `bubble`
  * draws a message inside its turn; `children` come after (the ones on their way). The newest stays in view as messages
  * arrive and pictures take their height, unless the reader went up.
@@ -178,12 +178,12 @@ export function MessageList<T extends Said>({ messages, me, them, event, bubble,
         const first = t.items[0]!, name = t.mine ? tr("You") : first.sender?.username ?? them ?? "";
         return <Fragment key={first.id}>
           {t.day ? <DayDivider at={first.createdAt} /> : null}
-          <View className="flex-row items-start gap-2.5">
-            <View className="w-14 items-end pt-0.5">
-              <Text numberOfLines={1} className={cn("max-w-full text-[13px] font-extrabold", t.mine ? "text-primary" : personColour(name))}>{name}</Text>
+          <View className="gap-1">
+            <View className="flex-row items-baseline gap-2">
+              <Text numberOfLines={1} className={cn("min-w-0 shrink text-[13px] font-extrabold", t.mine ? "text-primary" : personColour(name))}>{name}</Text>
               <Numeric className="text-[11px] font-semibold text-muted-foreground">{time(first.createdAt)}</Numeric>
             </View>
-            <View className="min-w-0 flex-1 items-start gap-1.5">
+            <View className="min-w-0 items-start gap-1.5">
               {t.items.map((m, i) => <View key={m.id} className={cn("max-w-full min-w-0 items-start gap-1.5", t.event && "w-full")}>{t.event ?? bubble(m, t.mine, i === t.items.length - 1)}</View>)}
             </View>
           </View>
@@ -209,11 +209,11 @@ function DayDivider({ at }: { at: number }) {
   </View>;
 }
 
-/** Messages on their way: a name in the margin, a line of words. */
+/** Messages on their way: a name, a line of words under it. */
 function ChatSkeleton() {
   return <View className="gap-4" accessibilityLabel={tr("Loading")}>
-    {["w-2/5", "w-3/5", "w-1/4", "w-1/2", "w-2/5"].map((w, i) => <View key={i} className="flex-row gap-2.5">
-      <Skeleton className="h-4 w-14" />
+    {["w-2/5", "w-3/5", "w-1/4", "w-1/2", "w-2/5"].map((w, i) => <View key={i} className="gap-1.5">
+      <Skeleton className="h-3.5 w-16" />
       <Skeleton className={cn("h-5", w)} />
     </View>)}
   </View>;

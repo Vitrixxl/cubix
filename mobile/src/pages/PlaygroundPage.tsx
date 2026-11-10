@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, SlidersHorizontal, X } from "lucide-react-native";
+import { Bluetooth, CalendarDays, ChevronDown, Copy, Hourglass, Pencil, Plus, Shuffle, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { effective, fmtSolve, fmtTime, INSPECTIONS, TIME_ENTRIES } from "../../../src/client/lib/format";
@@ -313,15 +313,14 @@ function TimerSession({ context }: { context: PracticeContext }) {
     <View className="min-h-0 flex-1 flex-row">
       <View className="min-w-0 flex-1">
         <Fade hidden={running}>
-          <AppBar title={tr("Timer")} scramble>
-            {/* A phone's bar has room for one: the sheet of the settings (puzzle, scramble, entry, inspection); its calendar is in the times' sheet. */}
-            {tablet ? <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
-              : <HeadButton icon={SlidersHorizontal} label={tr("Puzzle and scramble")} onPress={() => openSheet("timer")} />}
+          <AppBar title={tr("Timer")} scramble />
+          <SectionTabs>
+            {/* A phone's settings (puzzle, scramble, entry, inspection) are the sheet its puzzle pill opens; its calendar is in the times' sheet. */}
+            {tablet && <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />}
             {/* The WCA inspection on the timer itself, on or off (spoken and on screen); its other ways in the sheet. */}
             {!tablet && !blind && !typing && !attemptMode(context.solveMode) && <HeadButton icon={Hourglass} label={tr("WCA inspection")} active={inspection !== "off"} onPress={() => setInspection(inspection === "off" ? lastInspection.current : "off")} />}
             <HeadButton icon={Bluetooth} label={tr("Devices")} onPress={() => openDevices(true)} />
-          </AppBar>
-          <SectionTabs />
+          </SectionTabs>
         </Fade>
         <View className={cn("min-h-0 flex-1 px-4 pt-2 pb-3", tablet && "px-7 pt-4")}>
           <Stage timer={timer} disabled={typing || fmc || !!mbld || !!timer.saveError} running={running} prompt={prompt} visual={visual}

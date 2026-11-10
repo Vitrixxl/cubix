@@ -106,10 +106,10 @@ const COFFEE = "https://buymeacoffee.com/vitrixxl";
 const glyph = (icon: LucideIcon, className = "text-muted-foreground") => <Icon as={icon} size={20} className={className} />;
 
 /** A setting whose value opens its choices in a sheet. */
-function ChoiceRow<T extends string>({ icon, title, value, options, onChange, first }: { icon: LucideIcon; title: string; value: T; options: { id: T; label: string }[]; onChange: (id: T) => void; first?: boolean }) {
+function ChoiceRow<T extends string>({ icon, title, detail, value, options, onChange, first }: { icon: LucideIcon; title: string; detail?: string; value: T; options: { id: T; label: string }[]; onChange: (id: T) => void; first?: boolean }) {
   const [open, setOpen] = useState(false);
   return <>
-    <ListRow first={first} iconNode={glyph(icon)} title={title} onPress={() => setOpen(true)}
+    <ListRow first={first} iconNode={glyph(icon)} title={title} detail={detail} onPress={() => setOpen(true)}
       trailing={<Text numberOfLines={1} className="max-w-36 text-sm text-muted-foreground">{said(options.find(o => o.id === value)?.label ?? value)}</Text>} />
     <Sheet open={open} onClose={() => setOpen(false)} title={title}>
       <SheetChoice label={title} columns={options.length > 4 ? 2 : 1} value={value} options={options} onChange={id => { setOpen(false); onChange(id); }} />
@@ -191,7 +191,7 @@ function Appearance() {
 function RemindersGroup() {
   const [on, setOn] = useAtom(remindersAtom);
   return <Group title={tr("Reminders")}>
-    <ChoiceRow first icon={Bell} title={tr("The cases to review and the streak at stake")} value={on ? "on" : "off"} onChange={id => setOn(id === "on")}
+    <ChoiceRow first icon={Bell} title={tr("Daily reminder")} detail={tr("The cases to review and the streak at stake")} value={on ? "on" : "off"} onChange={id => setOn(id === "on")}
       options={[{ id: "on", label: tr("Once a day") }, { id: "off", label: tr("Never") }]} />
   </Group>;
 }

@@ -310,8 +310,8 @@ html.landing #root {
 html.landing {
     scroll-behavior: smooth;
 }
-/* What the browser draws on it takes the theme's accent too: selected text. */
-html.landing ::selection {
+/* What the browser draws takes the theme's accent too, in the app as on the landing page: selected text. */
+::selection {
     background: color-mix(in oklch, var(--primary) 55%, transparent);
     color: var(--foreground);
 }

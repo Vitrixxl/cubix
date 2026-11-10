@@ -85,8 +85,8 @@ export function WcaPage({ view }: { view?: string }) {
 function Head({ tab, children }: { tab: WcaTab; children?: ReactNode }) {
   const replace = useSetAtom(replaceRouteAtom);
   return <>
-    <AppBar puzzle={false}>{children}</AppBar>
-    <SectionTabs />
+    <AppBar puzzle={false} />
+    <SectionTabs>{children}</SectionTabs>
     <Choice label="WCA" value={tab} options={WCA_TABS.map(t => ({ id: t.id, label: t.label }))} onChange={t => replace({ page: "wca", view: t })} className="px-2 pt-1" />
   </>;
 }

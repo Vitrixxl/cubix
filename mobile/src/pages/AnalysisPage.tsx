@@ -96,7 +96,8 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
   return <View className="min-h-0 flex-1 flex-row">
     <ScrollView className="flex-1" contentContainerClassName={cn("gap-2.5 px-4 pt-3 pb-4", tablet && "gap-3 px-7")}>
       <View className="flex-row flex-wrap gap-1.5">
-        {a.methods.map(m => {
+        {/* A method never solved with is no choice. */}
+        {a.methods.filter(m => m.count || m.id === method.id).map(m => {
           const on = m.id === method.id;
           return <Pressable key={m.id} onPress={() => onMethod(m.id)} accessibilityRole="radio" accessibilityState={{ checked: on }}
             className={cn("h-10 flex-row items-center gap-1.5 rounded-full px-3.5", on ? "bg-primary/15" : "bg-muted")}>
@@ -139,10 +140,11 @@ function Board({ a, method, pending, onMethod }: { a: SmartAnalysisDto; method: 
               {recognition > 0 && <View className="rounded-l-full" style={{ flex: recognition, backgroundColor: alpha(c, 45) }} />}
               <View className={cn("rounded-r-full", !recognition && "rounded-l-full")} style={{ flex: Math.max(step.duration - recognition, 1), backgroundColor: c }} />
             </View>
-            <Numeric numberOfLines={1} adjustsFontSizeToFit className="text-xs text-muted-foreground">
-              {delta != null && <Text className={cn("text-xs font-bold", delta <= -50 ? "text-success" : delta >= 50 ? "text-destructive" : "text-muted-foreground")}>{delta > 0 ? "+" : "−"}{seconds(Math.abs(delta))} · </Text>}
-              {Math.round(step.share * 100)} %
-            </Numeric>
+            {/* Its share of the solve, then the last solves against the usual one: faster in green, slower in red. */}
+            <View className="flex-row items-baseline justify-between gap-1">
+              <Numeric className="text-xs text-muted-foreground">{Math.round(step.share * 100)}%</Numeric>
+              {delta != null && Math.abs(delta) >= 50 && <Numeric numberOfLines={1} className={cn("text-xs font-bold", delta < 0 ? "text-success" : "text-destructive")}>{delta > 0 ? "+" : "−"}{seconds(Math.abs(delta))}</Numeric>}
+            </View>
           </View>;
         })}
       </View>

@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { Box, CircleHelp, History, LogOut, MessageSquare, Send, Swords, Trophy, UserPlus, Users, X, type LucideIcon } from "lucide-react-native";
+import { Box, CircleHelp, LogOut, MessageSquare, Send, Swords, Trophy, UserPlus, Users, X, type LucideIcon } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
@@ -33,7 +33,7 @@ import { tr } from "../../../src/client/i18n";
 
 /**
  * The web app's duel (desktop/renderer/duel.tsx) on a phone. The lobby is one card: racing an opponent at the player's
- * level, or challenging a friend in a sheet; adding a friend and the races played (History) are sheets from its head.
+ * level, or challenging a friend in a sheet; adding a friend is a sheet from its head, the races played fill the screen under the card.
  * The race is a screen of its own: the round and its scramble, both players over the strip of rounds, the opponent live
  * in a small card, the player's own timer large, the rounds as a butterfly under it; the chat and the result in sheets.
  * On a tablet the search is a stage of its own; on a wide screen the races played, and during a race the rounds and the
@@ -59,18 +59,20 @@ export function DuelPage() {
 
 function Lobby() {
   const { tablet, wide } = useLayout(), signedIn = useAtomValue(signedInAtom);
-  const [history, setHistory] = useState(false), [friends, setFriends] = useState(false), [adding, setAdding] = useState(false);
+  const [friends, setFriends] = useState(false), [adding, setAdding] = useState(false);
   return <View className="flex-1">
-    <AppBar>
+    <AppBar />
+    <SectionTabs>
       {signedIn ? <HeadButton icon={UserPlus} label={tr("Add a friend")} onPress={() => setAdding(true)} /> : null}
-      {wide ? null : <HeadButton icon={History} label={tr("History")} onPress={() => setHistory(true)} />}
-    </AppBar>
-    <SectionTabs />
+    </SectionTabs>
     <View className="min-h-0 flex-1 flex-row">
-      <View className={cn("min-h-0 flex-1 px-4 pt-3.5 pb-3", tablet && "px-7 pt-5")}><Play onChallenge={() => setFriends(true)} /></View>
+      {/* The races played fill the screen under the lobby's card; a wide screen docks them at the side. */}
+      <View className={cn("min-h-0 flex-1 gap-3 px-4 pt-3.5 pb-3", tablet && "gap-4 px-7 pt-5")}>
+        <Play onChallenge={() => setFriends(true)} />
+        {wide ? null : <Played />}
+      </View>
       {wide ? <SidePanel className="mt-5"><Played className="bg-transparent p-0" /></SidePanel> : null}
     </View>
-    {wide ? null : <Sheet open={history} onClose={() => setHistory(false)} title={tr("History")} hideTitle><Played sheet /></Sheet>}
     <FriendsSheet open={friends} onClose={() => setFriends(false)} onAdd={() => setAdding(true)} />
     {signedIn ? <AddFriendSheet open={adding} onClose={() => setAdding(false)} /> : null}
   </View>;
@@ -206,9 +208,9 @@ function FriendsSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => 
 const MARK_BG = { win: "bg-success/15", loss: "bg-destructive/15", draw: "bg-muted" } as const, MARK_TEXT = { win: "text-success", loss: "text-destructive", draw: "text-muted-foreground" } as const;
 /**
  * The races played on this device: the record, then each race newest first; the record opens them all in the profile.
- * In the History sheet (`sheet`) on a phone and a portrait tablet, docked in the side panel on a wide screen.
+ * Under the lobby's card on a phone and a portrait tablet, docked in the side panel on a wide screen.
  */
-function Played({ className, sheet = false }: { className?: string; sheet?: boolean }) {
+function Played({ className }: { className?: string }) {
   useDuel();
   const navigate = useSetAtom(routeAtom), { tablet } = useLayout();
   const list = battles(), count = (r: DuelRecord["result"]) => list.filter(b => b.result === r).length;
@@ -229,9 +231,9 @@ function Played({ className, sheet = false }: { className?: string; sheet?: bool
       </View>
     </View>;
   };
-  return <View className={cn(sheet ? "min-h-0 shrink gap-2" : "min-h-0 flex-1 gap-2 rounded-3xl bg-card px-4 pt-3.5 pb-1", className)}>
+  return <View className={cn("min-h-0 flex-1 gap-2 rounded-3xl bg-card px-4 pt-3.5 pb-1", className)}>
     <View className="flex-row items-center gap-2">
-      <Text accessibilityRole="header" className="flex-1 text-base font-bold">{sheet ? tr("History") : tr("Races played")}</Text>
+      <Text accessibilityRole="header" className="flex-1 text-base font-bold">{tr("Races played")}</Text>
       {list.length ? <Pressable accessibilityRole="button" accessibilityLabel={tr("All your races")} onPress={() => navigate({ page: "profile", mode: "duels" })} className="-my-2 h-11 justify-center">
         <Text className="text-xs text-muted-foreground">
           <Text className="text-xs font-bold text-success">{tr("{0} won", { 0: count("win") })}</Text> · <Text className="text-xs font-bold text-destructive">{tr("{0} lost", { 0: count("loss") })}</Text>
@@ -242,8 +244,7 @@ function Played({ className, sheet = false }: { className?: string; sheet?: bool
     {/* A tablet has the room for the record as a strip, the latest race last. */}
     {tablet && list.length ? <RoundStrip label={tr("Races played")} className="flex-none"
       cells={list.slice(0, 12).reverse().map(b => b.result === "win" ? "me" : b.result === "loss" ? "them" : "tie")} /> : null}
-    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className={sheet ? "flex-none p-4" : "p-2"} />
-      : sheet ? <SheetFlatList data={list} keyExtractor={b => b.id} contentContainerStyle={{ paddingBottom: 8 }} renderItem={row} />
+    {!list.length ? <Empty icon={Swords} title={tr("No race yet")} className="p-2">{tr("Face off, or challenge a friend: your races are kept here.")}</Empty>
       : <FlatList data={list} keyExtractor={b => b.id} className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: 8 }} renderItem={row} />}
   </View>;
 }

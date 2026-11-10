@@ -259,7 +259,7 @@ export function DailyPage() {
                 {dayLabel(day)} · {eventLabel(event)}
               </span>
             )}
-            <div className="max-w-[min(100%,40rem)] text-center font-semibold">{scramble ? <Alg text={scramble} size={phone ? 17 : 22} /> : <Skeleton className="h-7 w-[min(36rem,80vw)]" />}</div>
+            <div className="max-w-[min(100%,52rem)] text-center font-semibold">{scramble ? <Alg text={scramble} size={phone ? 17 : 22} className="justify-center" /> : <Skeleton className="h-7 w-[min(36rem,80vw)]" />}</div>
           </div>
           {action}
           <div className="flex flex-wrap justify-center gap-2">

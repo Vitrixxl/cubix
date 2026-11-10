@@ -85,7 +85,7 @@ export type TrainingData = ReturnType<typeof useTrainingData>;
 
 /**
  * A way of training as a card: its icon and name, its number large with what it counts, then its one action (Start,
- * or Pick…). A tap anywhere else opens its settings.
+ * or Pick…). A tap anywhere else opens its settings. `lit` marks the one that waits today (the revision due), alone.
  */
 function ModeCard({ icon, title, count, unit, lit = false, action, onPress, children, accessibilityLabel }: {
   icon: LucideIcon; title: string; count?: number | string; unit?: string; lit?: boolean; action?: ReactNode; onPress: () => void; children?: ReactNode; accessibilityLabel?: string;
@@ -105,9 +105,11 @@ function ModeCard({ icon, title, count, unit, lit = false, action, onPress, chil
   </Pressable>;
 }
 
-/** The start of a card's training, as a pill. */
-const StartChip = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
-  <Chip icon={Play} onPress={onPress} disabled={disabled}>{tr("Start")}</Chip>;
+/** A card's one action as a round button, its icon alone: the card's name and count keep the row, in every language. */
+const ROUND = "size-11 justify-center px-0";
+/** The start of a card's training. */
+const StartChip = ({ onPress, disabled, on }: { onPress: () => void; disabled?: boolean; /** The one to do today, in the accent. */ on?: boolean }) =>
+  <Chip icon={Play} on={on} onPress={onPress} disabled={disabled} accessibilityLabel="Start" className={ROUND} />;
 
 /** The start of a way of training at the bottom of its settings' drawer. */
 const StartButton = ({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) =>
@@ -166,14 +168,14 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
           {chosen && <Bar ratio={chosen.learned / chosen.all.length} />}
         </ModeCard>
         <ModeCard icon={CalendarClock} title={tr("Revision")} count={data.due.length} unit={tr("due today")} lit={data.due.length > 0}
-          onPress={() => data.due.length && start("review")} action={<StartChip onPress={() => start("review")} disabled={!data.due.length} />} />
+          onPress={() => data.due.length && start("review")} action={<StartChip on={data.due.length > 0} onPress={() => start("review")} disabled={!data.due.length} />} />
         <ModeCard icon={GraduationCap} title={tr("Learned")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
-          lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
+          onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}
           action={<StartChip onPress={() => start("cases")} disabled={!data.pool.length} />} />
-        <ModeCard icon={Layers} title={tr("Whole sets")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")} lit={data.whole > 0}
+        <ModeCard icon={Layers} title={tr("Whole sets")} count={data.whole} unit={tr(data.whole === 1 ? "case" : "cases")}
           onPress={() => setSettings("sets")} action={<StartChip onPress={() => start("cases")} disabled={!data.whole} />} />
         <ModeCard icon={Dices} title={tr("Free practice")} count={free} unit={tr(free === 1 ? "case" : "cases")} onPress={() => setPicking(true)}
-          action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>} />
+          action={free > 0 ? <StartChip onPress={() => start("free")} /> : <Chip icon={Search} onPress={() => setPicking(true)} accessibilityLabel="Pick…" className={ROUND} />} />
         {data.puzzle === "333" && <ModeCard icon={Brain} title={tr("BLD")} count={words} unit={tr(words === 1 ? "word" : "words")}
           onPress={() => start("bld")} action={<StartChip onPress={() => start("bld")} />} />}
       </View>;
@@ -182,7 +184,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     <Sheet open={settings === "cross"} onClose={() => setSettings("")} title={tr("Steps")} scroll>
       {/* The steps method by method, then the number of moves of one drawn by it. */}
       {CROSS_METHODS.map(method => <Field key={method} label={method}>
-        <Choice label={method} value={target} onChange={setTarget} options={CROSS_OPTIONS.filter(o => o.group === method)} />
+        <Choice wrap label={method} value={target} onChange={setTarget} options={CROSS_OPTIONS.filter(o => o.group === method)} />
       </Field>)}
       {!!moves && <Field label={tr("Moves")}>
         <Segmented label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))} />
@@ -191,7 +193,7 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     </Sheet>
     <Sheet open={settings === "recognition"} onClose={() => setSettings("")} title={tr("Recognition")} scroll>
       <Field label={tr("Set")}>
-        {chosen && <Choice label={tr("Set")} value={chosen.set.id} onChange={setRecognition} options={data.setRows.filter(x => x.learned).map(x => ({ id: x.set.id, label: ofSet(x) }))} />}
+        {chosen && <Choice wrap label={tr("Set")} value={chosen.set.id} onChange={setRecognition} options={data.setRows.filter(x => x.learned).map(x => ({ id: x.set.id, label: ofSet(x) }))} />}
       </Field>
       <Field label={tr("Seconds per case")}>
         <Segmented label={tr("Seconds per case")} value={String(seconds)} onChange={n => setSeconds(Number(n))} options={RECOGNITION_SECONDS.map(n => ({ id: String(n), label: tr("{0} s", { 0: n }) }))} />
@@ -215,8 +217,8 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
     <PickSheet open={picking} onClose={() => setPicking(false)} free onStart={free > 0 ? () => start("free") : undefined} />
   </>;
   const head = <>
-    <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("training")} /></AppBar>
-    <SectionTabs />
+    <AppBar />
+    <SectionTabs><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("training")} /></SectionTabs>
   </>;
   if (tablet) {
     // A tablet shows what Train drills (the recommended, two by two, and the cases picked by hand); the ways of training

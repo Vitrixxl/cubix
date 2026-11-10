@@ -77,9 +77,10 @@ export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onCh
       const on = e.id === value;
       return <View key={e.id} style={{ width: tablet ? `${100 / 7}%` : "25%", padding: 4 }}>
         <Pressable accessibilityRole="radio" accessibilityLabel={tr(e.label)} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
-          className={cn("h-16 items-center justify-center gap-1 rounded-[14px] px-1", on ? "border-[1.5px] border-primary bg-primary/20" : "bg-muted active:bg-muted/70", disabled && "opacity-50")}>
+          className={cn("h-[72px] items-center justify-center gap-1 rounded-[14px] px-1", on ? "border-[1.5px] border-primary bg-primary/20" : "bg-muted active:bg-muted/70", disabled && "opacity-50")}>
           <PuzzleIcon puzzle={e.id} size={22} color={on ? colors.primary : colors.mutedForeground} />
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} className={cn("text-center text-xs font-bold", on ? "text-primary" : "text-muted-foreground")}>{tr(e.label)}</Text>
+          {/* Two lines for the long names (3×3 One-Handed), never cut. */}
+          <Text numberOfLines={2} className={cn("text-center text-[11px] leading-[13px] font-bold", on ? "text-primary" : "text-muted-foreground")}>{tr(e.label)}</Text>
         </Pressable>
       </View>;
     })}
