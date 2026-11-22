@@ -599,8 +599,9 @@ impl Page {
     }
 
     fn stage<'a>(&'a self, ctx: &'a Ctx) -> Element<'a, Msg> {
-        let stage = mouse_area(container(self.centre(ctx)).width(Length::Fill).height(Length::Fill).center(Length::Fill)).on_press(Msg::Press).on_release(Msg::Release);
-        column![stage, self.foot(ctx)].height(Length::Fill).into()
+        // The whole stage is the timer's pad, its foot included (its buttons keep their own presses).
+        let stage = column![container(self.centre(ctx)).width(Length::Fill).height(Length::Fill).center(Length::Fill), self.foot(ctx)].height(Length::Fill);
+        mouse_area(stage).on_press(Msg::Press).on_release(Msg::Release).into()
     }
 
     fn scramble_text<'a>(&self, s: &str, alpha: f32, ctx: &Ctx) -> Element<'a, Msg> {
@@ -685,23 +686,16 @@ impl Page {
         let a = self.chrome();
         let phase = self.timer.phase;
         if self.multi.is_some() { return Space::new().height(0).into() }
-        let bld = Self::mode(ctx) == "blindfolded";
-        let (label, look) = match phase {
-            Phase::Holding => (t("Keep holding"), Look::Primary),
-            Phase::Ready => (t("Release"), Look::Ready),
-            Phase::Running if bld && self.memo.is_none() => (t("Memorised"), Look::Primary),
-            Phase::Running => (t("Stop"), Look::Primary),
-            _ => (t("Start"), Look::Primary),
-        };
-        let go = press(look, tx(label, 18.5, 650, SHEET)).height(60).width(if ctx.phone { Length::Fill } else { Length::Fixed(248.0) }).on_hold(Msg::Press, Msg::Release);
         let hint = match phase {
+            Phase::Inspecting if ctx.phone => t("Inspection · hold to start"),
             Phase::Inspecting => t("Inspection · hold Space to start"),
             Phase::Holding => t("Keep holding…"),
             Phase::Ready => t("Release to start"),
+            Phase::Running if ctx.phone => t("Tap to stop"),
             Phase::Running => t("Any key to stop"),
             _ if self.timer.inspection => t("Space starts the inspection"),
-            _ if ctx.phone => t("or hold anywhere"),
-            _ => t("or hold Space"),
+            _ if ctx.phone => t("Hold, then release to start"),
+            _ => t("Hold Space, release to start"),
         };
         let mut line = row![tx(hint, 13.5, 500, fade(INK3, a))].spacing(10).align_y(Alignment::Center);
         line = line.push(press(Look::Ghost, row![icon(icon::REFRESH, 15.0, fade(INK3, a)), tx(t("New scramble"), 13.5, 550, fade(INK3, a))].spacing(6).align_y(Alignment::Center)).height(30).padding([0, 12]).opacity(a).on_press_maybe((a > 0.5).then_some(Msg::Next)));
@@ -711,9 +705,7 @@ impl Page {
         if matches!(phase, Phase::Idle | Phase::Stopped) && !ctx.phone {
             line = line.push(ui::field(&t("Type a time"), &self.typed, Msg::Typed).on_submit(Msg::SaveTyped).width(130).padding([5, 12]).size(13.5));
         }
-        let f = self.focus.value;
-        let go = float(go).scale(1.0 - 0.04 * f).translate(move |_, _| Vector::new(0.0, 6.0 * f));
-        column![go, line].spacing(12).align_x(Alignment::Center).width(Length::Fill).into()
+        container(line).center_x(Length::Fill).padding(Padding { bottom: 6.0, ..Padding::ZERO }).into()
     }
 
     /// Fewest Moves: an hour to find the shortest solution, written then counted.

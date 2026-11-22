@@ -1,7 +1,7 @@
 //! The frame every page sits in. On the desktop: the rail on the left, the sheet in the middle, the drawer on the
 //! right. On a phone: the sheet, the tab bar under it, the drawer rising from the bottom. Places never change: the
 //! title at the top left, the puzzle at the top right, the main action at the bottom in the middle.
-use crate::glass::{Backdrop, glass};
+use crate::glass::{Backdrop, Material, glass};
 use crate::icon::{self, icon};
 use crate::page::{Drawer, View};
 use crate::press::{Look, press};
@@ -79,25 +79,16 @@ pub fn frame<'a, M: Clone + 'a>(f: Frame<'a, M>) -> Element<'a, M> {
         }
         let head = column![row![avatar(36.0), ui::tx(title, 25.0, 700, fade(INK, a)), Space::new().width(Length::Fill), tools_row].spacing(10).align_y(Alignment::Center).height(44), scrollable(tabs_el).direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::hidden()))].spacing(10);
         let sheet = glass(SHEET_GLASS, column![head, body].spacing(8).height(Length::Fill)).padding(Padding { top: 16.0, right: 16.0, bottom: 18.0, left: 16.0 }).width(Length::Fill).height(Length::Fill);
-        // The bar lies flush with the screen's edges under a hairline (mobile/src/components/TabBar.tsx): the current
-        // section in full ink, a short line in the accent hanging from the hairline over its icon.
+        // The sections float under the sheet in a capsule of the same glass, the current one on a lens, as on the rail.
         let bar = row(MAIN.iter().map(|&(s, g, name)| {
             let on = section == s;
-            let line = container(Space::new()).width(32).height(3).style(move |_| container::Style {
-                background: on.then(|| fade(ACC, a).into()),
-                border: iced::border::rounded(iced::border::Radius::default().bottom(2.0)),
-                ..Default::default()
-            });
-            let cell = column![line, Space::new().height(Length::Fill), icon(g, 22.0, fade(if on { INK } else { INK3 }, a)), tx(t(name), 11.0, if on { 800 } else { 600 }, fade(if on { INK } else { INK3 }, a)), Space::new().height(Length::Fill)]
-                .spacing(4)
-                .align_x(Alignment::Center);
-            press(Look::Ghost, cell).width(Length::Fill).height(56).padding(0).on_press(go(s)).into()
+            let cell = column![icon(g, 21.0, fade(if on { ACC } else { INK2 }, a)), tx(t(name), 10.5, if on { 750 } else { 600 }, fade(if on { INK } else { INK3 }, a))].spacing(2).align_x(Alignment::Center);
+            press(Look::Nav { on }, cell).width(Length::Fill).height(52).padding(0).on_press(go(s)).into()
         }))
-        .padding([0, 4]);
-        let (top, bottom) = if cfg!(target_os = "android") { (34.0, 24.0) } else { (10.0, 0.0) };
-        let hairline = container(Space::new()).width(Length::Fill).height(1).style(|_| container::Style { background: Some(fade(INK, 0.10).into()), ..Default::default() });
-        let bar = container(column![hairline, bar]).padding(Padding { bottom, ..Padding::ZERO }).width(Length::Fill).style(|_| container::Style { background: Some(SHEET.into()), ..Default::default() });
-        layers.push(column![container(sheet).padding(Padding { top, right: 8.0, bottom: 8.0, left: 8.0 }).height(Length::Fill), bar].into());
+        .spacing(2);
+        let (top, bottom) = if cfg!(target_os = "android") { (34.0, 22.0) } else { (10.0, 10.0) };
+        let bar = glass(Material { radius: 99.0, ..SHEET_GLASS }, bar).padding(5).width(Length::Fill);
+        layers.push(column![container(sheet).padding(Padding { top, right: 8.0, bottom: 8.0, left: 8.0 }).height(Length::Fill), container(bar).padding(Padding { top: 0.0, right: 14.0, bottom, left: 14.0 })].into());
         if let Some(d) = drawer { layers.push(bottom_sheet(d, motion.drawer, motion.content)) }
     } else {
         let head = row![ui::h1(title).color(fade(INK, a)), tabs_el, Space::new().width(Length::Fill), tools_row].spacing(18).align_y(Alignment::Center).height(44);
