@@ -62,6 +62,9 @@ const prebuild = api && new Promise<number>((done) => {
 const WEB = resolve(root, "dist/deploy");
 const { EXPO_PUBLIC_API_ORIGIN: _, ...env } = process.env;
 run("bun", ["desktop/web.ts", WEB], { CUBIX_PRERENDER_JOBS: "3", ...env });
+// The native apps the landing page offers (native/package.sh), built into the main checkout's target so that only what
+// changed since the last deployment is compiled again.
+run("sh", ["native/package.sh", join(WEB, "download")], { ...process.env, CARGO_TARGET_DIR: resolve(process.env.ROOT ?? root, "native/target") });
 // Unpacked in a directory of its own beside the one served. Only what differs from the build served goes: the rest is
 // hard-linked from it (the case diagrams and the phone app seldom change; the pages change with the app's scripts).
 // Each build's list of files and their hashes is kept beside it, in files/, outside what the server serves.

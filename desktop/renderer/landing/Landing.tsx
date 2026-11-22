@@ -4,7 +4,7 @@
  * that solves itself at the top (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
  */
 import { useEffect } from "react";
-import { ArrowRight, ArrowUpRight, Coffee, MonitorSmartphone, Upload, Trophy, Heart, Code, Box } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Coffee, Download, Globe, Monitor, MonitorSmartphone, Smartphone, Upload, Trophy, Heart, Code, Box } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Brand, Logo } from "../logo";
@@ -18,12 +18,24 @@ import { language, preferred, setLanguage } from "../../../src/client/i18n";
 import { localePath } from "../../../src/client/lib/route";
 
 const COFFEE = "https://buymeacoffee.com/vitrixxl";
+/** The native apps (native/package.sh), built into the site's download/ at each deployment. */
+const DOWNLOADS = { android: "/download/qbix.apk", linux: "/download/qbix-linux-x86_64.tar.gz" };
 
 /** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
 function LinkButton({ href, size = "default", variant = "default", className, children }: { href: string; size?: "default" | "sm"; variant?: "default" | "outline" | "secondary" | "ghost"; className?: string; children: React.ReactNode }) {
   // The app's pages in the page's language (/fr/timer).
   return (
     <a href={href.startsWith("/") ? localePath(language(), href) : href} className={cn(buttonVariants({ size, variant }), className)}>
+      {children}
+    </a>
+  );
+}
+
+/** A file to download, drawn as a button: its address is the site's, never the page's language's. */
+function DownloadButton({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} download className={cn(buttonVariants(), "self-start")}>
+      <Download data-icon="inline-start" />
       {children}
     </a>
   );
@@ -118,6 +130,7 @@ export function Landing() {
           </a>
           <nav aria-label={tr("Sections")} className="flex items-center gap-5 max-md:hidden">
             <a href="#tour" className={nav}>{tr("What it does")}</a>
+            <a href="#download" className={nav}>{tr("Download")}</a>
             <a href="#faq" className={nav}>{tr("Questions")}</a>
           </nav>
           <span className="flex-1" />
@@ -141,7 +154,11 @@ export function Landing() {
                 {tr("Open Qbix in your browser")}
                 <ArrowRight data-icon="inline-end" />
               </LinkButton>
-              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline")}</p>
+              <a href="#download" className={buttonVariants({ variant: "secondary" })}>
+                <Download data-icon="inline-start" />
+                {tr("Download the app")}
+              </a>
+              <p className="w-full text-sm font-medium text-muted-foreground">{tr("No account needed · works offline")}</p>
             </div>
           </div>
           <HeroCube />
@@ -152,6 +169,31 @@ export function Landing() {
             <Stop key={stop.id} {...stop} flip={i % 2 === 1} />
           ))}
         </div>
+
+        <Section id="download" className="flex flex-col gap-10">
+          <div className="flex flex-col gap-4">
+            <h2 className={TITLE}>{tr("Take Qbix with you")}</h2>
+            <p className="max-w-[56ch] text-lg leading-relaxed text-muted-foreground">{tr("The app, drawn by your graphics card: the timer, the algorithms and the training, even without a connection.")}</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Extra id="android" icon={Smartphone} title={tr("Android")}>
+              <p>{tr("Open the file on your phone and allow installing from your browser when Android asks.")}</p>
+              <DownloadButton href={DOWNLOADS.android}>{tr("Download for Android")}</DownloadButton>
+            </Extra>
+            <Extra id="linux" icon={Monitor} title={tr("Linux")}>
+              <p>{tr("Unpack the archive and run its install script: Qbix joins your applications.")}</p>
+              <code className="rounded-xl bg-muted px-3 py-2 font-mono text-xs break-all text-foreground">tar xf qbix-linux-x86_64.tar.gz && qbix/install.sh</code>
+              <DownloadButton href={DOWNLOADS.linux}>{tr("Download for Linux")}</DownloadButton>
+            </Extra>
+            <Extra id="browser" icon={Globe} title={tr("Windows, macOS, iPhone")}>
+              <p>{tr("Qbix runs in your browser, and can be added to your home screen or your dock like an app.")}</p>
+              <LinkButton href="/timer?puzzle=333" variant="secondary" className="self-start">
+                {tr("Open Qbix in your browser")}
+                <ArrowRight data-icon="inline-end" />
+              </LinkButton>
+            </Extra>
+          </div>
+        </Section>
 
         <Section id="more" className="flex flex-col gap-10">
           <h2 className={TITLE}>{tr("And everything around it")}</h2>

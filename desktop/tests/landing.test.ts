@@ -23,6 +23,8 @@ describe("the landing page", () => {
     expect(html).toContain("buymeacoffee.com");
     expect(html).toContain('href="/timer?puzzle=333"');
     expect(html).not.toContain("/api/mobile/apk");
+    // The native apps, downloaded from the site itself (native/package.sh at each deployment).
+    for (const file of ["/download/qbix.apk", "/download/qbix-linux-x86_64.tar.gz"]) expect(html).toContain(`href="${file}"`);
     expect(html).not.toContain("smartCube");
   });
 

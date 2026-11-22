@@ -110,8 +110,9 @@ export const FEATURES: Feature[] = [
     id: "everywhere",
     hook: "Your times, on every device.",
     title: "Your times everywhere, even offline",
-    summary: "Use Qbix in the browser on your computer or phone: your account follows you.",
+    summary: "Install the app on Android or Linux, or use Qbix in the browser on any computer or phone.",
     points: [
+      "Apps for Android and Linux, drawn by the graphics card, free to download from this page",
       "In the browser, on computer and phone, even offline",
       "Every solve saved on the device first, then synced to your other devices",
       `Bring your history from ${IMPORTS.slice(0, 5).join(", ")} and more, in one step`,
@@ -129,6 +130,7 @@ export const FAQ: Question[] = [
   { question: "Do I need an account?", answer: "A free account saves your times and syncs them between your devices. You sign in with your Google or WCA account, nothing else to fill in." },
   { question: "Which puzzles does Qbix support?", answer: `Every WCA event: ${PUZZLES.join(", ")}.` },
   { question: "Can I import my times from csTimer or Twisty Timer?", answer: `Yes. Qbix reads the exports of ${IMPORTS.join(", ")}, with your dates, penalties and sessions, right on your device.` },
+  { question: "Is there an app to install?", answer: "Yes: Qbix for Android and for Linux, free, to download from this page. On Windows, macOS and iPhone, Qbix runs in the browser and can be added to your home screen." },
   { question: "Does it work offline?", answer: "Yes. The timer, the algorithms and the training work without a connection; your solves are synced as soon as you are back online." },
   { question: "Are the scrambles official?", answer: "They are random-state scrambles, like the WCA's: every position of the puzzle is equally likely. They are generated on your device." },
   { question: "Is Qbix affiliated with Rubik's or the WCA?", answer: "No. Qbix is an independent project, open source on GitHub." },

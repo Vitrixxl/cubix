@@ -10,13 +10,14 @@ NDK=$(ls -d "$SDK"/ndk/* | tail -1)/toolchains/llvm/prebuilt/linux-x86_64/bin
 BT=$(ls -d "$SDK"/build-tools/* | tail -1)
 JAR=$(ls "$SDK"/platforms/*/android.jar | tail -1)
 export CARGO_HOME=$T/cargo RUSTUP_HOME=$T/rustup PATH=$T/cargo/bin:$T/jdk/bin:$PATH JAVA_HOME=$T/jdk
-out=target/android
+tgt=${CARGO_TARGET_DIR:-target}
+out=$tgt/android
 rm -rf $out && mkdir -p $out/lib
 build() { # target abi clang
   t=$1; up=$(echo "$t" | tr a-z- A-Z_)
   export CC_$(echo "$t" | tr - _)=$NDK/${3}30-clang AR_$(echo "$t" | tr - _)=$NDK/llvm-ar CARGO_TARGET_${up}_LINKER=$NDK/${3}30-clang
   cargo build --release -p qbix --lib --target "$t"
-  mkdir -p $out/lib/$2 && cp target/$t/release/libqbix.so $out/lib/$2/
+  mkdir -p $out/lib/$2 && cp $tgt/$t/release/libqbix.so $out/lib/$2/
   "$NDK/llvm-strip" $out/lib/$2/libqbix.so
 }
 case $abis in x86_64|all) build x86_64-linux-android x86_64 x86_64-linux-android ;; esac
@@ -34,5 +35,5 @@ z.close()" $out/base.apk $out/lib
 "$BT/zipalign" -f -p 4 $out/base.apk $out/aligned.apk
 key=$T/debug.keystore
 [ -f $key ] || keytool -genkeypair -keystore $key -storepass android -keypass android -alias qbix -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Qbix debug" >/dev/null 2>&1
-"$BT/apksigner" sign --ks $key --ks-pass pass:android --key-pass pass:android --out target/qbix.apk $out/aligned.apk
-echo "target/qbix.apk ($(du -h target/qbix.apk | cut -f1))"
+"$BT/apksigner" sign --ks $key --ks-pass pass:android --key-pass pass:android --out $tgt/qbix.apk $out/aligned.apk
+echo "$tgt/qbix.apk ($(du -h $tgt/qbix.apk | cut -f1))"

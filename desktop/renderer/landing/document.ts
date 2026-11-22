@@ -27,7 +27,7 @@ export function structuredData(language: Language = "en") {
       description: t(DESCRIPTION),
       applicationCategory: "GameApplication",
       applicationSubCategory: "Speedcubing timer and algorithm trainer",
-      operatingSystem: "Web",
+      operatingSystem: "Web, Android, Linux",
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       featureList: FEATURES.flatMap((feature) => feature.points.map((point) => t(point))),
       image: SITE + "/og.png",
@@ -143,6 +143,7 @@ ${NAME} is free on every platform, without ads, premium tier or subscription. It
 ## Use it
 
 - [Open ${NAME} in the browser](${SITE}/timer): the web app, usable offline
+- [Download the app](${SITE}/#download): ${NAME} for Android (an APK) and Linux
 - [Algorithms](${SITE}/algorithms?puzzle=333): every case of every puzzle (F2L, OLL, PLL, ZBLL and more), with its algorithms
 - [Learn](${SITE}/learn?puzzle=333): each puzzle's methods, explained step by step
 

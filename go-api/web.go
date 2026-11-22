@@ -351,6 +351,10 @@ func webServeFile(w http.ResponseWriter, r *http.Request, path string) {
 		return
 	}
 	kind := mime.TypeByExtension(filepath.Ext(path))
+	// The landing page's Android app (download/qbix.apk): the type a phone installs, unknown to the image's tables.
+	if filepath.Ext(path) == ".apk" {
+		kind = "application/vnd.android.package-archive"
+	}
 	if kind == "" {
 		kind = "application/octet-stream"
 	}

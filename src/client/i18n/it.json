@@ -3716,7 +3716,6 @@
  "one case after another": "un caso dopo l'altro",
  "timed on the cube": "cronometrato sul cubo",
  "ZZ-CT: solve the last layer and the last slot's corner, waiting in the top layer, in one algorithm (72 cases).": "ZZ-CT: risolvi l'ultimo strato e l'angolo dell'ultimo slot, in attesa nello strato superiore, con un solo algoritmo (72 casi).",
- "Use Qbix in the browser on your computer or phone: your account follows you.": "Usa Qbix nel browser sul tuo computer o telefono: il tuo account ti segue.",
  "In the browser, on computer and phone, even offline": "Nel browser, su computer e telefono, anche offline",
  "No account needed · works offline": "Senza account · offline",
  "Dev sign-in": "Accesso di sviluppo",
@@ -4202,5 +4201,19 @@
  "Tournaments in your groups, their rounds played live": "Tornei nei tuoi gruppi, i loro turni giocati dal vivo",
  "Yes, entirely: every feature, on every platform. There are no ads, no premium tier and no subscription.": "Sì, del tutto: ogni funzione, su ogni piattaforma. Niente pubblicità, niente piano premium e nessun abbonamento.",
  "Yes. The beginner method is explained step by step, with a cube that shows each algorithm, and a smart cube can guide you through your first solve. The timer and the training are there once it is solved.": "Sì. Il metodo principiante è spiegato passo dopo passo, con un cubo che mostra ogni algoritmo, e uno smart cube può guidarti nella tua prima risoluzione. Il timer e l'allenamento ti aspettano quando sai risolverlo.",
- "Your cube, this step done": "Il tuo cubo, con questo passo fatto"
+ "Your cube, this step done": "Il tuo cubo, con questo passo fatto",
+ "Android": "Android",
+ "Apps for Android and Linux, drawn by the graphics card, free to download from this page": "App per Android e Linux, disegnate dalla scheda grafica, da scaricare gratis da questa pagina",
+ "Download for Android": "Scarica per Android",
+ "Download for Linux": "Scarica per Linux",
+ "Download the app": "Scarica l'app",
+ "Install the app on Android or Linux, or use Qbix in the browser on any computer or phone.": "Installa l'app su Android o Linux, o usa Qbix nel browser su qualsiasi computer o telefono.",
+ "Is there an app to install?": "C'è un'app da installare?",
+ "Open the file on your phone and allow installing from your browser when Android asks.": "Apri il file sul telefono e consenti l'installazione dal browser quando Android lo chiede.",
+ "Qbix runs in your browser, and can be added to your home screen or your dock like an app.": "Qbix funziona nel browser e può essere aggiunto alla schermata Home o al dock come un'app.",
+ "Take Qbix with you": "Porta Qbix con te",
+ "The app, drawn by your graphics card: the timer, the algorithms and the training, even without a connection.": "L'app, disegnata dalla tua scheda grafica: il timer, gli algoritmi e l'allenamento, anche senza connessione.",
+ "Unpack the archive and run its install script: Qbix joins your applications.": "Estrai l'archivio e avvia il suo script di installazione: Qbix si aggiunge alle tue applicazioni.",
+ "Windows, macOS, iPhone": "Windows, macOS, iPhone",
+ "Yes: Qbix for Android and for Linux, free, to download from this page. On Windows, macOS and iPhone, Qbix runs in the browser and can be added to your home screen.": "Sì: Qbix per Android e per Linux, gratis, da scaricare da questa pagina. Su Windows, macOS e iPhone, Qbix funziona nel browser e può essere aggiunto alla schermata Home."
 }
