@@ -4030,7 +4030,6 @@
  "none learned · see Algorithms": "aucun appris · voir Algorithmes",
  "The method's algorithm": "L’algorithme de la méthode",
  "Desired state": "État souhaité",
- "No algorithm here: this step is solved by thinking it through.": "Pas d'algorithme ici : cette étape se résout en réfléchissant.",
  "Now: {0}": "À toi : {0}",
  "Qbix sees when the step is done": "Qbix voit quand l'étape est faite",
  "Show the desired state": "Voir l'état souhaité",
@@ -4202,5 +4201,6 @@
  "Today's scramble, for everyone.": "Le mélange du jour, pour tout le monde.",
  "Tournaments in your groups, their rounds played live": "Des tournois dans tes groupes, leurs manches jouées en direct",
  "Yes, entirely: every feature, on every platform. There are no ads, no premium tier and no subscription.": "Oui, entièrement : toutes les fonctions, sur toutes les plateformes. Pas de pub, pas d'offre premium et pas d'abonnement.",
- "Yes. The beginner method is explained step by step, with a cube that shows each algorithm, and a smart cube can guide you through your first solve. The timer and the training are there once it is solved.": "Oui. La méthode débutant est expliquée étape par étape, avec un cube qui montre chaque algorithme, et un cube connecté peut te guider pendant ta première résolution. Le chrono et l'entraînement t'attendent une fois que tu sais le résoudre."
+ "Yes. The beginner method is explained step by step, with a cube that shows each algorithm, and a smart cube can guide you through your first solve. The timer and the training are there once it is solved.": "Oui. La méthode débutant est expliquée étape par étape, avec un cube qui montre chaque algorithme, et un cube connecté peut te guider pendant ta première résolution. Le chrono et l'entraînement t'attendent une fois que tu sais le résoudre.",
+ "Your cube, this step done": "Ton cube, cette étape faite"
 }
