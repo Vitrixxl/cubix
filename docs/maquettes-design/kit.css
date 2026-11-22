@@ -1,0 +1,42 @@
+/* The page around the mockups, the same for the three directions so they are compared on equal terms. */
+@font-face { font-family: Onest; src: url("fonts/Onest.woff2") format("woff2"); font-weight: 400 800; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #17181a; }
+body { font-family: Onest, system-ui, sans-serif; color: #ecedee; -webkit-font-smoothing: antialiased; width: 1540px; }
+button { font: inherit; color: inherit; border: 0; background: none; }
+svg.lucide { width: 18px; height: 18px; stroke-width: 2; flex: none; }
+::selection { background: #ecedee; color: #17181a; }
+
+.doc { padding: 48px 50px 120px; display: flex; flex-direction: column; gap: 64px; }
+.doc > header { display: flex; flex-direction: column; gap: 18px; max-width: 1440px; }
+.doc > header nav { display: flex; gap: 6px; }
+.doc > header nav a { padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 14px; color: #a4a7ab; text-decoration: none; background: #222427; }
+.doc > header nav a:hover { color: #ecedee; }
+.doc > header nav a.on { background: #ecedee; color: #17181a; }
+.doc > header h1 { font-size: 46px; font-weight: 800; letter-spacing: -.035em; line-height: 1.05; }
+.doc > header p { color: #b3b6ba; max-width: 74ch; line-height: 1.55; font-size: 17px; }
+.doc > header p b { color: #ecedee; font-weight: 700; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; padding-top: 22px; border-top: 1px solid #303236; }
+.facts div { display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; line-height: 1.5; color: #b3b6ba; }
+.facts b { color: #ecedee; font-size: 15px; }
+.facts .sw { display: flex; flex-direction: row; gap: 4px; }
+.sw i { width: 34px; height: 34px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+
+figure { display: flex; flex-direction: column; gap: 16px; }
+figcaption { max-width: 1440px; display: flex; flex-direction: column; gap: 6px; }
+figcaption b { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+figcaption span { color: #b3b6ba; line-height: 1.55; font-size: 15.5px; max-width: 86ch; }
+.win { width: 1440px; height: 900px; overflow: hidden; position: relative; border-radius: 10px; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
+.phones { display: flex; gap: 56px; align-items: flex-start; }
+.phones > div { display: flex; flex-direction: column; gap: 12px; }
+.phones > div > small { color: #b3b6ba; font-size: 14.5px; max-width: 390px; line-height: 1.5; }
+.phone { width: 390px; height: 844px; overflow: hidden; position: relative; border-radius: 44px; box-shadow: 0 0 0 10px #050506, 0 24px 70px rgba(0, 0, 0, .55); margin: 10px; }
+
+/* Drawings: sizes only, each direction colours them. */
+.k-case, .k-net, .k-chart { display: block; width: 100%; height: 100%; }
+.k-hist { display: flex; align-items: flex-end; gap: 2px; height: 100%; }
+.k-hist span { flex: 1; }
+.k-heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; height: 100%; }
+.k-heat i { aspect-ratio: 1; }
+[data-logo] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }

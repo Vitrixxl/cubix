@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Veille technologique : Cubix, octobre 2026</title>
+<link rel="stylesheet" href="veille.css">
+<style>
+  .obj { columns: 2; column-gap: 6mm; }
+  .obj li { break-inside: avoid; }
+  .art td:first-child { width: 47mm; }
+  .art td:first-child span, .infl td:first-child span { display: block; color: #55555f; }
+  .art td:last-child { width: 58mm; }
+  .infl td:first-child { width: 47mm; }
+  .infl td:nth-child(2) { width: 40mm; }
+</style>
+</head>
+<body>
+<section class="page">
+
+<header>
+  <svg viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#1c1c24"/><g transform="translate(28 28) scale(4)"><rect x="0" y="0" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="0" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="0" width="5.333" height="5.333" rx="1.44" fill="#ed2677"/><rect x="0" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="0" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/></g></svg>
+  <div>
+    <h1>Veille technologique : Cubix</h1>
+    <p>Application de speedcubing : web (PWA), Android (React Native, Expo), API Go et SQLite, cubes connectés en Bluetooth.</p>
+  </div>
+  <div class="meta">Octobre 2026<br>Période : 20 septembre au 21 octobre 2026</div>
+</header>
+
+<div>
+  <h2>1. Objectifs de la veille</h2>
+  <ol class="obj">
+    <li><b>Sécurité de la stack</b> : connaître tout correctif de Go, Bun, React et Expo moins de 7 jours après sa sortie.</li>
+    <li><b>Cubes connectés</b> : savoir sur quels navigateurs et appareils un smart cube (GAN, MoYu, QiYi) peut être lu.</li>
+    <li><b>Règles du cubing</b> : garder le chronomètre conforme aux Règlements WCA (inspection, pénalités, épreuves).</li>
+    <li><b>Données personnelles</b> : appliquer aux comptes et à la synchronisation les recommandations de la CNIL.</li>
+    <li><b>Concurrence et usages</b> : savoir ce que proposent les autres applications et ce que les cubeurs apprennent.</li>
+  </ol>
+</div>
+
+<div>
+  <h2>2. Présentation d'articles</h2>
+  <table class="art">
+    <thead><tr><th>Article</th><th>Ce qu'il dit</th><th>Intérêt pour Cubix</th></tr></thead>
+    <tbody>
+      <tr><td><b>Go 1.27.3</b><span>go.dev, historique des versions, 19/10/2026</span></td><td>Version corrective qui comble une faille de sécurité dans crypto/x509, le paquet qui vérifie les certificats.</td><td>L'API vérifie des certificats pour la connexion Google : reconstruire son image et mettre à jour le poste de développement (1.27.2).</td></tr>
+      <tr><td><b>React Native 0.88</b><span>reactnative.dev, F. Cucci, R. Cipolleschi, C. Falch, 19/10/2026</span></td><td>Événements traités comme sur le web, polices variables, cycle de vie iOS par scènes, React 19.3. Aucun changement cassant, troisième version de suite.</td><td>L'application Android est en 0.86 avec React 19.2 alors que le web est en 19.3 : la mise à jour alignerait les deux.</td></tr>
+      <tr><td><b>Expo SDK 58</b><span>expo.dev/changelog, 15/10/2026</span></td><td>Passe à React Native 0.88, API TypeScript stricte, builds Android environ deux fois plus rapides, modules natifs écrits comme de simples classes Swift ou Kotlin.</td><td>Cubix est en SDK 57 : migration à planifier ; les imports internes de react-native deviennent des erreurs de type.</td></tr>
+      <tr><td><b>This Week In React n° 301</b><span>thisweekinreact.com, 14/10/2026</span></td><td>React Native Web passe sous la React Foundation et sera maintenu par Expo.</td><td>L'application mobile dépend de react-native-web : son avenir est assuré par l'équipe d'Expo, déjà utilisée.</td></tr>
+      <tr><td><b>Web Bluetooth</b><span>caniuse.com, consulté le 21/10/2026</span></td><td>L'API n'existe que dans Chrome, Edge et Chrome Android. Firefox et Safari (iOS compris) ne la proposent pas ; Mozilla la juge néfaste.</td><td>Un smart cube ne se lit sur le web qu'avec Chrome ou Edge, jamais sur iPhone : à dire clairement dans le guide.</td></tr>
+      <tr><td><b>Announcing the MoYu WCA World Championship 2027</b><span>worldcubeassociation.org, 18/10/2026</span></td><td>Le Championnat du monde 2027 aura lieu à Uppsala (Suède) du 22 au 25 juillet, premier sponsorisé par MoYu.</td><td>Les cubes MoYu WeiLong AI, déjà lus par Cubix, sont à tester en priorité.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div>
+  <h2>3. Influenceurs et newsletters</h2>
+  <table class="infl">
+    <thead><tr><th>Nom</th><th>Format</th><th>Pourquoi le suivre</th></tr></thead>
+    <tbody>
+      <tr><td><b>This Week In React</b><span>Sébastien Lorber, Jan Jaworski</span></td><td>Newsletter hebdomadaire</td><td>Résume chaque semaine React, React Native et Expo : les trois briques des interfaces de Cubix.</td></tr>
+      <tr><td><b>Golang Weekly</b><span>Cooperpress</span></td><td>Newsletter hebdomadaire, plus de 620 numéros depuis 2015</td><td>Articles et versions de l'écosystème Go, langage de l'API.</td></tr>
+      <tr><td><b>Andy Fedotov</b><span>github.com/afedotov</span></td><td>Dépôt GitHub gan-web-bluetooth</td><td>Il documente les protocoles des cubes GAN, que Cubix utilise : un nouveau modèle pris en charge y apparaît en premier.</td></tr>
+      <tr><td><b>J Perm</b><span>youtube.com/@JPerm</span></td><td>Chaîne YouTube</td><td>Tutoriels de méthodes et d'algorithmes très suivis : montre ce que les cubeurs cherchent à apprendre.</td></tr>
+      <tr><td><b>Feliks Zemdegs</b><span>cubeskills.com</span></td><td>Site de tutoriels et fiches d'algorithmes</td><td>Ancien champion du monde ; ses fiches OLL et PLL servent de référence pour les catalogues d'algorithmes.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div>
+  <h2>4. Conclusion</h2>
+  <p>La pile technique de Cubix est saine mais demande deux actions : appliquer tout de suite le correctif de sécurité de Go 1.27.3, et préparer la migration de l'application Android vers Expo SDK 58 et React Native 0.88, qui n'apporte pas de changement cassant mais refuse les imports internes. Côté cubes connectés, la limite vient des navigateurs et non du code : sans Web Bluetooth dans Safari, l'iPhone reste hors de portée, ce que le guide doit dire. Le Mondial 2027 en Europe et sponsorisé par MoYu rend prioritaires les tests des cubes MoYu. Enfin, la page de la CNIL étant en maintenance pendant la veille, la conformité des comptes est à revérifier le mois prochain.</p>
+</div>
+
+<footer><span>Sources : go.dev/doc/devel/release, reactnative.dev/blog/2026/10/19/react-native-0.88, expo.dev/changelog/sdk-58, thisweekinreact.com/newsletter/301, caniuse.com/web-bluetooth, worldcubeassociation.org/posts/announcing-the-moyu-wca-world-championship-2027, golangweekly.com, github.com/afedotov/gan-web-bluetooth, cubeskills.com/about</span><span>Consultées le 21/10/2026</span></footer>
+</section>
+</body>
+</html>

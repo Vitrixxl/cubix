@@ -1,0 +1,24 @@
+[package]
+name = "qbix"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+qbix-core = { path = "../core" }
+iced.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
+futures-util = "0.3"
+bytemuck = { version = "1", features = ["derive"] }
+iced_wgpu = { git = "https://github.com/Santuzius/iced", tag = "iced_android-v0.1.2" }
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+btleplug = "0.11"
+
+[target.'cfg(target_os = "android")'.dependencies]
+iced_winit = { git = "https://github.com/Santuzius/iced", tag = "iced_android-v0.1.2", default-features = false }
+winit = { version = "0.30", default-features = false, features = ["android-native-activity"] }

@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qbix · Direction B · Dock</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+/* B · Dock: a soft night app. One plum ground, a floating dock for the five sections (the same on desktop and phone),
+   one calm stage, one accent pill, details in a sheet that rises from the dock. */
+@font-face { font-family: Bricolage; src: url("../../desktop/assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; }
+
+.dk, .dk-gram { --bg: #1b1920; --lift: #23202a; --s1: #27242f; --s2: #353140; --sheet: #2b2834;
+  --ink: #f1edf3; --ink2: #c0b9c9; --ink3: #a39cad; --acc: #a9c4ff; --on-acc: #141b30;
+  --ok: #86d3a4; --warn: #e8c27a; --bad: #f09a94;
+  font-family: Bricolage, sans-serif; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dk { background: radial-gradient(ellipse 58% 52% at 50% 44%, var(--lift), transparent 72%) var(--bg); font-size: 16px; line-height: 1.4; }
+.dk ::selection { background: var(--acc); color: var(--on-acc); }
+.dk svg.lucide { width: 20px; height: 20px; stroke-width: 1.75; }
+.dk .ok { color: var(--ok); } .dk .warn { color: var(--warn); } .dk .bad { color: var(--bad); }
+
+/* Top: title left, the section's pages centre, puzzle and account right */
+.dk .top { position: absolute; inset: 0 0 auto; height: 96px; padding: 0 36px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.dk .title { display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.dk [data-logo] { width: 22px; height: 22px; gap: 3px; }
+.dk [data-logo] i { background: var(--ink3); border-radius: 2.5px; }
+.dk [data-logo] i:nth-child(5) { background: var(--acc); }
+.dk .pages { display: flex; gap: 4px; align-items: center; }
+.dk .pages button { height: 40px; padding: 0 18px; border-radius: 20px; color: var(--ink2); font-size: 15.5px; font-weight: 500; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.dk .pages button.on { background: var(--s2); color: var(--ink); }
+.dk .pages small { font-size: 13.5px; color: var(--ink3); font-weight: 400; }
+.dk .pages button.on small { color: var(--ink2); }
+.dk .pages .pick { background: var(--s1); color: var(--ink); margin-right: 14px; padding: 0 12px 0 18px; }
+.dk .pages .pick svg, .dk .puzzle svg { width: 16px; height: 16px; color: var(--ink3); }
+.dk .me { display: flex; gap: 10px; align-items: center; justify-self: end; }
+.dk .puzzle { height: 44px; padding: 0 14px 0 20px; border-radius: 22px; background: var(--s1); font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.dk .av { width: 44px; height: 44px; border-radius: 50%; background: #3a4366; color: #dfe7ff; display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none; }
+.dk .av.on { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--acc); }
+
+/* Stage: everything centred between the top and the action */
+.dk .stage { position: absolute; inset: 96px 0 196px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.dk .lbl { font-size: 14.5px; color: var(--ink3); }
+
+/* The action: always the same pill at the same place, two quiet companions at most */
+.dk .act { position: absolute; left: 0; right: 0; bottom: 124px; display: flex; justify-content: center; align-items: center; gap: 12px; }
+.dk .go { height: 56px; padding: 0 38px; border-radius: 28px; background: var(--acc); color: var(--on-acc); font-size: 17.5px; font-weight: 650; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.dk .quiet { height: 48px; padding: 0 22px 0 18px; border-radius: 24px; background: var(--s1); color: var(--ink); font-size: 15.5px; font-weight: 500; display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+.dk .quiet svg { color: var(--ink3); }
+.dk .quiet.ic { width: 48px; padding: 0; justify-content: center; }
+
+/* Dock */
+.dk .dock { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 3; display: flex; gap: 4px; padding: 8px; border-radius: 36px; background: var(--s1); box-shadow: 0 16px 40px rgba(8, 6, 12, .45); }
+.dk .dock button { width: 94px; height: 56px; border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; font-weight: 500; color: var(--ink3); }
+.dk .dock button.on { background: var(--s2); color: var(--ink); }
+.dk .dock button.on svg { color: var(--acc); }
+
+/* Sheet: rises from the dock, the dock stays */
+.dk .scrim { position: absolute; inset: 0; background: rgba(19, 17, 23, .58); z-index: 1; }
+.dk .sheet { position: absolute; left: 50%; transform: translateX(-50%); bottom: 112px; width: 740px; z-index: 2; background: var(--sheet); border-radius: 38px; padding: 40px 40px 32px; box-shadow: 0 30px 80px rgba(8, 6, 12, .55); }
+.dk .sheet::before { content: ""; position: absolute; top: 12px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: #4d4859; }
+.dk .sheet .x { position: absolute; top: 24px; right: 24px; width: 40px; height: 40px; border-radius: 50%; background: var(--s2); display: grid; place-items: center; color: var(--ink2); }
+.dk .sheet h3 { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.dk .sheet h3 small { font-size: 15px; font-weight: 400; color: var(--ink2); letter-spacing: 0; margin-left: 10px; }
+.dk .sheet .act { position: static; margin-top: 30px; }
+
+/* Timer */
+.dk .scr { max-width: 640px; font-size: 22px; line-height: 1.65; letter-spacing: .03em; color: var(--ink2); text-wrap: balance; }
+.dk .time { font-size: 216px; font-weight: 300; line-height: 1; letter-spacing: -.035em; margin: 26px 0 38px; }
+.dk .time small { font-size: .62em; color: var(--ink2); font-weight: 300; }
+.dk .three { display: flex; gap: 72px; }
+.dk .three div { display: flex; flex-direction: column; gap: 2px; }
+.dk .three b { font-size: 28px; font-weight: 500; letter-spacing: -.01em; }
+
+/* Session sheet */
+.dk .sess { display: grid; grid-template-columns: 200px 1fr; gap: 56px; margin-top: 28px; }
+.dk .sess h4 { font-size: 14.5px; font-weight: 400; color: var(--ink3); margin-bottom: 10px; }
+.dk #dk-list div { display: flex; align-items: center; justify-content: space-between; height: 42px; font-size: 20px; font-weight: 500; }
+.dk .list small { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 12px; background: var(--s2); }
+.dk .list button { margin-top: 12px; color: var(--acc); font-size: 15px; font-weight: 500; }
+.dk .sess .three { gap: 48px; margin-bottom: 28px; }
+.dk .sess .three b { font-size: 24px; }
+.dk .trend { height: 128px; margin-bottom: 28px; }
+.dk .k-grid { display: none; }
+.dk .k-pt { fill: #6b6578; } .dk .k-pt.pb { fill: var(--ok); }
+.dk .k-ln { fill: none; stroke: var(--acc); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.dk .prev { display: flex; align-items: center; gap: 24px; text-align: left; }
+.dk .prev > i { width: 132px; height: 98px; flex: none; }
+.dk .prev span { font-size: 15px; line-height: 1.6; color: var(--ink2); letter-spacing: .02em; }
+.dk .k-net rect { rx: 2px; }
+.dk .k-f0 { fill: #ece8ee; } .dk .k-f1 { fill: #ecd06a; } .dk .k-f2 { fill: #7fcf9a; } .dk .k-f3 { fill: #7ea6ee; } .dk .k-f4 { fill: #ec8079; } .dk .k-f5 { fill: #f0a868; }
+
+/* Algorithms */
+.dk .stage.algs { justify-content: flex-start; padding-top: 20px; }
+.dk .cases { display: grid; grid-template-columns: repeat(8, 132px); gap: 6px 10px; }
+.dk .case { padding: 16px 0 12px; border-radius: 28px; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 14.5px; color: var(--ink2); }
+.dk .case > i { width: 84px; height: 84px; }
+.dk .case.on { background: var(--s2); color: var(--ink); box-shadow: inset 0 0 0 2px var(--acc); }
+.dk .case span { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.dk .case.done span::before, .dk .dot { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; display: inline-block; }
+.dk .k-s { fill: #3d3949; rx: 2.5px; } .dk .k-s.on { fill: #ecd06a; } .dk .k-s.side { rx: 2px; }
+.dk .k-s.side:not(.on) { fill: none; }
+.dk .alg { display: flex; align-items: center; gap: 40px; justify-content: center; text-align: left; }
+.dk .alg > i { width: 150px; height: 150px; flex: none; }
+.dk .alg h3 { font-size: 34px; }
+.dk .alg p { color: var(--ink2); font-size: 15px; display: flex; align-items: center; gap: 8px; margin: 2px 0 18px; }
+.dk .moves { font-size: 32px; font-weight: 500; letter-spacing: .05em; white-space: nowrap; }
+
+/* Duel */
+.dk .tier { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; color: var(--ink2); }
+.dk .tier svg { color: var(--warn); }
+.dk .rating { font-size: 148px; font-weight: 300; line-height: 1; letter-spacing: -.035em; margin: 10px 0 22px; }
+.dk .bar { width: 260px; height: 6px; border-radius: 3px; background: var(--s2); margin-bottom: 12px; overflow: hidden; }
+.dk .bar i { display: block; height: 100%; width: 82%; border-radius: 3px; background: var(--warn); }
+.dk .entries { display: flex; gap: 16px; margin: 52px 0 26px; }
+.dk .entry { width: 340px; height: 80px; padding: 0 20px 0 16px; border-radius: 40px; background: var(--s1); display: flex; align-items: center; gap: 14px; text-align: left; }
+.dk .entry > span:first-child { width: 48px; height: 48px; border-radius: 50%; background: var(--s2); display: grid; place-items: center; flex: none; color: var(--ink2); }
+.dk .entry div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dk .entry b { font-weight: 600; font-size: 16.5px; }
+.dk .entry small { font-size: 14px; color: var(--ink2); display: flex; align-items: center; gap: 7px; }
+.dk .entry > svg { color: var(--ink3); }
+.dk .last { font-size: 15px; color: var(--ink2); display: flex; gap: 10px; align-items: center; }
+.dk .last b { color: var(--ink); font-weight: 600; }
+
+/* Profile */
+.dk .who { display: flex; align-items: center; gap: 22px; text-align: left; }
+.dk .who .av { width: 92px; height: 92px; font-size: 38px; }
+.dk .who b { font-size: 42px; font-weight: 600; letter-spacing: -.025em; line-height: 1.1; display: block; }
+.dk .who div span { color: var(--ink2); display: flex; align-items: center; gap: 8px; }
+.dk .who div span svg { width: 17px; height: 17px; color: var(--warn); margin-left: 10px; }
+.dk .recs { display: flex; gap: 96px; margin: 54px 0 58px; }
+.dk .recs div { display: flex; flex-direction: column; gap: 4px; }
+.dk .recs b { font-size: 50px; font-weight: 300; letter-spacing: -.03em; line-height: 1; }
+.dk .duo { display: flex; gap: 104px; align-items: flex-start; text-align: left; }
+.dk .duo h4 { font-size: 15px; font-weight: 500; color: var(--ink2); margin-bottom: 16px; }
+.dk .heat { height: 108px; }
+.dk .k-heat { gap: 4px; }
+.dk .k-heat i { border-radius: 50%; background: var(--s1); }
+.dk .k-heat .l1 { background: #3a4160; } .dk .k-heat .l2 { background: #56669a; } .dk .k-heat .l3 { background: #7f97d2; } .dk .k-heat .l4 { background: var(--acc); }
+.dk .aw { display: flex; gap: 26px; }
+.dk .aw div { width: 84px; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink2); text-align: center; line-height: 1.3; }
+.dk .aw span { width: 68px; height: 68px; border-radius: 50%; background: #333a56; color: var(--acc); display: grid; place-items: center; }
+.dk .aw span svg { width: 26px; height: 26px; }
+.dk .aw .no span { background: var(--s1); color: var(--ink3); }
+
+/* Phone: the same skeleton, the pages one row lower */
+.dk.phone .top { height: auto; padding: 58px 20px 0; grid-template-columns: 1fr auto; row-gap: 16px; }
+.dk.phone .pages { grid-column: 1 / -1; grid-row: 2; justify-content: center; }
+.dk.phone .pages { gap: 2px; }
+.dk.phone .pages button { padding: 0 11px; font-size: 15px; }
+.dk.phone .pages .pick { margin-right: 4px; padding: 0 8px 0 14px; }
+.dk.phone .puzzle { height: 40px; font-size: 15px; padding: 0 11px 0 16px; }
+.dk.phone .av { width: 40px; height: 40px; font-size: 16px; }
+.dk.phone .stage { inset: 112px 0 176px; }
+.dk.phone .scr { font-size: 17.5px; padding: 0 30px; }
+.dk.phone .time { font-size: 108px; margin: 24px 0 30px; }
+.dk.phone .three { gap: 40px; }
+.dk.phone .three b { font-size: 23px; }
+.dk.phone .act { bottom: 106px; gap: 8px; }
+.dk.phone .go { height: 52px; padding: 0 28px; font-size: 16.5px; }
+.dk.phone .dock { left: 14px; right: 14px; bottom: 18px; transform: none; gap: 0; padding: 7px; }
+.dk.phone .dock button { flex: 1; width: auto; height: 54px; font-size: 12px; }
+.dk.phone .stage.algs { inset: 170px 0 0; padding-top: 0; }
+.dk.phone .cases { grid-template-columns: repeat(3, 112px); gap: 4px 8px; }
+.dk.phone .case { padding: 14px 0 10px; border-radius: 26px; }
+.dk.phone .case > i { width: 72px; height: 72px; }
+.dk.phone .sheet { left: 10px; right: 10px; width: auto; transform: none; bottom: 98px; padding: 34px 22px 22px; border-radius: 34px; }
+.dk.phone .sheet .x { top: 18px; right: 18px; width: 36px; height: 36px; }
+.dk.phone .alg { gap: 20px; justify-content: flex-start; }
+.dk.phone .alg > i { width: 92px; height: 92px; }
+.dk.phone .alg h3 { font-size: 28px; }
+.dk.phone .alg p { margin-bottom: 0; }
+.dk.phone .moves { font-size: 25px; margin-top: 18px; text-align: center; }
+.dk.phone .sheet .act { margin-top: 22px; }
+
+/* The placement grammar, drawn */
+.dk-gram { display: grid; grid-template-columns: 630px 1fr; gap: 48px; align-items: center; padding-top: 28px; border-top: 1px solid #303236; font-family: Onest, sans-serif; color: #b3b6ba; }
+.dk-gram .sk { display: flex; gap: 20px; align-items: flex-end; font-family: Bricolage, sans-serif; }
+.dk-gram .w { position: relative; background: var(--bg); border-radius: 18px; font-size: 13px; font-weight: 500; color: var(--ink2); }
+.dk-gram .w.d { width: 460px; height: 290px; } .dk-gram .w.p { width: 150px; height: 290px; border-radius: 26px; }
+.dk-gram .w span { position: absolute; display: grid; place-items: center; border-radius: 14px; background: var(--s1); text-align: center; line-height: 1.2; white-space: nowrap; }
+.dk-gram .w .n { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 700; z-index: 1; }
+.dk-gram .w .stg { background: none; box-shadow: inset 0 0 0 1.5px #3a3644; border-radius: 22px; color: var(--ink3); }
+.dk-gram .w .a { background: var(--acc); color: var(--on-acc); font-weight: 700; }
+.facts .sw { flex-direction: row; }
+.dk-gram ol { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; font-size: 14.5px; line-height: 1.5; counter-reset: g; }
+.dk-gram li { counter-increment: g; padding-left: 32px; position: relative; }
+.dk-gram li::before { content: counter(g); position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 50%; background: #ecedee; color: #17181a; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.dk-gram li b { color: #ecedee; }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <nav><a href="a-souffle.html">A · Souffle</a><a class="on" href="b-dock.html">B · Dock</a><a href="c-feuille.html">C · Feuille</a></nav>
+  <h1>B · Dock</h1>
+  <p><b>La même app sur l'ordinateur et sur le téléphone, pensée pour le soir, un cube à la main.</b> Les cinq sections
+  flottent dans un dock arrondi en bas de la fenêtre, comme la barre d'onglets du téléphone. Tout le reste est une
+  scène calme : une seule chose au centre, une seule pilule de couleur pour l'action, et ce qu'on ne regarde pas
+  tout le temps (la session, le détail d'un cas) monte dans une feuille au-dessus du dock, toujours au même endroit.</p>
+  <div class="facts">
+    <div><b>Couleur</b><div class="sw"><i style="background:#1b1920"></i><i style="background:#27242f"></i><i style="background:#353140"></i><i style="background:#f1edf3"></i><i style="background:#a9c4ff"></i><i style="background:#86d3a4"></i><i style="background:#e8c27a"></i><i style="background:#f09a94"></i></div>Un fond prune très sombre, jamais noir, deux surfaces à peine plus claires. Un seul bleu lunaire, réservé à l'action et à l'endroit où l'on se trouve. Vert, ambre et rouge restent pâles (record, +2, DNF).</div>
+    <div><b>Typographie</b>Bricolage Grotesque, la police de l'app, partout. Le chrono en graisse légère et très grand, les textes à 15–16 px au minimum, les mélanges et les algorithmes aérés plutôt qu'en chasse fixe.</div>
+    <div><b>Forme</b>Des pilules et des cercles, des rayons de 28 à 38 px, aucun filet, aucun tableau. Les zones se distinguent par l'espace ; seuls le dock et la feuille ont une ombre, parce qu'ils flottent vraiment.</div>
+    <div><b>Le risque</b>Sur un grand écran, un dock en bas laisse beaucoup de vide sur les côtés, et le joueur qui veut tout voir d'un coup (liste des temps, graphique) doit ouvrir la feuille Session : un geste de plus, assumé.</div>
+  </div>
+  <div class="dk-gram">
+    <div class="sk">
+      <div class="w d">
+        <span style="left:16px;top:14px;width:84px;height:30px">Titre</span><span class="n" style="left:7px;top:6px">1</span>
+        <span style="left:150px;top:14px;width:160px;height:30px">Pages de la section</span><span class="n" style="left:141px;top:6px">2</span>
+        <span style="right:16px;top:14px;width:124px;height:30px">Puzzle · Compte</span><span class="n" style="right:131px;top:6px">3</span>
+        <span class="stg" style="left:70px;right:70px;top:60px;height:108px">Scène : une seule chose</span>
+        <span class="a" style="left:180px;top:184px;width:100px;height:30px;border-radius:15px">Action</span><span class="n" style="left:171px;top:176px">4</span>
+        <span style="left:120px;top:232px;width:220px;height:42px;border-radius:21px">Dock : les 5 sections</span><span class="n" style="left:111px;top:224px">5</span>
+      </div>
+      <div class="w p">
+        <span style="left:10px;top:18px;width:54px;height:24px;border-radius:12px">Titre</span>
+        <span style="right:10px;top:18px;width:54px;height:24px;border-radius:12px">3×3</span>
+        <span style="left:10px;right:10px;top:50px;height:24px;border-radius:12px">Pages</span>
+        <span style="left:10px;right:10px;top:92px;height:136px;border-radius:20px;background:var(--sheet);padding-bottom:36px">Feuille<br>de détail</span><span class="n" style="left:3px;top:84px">6</span>
+        <span class="a" style="left:30px;right:30px;top:192px;height:24px;border-radius:12px">Action</span>
+        <span style="left:10px;right:10px;top:240px;height:34px;border-radius:17px">Dock</span>
+      </div>
+    </div>
+    <ol>
+      <li><b>En haut à gauche : où je suis.</b> Le nom de la section, rien d'autre.</li>
+      <li><b>En haut au centre : les pages de la section</b> (Duel, Tournaments, Daily, WCA…), en pilules ; une ligne plus bas sur le téléphone.</li>
+      <li><b>En haut à droite : mon cube et moi.</b> La pilule du puzzle (puzzle, type de mélange, connecter un cube Bluetooth), puis l'avatar (profil, réglages, aide).</li>
+      <li><b>En bas au centre : l'action.</b> Une seule pilule bleue par écran, toujours au-dessus du dock, avec deux boutons discrets au plus.</li>
+      <li><b>Tout en bas : le dock.</b> Timer, Training, Algs, Challenges, Social, toujours visibles, même feuille ouverte.</li>
+      <li><b>Les détails montent du dock.</b> Une feuille arrondie, toujours la même, qui se ferme en la tirant vers le bas. Son action tombe à la place de l'action de l'écran.</li>
+    </ol>
+  </div>
+</header>
+
+<figure>
+  <figcaption><b>Timer, au repos</b><span>Le mélange, le temps, trois moyennes : c'est tout. « Start » lance le chrono (ou la barre d'espace), « Session » ouvre la liste des temps et « Next » passe au mélange suivant. Toucher le temps propose +2, DNF ou supprimer ; toucher le mélange montre le cube mélangé.</span></figcaption>
+  <div class="win dk">
+    <div class="top"><div class="title"><i data-logo></i>Timer</div><span></span><div class="me" data-me></div></div>
+    <div class="stage" data-timer></div>
+    <div class="act" data-timer-act></div>
+    <div class="dock" data-dock="0"></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Timer, la feuille Session ouverte</b><span>Ce qui était caché vit ici : les derniers temps, les autres moyennes, la tendance et le mélange du dernier solve. La feuille monte du dock, qui reste utilisable ; « Show all 148 » déroule la liste entière dans cette même feuille.</span></figcaption>
+  <div class="win dk">
+    <div class="top"><div class="title"><i data-logo></i>Timer</div><span></span><div class="me" data-me></div></div>
+    <div class="stage" data-timer></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <button class="x"><i data-lucide="x"></i></button>
+      <h3>Session<small>148 solves this evening</small></h3>
+      <div class="sess">
+        <div class="list"><h4>Latest</h4><div id="dk-list"></div><button>Show all 148</button></div>
+        <div>
+          <div class="three" id="dk-more"></div>
+          <h4>Trend, average of 12</h4>
+          <div class="trend" data-session></div>
+          <div class="prev"><i data-net="4"></i><span id="dk-scr"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="dock" data-dock="0"></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Algs · CFOP, un cas choisi</b><span>La page ne montre que les dessins et les noms ; un point vert marque les cas appris. Toucher « Sune » fait monter la même feuille : l'algorithme apparaît là, avec « Train this case » à la place habituelle de l'action. La méthode se change dans la pilule CFOP, les étapes sont les pages de la section.</span></figcaption>
+  <div class="win dk">
+    <div class="top"><div class="title"><i data-logo></i>Algorithms</div>
+      <div class="pages"><button class="pick">CFOP<i data-lucide="chevron-down"></i></button><button>Cross</button><button>F2L <small>11/41</small></button><button class="on">OLL <small>31/57</small></button><button>PLL <small>19/21</small></button></div>
+      <div class="me" data-me></div></div>
+    <div class="stage algs"><div class="cases" data-cases="32"></div></div>
+    <div class="scrim" style="top:430px;background:linear-gradient(transparent, rgba(19,17,23,.7) 90px)"></div>
+    <div class="sheet" data-sune></div>
+    <div class="dock" data-dock="2"></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Challenges · Duel</b><span>Une seule chose à faire : « Face off », à la place de l'action. Au-dessus, le classement et rien d'autre de grand ; le défi du jour et le tournoi en cours sont deux entrées légères, la dernière course tient sur une ligne. L'historique complet est dans la page Battles du profil.</span></figcaption>
+  <div class="win dk">
+    <div class="top"><div class="title"><i data-logo></i>Challenges</div>
+      <div class="pages"><button class="on">Duel</button><button>Tournaments</button><button>Daily</button><button>WCA</button></div>
+      <div class="me" data-me></div></div>
+    <div class="stage">
+      <div class="tier"><i data-lucide="shield"></i>Gold II</div>
+      <div class="rating">1482</div>
+      <div class="bar"><i></i></div>
+      <div class="lbl">18 points to Gold I</div>
+      <div class="entries">
+        <div class="entry"><span><i data-lucide="calendar"></i></span><div><b>Daily scramble</b><small>Not solved yet today</small></div><i data-lucide="chevron-right"></i></div>
+        <div class="entry"><span><i data-lucide="trophy"></i></span><div><b>Friday sprint</b><small><i class="dot"></i>Live, 32 players</small></div><i data-lucide="chevron-right"></i></div>
+      </div>
+      <div class="last">Last race<b>dev 3 – 2 lena_speed</b><span class="ok">+14</span></div>
+    </div>
+    <div class="act"><button class="go"><i data-lucide="swords"></i>Face off</button></div>
+    <div class="dock" data-dock="3"></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Profil</b><span>On y arrive par l'avatar, en haut à droite, sur tous les écrans (les réglages et l'aide sont dans le même menu). L'aperçu garde trois records, l'activité et quatre récompenses ; les statistiques, l'entraînement, les duels et l'analyse sont les pages de la section, en haut au centre comme partout.</span></figcaption>
+  <div class="win dk">
+    <div class="top"><div class="title"><i data-logo></i>Profile</div>
+      <div class="pages"><button class="on">Overview</button><button>Statistics</button><button>Training</button><button>Awards</button><button>Battles</button><button>Analysis</button></div>
+      <div class="me" data-me="on"></div></div>
+    <div class="stage" style="bottom:124px">
+      <div class="who"><span class="av">d</span><div><b>dev</b><span>Level 14<i data-lucide="flame"></i>12-day streak</span></div></div>
+      <div class="recs">
+        <div><b>9.84</b><span class="lbl">3×3 single</span></div>
+        <div><b>11.62</b><span class="lbl">3×3 average of 5</span></div>
+        <div><b>19.62</b><span class="lbl">One-handed single</span></div>
+      </div>
+      <div class="duo">
+        <div><h4>Activity, last 16 weeks</h4><div class="heat" data-heat="7,16"></div></div>
+        <div><h4>Awards</h4><div class="aw">
+          <div><span><i data-lucide="timer"></i></span>Sub-10 single</div>
+          <div><span><i data-lucide="flame"></i></span>10-day streak</div>
+          <div><span><i data-lucide="book-open"></i></span>Half of OLL</div>
+          <div class="no"><span><i data-lucide="layers"></i></span>Full PLL</div>
+        </div></div>
+      </div>
+    </div>
+    <div class="dock" data-dock="-1"></div>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Sur le téléphone</b><span>Le même squelette, sans rien réapprendre : titre à gauche, puzzle et avatar à droite, action au-dessus du dock, feuille qui monte du dock.</span></figcaption>
+  <div class="phones">
+    <div>
+      <div class="phone dk">
+        <div class="top"><div class="title">Timer</div><div class="me" data-me></div></div>
+        <div class="stage" data-timer></div>
+        <div class="act" data-timer-act></div>
+        <div class="dock" data-dock="0"></div>
+      </div>
+      <small>Timer : tout l'écran lance le chrono au toucher, « Start » le dit. Session et Next aux mêmes places que sur l'ordinateur.</small>
+    </div>
+    <div>
+      <div class="phone dk">
+        <div class="top"><div class="title">Algorithms</div><div class="me" data-me></div>
+          <div class="pages"><button class="pick">CFOP<i data-lucide="chevron-down"></i></button><button>Cross</button><button>F2L</button><button class="on">OLL <small>31/57</small></button><button>PLL</button></div></div>
+        <div class="stage algs"><div class="cases" data-cases="9"></div></div>
+        <div class="sheet" data-sune="phone"></div>
+        <div class="dock" data-dock="2"></div>
+      </div>
+      <small>Algs : la même feuille pour le cas choisi, l'action au même endroit. Les pages passent sous le titre.</small>
+    </div>
+  </div>
+</figure>
+</div>
+
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<script>
+const $$ = (s) => [...document.querySelectorAll(s)], ic = (n) => `<i data-lucide="${n}"></i>`;
+const t = K.times(5, 148, 12.7, .9); t[147] = 12.47; t[121] = 9.84; t[145] = 14.02;
+const f = K.fmt, mean = t.reduce((a, b) => a + b) / t.length;
+const big = (v) => { const [a, b] = f(v).split("."); return `${a}<small>.${b}</small>`; };
+
+$$("[data-me]").forEach((el) => (el.innerHTML = `<button class="puzzle">3×3${ic("chevron-down")}</button><span class="av ${el.dataset.me}">d</span>`));
+$$("[data-dock]").forEach((el) => (el.innerHTML = [["timer", "Timer"], ["dumbbell", "Training"], ["shapes", "Algs"], ["swords", "Challenges"], ["users", "Social"]]
+  .map(([i, n], k) => `<button class="${k === +el.dataset.dock ? "on" : ""}">${ic(i)}${n}</button>`).join("")));
+$$("[data-timer]").forEach((el) => (el.innerHTML = `<div class="scr">${K.SCRAMBLES[0]}</div><div class="time">${big(12.47)}</div>
+  <div class="three"><div><span class="lbl">Average of 5</span><b>${f(K.ao(t, 5))}</b></div><div><span class="lbl">Average of 12</span><b>${f(K.ao(t, 12))}</b></div><div><span class="lbl">Best</span><b class="ok">${f(9.84)}</b></div></div>`));
+$$("[data-timer-act]").forEach((el) => (el.innerHTML = `<button class="quiet">${ic("list")}Session</button><button class="go">Start</button><button class="quiet">${ic("refresh-cw")}Next</button>`));
+
+document.getElementById("dk-list").innerHTML = t.slice(-7).reverse().map((v, k) => `<div>${k === 2 ? f(v + 2) : f(v)}${k === 2 ? `<small class="warn">+2</small>` : ""}</div>`).join("");
+document.getElementById("dk-more").innerHTML = [["Average of 100", f(K.ao(t, 100))], ["Mean", f(mean)], ["Best average of 5", f(Math.min(...t.map((_, i) => K.ao(t, 5, i + 1) ?? 99)))]].map(([l, v]) => `<div><span class="lbl">${l}</span><b>${v}</b></div>`).join("");
+document.getElementById("dk-scr").textContent = K.SCRAMBLES[1];
+$$("[data-session]").forEach((el) => (el.innerHTML = K.chart(t, 12)));
+
+const NAMES = ["Runway", "Zamboni", "Crown", "Bunny", "Mouse", "Kite", "Fish Salad", "Gun", "Squeegee", "Sune", "Anti-Sune", "Couch", "Breakneck", "Frying Pan", "Lightning", "Fung",
+  "Wide Sune", "Mario", "Stealth", "Arrowheads", "Checkers", "Bowtie", "Chameleon", "Headlights", "Pi", "Lunchbox", "Mounted Fish", "Anti-Kite", "Anti-Gun", "Anti-Couch", "Slash", "Blank"];
+$$("[data-cases]").forEach((el) => { const n = +el.dataset.cases, sune = n < 12 ? 4 : 9;
+  el.innerHTML = [...Array(n)].map((_, i) => { const k = n < 12 && i === 4 ? 9 : n < 12 && i === 9 ? 4 : i; return `<div class="case ${i === sune ? "on done" : (k * 7) % 5 < 3 ? "done" : ""}"><i data-oll="${k + 3}"></i><span>${NAMES[k]}</span></div>`; }).join(""); });
+$$("[data-sune]").forEach((el) => { const ph = el.dataset.sune === "phone", moves = `<div class="moves">R U R' U R U2 R'</div>`;
+  el.innerHTML = `<button class="x">${ic("x")}</button><div class="alg"><i data-oll="12"></i><div><h3>Sune</h3><p><i class="dot"></i>OLL 27, learned</p>${ph ? "" : moves}</div></div>${ph ? moves : ""}
+  <div class="act"><button class="quiet ${ph ? "ic" : ""}">${ic("box")}${ph ? "" : "Play in 3D"}</button><button class="go">Train this case</button><button class="quiet ${ph ? "ic" : ""}">${ic("list")}${ph ? "" : "Other algs"}</button></div>`; });
+K.fill();
+</script>
+</body>
+</html>

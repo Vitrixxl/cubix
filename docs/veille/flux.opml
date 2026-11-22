@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Veille Cubix</title></head>
+  <body>
+    <outline text="O1 · Sécurité de la stack">
+      <outline type="rss" text="The Go Blog" xmlUrl="https://go.dev/blog/feed.atom"/>
+      <outline type="rss" text="Go — versions" xmlUrl="https://github.com/golang/go/tags.atom"/>
+      <outline type="rss" text="React Blog" xmlUrl="https://react.dev/rss.xml"/>
+      <outline type="rss" text="React Native Blog" xmlUrl="https://reactnative.dev/blog/rss.xml"/>
+      <outline type="rss" text="Expo changelog" xmlUrl="https://expo.dev/changelog/rss.xml"/>
+      <outline type="rss" text="Expo — versions" xmlUrl="https://github.com/expo/expo/releases.atom"/>
+      <outline type="rss" text="Bun Blog" xmlUrl="https://bun.com/rss.xml"/>
+      <outline type="rss" text="Bun — versions" xmlUrl="https://github.com/oven-sh/bun/releases.atom"/>
+    </outline>
+    <outline text="O2 · Cubes connectés">
+      <outline type="rss" text="Chrome for Developers" xmlUrl="https://developer.chrome.com/static/blog/feed.xml"/>
+      <outline type="rss" text="gan-web-bluetooth — versions" xmlUrl="https://github.com/afedotov/gan-web-bluetooth/releases.atom"/>
+      <outline type="rss" text="cubing.js — versions" xmlUrl="https://github.com/cubing/cubing.js/releases.atom"/>
+    </outline>
+    <outline text="O3 · Règles du cubing">
+      <outline type="rss" text="WCA — actualités" xmlUrl="https://www.worldcubeassociation.org/rss.xml"/>
+      <outline type="rss" text="Règlements WCA — modifications" xmlUrl="https://github.com/thewca/wca-regulations/commits/official.atom"/>
+    </outline>
+    <outline text="O4 · Données personnelles">
+      <outline type="rss" text="CNIL — actualités" xmlUrl="https://www.cnil.fr/fr/rss.xml"/>
+    </outline>
+    <outline text="O5 · Concurrence et usages">
+      <outline type="rss" text="r/Cubers" xmlUrl="https://www.reddit.com/r/Cubers/.rss"/>
+      <outline type="rss" text="Speedsolving.com" xmlUrl="https://www.speedsolving.com/forums/-/index.rss"/>
+    </outline>
+  </body>
+</opml>

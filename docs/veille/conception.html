@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Document de conception de la veille : Cubix</title>
+<link rel="stylesheet" href="veille.css">
+<style>
+  html { font-size: 8.8pt; }
+  .page { gap: 4.2mm; padding: 14mm 16mm 11mm; }
+  .ref td:first-child { width: 52mm; }
+  .kw td:first-child { width: 36mm; }
+</style>
+</head>
+<body>
+<section class="page">
+<header>
+  <svg viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#1c1c24"/><g transform="translate(28 28) scale(4)"><rect x="0" y="0" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="0" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="0" width="5.333" height="5.333" rx="1.44" fill="#ed2677"/><rect x="0" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="6.333" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="0" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="6.333" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/><rect x="12.667" y="12.667" width="5.333" height="5.333" rx="1.44" fill="#e5e5e5"/></g></svg>
+  <div>
+    <h1>Document de conception de la veille : Cubix</h1>
+    <p>Comment les résultats ont été trouvés, affinés et avec quels mots-clés.</p>
+  </div>
+  <div class="meta">21 octobre 2026</div>
+</header>
+
+<div>
+  <h2>1. Comment avez-vous trouvé les résultats de la veille ?</h2>
+  <ol>
+    <li><b>Partir du projet.</b> J'ai relevé ce dont Cubix dépend dans son code : les versions dans package.json et le Dockerfile (Go 1.27, Bun 1.4, React 19, React Native 0.86, Expo SDK 57), les cubes Bluetooth pris en charge, la connexion Google et la synchronisation des comptes. Chaque dépendance a donné un objectif de veille.</li>
+    <li><b>Chercher avec un moteur de recherche</b>, une requête par objectif (mots-clés en partie 3), surtout en anglais car les éditeurs publient en anglais.</li>
+    <li><b>Remonter à la source officielle.</b> Un résultat de recherche n'est qu'une piste : j'ouvrais ensuite la page de l'éditeur (historique des versions de Go, blog de React Native, changelog d'Expo, blog de Bun, actualités de la WCA) pour lire l'information à la source et relever sa date.</li>
+    <li><b>Suivre les flux.</b> J'ai rassemblé 16 flux RSS dans flux.opml (blogs officiels, actualités WCA et CNIL, versions publiées sur GitHub) et vérifié que chacun répond. C'est par le flux RSS de la WCA que j'ai trouvé l'annonce du Mondial 2027.</li>
+    <li><b>Lire les newsletters et les créateurs.</b> This Week In React n° 301 m'a appris que React Native Web passe sous la React Foundation, information absente des autres sources.</li>
+    <li><b>Trier.</b> Une information n'est gardée que si elle touche un objectif, vient de sa source d'origine et porte une date.</li>
+  </ol>
+</div>
+
+<div>
+  <h2>2. Avez-vous affiné, enlevé des sources ?</h2>
+  <p style="margin-bottom:1.4mm">Oui. Plusieurs requêtes ont donné des résultats faux, datés ou commerciaux ; je les ai reformulées ou remplacées par une source officielle.</p>
+  <table class="ref">
+    <thead><tr><th>Requête ou source</th><th>Problème</th><th>Décision</th></tr></thead>
+    <tbody>
+      <tr><td>« WCA regulations 2026 update smart cube »</td><td>Des pages sans auteur annonçaient des smart cubes autorisés au Mondial 2027 à Séoul.</td><td>Enlevées. Remplacées par l'historique officiel des Règlements et le flux de la WCA, qui annonce Uppsala.</td></tr>
+      <tr><td>« GAN smart cube 2026 new release gyroscope »</td><td>Uniquement des fiches de boutiques, sans date ni annonce du fabricant.</td><td>Enlevées. Remplacées par le dépôt gan-web-bluetooth, qui liste les cubes réellement pris en charge.</td></tr>
+      <tr><td>« Bun 1.3 release blog 2026 »</td><td>Ma requête visait une version dépassée ; un article citait un « Bun 1.39 » qui n'existe pas.</td><td>Article enlevé. Requête affinée en consultant directement bun.com/blog : la série en cours est la 1.4.</td></tr>
+      <tr><td>« Go 1.27 release notes »</td><td>Les résultats renvoyaient vers des brouillons des notes de version.</td><td>Remplacés par l'historique officiel des versions, où figure le correctif de sécurité 1.27.3.</td></tr>
+      <tr><td>« React Native 0.86 release blog »</td><td>La version cherchée n'était plus la dernière.</td><td>Requête abandonnée au profit du blog officiel : 0.87 puis 0.88 sont sorties.</td></tr>
+      <tr><td>« 3x3 world record single 2026 »</td><td>Chiffres contradictoires selon la presse et Wikipédia.</td><td>Enlevé : hors objectifs, et seule la liste de la WCA fait foi.</td></tr>
+      <tr><td>« EU Digital Markets Act Apple PWA »</td><td>Uniquement des articles de 2024, rien de nouveau.</td><td>Non retenu dans la fiche.</td></tr>
+      <tr><td>cnil.fr</td><td>Site en maintenance (erreur 503) pendant la veille.</td><td>Information gardée dans la conclusion seulement, à revérifier le mois prochain.</td></tr>
+      <tr><td>Flux RSS de r/Cubers</td><td>Reddit refuse les lecteurs automatiques (erreur 403).</td><td>Gardé dans flux.opml, mais consulté directement.</td></tr>
+      <tr><td>Nombre d'abonnés de J Perm</td><td>Trois sites donnent trois chiffres différents, aucun daté.</td><td>Chiffre non cité ; la chaîne est gardée pour son contenu.</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<section class="page">
+<div>
+  <h2>3. Quels mots-clés de recherche ou autres avez-vous utilisés ?</h2>
+  <table class="kw">
+    <thead><tr><th>Objectif</th><th>Requêtes dans le moteur de recherche</th></tr></thead>
+    <tbody>
+      <tr><td>1. Sécurité de la stack</td><td>« Go 1.27 release notes », « React Native 0.86 release blog », « Bun 1.3 release blog 2026 »</td></tr>
+      <tr><td>2. Cubes connectés</td><td>« Web Bluetooth browser support 2026 Safari Firefox », « GAN smart cube 2026 new release gyroscope », « cubing.js release 2026 github »</td></tr>
+      <tr><td>3. Règles du cubing</td><td>« WCA regulations 2026 update smart cube », « 3x3 world record single 2026 speedcubing »</td></tr>
+      <tr><td>4. Données personnelles</td><td>« CNIL recommandations applications mobiles développeurs », « EU Digital Markets Act Apple PWA home screen web apps 2026 »</td></tr>
+      <tr><td>5. Concurrence et usages</td><td>« J Perm YouTube speedcubing channel subscribers 2026 », « CubeSkills Feliks Zemdegs tutorials site »</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:2mm"><b>Autres moyens que les mots-clés :</b></p>
+  <ul>
+    <li><b>Consultation directe</b> des pages officielles : go.dev/doc/devel/release, go.dev/blog, reactnative.dev/blog, expo.dev/changelog, bun.com/blog, worldcubeassociation.org/regulations/history, caniuse.com/web-bluetooth.</li>
+    <li><b>Flux RSS</b> (flux.opml, 16 flux) rangés par objectif, à suivre dans un lecteur RSS.</li>
+    <li><b>Newsletters</b> : This Week In React, Golang Weekly.</li>
+    <li><b>GitHub</b> : suivi des versions de gan-web-bluetooth, cubing.js, wca-regulations et expo.</li>
+    <li><b>Communautés</b> : r/Cubers et le forum speedsolving.com.</li>
+    <li><b>Alertes Google</b> à créer : « smart cube », « Web Bluetooth », « cube timer app », « WCA regulations ».</li>
+    <li><b>Outils sur le code</b> : bun outdated, go list -m -u all et govulncheck signalent les dépendances en retard ou vulnérables.</li>
+  </ul>
+</div>
+
+<div>
+  <h2>4. Ce que j'en retiens pour la suite</h2>
+  <p>Les recherches générales en anglais ramènent vite des pages de boutiques ou des rumeurs : le plus fiable a été de partir de la page officielle de chaque outil, puis de s'abonner à son flux. Les requêtes doivent viser la version en cours, pas celle du projet, sinon on passe à côté des nouveautés. Pour le mois prochain : revérifier la page de la CNIL, suivre la sortie de la migration Expo SDK 58 et ajouter les alertes Google.</p>
+</div>
+
+<footer><span>Cubix : document de conception de la veille</span><span>Fiche associée : veille.pdf ; flux : flux.opml</span></footer>
+</section>
+</body>
+</html>

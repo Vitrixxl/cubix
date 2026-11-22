@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qbix · Direction C · Feuille</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+/* C · Feuille: three fixed zones (a slim rail, one rounded sheet, a detail drawer) on a periwinkle ground. Everything is tinted from that one hue. */
+@font-face { font-family: Bricolage; src: url("../../desktop/assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; }
+
+.f { --ground: #e2e4f5; --sheet: #fcfcff; --soft: #eff0fa; --soft2: #e2e3f5; --ink: #1e2046; --ink2: #4c5084; --ink3: #62669a;
+  --acc: #4a48c6; --acc-soft: #e3e3fb; --acc-ink: #3836a6; --ok: #1a7f53; --ok-soft: #dcf2e6; --warn: #8f5c08; --warn-soft: #fbefd0; --bad: #bf3f3a; --bad-soft: #fbe4e2;
+  font-family: Bricolage, system-ui, sans-serif; font-size: 15px; line-height: 1.35; color: var(--ink); font-variant-numeric: tabular-nums; }
+.f svg.lucide { width: 20px; height: 20px; stroke-width: 1.9; }
+.f .sp { flex: 1; }
+
+/* Shell: rail on the ground, the sheet, the drawer */
+.f.win { background: var(--ground); display: grid; grid-template-columns: 92px minmax(0, 1fr); padding: 14px 14px 14px 0; border-radius: 18px; }
+.f.win.open { grid-template-columns: 92px minmax(0, 1fr) 392px; }
+.f .rail { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 10px 0 4px; }
+.f [data-logo] { width: 26px; height: 26px; gap: 3px; margin-bottom: 14px; }
+.f [data-logo] i { background: var(--ink); border-radius: 3px; }
+.f [data-logo] i:nth-child(3) { background: var(--acc); }
+.f .nav { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 550; color: var(--ink2); }
+.f .nav span { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; }
+.f .nav.on { color: var(--ink); font-weight: 700; }
+.f .nav.on span { background: var(--sheet); color: var(--acc); box-shadow: 0 2px 8px rgba(30, 32, 70, .08); }
+.f .tools { display: flex; flex-direction: column; gap: 4px; color: var(--ink2); }
+.f .tools span { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
+.f .av { width: 44px; height: 44px; border-radius: 50%; background: var(--acc); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none; }
+.f .av.on { box-shadow: 0 0 0 3px var(--ground), 0 0 0 5.5px var(--acc); }
+
+.f .sheet, .f .drawer { background: var(--sheet); border-radius: 34px; box-shadow: 0 1px 2px rgba(30, 32, 70, .04), 0 14px 44px rgba(30, 32, 70, .07); min-width: 0; min-height: 0; }
+.f .sheet { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: 28px 36px 30px; position: relative; }
+.f .drawer { margin-left: 12px; padding: 28px; display: flex; flex-direction: column; gap: 26px; }
+
+/* Sheet head: title + pages on the left, puzzle + drawer button on the right */
+.f .head { display: flex; align-items: center; gap: 4px; height: 44px; }
+.f .head h2 { font-size: 27px; font-weight: 700; letter-spacing: -.02em; margin-right: 22px; }
+.f .pill { height: 40px; padding: 0 16px; border-radius: 99px; display: inline-flex; align-items: center; gap: 7px; font-size: 15.5px; font-weight: 550; color: var(--ink2); white-space: nowrap; }
+.f .pill.on { background: var(--acc-soft); color: var(--acc-ink); font-weight: 650; }
+.f .pill small { font-size: 13px; font-weight: 500; opacity: .85; }
+.f .pick { background: var(--soft); color: var(--ink); font-weight: 600; padding: 0 12px 0 15px; }
+.f .pick svg { width: 17px; height: 17px; color: var(--ink3); }
+.f .rb { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink2); margin-left: 6px; flex: none; }
+.f .rb.on { background: var(--acc-soft); color: var(--acc-ink); }
+
+/* The centre and the primary action */
+.f .mid { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; }
+.f .foot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.f .go { height: 60px; min-width: 248px; padding: 0 44px; border-radius: 99px; background: var(--acc); color: #fff; font-size: 18.5px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 18px rgba(30, 32, 70, .16); }
+.f .foot small { font-size: 13.5px; color: var(--ink3); height: 18px; }
+.f .tonal { height: 52px; border-radius: 99px; background: var(--acc-soft); color: var(--acc-ink); font-size: 16px; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* Timer */
+.f .scr { font-size: 24px; font-weight: 500; line-height: 1.5; word-spacing: .2em; text-align: center; max-width: 720px; text-wrap: balance; color: var(--ink2); }
+.f .time { font-size: 176px; font-weight: 400; line-height: 1.18; letter-spacing: -.035em; margin: 16px 0 24px; }
+.f .stats { display: flex; gap: 64px; }
+.f .stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.f .stat b { font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
+.f .stat span { font-size: 14.5px; color: var(--ink3); }
+
+/* Drawer */
+.f .dh { display: flex; align-items: center; gap: 10px; }
+.f .dh h3 { font-size: 23px; font-weight: 700; letter-spacing: -.015em; }
+.f .dh small { font-size: 14.5px; color: var(--ink3); padding-top: 4px; }
+.f .dh .rb { margin-left: auto; }
+.f .blk { display: flex; flex-direction: column; gap: 12px; }
+.f .blk > span { font-size: 14.5px; font-weight: 600; color: var(--ink2); }
+.f .drawer .stats { gap: 0; justify-content: space-between; padding: 0 8px; }
+.f .drawer .stat b { font-size: 22px; }
+.f .chart { height: 90px; }
+.f .k-grid { stroke: none; }
+.f .k-pt { fill: #c5c7e8; } .f .k-pt.pb { fill: var(--ok); }
+.f .k-ln { fill: none; stroke: var(--acc); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.f .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.f .chips i { font-style: normal; height: 38px; border-radius: 99px; background: var(--soft); display: grid; place-items: center; font-size: 15px; font-weight: 550; }
+.f .chips .ok { background: var(--ok-soft); color: var(--ok); } .f .chips .warn { background: var(--warn-soft); color: var(--warn); } .f .chips .bad { background: var(--bad-soft); color: var(--bad); }
+.f .net { width: 176px; height: 131px; align-self: center; }
+.f .k-net rect { rx: 2.2px; }
+.f .k-f0 { fill: #f4f4fb; stroke: #d3d5ec; stroke-width: .8; } .f .k-f1 { fill: #f5cb4b; } .f .k-f2 { fill: #54be88; } .f .k-f3 { fill: #5f8fee; } .f .k-f4 { fill: #ea6c61; } .f .k-f5 { fill: #f5a259; }
+
+/* Cases */
+.f .k-s { fill: var(--soft2); rx: 2.6px; } .f .k-s.on { fill: #f5cb4b; }
+.f .k-s.side { rx: 1.6px; } .f .k-s.side:not(.on) { fill: none; }
+.f .cases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px 10px; width: 100%; align-self: stretch; }
+.f .mid.top { justify-content: flex-start; padding-top: 22px; }
+.f .case { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 14px 0 12px; border-radius: 26px; font-size: 15px; font-weight: 550; }
+.f .case > span { width: 78px; height: 78px; }
+.f .case.on { background: var(--acc-soft); color: var(--acc-ink); font-weight: 650; }
+.f .case.on .k-s:not(.on):not(.side) { fill: var(--sheet); }
+.f .case.todo { color: var(--ink3); font-weight: 500; }
+.f .case.fade { -webkit-mask-image: linear-gradient(#000 10%, transparent 82%); mask-image: linear-gradient(#000 10%, transparent 82%); }
+.f .big-case { width: 168px; height: 168px; align-self: center; margin: 4px 0; }
+.f .alg { background: var(--soft); border-radius: 26px; padding: 22px 12px; text-align: center; font-size: 25px; font-weight: 600; word-spacing: .16em; }
+.f .line { display: flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--ink2); }
+.f .line svg { width: 19px; height: 19px; }
+.f .line.ok { color: var(--ok); font-weight: 600; }
+.f .line svg:last-child:not(:first-child) { margin-left: auto; color: var(--ink3); }
+
+/* Duel */
+.f .vs { display: flex; align-items: center; gap: 26px; font-size: 19px; color: var(--ink3); font-weight: 500; }
+.f .vs .av { width: 104px; height: 104px; font-size: 42px; }
+.f .vs .ghost { background: var(--soft); color: var(--ink3); }
+.f .vs .ghost svg { width: 40px; height: 40px; stroke-width: 1.5; }
+.f .rate { display: flex; align-items: center; gap: 16px; margin-top: 34px; }
+.f .rate b { font-size: 72px; font-weight: 500; letter-spacing: -.03em; line-height: 1.12; }
+.f .tag { height: 34px; padding: 0 14px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); font-weight: 650; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.f .tag svg { width: 16px; height: 16px; }
+.f .hint { font-size: 17px; color: var(--ink2); margin-top: 12px; }
+.f .last { margin-top: 26px; font-size: 15px; color: var(--ink2); display: flex; align-items: center; gap: 8px; }
+.f .last b { color: var(--ink); font-weight: 650; }
+.f .last svg { width: 17px; height: 17px; color: var(--ink3); }
+.f .entries { display: flex; gap: 14px; margin-top: 56px; }
+.f .entry { width: 330px; height: 76px; border-radius: 99px; background: var(--soft); display: flex; align-items: center; gap: 14px; padding: 0 22px 0 14px; }
+.f .entry > span:first-child { width: 48px; height: 48px; border-radius: 50%; background: var(--sheet); color: var(--acc); display: grid; place-items: center; flex: none; }
+.f .entry div { display: flex; flex-direction: column; gap: 1px; }
+.f .entry b { font-size: 16.5px; font-weight: 650; }
+.f .entry small { font-size: 14px; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
+.f .entry small i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.f .entry > svg { margin-left: auto; color: var(--ink3); }
+
+/* Profile */
+.f .who { display: flex; align-items: center; gap: 22px; }
+.f .who .av { width: 92px; height: 92px; font-size: 38px; }
+.f .who h3 { font-size: 44px; font-weight: 700; letter-spacing: -.03em; line-height: 1.15; }
+.f .who p { font-size: 17px; color: var(--ink2); display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.f .who p svg { width: 18px; height: 18px; color: var(--warn); }
+.f .recs { display: flex; gap: 84px; margin-top: 54px; }
+.f .recs .stat b { font-size: 48px; font-weight: 500; letter-spacing: -.025em; line-height: 1.1; }
+.f .recs .stat span { font-size: 15.5px; }
+.f .recs .stat .best { color: var(--ok); }
+.f .duo { display: flex; align-items: flex-start; gap: 110px; margin-top: 60px; }
+.f .duo .blk { gap: 16px; }
+.f .heat { height: 122px; }
+.f .k-heat { gap: 5px; }
+.f .k-heat i { border-radius: 50%; background: var(--soft2); width: 13px; }
+.f .k-heat .l1 { background: #c9caf2; } .f .k-heat .l2 { background: #a2a3e8; } .f .k-heat .l3 { background: #7372d8; } .f .k-heat .l4 { background: var(--acc); }
+.f .awards { display: flex; gap: 26px; }
+.f .aw { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 92px; text-align: center; font-size: 14.5px; font-weight: 550; line-height: 1.25; }
+.f .aw span { width: 68px; height: 68px; border-radius: 50%; background: var(--acc-soft); color: var(--acc); display: grid; place-items: center; }
+.f .aw span svg { width: 26px; height: 26px; }
+.f .aw.no { color: var(--ink3); } .f .aw.no span { background: var(--soft); color: var(--ink3); }
+
+/* Phone: the rail becomes the tab bar, the drawer a bottom sheet */
+.f.phone { background: var(--ground); display: flex; flex-direction: column; }
+.f .status { height: 50px; flex: none; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 34px 8px; font-weight: 650; font-size: 15.5px; }
+.f .status svg { width: 17px; height: 17px; }
+.f.phone .sheet { flex: 1; margin: 0 8px; padding: 18px 18px 22px; border-radius: 32px; }
+.f .ptop { display: flex; flex-direction: column; gap: 14px; }
+.f.phone .head { height: 40px; }
+.f.phone .head .av { width: 36px; height: 36px; font-size: 15px; margin-right: 10px; }
+.f.phone .head h2 { font-size: 25px; margin: 0; }
+.f.phone .pill { height: 38px; padding: 0 13px; font-size: 15px; }
+.f.phone .pick { padding: 0 10px 0 13px; }
+.f .pages { display: flex; gap: 2px; }
+.f.phone .scr { font-size: 19.5px; max-width: 320px; }
+.f.phone .time { font-size: 112px; margin: 20px 0 26px; }
+.f.phone .stats { gap: 38px; }
+.f.phone .stat b { font-size: 23px; }
+.f.phone .go { height: 58px; }
+.f .tabs { height: 86px; flex: none; display: flex; justify-content: space-around; align-items: flex-start; padding: 9px 6px 0; }
+.f .tabs .nav { font-size: 11.5px; gap: 2px; width: 70px; }
+.f .tabs .nav span { width: 52px; height: 36px; border-radius: 99px; }
+.f.phone .cases { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.f.phone .mid.top { padding-top: 14px; }
+.f.phone .case > span { width: 70px; height: 70px; }
+.f .scrim { position: absolute; inset: 0; background: rgba(30, 32, 70, .22); }
+.f .bsheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--sheet); border-radius: 36px 36px 0 0; padding: 12px 22px 30px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 -10px 40px rgba(30, 32, 70, .14); }
+.f .grab { width: 44px; height: 5px; border-radius: 9px; background: var(--soft2); align-self: center; }
+.f .bsheet .big-case { width: 132px; height: 132px; margin: 0; }
+.f .bsheet .alg { font-size: 23px; padding: 18px 10px; }
+
+/* The placement schema in the page header */
+.facts .sw { flex-direction: row; }
+.fmap { display: flex; gap: 36px; align-items: center; padding-top: 6px; }
+.fmap ol { display: flex; flex-direction: column; gap: 9px; list-style: none; font-size: 14.5px; line-height: 1.45; color: #b3b6ba; max-width: 54ch; }
+.fmap ol li { display: flex; gap: 10px; } .fmap ol b { color: #ecedee; }
+.fmap .n, .fmap ol i { flex: none; width: 21px; height: 21px; border-radius: 50%; background: #1e2046; color: #fff; font: 700 12px/21px Bricolage, sans-serif; text-align: center; font-style: normal; }
+.fmap ol i { background: #ecedee; color: #17181a; margin-top: 1px; }
+.fmap .mw { width: 560px; height: 340px; flex: none; background: var(--ground); border-radius: 16px; display: grid; grid-template-columns: 46px 1fr 150px; gap: 8px; padding: 8px 8px 8px 0; font-size: 12.5px; font-weight: 600; }
+.fmap .mr { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 8px; }
+.fmap .mr u { width: 20px; height: 20px; border-radius: 50%; background: #c9cbe9; }
+.fmap .mr u:nth-of-type(1) { background: var(--sheet); }
+.fmap .mr u:last-child { background: var(--acc); margin-top: auto; }
+.fmap .ms, .fmap .md { background: var(--sheet); border-radius: 18px; position: relative; }
+.fmap .z { position: absolute; display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 6px; border-radius: 99px; background: var(--soft); white-space: nowrap; }
+.fmap .z.c { left: 50%; top: 50%; transform: translate(-50%, -50%); height: 96px; padding: 0 22px 0 16px; border-radius: 26px; }
+.fmap .z.a { left: 50%; bottom: 14px; transform: translateX(-50%); background: var(--acc); color: #fff; }
+.fmap .z.a .n { background: #fff; color: var(--acc); }
+.fmap .mp { width: 150px; height: 310px; flex: none; background: var(--ground); border-radius: 26px; padding: 8px 6px 0; display: flex; flex-direction: column; font-size: 11.5px; font-weight: 600; box-shadow: 0 0 0 5px #050506; }
+.fmap .mp .ms { flex: 1; }
+.fmap .mp .z { height: 26px; padding: 0 8px 0 3px; gap: 5px; }
+.fmap .mp .z.c { height: 56px; border-radius: 18px; top: 36%; }
+.fmap .mp .z.a { bottom: 82px; }
+.fmap .mp .z.s { left: 0; right: 0; bottom: 0; height: 68px; border-radius: 18px 18px 0 0; background: var(--soft2); justify-content: center; }
+.fmap .mp .mt { height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<header>
+  <nav><a href="a-souffle.html">A · Souffle</a><a href="b-dock.html">B · Dock</a><a class="on" href="c-feuille.html">C · Feuille</a></nav>
+  <h1>C · Feuille</h1>
+  <p><b>Toute l'app tient sur une seule feuille arrondie, posée au milieu d'un fond pervenche.</b> Trois zones qui ne
+  bougent jamais : un rail fin à gauche pour aller d'une section à l'autre, la feuille au centre pour la page, un
+  tiroir à droite pour le détail. Chaque page montre une seule chose, et tout le reste (la session, un cas, une
+  course, un record) attend dans le tiroir, à un clic. On apprend l'emplacement des choses une fois, sur le chrono,
+  et il vaut partout.</p>
+  <div class="facts">
+    <div><b>Couleur</b><div class="sw"><i style="background:#e2e4f5"></i><i style="background:#fcfcff"></i><i style="background:#eff0fa"></i><i style="background:#1e2046"></i><i style="background:#4a48c6"></i><i style="background:#1a7f53"></i><i style="background:#8f5c08"></i><i style="background:#bf3f3a"></i></div>Un seul monde pervenche : le fond, la feuille presque blanche, l'encre indigo et l'accent sont la même teinte à des profondeurs différentes. Vert, ambre et rouge sourds pour record, +2 et DNF ; le jaune du cube sur les cas.</div>
+    <div><b>Typographie</b>Bricolage Grotesque, la police de l'app, partout : ronde, amicale, grande. Le texte courant est à 15 px au minimum, le chrono à 176 px en graisse normale, chiffres tabulaires.</div>
+    <div><b>Forme</b>Aucun filet, aucun tableau. Des pastilles, des cercles, une feuille à 34 px de rayon et une ombre très douce. Une seule pastille pleine par écran : l'action principale.</div>
+    <div><b>Le risque</b>On voit moins de choses d'un coup : la liste des temps et les statistiques détaillées demandent un clic. Ceux qui veulent tout sous les yeux garderont le tiroir ouvert, et la feuille devient alors plus étroite.</div>
+  </div>
+  <div class="fmap">
+    <div class="f mw">
+      <div class="mr"><span class="n">1</span><u></u><u></u><u></u><u></u><u></u><u></u></div>
+      <div class="ms">
+        <span class="z" style="left:12px;top:12px"><span class="n">2</span>Titre · pages</span>
+        <span class="z" style="right:12px;top:12px"><span class="n">3</span>Puzzle</span>
+        <span class="z c"><span class="n">4</span>Le sujet de la page</span>
+        <span class="z a"><span class="n">5</span>Action principale</span>
+      </div>
+      <div class="md"><span class="z" style="left:12px;top:12px"><span class="n">6</span>Détail</span></div>
+    </div>
+    <div class="f mp">
+      <div class="ms">
+        <span class="z" style="left:6px;top:8px"><span class="n">2</span>Titre</span>
+        <span class="z" style="right:6px;top:8px"><span class="n">3</span></span>
+        <span class="z c"><span class="n">4</span>Sujet</span>
+        <span class="z a"><span class="n">5</span>Action</span>
+        <span class="z s"><span class="n">6</span>Détail</span>
+      </div>
+      <div class="mt"><span class="n">1</span>Onglets</div>
+    </div>
+    <ol>
+      <li><i>1</i><span><b>Naviguer : le rail, à gauche.</b> Les cinq sections dans le même ordre ; en bas le cube connecté, l'aide, les réglages, puis le compte. Sur téléphone : la barre d'onglets, en bas.</span></li>
+      <li><i>2</i><span><b>Où suis-je : en haut à gauche.</b> Le titre de la section, ses pages en pastilles juste à côté.</span></li>
+      <li><i>3</i><span><b>Quel puzzle : en haut à droite.</b> Le sélecteur de puzzle, puis le bouton rond qui ouvre le tiroir.</span></li>
+      <li><i>4</i><span><b>Le sujet : au centre.</b> Une seule chose par page, entourée de vide.</span></li>
+      <li><i>5</i><span><b>Agir : en bas au centre.</b> Une grande pastille pleine, la seule de l'écran.</span></li>
+      <li><i>6</i><span><b>Le détail : à droite.</b> Toujours le même tiroir, fermé par la croix en haut à droite ; la feuille se pousse. Sur téléphone, il monte du bas.</span></li>
+    </ol>
+  </div>
+</header>
+
+<figure>
+  <figcaption><b>Timer, au repos</b><span>Le mélange, le temps, trois moyennes, le bouton. Rien d'autre. La liste des temps, le graphique et le patron du mélange sont dans le tiroir Session (bouton rond en haut à droite) ; +2, DNF et supprimer s'ouvrent en touchant le temps.</span></figcaption>
+  <div class="win f">
+    <nav class="rail" data-rail="0"></nav>
+    <section class="sheet">
+      <div class="head"><h2>Timer</h2><span class="pill on">Normal</span><span class="pill">Cross</span><span class="pill">F2L</span><span class="pill">Last layer</span><span class="sp"></span><span class="pill pick">3×3<i data-lucide="chevron-down"></i></span><span class="rb"><i data-lucide="panel-right"></i></span></div>
+      <div class="mid">
+        <p class="scr">R2 U' F2 D B2 L2 D' R2 U2 F' L D2 R' B U L' F2 D' R</p>
+        <div class="time">12.47</div>
+        <div class="stats"><div class="stat"><b>12.31</b><span>ao5</span></div><div class="stat"><b>12.84</b><span>ao12</span></div><div class="stat"><b>9.84</b><span>best</span></div></div>
+      </div>
+      <div class="foot"><button class="go">Start</button><small>or hold Space</small></div>
+    </section>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Timer, tiroir Session ouvert</b><span>Le même écran, un clic plus tard : la feuille se pousse et le tiroir montre ce qui était caché (autres moyennes, tendance, derniers temps, patron du mélange). Le chrono et son bouton n'ont pas bougé de leur place.</span></figcaption>
+  <div class="win f open">
+    <nav class="rail" data-rail="0"></nav>
+    <section class="sheet">
+      <div class="head"><h2>Timer</h2><span class="pill on">Normal</span><span class="pill">Cross</span><span class="pill">F2L</span><span class="pill">Last layer</span><span class="sp"></span><span class="pill pick">3×3<i data-lucide="chevron-down"></i></span><span class="rb on"><i data-lucide="panel-right"></i></span></div>
+      <div class="mid">
+        <p class="scr">R2 U' F2 D B2 L2 D' R2 U2 F' L D2 R' B U L' F2 D' R</p>
+        <div class="time">12.47</div>
+        <div class="stats"><div class="stat"><b>12.31</b><span>ao5</span></div><div class="stat"><b>12.84</b><span>ao12</span></div><div class="stat"><b>9.84</b><span>best</span></div></div>
+      </div>
+      <div class="foot"><button class="go">Start</button><small>or hold Space</small></div>
+    </section>
+    <aside class="drawer">
+      <div class="dh"><h3>Session</h3><small>47 solves</small><span class="rb"><i data-lucide="x"></i></span></div>
+      <div class="stats"><div class="stat"><b>12.96</b><span>ao50</span></div><div class="stat"><b>13.12</b><span>ao100</span></div><div class="stat"><b>13.04</b><span>mean</span></div></div>
+      <div class="blk"><span>Trend</span><div class="chart" data-chart="7,47,12.9,.9,5"></div></div>
+      <div class="blk"><span>Last solves</span><div class="chips"><i>12.47</i><i>11.92</i><i>13.05</i><i class="ok">9.84</i><i>12.21</i><i class="warn">14.21+</i><i>12.66</i><i class="bad">DNF</i></div></div>
+      <div class="blk"><span>Scramble</span><div class="net" data-net="4"></div></div>
+      <span class="sp"></span>
+      <button class="tonal">See all solves</button>
+    </aside>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Algs · OLL, un cas ouvert</b><span>Les étapes de la méthode sont les pastilles du titre, la méthode se choisit avec le puzzle. La feuille ne montre que le dessin et le nom des cas ; l'algorithme n'apparaît que dans le tiroir du cas choisi. Les autres algorithmes du cas sont un clic plus loin, dans ce même tiroir.</span></figcaption>
+  <div class="win f open">
+    <nav class="rail" data-rail="2"></nav>
+    <section class="sheet">
+      <div class="head"><h2>Algs</h2><span class="pill">Cross</span><span class="pill">F2L <small>11/41</small></span><span class="pill on">OLL <small>31/57</small></span><span class="pill">PLL <small>19/21</small></span><span class="sp"></span><span class="pill pick">3×3 · CFOP<i data-lucide="chevron-down"></i></span><span class="rb on"><i data-lucide="panel-right"></i></span></div>
+      <div class="mid top"><div class="cases" data-cases="20,5"></div></div>
+      <div class="foot"><button class="go">Train OLL</button><small>the cases you are learning, in a round</small></div>
+    </section>
+    <aside class="drawer">
+      <div class="dh"><h3>Sune</h3><small>OLL 27</small><span class="rb"><i data-lucide="x"></i></span></div>
+      <div class="big-case" data-sune></div>
+      <div class="alg">R U R' U R U2 R'</div>
+      <div class="blk">
+        <div class="line ok"><i data-lucide="circle-check"></i>Learned</div>
+        <div class="line"><i data-lucide="play"></i>Watch it on the cube<i data-lucide="chevron-right"></i></div>
+        <div class="line"><i data-lucide="list"></i>Other algorithms<i data-lucide="chevron-right"></i></div>
+      </div>
+      <span class="sp"></span>
+      <button class="tonal">Train this case</button>
+    </aside>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Challenges · Duel</b><span>Une seule chose à faire : Face off. Le classement se lit d'un coup d'œil, la dernière course tient sur une ligne et s'ouvre dans le tiroir. Le mélange du jour et le tournoi en cours sont deux entrées légères ; leurs pages complètes sont dans les pastilles du titre.</span></figcaption>
+  <div class="win f">
+    <nav class="rail" data-rail="3"></nav>
+    <section class="sheet">
+      <div class="head"><h2>Challenges</h2><span class="pill on">Duel</span><span class="pill">Tournaments</span><span class="pill">Daily</span><span class="pill">WCA</span><span class="sp"></span><span class="pill pick">3×3<i data-lucide="chevron-down"></i></span><span class="rb"><i data-lucide="panel-right"></i></span></div>
+      <div class="mid">
+        <div class="vs"><span class="av">D</span>vs<span class="av ghost"><i data-lucide="user-round"></i></span></div>
+        <div class="rate"><b>1482</b><span class="tag"><i data-lucide="shield"></i>Gold II</span></div>
+        <p class="hint">Race someone at your level, best of five.</p>
+        <div class="last">Last race<b>dev 3 – 2 lena_speed</b><i data-lucide="chevron-right"></i></div>
+        <div class="entries">
+          <div class="entry"><span><i data-lucide="calendar"></i></span><div><b>Daily scramble</b><small>Not solved yet today</small></div><i data-lucide="chevron-right"></i></div>
+          <div class="entry"><span><i data-lucide="trophy"></i></span><div><b>Friday sprint</b><small><i></i>Live now</small></div><i data-lucide="chevron-right"></i></div>
+        </div>
+      </div>
+      <div class="foot"><button class="go"><i data-lucide="swords"></i>Face off</button><small>finds an opponent in a few seconds</small></div>
+    </section>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Profil · Overview</b><span>Derrière l'avatar, en bas du rail. Qui je suis, trois records, mon activité, quatre récompenses : le reste est dans les pages du titre (Statistics, Training, Awards, Battles, Analysis). Toucher un record ouvre son détail dans le tiroir.</span></figcaption>
+  <div class="win f">
+    <nav class="rail" data-rail="5"></nav>
+    <section class="sheet">
+      <div class="head"><h2>Profile</h2><span class="pill on">Overview</span><span class="pill">Statistics</span><span class="pill">Training</span><span class="pill">Awards</span><span class="pill">Battles</span><span class="pill">Analysis</span><span class="sp"></span><span class="pill pick">3×3<i data-lucide="chevron-down"></i></span><span class="rb"><i data-lucide="panel-right"></i></span></div>
+      <div class="mid">
+        <div class="who"><span class="av">D</span><div><h3>dev</h3><p>Level 14<i data-lucide="flame"></i>12-day streak</p></div></div>
+        <div class="recs"><div class="stat"><b class="best">9.84</b><span>best single</span></div><div class="stat"><b>11.62</b><span>best ao5</span></div><div class="stat"><b>12.31</b><span>best ao12</span></div></div>
+        <div class="duo">
+          <div class="blk"><span>Activity</span><div class="heat" data-heat="5,18"></div></div>
+          <div class="blk"><span>Awards</span><div class="awards">
+            <div class="aw"><span><i data-lucide="timer"></i></span>Sub-10 single</div>
+            <div class="aw"><span><i data-lucide="flame"></i></span>Ten days in a row</div>
+            <div class="aw"><span><i data-lucide="book-open"></i></span>Half of OLL</div>
+            <div class="aw no"><span><i data-lucide="layers"></i></span>Full PLL</div>
+          </div></div>
+        </div>
+      </div>
+      <div class="foot"><button class="go">Share profile</button><small></small></div>
+    </section>
+  </div>
+</figure>
+
+<figure>
+  <figcaption><b>Téléphone</b><span>La même grammaire, traduite : le rail devient la barre d'onglets en bas, le compte passe devant le titre, le tiroir devient une feuille qui monte du bas. Titre à gauche, puzzle à droite, action en bas au centre : rien ne change de place.</span></figcaption>
+  <div class="phones">
+    <div>
+      <div class="phone f">
+        <div class="status"><span>9:41</span><i data-lucide="battery-medium"></i></div>
+        <section class="sheet">
+          <div class="ptop">
+            <div class="head"><span class="av">D</span><h2>Timer</h2><span class="sp"></span><span class="pill pick">3×3<i data-lucide="chevron-down"></i></span><span class="rb"><i data-lucide="panel-bottom"></i></span></div>
+            <div class="pages"><span class="pill on">Normal</span><span class="pill">Cross</span><span class="pill">F2L</span><span class="pill">Last layer</span></div>
+          </div>
+          <div class="mid">
+            <p class="scr">R2 U' F2 D B2 L2 D' R2 U2 F' L D2 R' B U L' F2 D' R</p>
+            <div class="time">12.47</div>
+            <div class="stats"><div class="stat"><b>12.31</b><span>ao5</span></div><div class="stat"><b>12.84</b><span>ao12</span></div><div class="stat"><b>9.84</b><span>best</span></div></div>
+          </div>
+          <div class="foot"><button class="go">Start</button><small>or hold anywhere</small></div>
+        </section>
+        <nav class="tabs" data-tabs="0"></nav>
+      </div>
+      <small>Timer au repos. La session s'ouvre par le bouton rond, en feuille du bas.</small>
+    </div>
+    <div>
+      <div class="phone f">
+        <div class="status"><span>9:41</span><i data-lucide="battery-medium"></i></div>
+        <section class="sheet">
+          <div class="ptop">
+            <div class="head"><span class="av">D</span><h2>Algs</h2><span class="sp"></span><span class="pill pick">3×3 · CFOP<i data-lucide="chevron-down"></i></span><span class="rb on"><i data-lucide="panel-bottom"></i></span></div>
+            <div class="pages"><span class="pill">Cross</span><span class="pill">F2L</span><span class="pill on">OLL <small>31/57</small></span><span class="pill">PLL</span></div>
+          </div>
+          <div class="mid top"><div class="cases" data-cases="9,4"></div></div>
+          <div class="foot"><button class="go">Train OLL</button><small></small></div>
+        </section>
+        <nav class="tabs" data-tabs="2"></nav>
+        <div class="scrim"></div>
+        <div class="bsheet">
+          <span class="grab"></span>
+          <div class="dh"><h3>Sune</h3><small>OLL 27</small><span class="rb"><i data-lucide="x"></i></span></div>
+          <div class="big-case" data-sune></div>
+          <div class="alg">R U R' U R U2 R'</div>
+          <button class="tonal">Train this case</button>
+        </div>
+      </div>
+      <small>Algs, un cas touché : le tiroir du bureau, monté du bas.</small>
+    </div>
+  </div>
+</figure>
+
+</div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<script>
+const all = (s) => [...document.querySelectorAll(s)];
+const NAV = [["timer", "Timer"], ["target", "Training"], ["grid-3x3", "Algs"], ["swords", "Challenges"], ["users", "Social"]];
+const nav = (on) => NAV.map(([ic, n], i) => `<div class="nav ${i === on ? "on" : ""}"><span><i data-lucide="${ic}"></i></span>${n}</div>`).join("");
+all("[data-rail]").forEach((el) => { const on = +el.dataset.rail;
+  el.innerHTML = `<div data-logo></div>${nav(on)}<span class="sp"></span><div class="tools"><span><i data-lucide="bluetooth"></i></span><span><i data-lucide="circle-help"></i></span><span><i data-lucide="settings"></i></span></div><span class="av ${on === 5 ? "on" : ""}">D</span>`; });
+all("[data-tabs]").forEach((el) => (el.innerHTML = nav(+el.dataset.tabs)));
+
+// The kit draws random valid cases: pick the first one shaped like a Sune (edges oriented, one corner solved) for the selected case.
+const tops = (s) => [...K.oll(s).matchAll(/class="(k-s[^"]*)"/g)].map((m) => m[1]).slice(0, 9);
+const SUNE = [...Array(400).keys()].find((s) => { const t = tops(s); return [1, 3, 5, 7].every((i) => t[i] === "k-s on") && t.filter((c) => c === "k-s on").length === 6; });
+all("[data-sune]").forEach((el) => (el.dataset.oll = SUNE));
+const NAMES = ["Anti-Sune", "Pi", "Headlights", "Chameleon", "Bowtie", "Kite", "Sune", "Key", "Anti-Kite", "Fish salad", "Couch", "Lightning", "Fung", "City", "Squarepants", "Anti-Couch", "Mounted fish", "Anti-Fung", "Breakneck", "Frying pan"];
+const TODO = [8, 11, 13, 14, 17, 19];
+// data-cases="count,selected": the last row fades out, the list goes on under it.
+all("[data-cases]").forEach((el) => { const [n, sel] = el.dataset.cases.split(",").map(Number), names = [...NAMES]; [names[sel], names[6]] = [names[6], names[sel]];
+  const cols = el.closest(".phone") ? 3 : 5;
+  el.innerHTML = names.slice(0, n).map((name, i) => `<div class="case ${i === sel ? "on" : TODO.includes(i) ? "todo" : ""} ${!el.closest(".phone") && i >= n - cols ? "fade" : ""}"><span data-oll="${i === sel ? SUNE : i + 11}"></span>${name}</div>`).join(""); });
+K.fill();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[package]
+name = "qbix-core"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+scrambler = { path = "../../scrambler" }
+serde.workspace = true
+serde_json.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+ureq = { version = "3", features = ["json"] }
+tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"] }
+aes = "0.8"
