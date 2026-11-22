@@ -308,6 +308,9 @@ func dbMigrate(db *Conn) error {
 		func() error {
 			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wca ON users(wca_user_id) WHERE wca_user_id IS NOT NULL")
 		},
+		// What Google says of the account at each sign-in, for the administration: its address and its name.
+		func() error { return addColumnIfMissing(db, "users", "email", "TEXT") },
+		func() error { return addColumnIfMissing(db, "users", "name", "TEXT") },
 		func() error { return adminDataPurgeLegacy(db) },
 		// A shared solve was once its solve's token, read live: each becomes a copy (shared_solves), its link kept.
 		func() error {

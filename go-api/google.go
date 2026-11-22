@@ -77,8 +77,8 @@ func googleKey(kid string) (*rsa.PublicKey, error) {
 
 // GoogleClaims: what an ID token says of its account.
 type GoogleClaims struct {
-	Iss, Aud, Sub, Name string
-	Exp                 float64
+	Iss, Aud, Sub, Name, Email string
+	Exp                        float64
 }
 
 // googleVerify: the claims of an RS256 ID token Google signed for `client`, unexpired.

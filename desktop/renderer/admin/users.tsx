@@ -31,7 +31,7 @@ export function Users({ phone }: { phone: boolean }) {
           value={q}
           onChange={(v) => navigate(withParams(params, { q: v, page: null }), true)}
           delay={300}
-          placeholder="Username or id"
+          placeholder="Username, email or id"
           label="Search accounts"
           action="users:search"
           className="w-full sm:w-72"

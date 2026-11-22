@@ -457,7 +457,13 @@ func apiAuthRequest(state *AppState, r *http.Request, path string, body any) (an
 		return nil, err
 	}
 	return dbCall(state.db, func(db *Conn) (M, error) {
-		return accountsOpen(db, "google_sub=?", claims.Sub, accountsName(claims.Name), "google_sub")
+		response, err := accountsOpen(db, "google_sub=?", claims.Sub, accountsName(claims.Name), "google_sub")
+		if err != nil {
+			return nil, err
+		}
+		// Kept up to date at each sign-in, for the administration only.
+		_, err = db.Exec("UPDATE users SET email=nullif(?,''),name=nullif(?,'') WHERE google_sub=?", claims.Email, claims.Name, claims.Sub)
+		return response, err
 	})
 }
 

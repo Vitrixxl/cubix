@@ -229,7 +229,7 @@ func wcaSignIn(state *AppState, token string, pending wcaPending, me wcaAccount)
 				return nil, err
 			}
 			// Its WCA ID comes with a first competition: kept up to date at each sign-in.
-			if _, err := db.Exec("UPDATE users SET wca_id=? WHERE wca_user_id=?", wcaId, account); err != nil {
+			if _, err := db.Exec("UPDATE users SET wca_id=?,name=coalesce(name,nullif(?,'')) WHERE wca_user_id=?", wcaId, me.Name, account); err != nil {
 				return nil, err
 			}
 			response["user"].(M)["wcaId"] = wcaId

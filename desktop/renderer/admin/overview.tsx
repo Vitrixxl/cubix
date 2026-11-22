@@ -23,6 +23,7 @@ export function Overview({ phone }: { phone: boolean }) {
       ) : (
         <>
           <Figures d={d} />
+          <Community c={d.community} />
           <section aria-label="Last 30 days">
             <div className="grid gap-6 lg:grid-cols-2">
               <DailyChart
@@ -82,6 +83,22 @@ function Figures({ d }: { d: Data }) {
       />
       <Kpi label="IPs today" value={num(d.ips.today)} delta={change("ips")} sub={`7 d ${num(d.ips.d7)} · ${num(d.ips.live)} live`} />
       <Kpi label="Duels today" value={num(d.duels.today)} delta={change("duels")} sub={`7 d ${num(d.duels.d7)} · ${num(d.duels.total)} all`} />
+    </Strip>
+  );
+}
+
+/** What the community does: the daily challenge, messages, matches, groups, tournaments, coaching, sign-ins. */
+function Community({ c }: { c: Data["community"] }) {
+  return (
+    <Strip label="Community" className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+      <Kpi label="Daily today" value={num(c.dailyToday)} sub={`7 d ${num(c.daily7d)}`} />
+      <Kpi label="Messages today" value={num(c.messagesToday)} sub={`7 d ${num(c.messages7d)}`} />
+      <Kpi label="Matches today" value={num(c.matchesToday)} sub={`${num(c.matches)} all`} />
+      <Kpi label="Tournaments" value={num(c.tournamentsOpen)} sub={`open or running · ${num(c.tournaments)} all`} />
+      <Kpi label="Groups" value={num(c.groups)} sub={`${num(c.friendships)} friendships`} />
+      <Kpi label="Coaches" value={num(c.coaches)} sub={`${num(c.bookingsUpcoming)} sessions booked`} />
+      <Kpi label="Shared solves" value={num(c.sharedSolves)} />
+      <Kpi label="Sign-in" value={num(c.google)} sub={`Google · ${num(c.wca)} WCA`} />
     </Strip>
   );
 }
@@ -182,6 +199,9 @@ function MostActive({ tick }: { tick: number }) {
 function OverviewSkeleton({ phone }: { phone: boolean }) {
   return (
     <>
+      <Strip>
+        <FiguresSkeleton count={phone ? 4 : 8} className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-8" />
+      </Strip>
       <Strip>
         <FiguresSkeleton count={phone ? 4 : 8} className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-8" />
       </Strip>

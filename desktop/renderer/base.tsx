@@ -826,6 +826,18 @@ export function SearchField({
 /** The class of a timer's milliseconds: smaller, and muted unless armed. */
 export const fractionClass = (armed: boolean) => cn("text-[0.62em] tracking-[-0.03em]", !armed && "text-primary");
 
+/** A time written as the timer writes it: its fraction smaller, in the accent. */
+export function TimeText({ text }: { text: string }) {
+  const dot = text.indexOf(".");
+  if (dot < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, dot + 1)}
+      <span className={fractionClass(false)}>{text.slice(dot + 1)}</span>
+    </>
+  );
+}
+
 /**
  * The running digits: tinted with the accent, the milliseconds smaller in a muted version of it; red while holding,
  * green once ready. `live`: the characters are written by the caller into this (a box without a box of its own).

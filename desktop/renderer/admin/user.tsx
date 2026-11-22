@@ -1,7 +1,7 @@
 /** One account: its figures, 90 days of activity, puzzles, recent solves, sessions, IPs, duels and requests, and the
  * two actions an administrator has on it (sign out everywhere, delete). */
 import { useState } from "react";
-import { Globe, Headset, Laptop, ListX, LogOut, Swords, Timer, Trash2 } from "lucide-react";
+import { CalendarDays, Globe, Headset, Laptop, ListX, LogOut, Swords, Timer, Trash2, Trophy, Users, UsersRound, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { admin, AdminError, listUrl, navigate, useAdmin, type UserDetail } from "./api";
 import { DailyChart } from "./charts";
@@ -26,9 +26,11 @@ import {
   VIEW,
   when,
 } from "./parts";
-import { Back, Empty, PageHead, Strip } from "../base";
+import { Back, Empty, Figure, PageHead, Strip } from "../base";
 import { ask } from "../confirm";
 import { fmtTime } from "../../../src/client/lib/format";
+import { price } from "../../../src/client/lib/coaching";
+import { eventLabelOf, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +64,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
   if (!d) return <UserSkeleton back={back} phone={phone} />;
   const u = d.user;
   const activeDays = d.activity.filter((a) => a.active || a.solves).length;
+  const profile = d.profile?.value;
   return (
     <div className={VIEW} data-slot="user-detail">
       <PageHead
@@ -94,6 +97,30 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         <Kpi label="Duels" value={num(d.duels.played)} sub={`${num(d.duels.won)} won · ${num(d.duels.lost)} lost · ${num(d.duels.drawn)} drawn`} />
         <Kpi label="Signed-in devices" value={num(u.activeSessions)} />
         <Kpi label="Active days · 90 d" value={num(activeDays)} />
+      </Strip>
+      <Strip label="Account" className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+        <Info label="Email" value={u.email ?? (u.googleSub ? "not given yet: on the next Google sign-in" : "none: never signed in with Google")} className="col-span-2" />
+        <Info label="Name" value={u.name} />
+        <Info label="Google" value={u.googleSub ?? "not linked"} />
+        <Info
+          label="WCA"
+          value={
+            u.wcaId ? (
+              <a href={`https://www.worldcubeassociation.org/persons/${u.wcaId}`} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
+                {u.wcaId}
+              </a>
+            ) : u.wcaUserId ? `account ${u.wcaUserId}, no ID` : null
+          }
+        />
+        <Info label="Declared WCA ID" value={profile?.wcaId} />
+        <Info label="Main cube" value={profile?.mainCube} />
+        <Info label="Set up" value={d.profile && date(Date.parse(d.profile.updatedAt))} />
+        <Info label="Knows" value={profile?.knownPuzzles?.map(puzzleName).join(", ")} className="col-span-2" />
+        <Info label="Learning" value={profile?.priority && [puzzleName(profile.priority), profile.priorityMethod].filter(Boolean).join(" · ")} />
+        <Info label="Bests before Qbix" value={profile?.bests && Object.entries(profile.bests).map(([p, ms]) => `${puzzleName(p)} ${fmtTime(ms ?? null)}`).join(" · ")} className="col-span-2" />
+        <Info label="Messages sent" value={`${num(d.messages.social)} social · ${num(d.messages.coaching)} coaching`} />
+        <Info label="Last message" value={d.messages.lastAt && ago(d.messages.lastAt, now)} />
+        <Info label="Shared solves" value={num(d.messages.sharedSolves)} />
       </Strip>
       <section aria-label="Activity" className="grid gap-6 lg:grid-cols-2">
         <DailyChart title="Solves · 90 d" data={d.activity} series={[{ key: "solves", label: "Solves", color: "var(--chart-1)" }]} height="h-32" />
@@ -226,6 +253,83 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
             </ul>
           )}
         </section>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <List title="Daily challenge" meta={d.daily.played} empty="No daily challenge yet." icon={CalendarDays} sub={d.daily.played > 0 && `${num(d.daily.days)} d · ${num(d.daily.verified)} verified · best ${fmtTime(d.daily.bestMs)}`}>
+          {d.daily.recent.map((r) => (
+            <Row key={r.day + r.event}>
+              <span className={cn(NUMERIC, "w-24 shrink-0 text-xs text-muted-foreground")}>{r.day}</span>
+              <span className="min-w-0 flex-1 truncate">{eventLabelOf(r.event)}</span>
+              <span className={cn(NUMERIC, "shrink-0")}>{r.penalty === "dnf" ? "DNF" : fmtTime(r.timeMs + (r.penalty === "+2" ? 2000 : 0))}</span>
+              <span className="w-14 shrink-0 text-right text-xs text-muted-foreground">{r.verified ? "verified" : ""}</span>
+            </Row>
+          ))}
+        </List>
+        <List title="Matches" meta={d.matches.played} empty="No match yet." icon={Swords} sub={d.matches.played > 0 && `${num(d.matches.won)} won · ${num(d.matches.lost)} lost`}>
+          {d.matches.recent.map((m) => (
+            <Row key={m.id}>
+              <span className={cn("w-16 shrink-0 text-xs font-medium", m.result === "win" ? "text-success" : m.result === "loss" ? "text-destructive" : "text-muted-foreground")}>{m.result ?? m.status}</span>
+              <span className="min-w-0 flex-1 truncate">
+                vs <UserLink id={m.opponentId} name={m.opponent} />
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {eventLabelOf(m.event)}
+                {m.tournamentId != null && " · tournament"} · {date(m.at)}
+              </span>
+            </Row>
+          ))}
+        </List>
+        <List title="Tournaments" meta={d.tournaments.length} empty="No tournament yet." icon={Trophy}>
+          {d.tournaments.map((t) => (
+            <Row key={t.id}>
+              <span className="min-w-0 flex-1 truncate">
+                {t.name}
+                {t.won && <span className="ml-2 text-xs font-medium text-success">winner</span>}
+                {t.withdrawn && <span className="ml-2 text-xs text-muted-foreground">withdrawn</span>}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {eventLabelOf(t.event)} · {t.status} · {num(t.players)} players · {date(t.startsAt)}
+              </span>
+            </Row>
+          ))}
+        </List>
+        <List title="Friends" meta={d.friends.length} empty="No friend yet." icon={Users}>
+          {d.friends.map((f) => (
+            <Row key={f.id}>
+              <span className="min-w-0 flex-1 truncate">
+                <UserLink id={f.id} name={f.username} />
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {f.status === "accepted" ? `since ${date(f.at)}` : f.asked ? "request sent" : "request received"}
+              </span>
+            </Row>
+          ))}
+        </List>
+        <List title="Groups" meta={d.groups.length} empty="In no group." icon={UsersRound}>
+          {d.groups.map((g) => (
+            <Row key={g.id}>
+              <span className="min-w-0 flex-1 truncate">{g.name}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {g.role} · {num(g.members)} members · {date(g.joinedAt)}
+              </span>
+            </Row>
+          ))}
+        </List>
+        <List title="Coaching sessions" meta={d.bookings.length} empty="No coaching session." icon={Headset} sub={d.messages.coachApplications > 0 && `${num(d.messages.coachApplications)} coach application${d.messages.coachApplications > 1 ? "s" : ""}`}>
+          {d.bookings.map((b) => (
+            <Row key={b.id}>
+              <span className="w-14 shrink-0 text-xs text-muted-foreground">{b.asCoach ? "coached" : "with"}</span>
+              <span className="min-w-0 flex-1 truncate">
+                <UserLink id={b.otherId} name={b.other} />
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {b.status === "cancelled" ? "cancelled · " : ""}
+                {b.rating != null && `${b.rating}★ · `}
+                {price(b.priceCents)} · {when(b.startsAt)}
+              </span>
+            </Row>
+          ))}
+        </List>
       </div>
       <section className="flex min-w-0 flex-col" aria-label="Recent requests">
         <SectionHead rule title="Recent requests" meta={d.recentRequests.length || undefined}>
@@ -386,6 +490,28 @@ function Delete({ id, username }: { id: string; username: string }) {
   );
 }
 
+/** A detail of the account, a dash when unknown. */
+function Info({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
+  return <Figure label={label} value={value || null} size="sm" caption="strong" className={className} />;
+}
+
+/** A section of the account's rows, or a line saying there is none. */
+function List({ title, meta, empty, icon, sub, children }: { title: string; meta: number; empty: string; icon: LucideIcon; sub?: React.ReactNode; children: React.ReactNode[] }) {
+  return (
+    <section className="flex min-w-0 flex-col" aria-label={title}>
+      <SectionHead rule title={title} meta={meta || undefined} />
+      {sub && <p className="pb-1 text-xs text-muted-foreground">{sub}</p>}
+      {!children.length ? <Empty icon={icon} title={empty} /> : <ul className="flex flex-col">{children}</ul>}
+    </section>
+  );
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return <li className="flex h-11 items-center gap-3 border-b text-sm last:border-0">{children}</li>;
+}
+
+const puzzleName = (id: string) => puzzleInfo(id as PuzzleId)?.label ?? id;
+
 function UserSkeleton({ back, phone }: { back: React.ReactNode; phone: boolean }) {
   return (
     <div className={VIEW} aria-busy="true" aria-label="Loading">
@@ -400,6 +526,9 @@ function UserSkeleton({ back, phone }: { back: React.ReactNode; phone: boolean }
       />
       <Strip>
         <FiguresSkeleton count={phone ? 4 : 6} className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6" />
+      </Strip>
+      <Strip>
+        <FiguresSkeleton count={phone ? 4 : 8} className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-8" />
       </Strip>
       <div className="grid gap-6 lg:grid-cols-2">
         <Skeleton className="h-36" />

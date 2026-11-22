@@ -11,7 +11,8 @@ import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useStat
 import { createPortal } from "react-dom";
 import { Boxes, Camera, Check, ChevronLeft, ChevronRight, Hand, RefreshCw, RotateCcw, ScanLine, Timer, TriangleAlert, Unplug, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { applyAlg, solved, type CubeState } from "../../src/shared/cube";
+import { Button as UiButton } from "@/components/ui/button";
+import { applyAlg, invertAlg, solved, type CubeState } from "../../src/shared/cube";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import type { MethodStep, SolvingMethod } from "../../src/shared/methods";
 import { assistedCourse, solveMethod } from "../../src/client/lib/methodSolver";
@@ -23,11 +24,11 @@ import { SmartCube, smartCube, stateToFacelets } from "../../src/client/lib/smar
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { CubeScan, HoldNote, Notice, hex, useSquare } from "./CubeScan";
 import { LiveCube } from "./LiveCube";
-import { ViewButtons } from "./AlgPlayer";
+import { PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { CubeView } from "../../src/client/lib/cubeView";
 import { call } from "./bridge";
 import { store as s } from "./store";
-import { ActionCard, Alg, Button, Diagram, FOCUS, StateMark, TILE, usePhone } from "./ui";
+import { ActionCard, Alg, Button, FOCUS, StateMark, TILE, usePhone } from "./ui";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
@@ -128,7 +129,19 @@ function Assist() {
   useEffect(() => {
     if (source === "cube" && link === "off") setSource(null);
   }, [source, link]);
-  if (!source) return <Choose onChoose={(way) => (setSource(way), setReading(way === "hand" ? "check" : "camera"))} />;
+  if (!source)
+    return (
+      <Choose
+        onChoose={(way) => (setSource(way), setReading(way === "hand" ? "check" : "camera"))}
+        // Development: a cube already at a step, as if read, to try the step without solving those before it.
+        onPrepare={(state) => {
+          model.receive({ type: "facelets", facelets: stateToFacelets(state) });
+          setSource("hand");
+          setReading(false);
+          replan();
+        }}
+      />
+    );
   if (source === "cube") return <Solve key={round} cube={smartCube} replan={replan} back={() => setSource(null)} />;
   if (reading)
     return (
@@ -155,7 +168,7 @@ function Assist() {
 const SCRAMBLED = applyAlg(solved(3), "R U F' L2 D B' R2 U' F");
 
 /** How Qbix sees the cube: three ways side by side, then how to hold it and a scramble for a cube already solved. */
-function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => void }) {
+function Choose({ onChoose, onPrepare }: { onChoose: (way: "cube" | "scan" | "hand") => void; onPrepare: (state: CubeState) => void }) {
   const link = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot, () => smartCube.snapshot),
     connectable = (typeof CUBIX_DEV !== "undefined" && CUBIX_DEV) || link.status !== "off",
     [scramble, setScramble] = useState("");
@@ -203,7 +216,7 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
   ].filter((way) => !!way);
   return (
     <Page phase={0} back={() => void s.action("assisted:off")}>
-      <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-3 md:gap-5">
+      <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3 md:gap-5">
         <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-balance md:text-[40px] md:leading-tight">{tr("Show Qbix your cube")}</h2>
         <div className={cn("grid min-h-0 gap-2.5 max-md:auto-rows-min md:w-full md:content-center md:justify-self-center md:gap-4", ways.length === 3 ? "md:max-w-5xl md:grid-cols-3" : "md:max-w-3xl md:grid-cols-2")}>
           {ways.map((way) => (
@@ -220,6 +233,7 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
             </button>
           ))}
         </div>
+        {typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && <Prepare onPrepare={onPrepare} />}
         <div className="grid gap-2.5 md:grid-cols-2 md:gap-4">
           <div className="flex items-center gap-4 rounded-[20px] bg-card px-4 py-3 max-md:hidden">
             <HoldNote size={58} />
@@ -234,6 +248,27 @@ function Choose({ onChoose }: { onChoose: (way: "cube" | "scan" | "hand") => voi
         </div>
       </div>
     </Page>
+  );
+}
+
+/** Development only: a cube scrambled at random, then solved up to the step chosen, to start the solve there. */
+function Prepare({ onPrepare }: { onPrepare: (state: CubeState) => void }) {
+  const { method, steps } = useContext(Course),
+    prepare = (step: number) => {
+      const turns = Array.from({ length: 25 }, () => "UDFBRL"[Math.floor(Math.random() * 6)]! + ["", "'", "2"][Math.floor(Math.random() * 3)]),
+        scrambled = applyAlg(solved(3), turns.join(" ")),
+        parts = solveMethod(method.id, scrambled, s.cases("333") as CatalogCase[]) ?? [];
+      onPrepare(parts.filter((part) => part.step < step).reduce((state, part) => applyAlg(state, part.alg), scrambled));
+    };
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-[20px] border border-dashed border-border px-4 py-2.5">
+      <span className={SAY}>Dev · prepare a cube at</span>
+      {steps.map((step, i) => (
+        <UiButton key={step.title} variant="secondary" size="sm" data-action={"assisted:prepare:" + i} onClick={() => prepare(i)}>
+          {said(step.title)}
+        </UiButton>
+      ))}
+    </div>
   );
 }
 
@@ -295,30 +330,6 @@ function Route({ at }: { at: number }) {
   );
 }
 
-/** The algorithms of a step beside the cube: its own, then the cases of the catalogue's set that teaches it. */
-function StepAlgorithms({ step }: { step: MethodStep }) {
-  const set = step.sets?.[0],
-    cases = set ? (s.cases("333") as CatalogCase[]).filter((c) => c.set === set) : [];
-  return (
-    <section className="flex min-h-0 flex-col gap-3 rounded-[24px] bg-card p-5 max-lg:hidden" aria-label={tr("Algorithms")}>
-      <h3 className={SAY}>{tr("Algorithms")}</h3>
-      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1">
-        <StepAlgs step={step} />
-        {cases.map((c) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl bg-muted px-2 py-1.5">
-            <Diagram c={c} size={44} />
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[13px] font-semibold">{said(c.name)}</span>
-              {c.algorithms[0] && <Alg text={c.algorithms[0].alg} size={14} />}
-            </span>
-          </div>
-        ))}
-        {!step.algs?.length && !step.help?.length && !cases.length && <p className="text-sm text-muted-foreground">{tr("No algorithm here: this step is solved by thinking it through.")}</p>}
-      </div>
-    </section>
-  );
-}
-
 /** The time since the solve started, every second. */
 function useClock(start: number, end: number | null) {
   const [now, setNow] = useState(Date.now);
@@ -350,7 +361,15 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
     [view] = useState(() => new CubeView()),
     [end, setEnd] = useState<number | null>(null),
     finished = at >= steps.length,
-    time = useClock(start, end);
+    time = useClock(start, end),
+    // The cube read, played through the step under way from where the steps before leave it: the course's parts from
+    // the cube as read, the whole solve undone first to start from it. The step's pieces alone in colour (its mask).
+    [parts] = useState(() => (manual ? (solveMethod(method.id, cube.snapshot.state, s.cases("333") as CatalogCase[]) ?? []) : [])),
+    demo = useMemo(() => {
+      const algs = (keep: (step: number) => boolean) => parts.filter((part) => keep(part.step)).map((part) => part.alg);
+      return { setup: [invertAlg(algs(() => true).join(" ")), ...algs((step) => step < at)].join(" "), alg: algs((step) => step === at).join(" ") };
+    }, [parts, at]),
+    player = useAlgPlayer(demo.alg, manual ? 3 : null, stepPicture(method, Math.min(at, steps.length - 1)).mask, { setup: demo.setup, autoplay: 600 });
   useEffect(() => {
     if (finished && end == null) setEnd(Date.now());
   }, [finished, end]);
@@ -405,7 +424,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
   return (
     <Page phase={2} skipped={!manual} back={leave}>
       <Route at={at} />
-      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-[300px_minmax(0,1fr)] md:gap-4 lg:grid-cols-[330px_minmax(0,1fr)_300px]">
+      <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-[300px_minmax(0,1fr)] md:gap-4 ">
         <section className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[24px] bg-card p-5 max-md:hidden" aria-label={tr("Current step")}>
           {eyebrow}
           <h2 className="text-2xl leading-tight font-extrabold tracking-[-0.03em]">{tr("Now: {0}", { 0: said(step.title) })}</h2>
@@ -432,7 +451,7 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
               </ul>
             </div>
           )}
-          {!manual && (
+          {(
             <figure className="mt-auto flex flex-col items-center gap-1 rounded-[18px] bg-background px-3 py-3">
               <StepGoal method={method} index={at} size={90} />
               <figcaption className="text-xs font-bold text-muted-foreground">{tr("Desired state")}</figcaption>
@@ -441,23 +460,23 @@ function Solve({ cube, replan, rescan, back: leave }: { cube: SmartCube; replan:
         </section>
         <section className="relative flex min-h-0 flex-col items-center justify-center rounded-[26px] bg-card p-3 md:px-8 md:py-4" aria-live="polite">
           <span className="absolute top-3 left-4 md:hidden">{eyebrow}</span>
-          {manual && <span className={cn(SAY, "pt-6 md:pt-2")}>{tr("Desired state")}</span>}
-          <div ref={setBox} className="flex min-h-0 w-full flex-1 items-center justify-center max-md:pt-6 md:py-10">
-            {side > 0 && (manual ? <StepGoal method={method} index={at} size={Math.min(side, 320)} /> : <LiveCube cube={cube} size={side} view={view} />)}
+          {manual && <span className={cn(SAY, "pt-6 md:pt-2")}>{tr("Your cube, this step done")}</span>}
+          <div ref={setBox} className="flex min-h-0 w-full flex-1 items-center justify-center max-md:pt-6 md:py-6">
+            {side > 0 && (manual ? player && <PlayerCube key={demo.setup + demo.alg} player={player} size={side} /> : <LiveCube cube={cube} size={side} view={view} />)}
           </div>
-          {!manual && (
-            <div className="absolute top-3 right-3 flex items-center gap-2 md:top-4 md:right-4">
+          {manual && player && demo.alg && <PlayerControls player={player} compact className="w-full max-w-md" />}
+          <div className="absolute top-3 right-3 flex items-center gap-2 md:top-4 md:right-4">
+            {!manual && (
               <StateMark tone="good" className="rounded-xl bg-muted px-3 py-2 max-md:hidden">
                 {tr("Following your {0} live", { 0: link.name })}
               </StateMark>
-              <ViewButtons player={view} className="max-md:hidden" />
-            </div>
-          )}
+            )}
+            {manual ? player && <ViewButtons player={player} className="max-md:hidden" /> : <ViewButtons player={view} className="max-md:hidden" />}
+          </div>
           <span className="absolute bottom-4 left-6 max-lg:hidden">
             <HoldNote size={46} />
           </span>
         </section>
-        <StepAlgorithms step={step} />
       </div>
       <div className={cn("grid shrink-0 gap-2 md:gap-2.5", manual ? "grid-cols-2 md:grid-cols-[300px_200px_minmax(0,1fr)_200px] lg:grid-cols-[330px_230px_minmax(0,1fr)_230px]" : "md:grid-cols-[300px_minmax(0,1fr)_200px] lg:grid-cols-[330px_minmax(0,1fr)_230px]")}>
         <div className="flex justify-between gap-2 rounded-xl bg-card px-4 py-3 text-[13px] font-bold text-muted-foreground max-md:hidden">

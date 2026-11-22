@@ -30,7 +30,7 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { tr } from "../../src/client/i18n";
-import { Back, IconTile, keyed, said } from "./base";
+import { Back, IconTile, TimeText, keyed, said } from "./base";
 
 export { PanelHead };
 const ROUND_LIST = [...Array(ROUNDS).keys()];
@@ -163,7 +163,7 @@ function Lobby({ hub, setHub }: { hub: boolean; setHub: (hub: boolean) => void }
     ) : (
       <Tip content={tr("Mean of your last 12 timer solves")}>
         <span>
-          {duel.level === null ? tr("New") : fmtTime(duel.level)}
+          {duel.level === null ? tr("New") : <TimeText text={fmtTime(duel.level)} />}
           <span className="sr-only">{tr("Mean of your last 12 timer solves")}</span>
         </span>
       </Tip>

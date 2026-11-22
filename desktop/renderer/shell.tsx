@@ -1,6 +1,6 @@
 /** The frame around the pages: the header with the five sections on a desktop, the tab bar on phones. */
 import { memo, useSyncExternalStore } from "react";
-import { Bluetooth, Globe, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, CalendarDays, ChevronDown, Coffee, Download, Gauge, GraduationCap, LogIn, LogOut, MessageSquare, Presentation, Settings, Swords, Target, Timer, Trophy, Upload, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Bluetooth, Globe, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, CalendarDays, ChevronDown, Coffee, Download, Gauge, LogIn, LogOut, MessageSquare, Presentation, Settings, Swords, Target, Timer, Trophy, Upload, UserRound, Users, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -24,13 +24,13 @@ export const TIP_DELAY = 400;
 /** A page of a section: its page id ("analysis" is the profile's analysis), its name and its Alt shortcut. */
 type Page = [page: string, label: string, shortcut: string];
 /**
- * The five sections, each with its pages: the timer (and the analysis of the smart cube solves), learning (the courses
- * and the drills), the algorithms, the challenges (duels, tournaments, the daily scramble, the WCA) and the social pages
+ * The five sections, each with its pages: the timer (and the analysis of the smart cube solves), the training
+ * (the drills), the algorithms, the challenges (duels, tournaments, the daily scramble, the WCA) and the social pages
  * (messages, community, coaching). The profile is the account menu's alone. The Alt shortcuts follow their order.
  */
 export const SECTIONS: { id: string; label: string; short: string; icon: LucideIcon; pages: Page[] }[] = [
   { id: "timer", label: "Timer", short: "Timer", icon: Timer, pages: [["playground", "Timer", "Alt+1"], ["analysis", "Analysis", "Alt+9"]] },
-  { id: "learn", label: "Learn", short: "Learn", icon: GraduationCap, pages: [["training", "Training", "Alt+3"]] },
+  { id: "training", label: "Training", short: "Training", icon: Target, pages: [["training", "Training", "Alt+3"]] },
   { id: "algorithms", label: "Algs", short: "Algs", icon: Boxes, pages: [["algorithms", "Algorithms", "Alt+4"]] },
   { id: "compete", label: "Challenges", short: "Challenges", icon: Swords, pages: [["duel", "Duel", "Alt+5"], ["tournaments", "Tournaments", "Alt+6"], ["daily", "Daily", ""], ["wca", "WCA", ""]] },
   { id: "social", label: "Social", short: "Social", icon: Users, pages: [["community", "Messages", "Alt+7"], ["people", "Community", ""], ...(COACHING ? [["coaching", "Coaching", "Alt+8"] as Page] : [])] },
@@ -339,7 +339,7 @@ export const Header = memo(function Header() {
 
 /** Each page's icon in its section's rail. */
 const PAGE_ICONS: Record<string, LucideIcon> = {
-  playground: Timer, analysis: Gauge, learn: GraduationCap, training: Target, duel: Swords, tournaments: Trophy, daily: CalendarDays, wca: Globe,
+  playground: Timer, analysis: Gauge, training: Target, duel: Swords, tournaments: Trophy, daily: CalendarDays, wca: Globe,
   profile: UserRound, community: MessageSquare, people: Users, coaching: Presentation,
 };
 

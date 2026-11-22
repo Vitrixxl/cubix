@@ -5,6 +5,7 @@ package main
 // the Unix epoch; every `day` is a UTC `YYYY-MM-DD`.
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -282,6 +283,23 @@ func adminDataTotals(state *AppState) (M, error) {
 		}
 		duelsSince := func(since int64) int64 { return count("SELECT count(*) n FROM duel_games WHERE ended_at>=?", since) }
 		duels := M{"total": count("SELECT count(*) n FROM duel_games"), "today": duelsSince(dayStart), "d7": duelsSince(dayStart - 6*accountsDayMs)}
+		community := M{
+			"dailyToday":       count("SELECT count(*) n FROM daily_results WHERE day=?", today),
+			"daily7d":          count("SELECT count(*) n FROM daily_results WHERE day>=?", week),
+			"messagesToday":    count("SELECT count(*) n FROM social_messages WHERE created_at>=?", dayStart) + count("SELECT count(*) n FROM coach_messages WHERE created_at>=?", dayStart),
+			"messages7d":       count("SELECT count(*) n FROM social_messages WHERE created_at>=?", dayStart-6*accountsDayMs) + count("SELECT count(*) n FROM coach_messages WHERE created_at>=?", dayStart-6*accountsDayMs),
+			"matchesToday":     count("SELECT count(*) n FROM matches WHERE status='done' AND finished_at>=?", dayStart),
+			"matches":          count("SELECT count(*) n FROM matches WHERE status='done'"),
+			"groups":           count("SELECT count(*) n FROM social_groups"),
+			"friendships":      count("SELECT count(*) n FROM friends WHERE status='accepted'"),
+			"tournamentsOpen":  count("SELECT count(*) n FROM tournaments WHERE status IN ('open','running')"),
+			"tournaments":      count("SELECT count(*) n FROM tournaments"),
+			"bookingsUpcoming": count("SELECT count(*) n FROM coach_bookings WHERE status='booked' AND starts_at>=?", accountsNow()),
+			"coaches":          count("SELECT count(*) n FROM coaches WHERE active=1"),
+			"sharedSolves":     count("SELECT count(*) n FROM shared_solves"),
+			"google":           count("SELECT count(*) n FROM users WHERE google_sub IS NOT NULL"),
+			"wca":              count("SELECT count(*) n FROM users WHERE wca_user_id IS NOT NULL"),
+		}
 		series := make([]any, len(days))
 		index := map[string]int{}
 		for i, day := range days {
@@ -323,12 +341,13 @@ func adminDataTotals(state *AppState) (M, error) {
 				"new":    M{"today": newUsers(today), "d7": newUsers(week), "d30": newUsers(month)},
 				"active": M{"today": active(today), "d7": active(week), "d30": active(month)},
 			},
-			"solves":   solves,
-			"requests": M{"today": traffic["requests"], "errorsToday": traffic["errors"], "serverErrorsToday": traffic["serverErrors"], "rateLimitedToday": traffic["limited"]},
-			"ips":      M{"today": traffic["ips"], "d7": ips(week), "d30": ips(month)},
-			"duels":    duels,
-			"series":   series,
-			"db":       M{"bytes": size["bytes"], "freeBytes": size["free"], "logRows": log["rows"], "importantLogRows": log["important"], "oldestLogAt": log["oldestAt"]},
+			"solves":    solves,
+			"requests":  M{"today": traffic["requests"], "errorsToday": traffic["errors"], "serverErrorsToday": traffic["serverErrors"], "rateLimitedToday": traffic["limited"]},
+			"ips":       M{"today": traffic["ips"], "d7": ips(week), "d30": ips(month)},
+			"duels":     duels,
+			"community": community,
+			"series":    series,
+			"db":        M{"bytes": size["bytes"], "freeBytes": size["free"], "logRows": log["rows"], "importantLogRows": log["important"], "oldestLogAt": log["oldestAt"]},
 		}
 		return result, failed
 	})
@@ -593,8 +612,8 @@ func adminDataUsers(state *AppState, query *adminDataQuery) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		scope := "WHERE " + kind + " AND (?='' OR instr(lower(u.username),?)>0 OR u.id=?)"
-		search := []any{q, q, q}
+		scope := "WHERE " + kind + " AND (?='' OR instr(lower(u.username),?)>0 OR instr(lower(u.email),?)>0 OR u.id=?)"
+		search := []any{q, q, q, q}
 		args := append(slices.Clone(search), limit, page*limit)
 		var total M
 		var rows []M
@@ -715,6 +734,12 @@ func adminDataUser(state *AppState, id string) (any, error) {
 			return nil, err
 		}
 		user["practiceSessions"] = practice["n"]
+		// How the account signs in, and what Google or the WCA said of it.
+		account, err := dbOne(db, "SELECT email,name,google_sub googleSub,wca_user_id wcaUserId,wca_id wcaId FROM users WHERE id=?", id)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(user, account)
 		// Whether the account coaches (see coaching.go): listed, or turned off by the administration.
 		coach, err := dbOne(db, "SELECT active FROM coaches WHERE user_id=?", id)
 		if err != nil {
@@ -727,7 +752,77 @@ func adminDataUser(state *AppState, id string) (any, error) {
 				user["coach"] = "active"
 			}
 		}
+		// The rest of what the app keeps of the account: its profile, the daily challenge, friends and groups,
+		// tournaments and matches, coaching, shared solves and messages.
+		var failed error
+		all := func(sql string, args ...any) []M {
+			if failed != nil {
+				return nil
+			}
+			rows, err := dbAll(db, sql, args...)
+			if err != nil {
+				failed = err
+			}
+			if rows == nil {
+				rows = []M{}
+			}
+			return rows
+		}
+		one := func(sql string, args ...any) M {
+			if rows := all(sql, args...); len(rows) > 0 {
+				return rows[0]
+			}
+			return M{}
+		}
+		var profile any
+		if row := one("SELECT value,updated_at updatedAt FROM personal_entries WHERE user_id=? AND key='profile'", id); row["value"] != nil {
+			var value any
+			if json.Unmarshal([]byte(str(row["value"])), &value) == nil {
+				profile = M{"value": value, "updatedAt": row["updatedAt"]}
+			}
+		}
+		daily := one("SELECT count(*) played,coalesce(sum(verified),0) verified,count(DISTINCT day) days,min("+effective+") bestMs FROM daily_results WHERE user_id=?", id)
+		daily["recent"] = all("SELECT day,event,time_ms timeMs,penalty,verified FROM daily_results WHERE user_id=? ORDER BY day DESC,event LIMIT 10", id)
+		adminDataFlags(daily["recent"].([]M), "verified")
+		friends := all(`SELECT CASE WHEN f.user_id=?1 THEN f.friend_id ELSE f.user_id END id,u.username,f.status,f.user_id=?1 asked,coalesce(f.accepted_at,f.created_at) at
+                FROM friends f JOIN users u ON u.id=CASE WHEN f.user_id=?1 THEN f.friend_id ELSE f.user_id END
+                WHERE f.user_id=?1 OR f.friend_id=?1 ORDER BY f.status='accepted' DESC,at DESC LIMIT 50`, id)
+		adminDataFlags(friends, "asked")
+		groups := all(`SELECT g.id,g.name,m.role,m.joined_at joinedAt,(SELECT count(*) FROM group_members o WHERE o.group_id=g.id AND o.role!='invited') members
+                FROM group_members m JOIN social_groups g ON g.id=m.group_id WHERE m.user_id=? ORDER BY m.joined_at DESC LIMIT 50`, id)
+		tournaments := all(`SELECT t.id,t.name,t.event,t.status,t.starts_at startsAt,p.withdrawn,t.winner_id=p.user_id won,
+                (SELECT count(*) FROM tournament_players o WHERE o.tournament_id=t.id AND o.withdrawn=0) players
+                FROM tournament_players p JOIN tournaments t ON t.id=p.tournament_id WHERE p.user_id=? ORDER BY t.starts_at DESC LIMIT 20`, id)
+		adminDataFlags(tournaments, "withdrawn", "won")
+		matches := one(`SELECT count(*) played,coalesce(sum(winner=?1),0) won,coalesce(sum(winner IS NOT NULL AND winner!=?1),0) lost
+                FROM matches WHERE (player_a=?1 OR player_b=?1) AND status='done'`, id)
+		matches["recent"] = all(`SELECT m.id,m.event,m.status,m.tournament_id tournamentId,coalesce(m.finished_at,m.started_at,m.created_at) at,
+                CASE WHEN m.player_a=?1 THEN m.player_b ELSE m.player_a END opponentId,o.username opponent,
+                CASE WHEN m.status!='done' OR m.winner IS NULL THEN NULL WHEN m.winner=?1 THEN 'win' ELSE 'loss' END result
+                FROM matches m LEFT JOIN users o ON o.id=CASE WHEN m.player_a=?1 THEN m.player_b ELSE m.player_a END
+                WHERE m.player_a=?1 OR m.player_b=?1 ORDER BY at DESC,m.id DESC LIMIT 10`, id)
+		bookings := all(`SELECT b.id,b.starts_at startsAt,b.ends_at endsAt,b.status,b.price_cents priceCents,b.coach_id=?1 asCoach,
+                CASE WHEN b.coach_id=?1 THEN b.student_id ELSE b.coach_id END otherId,o.username other,r.rating
+                FROM coach_bookings b LEFT JOIN users o ON o.id=CASE WHEN b.coach_id=?1 THEN b.student_id ELSE b.coach_id END
+                LEFT JOIN coach_reviews r ON r.booking_id=b.id
+                WHERE b.coach_id=?1 OR b.student_id=?1 ORDER BY b.starts_at DESC LIMIT 20`, id)
+		adminDataFlags(bookings, "asCoach")
+		messages := one(`SELECT (SELECT count(*) FROM social_messages WHERE sender_id=?1) social,(SELECT count(*) FROM coach_messages WHERE sender_id=?1) coaching,
+                (SELECT max(created_at) FROM (SELECT created_at FROM social_messages WHERE sender_id=?1 UNION ALL SELECT created_at FROM coach_messages WHERE sender_id=?1)) lastAt,
+                (SELECT count(*) FROM shared_solves WHERE user_id=?1) sharedSolves,
+                (SELECT count(*) FROM coach_applications WHERE user_id=?1) coachApplications`, id)
+		if failed != nil {
+			return nil, failed
+		}
 		return M{
+			"profile":        profile,
+			"daily":          daily,
+			"friends":        friends,
+			"groups":         groups,
+			"tournaments":    tournaments,
+			"matches":        matches,
+			"bookings":       bookings,
+			"messages":       messages,
 			"user":           user,
 			"puzzles":        puzzles,
 			"activity":       series,

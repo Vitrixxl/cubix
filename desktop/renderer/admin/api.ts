@@ -1,6 +1,7 @@
 /** The administration's client: the admin API under its HttpOnly cookie, the page's address as its router, and the live
  * socket. Nothing here touches the app's data engine. */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { JourneyProfile } from "../../../src/client/lib/journey";
 
 export class AdminError extends Error {
   constructor(
@@ -32,6 +33,23 @@ export type Overview = {
   requests: { today: number; errorsToday: number; serverErrorsToday: number; rateLimitedToday: number };
   ips: { today: number; d7: number; d30: number; live: number };
   duels: { total: number; today: number; d7: number };
+  community: {
+    dailyToday: number;
+    daily7d: number;
+    messagesToday: number;
+    messages7d: number;
+    matchesToday: number;
+    matches: number;
+    groups: number;
+    friendships: number;
+    tournamentsOpen: number;
+    tournaments: number;
+    bookingsUpcoming: number;
+    coaches: number;
+    sharedSolves: number;
+    google: number;
+    wca: number;
+  };
   series: Day[];
   server: {
     now: number;
@@ -59,7 +77,16 @@ export type UserRow = {
 };
 export type Users = { counts: { all: number; registered: number; guests: number }; total: number; rows: UserRow[]; page: number; limit: number };
 export type UserDetail = {
-  user: UserRow & { practiceSessions: number; coach: "active" | "disabled" | null };
+  user: UserRow & {
+    practiceSessions: number;
+    coach: "active" | "disabled" | null;
+    /** What Google said at the last sign-in; the name may come from the WCA. */
+    email: string | null;
+    name: string | null;
+    googleSub: string | null;
+    wcaUserId: string | null;
+    wcaId: string | null;
+  };
   puzzles: { puzzleId: string; solveMode: string; solves: number; dnf: number; trainingSolves: number; bestMs: number | null; meanMs: number | null; lastAt: number | null }[];
   activity: { day: string; requests: number; active: boolean; solves: number }[];
   recentSolves: { id: number; at: number; timeMs: number; penalty: string; effectiveMs: number | null; puzzleId: string; solveMode: string; scrambleType: string; caseId: string | null }[];
@@ -67,6 +94,15 @@ export type UserDetail = {
   sessions: { id: string; createdAt: number; lastUsedAt: number | null; expiresAt: number }[];
   duels: { played: number; won: number; lost: number; drawn: number; recent: { id: number; endedAt: number; event: string; opponent: string; opponentId: string | null; ao5: number | null; opponentAo5: number | null; result: "win" | "loss" | "draw" }[] };
   ips: { ip: string; days: number; lastDay: string }[];
+  /** The setup the account saved (src/client/lib/journey.ts), as stored. */
+  profile: { value: Partial<JourneyProfile> & Record<string, unknown>; updatedAt: string } | null;
+  daily: { played: number; verified: number; days: number; bestMs: number | null; recent: { day: string; event: string; timeMs: number; penalty: string; verified: boolean }[] };
+  friends: { id: string; username: string; status: "pending" | "accepted"; asked: boolean; at: number }[];
+  groups: { id: number; name: string; role: string; joinedAt: number; members: number }[];
+  tournaments: { id: number; name: string; event: string; status: string; startsAt: number; withdrawn: boolean; won: boolean; players: number }[];
+  matches: { played: number; won: number; lost: number; recent: { id: number; event: string; status: string; tournamentId: number | null; at: number; opponentId: string | null; opponent: string | null; result: "win" | "loss" | null }[] };
+  bookings: { id: string; startsAt: number; endsAt: number; status: string; priceCents: number; asCoach: boolean; otherId: string | null; other: string | null; rating: number | null }[];
+  messages: { social: number; coaching: number; lastAt: number | null; sharedSolves: number; coachApplications: number };
 };
 /** `total` stops at 10 000 matching rows; `totalCapped` says there are more. */
 export type Requests = { rows: LogRow[]; total: number; totalCapped: boolean; page: number; limit: number; kinds: string[] };
