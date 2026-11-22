@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <application android:label="Qbix" android:icon="@mipmap/icon" android:hasCode="false" android:extractNativeLibs="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <activity android:name="android.app.NativeActivity" android:exported="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|uiMode|density" android:windowSoftInputMode="adjustResize">
+        <activity android:name="android.app.NativeActivity" android:exported="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|keyboard|navigation|touchscreen|uiMode|density|fontScale|fontWeightAdjustment|locale|layoutDirection|colorMode|mcc|mnc|grammaticalGender" android:windowSoftInputMode="adjustResize">
             <meta-data android:name="android.app.lib_name" android:value="qbix" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
