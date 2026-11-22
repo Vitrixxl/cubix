@@ -1,16 +1,15 @@
 /**
- * The landing page at the site's root. The build renders it to HTML (desktop/web.ts), so search engines and language
- * models read it whole without JavaScript; the browser then hydrates it for what needs the visitor's device: the cube
- * that solves itself at the top (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
+ * The landing page at the site's root: the native app's page, drawn in its look (design C, Feuille: one periwinkle hue,
+ * liquid glass, Bricolage Grotesque; see html.landing in globals.css). It offers the app to download (native/package.sh
+ * builds it into the site's download/ at each deployment) and shows it with its own screenshots (desktop/assets/landing).
+ * The build renders it to HTML (desktop/web.ts), so search engines and language models read it whole without JavaScript.
  */
 import { useEffect } from "react";
-import { ArrowRight, ArrowUpRight, Coffee, Download, Globe, Monitor, MonitorSmartphone, Smartphone, Upload, Trophy, Heart, Code, Box } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { ArrowUpRight, Box, Code, Coffee, Download, Heart, Monitor, Smartphone, Trophy, Upload, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Brand, Logo } from "../logo";
+import { Logo } from "../logo";
 import { FAQ, FEATURES, IMPORTS, NAME, SOURCE, type Feature } from "./content";
-import { CubeStill, HeroCube } from "./HeroCube";
-import { AlgDemo, DuelDemo, LessonDemo, TimerDemo, TrainDemo } from "./Demos";
+import { HeroCube } from "./HeroCube";
 import { EVENTS } from "../../../src/shared/puzzles";
 import { tr } from "../../../src/client/i18n";
 import { LanguagePicker, said, useLanguage } from "../base";
@@ -20,93 +19,100 @@ import { localePath } from "../../../src/client/lib/route";
 const COFFEE = "https://buymeacoffee.com/vitrixxl";
 /** The native apps (native/package.sh), built into the site's download/ at each deployment. */
 const DOWNLOADS = { android: "/download/qbix.apk", linux: "/download/qbix-linux-x86_64.tar.gz" };
+const SHOT = "/assets/landing/";
 
-/** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
-function LinkButton({ href, size = "default", variant = "default", className, children }: { href: string; size?: "default" | "sm"; variant?: "default" | "outline" | "secondary" | "ghost"; className?: string; children: React.ReactNode }) {
-  // The app's pages in the page's language (/fr/timer).
-  return (
-    <a href={href.startsWith("/") ? localePath(language(), href) : href} className={cn(buttonVariants({ size, variant }), className)}>
-      {children}
-    </a>
-  );
-}
-
-/** A file to download, drawn as a button: its address is the site's, never the page's language's. */
-function DownloadButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a href={href} download className={cn(buttonVariants(), "self-start")}>
-      <Download data-icon="inline-start" />
-      {children}
-    </a>
-  );
-}
-
-/** A part of the page in its column. */
-function Section({ id, children, className }: { id?: string; children: React.ReactNode; className?: string }) {
-  return (
-    <section id={id} className={cn("mx-auto w-full max-w-7xl scroll-mt-20 px-5 py-16 md:px-8 md:py-24", className)}>
-      {children}
-    </section>
-  );
-}
 /** A part's title, as large as the app's own figures. */
-const TITLE = "text-[clamp(2.25rem,5.5vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.045em] text-balance";
+const TITLE = "text-[clamp(2.25rem,5.2vw,3.75rem)] leading-[0.98] font-extrabold tracking-[-0.045em] text-balance";
 
-/**
- * What the app does, one feature after the other: its few words and what it lets you do beside a live copy of its
- * screen. The order is a cuber's: time, learn the first solve, the algorithms, drill them, race.
- */
-const TOUR: { id: string; label: string; dot: string; demo: () => React.ReactNode; open?: [string, string] }[] = [
-  { id: "timer", label: "Timer", dot: "bg-primary", demo: TimerDemo, open: ["/timer?puzzle=333", "Open the timer"] },
-  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn?puzzle=333", "Learn the beginner method"] },
-  { id: "algorithms", label: "Algorithms", dot: "bg-lilac", demo: AlgDemo, open: ["/algorithms?puzzle=333", "Browse the algorithms"] },
-  { id: "training", label: "Training", dot: "bg-warning", demo: TrainDemo },
-  { id: "duel", label: "Duels", dot: "bg-destructive", demo: DuelDemo, open: ["/duel", "Find an opponent"] },
+/** The app's mark: its 3×3 grid, one sticker in the accent (the rail's logo). */
+function Mark({ size = 26 }: { size?: number }) {
+  return (
+    <span aria-hidden="true" className="grid shrink-0 grid-cols-3" style={{ width: size, height: size, gap: size * 0.1 }}>
+      {Array.from({ length: 9 }, (_, i) => <span key={i} className={cn("rounded-[30%]", i === 2 ? "bg-primary" : "bg-foreground")} />)}
+    </span>
+  );
+}
+
+/** A file to download, as the app's buttons are: the main one in accent glass, the other in clear glass. */
+function DownloadButton({ href, main, icon: Icon = Download, children, className }: { href: string; main?: boolean; icon?: LucideIcon; children: React.ReactNode; className?: string }) {
+  return (
+    <a href={href} download className={cn(main ? "glass-accent" : "glass-soft", "inline-flex h-13 items-center gap-2.5 rounded-full px-6 text-[0.95rem] font-bold whitespace-nowrap", className)}>
+      <Icon className="size-[1.1rem]" aria-hidden="true" />
+      {children}
+    </a>
+  );
+}
+
+/** A screenshot of the app in a pane of glass: the desktop's window, or a phone. */
+function Shot({ name, alt, phone, className }: { name: string; alt: string; phone?: boolean; className?: string }) {
+  return (
+    <figure className={cn("glass shrink-0 overflow-hidden", phone ? "rounded-[2.4rem] p-1.5" : "rounded-[1.75rem] p-2", className)}>
+      <img src={SHOT + name + ".webp"} alt={said(alt)} width={phone ? 540 : 1600} height={phone ? 1200 : 1000} loading="lazy" decoding="async" className={cn("block h-auto w-full", phone ? "rounded-[2rem]" : "rounded-[1.25rem]")} />
+    </figure>
+  );
+}
+
+/** What the app does, one feature after the other: its few words beside the screen that does it. */
+const TOUR: { id: string; label: string; shot: string; alt: string; phone?: boolean }[] = [
+  { id: "timer", label: "Timer", shot: "desk-timer", alt: "The timer, its time and averages" },
+  { id: "algorithms", label: "Algorithms", shot: "desk-case", alt: "The OLL cases, one played on the 3D cube" },
+  { id: "learn", label: "Methods", shot: "phone-algs", alt: "The F2L cases on a phone", phone: true },
+  { id: "stats", label: "Progress", shot: "desk-profile", alt: "The statistics: every solve and its average" },
+  { id: "duel", label: "Duels", shot: "desk-challenges", alt: "A duel, ready to face off" },
 ];
 const feature = (id: string) => FEATURES.find((f) => f.id === id) as Feature;
 
-function Stop({ id, label, dot, demo: Demo, open, flip }: (typeof TOUR)[number] & { flip: boolean }) {
+function Stop({ id, label, shot, alt, phone, flip }: (typeof TOUR)[number] & { flip: boolean }) {
   const f = feature(id);
   return (
-    <section id={id} className="landing-reveal grid scroll-mt-20 grid-cols-[minmax(0,1fr)] items-center gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
-      <div className={cn("flex flex-col items-start gap-5", flip && "lg:order-2")}>
-        <span className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-          <span className={cn("size-2 rounded-full", dot)} />
-          {said(label)}
-        </span>
+    <section id={id} className={cn("landing-reveal grid scroll-mt-24 grid-cols-[minmax(0,1fr)] items-center gap-8 lg:gap-16", flip ? "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]" : "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]")}>
+      <div className={cn("flex flex-col items-start gap-4", flip && "lg:order-2")}>
+        <span className="rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">{said(label)}</span>
         <h2 className={TITLE}>{said(f.hook)}</h2>
         <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">{said(f.summary)}</p>
-        {open && (
-          <LinkButton href={open[0]} variant="secondary">
-            {said(open[1])}
-            <ArrowRight data-icon="inline-end" />
-          </LinkButton>
-        )}
+        <ul className="flex max-w-[50ch] flex-col gap-2 pt-1">
+          {f.points.slice(0, 3).map((point) => (
+            <li key={point} className="flex gap-2.5 leading-relaxed text-foreground/85">
+              <span className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-primary" />
+              {said(point)}
+            </li>
+          ))}
+        </ul>
       </div>
-      <Demo />
+      <div className={cn("flex", phone ? "justify-center" : "")}>
+        <Shot name={shot} alt={alt} phone={phone} className={phone ? "w-[min(19rem,80%)]" : "w-full"} />
+      </div>
     </section>
   );
 }
 
-/** Names side by side, as a sentence would list them. */
-function Names({ label, names }: { label: string; names: string[] }) {
+/** A card of glass, as the app's sheets are. */
+function Card({ id, icon: Icon, title, children, className }: { id?: string; icon: LucideIcon; title: string; children: React.ReactNode; className?: string }) {
   return (
-    <ul aria-label={said(label)} className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-foreground">
-      {names.map((name) => (
-        <li key={name}>{said(name)}</li>
-      ))}
-    </ul>
+    <article id={id} className={cn("glass landing-reveal flex scroll-mt-24 flex-col gap-3 rounded-[1.75rem] p-6 md:p-7", className)}>
+      <span className="flex size-10 items-center justify-center rounded-full bg-secondary text-primary">
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <h3 className="text-xl font-bold tracking-tight text-balance">{said(title)}</h3>
+      <div className="flex flex-1 flex-col gap-4 leading-relaxed text-muted-foreground">{children}</div>
+    </article>
   );
 }
 
-/** One of the things around the features, in a card of its own. */
-function Extra({ id, icon: Icon, title, children }: { id?: string; icon: React.ElementType; title: string; children: React.ReactNode }) {
+/** Where to get the app: a phone, a computer; the rest to come. */
+function Downloads() {
   return (
-    <article id={id} className="landing-reveal flex scroll-mt-20 flex-col gap-3 rounded-3xl bg-card p-6 md:p-7">
-      <Icon className="size-5 text-primary" />
-      <h3 className="text-xl font-bold tracking-tight text-balance">{said(title)}</h3>
-      <div className="flex flex-col gap-4 leading-relaxed text-muted-foreground">{children}</div>
-    </article>
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card id="android" icon={Smartphone} title={tr("Android")}>
+        <p>{tr("Open the file on your phone and allow installing from your browser when Android asks.")}</p>
+        <DownloadButton main href={DOWNLOADS.android} className="mt-auto self-start">{tr("Download for Android")}</DownloadButton>
+      </Card>
+      <Card id="linux" icon={Monitor} title={tr("Linux")}>
+        <p>{tr("Unpack the archive and run its install script: Qbix joins your applications.")}</p>
+        <code className="rounded-2xl bg-muted px-3.5 py-2.5 font-mono text-xs break-all text-foreground">tar xf qbix-linux-x86_64.tar.gz && qbix/install.sh</code>
+        <DownloadButton main href={DOWNLOADS.linux} className="mt-auto self-start">{tr("Download for Linux")}</DownloadButton>
+      </Card>
+    </div>
   );
 }
 
@@ -120,120 +126,108 @@ export function Landing() {
     if (chosen !== "en") void setLanguage(chosen, false);
   }, []);
   const link = "rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground",
-    nav = "rounded-lg px-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground";
+    nav = "rounded-full px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
+  // The features without a screenshot, in cards; where it runs has its own part (#download).
+  const others = FEATURES.filter((f) => f.id !== "everywhere" && !TOUR.some((stop) => stop.id === f.id));
   return (
-    <div className="flex min-h-svh flex-col overflow-x-clip bg-background text-foreground">
-      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-5 md:px-8">
-          <a href={localePath(language(), "/")} className="rounded-xl" aria-label={tr("{0} home", { 0: NAME })}>
-            <Brand size={30} className="text-2xl" />
+    <div className="flex min-h-svh flex-col overflow-x-clip text-foreground">
+      <header className="sticky top-3 z-40 mx-auto w-full max-w-7xl px-3 md:top-4 md:px-6">
+        <div className="glass flex h-16 items-center gap-3 rounded-full pr-2 pl-5 md:gap-5">
+          <a href={localePath(language(), "/")} className="flex items-center gap-2.5 rounded-xl" aria-label={tr("{0} home", { 0: NAME })}>
+            <Mark />
+            <span className="text-xl font-extrabold tracking-[-0.04em]">{NAME}</span>
           </a>
-          <nav aria-label={tr("Sections")} className="flex items-center gap-5 max-md:hidden">
+          <nav aria-label={tr("Sections")} className="flex items-center gap-1 max-md:hidden">
             <a href="#tour" className={nav}>{tr("What it does")}</a>
             <a href="#download" className={nav}>{tr("Download")}</a>
             <a href="#faq" className={nav}>{tr("Questions")}</a>
           </nav>
           <span className="flex-1" />
-          <LanguagePicker className="h-10 w-auto max-sm:hidden" />
-          <LinkButton href="/timer?puzzle=333">{tr("Open Qbix")}</LinkButton>
+          <LanguagePicker className="glass-soft h-11 w-auto rounded-full border-0 max-sm:hidden" />
+          <a href="#download" className="glass-accent inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-bold">
+            <Download className="size-4" aria-hidden="true" />
+            {tr("Download")}
+          </a>
         </div>
       </header>
 
       <main>
-        <section className="mx-auto grid w-full max-w-7xl items-center gap-x-12 gap-y-10 px-5 pt-8 pb-16 md:px-8 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-8">
-          <div className="flex flex-col items-start gap-5">
+        <section className="mx-auto grid w-full max-w-7xl items-center gap-x-10 gap-y-14 px-5 pt-14 pb-20 md:px-8 lg:min-h-[calc(100svh-6rem)] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:py-10">
+          <div className="flex flex-col items-start gap-6">
             <h1 className="landing-in flex flex-col gap-4">
               <span className="text-sm font-bold text-primary md:text-base">{tr("The free speedcubing app")}</span>{" "}
-              <span className="text-[clamp(2.9rem,5.6vw,4.75rem)] leading-[0.9] font-extrabold tracking-[-0.05em] text-balance">
+              <span className="text-[clamp(2.9rem,5.6vw,4.75rem)] leading-[0.92] font-extrabold tracking-[-0.05em] text-balance">
                 {tr("From your first solve")}{" "}<span className="text-primary">{tr("to your next PB.")}</span>
               </span>
             </h1>
-            <p className="landing-in max-w-[48ch] text-lg leading-relaxed text-muted-foreground [--i:1]">{tr("Time your solves, learn your first one step by step, play every algorithm in 3D, drill what you learned and race your friends. Free, without ads or premium tier.")}</p>
-            <div className="landing-in flex w-full flex-wrap items-center gap-x-5 gap-y-3 [--i:2]">
-              <LinkButton href="/timer?puzzle=333">
-                {tr("Open Qbix in your browser")}
-                <ArrowRight data-icon="inline-end" />
-              </LinkButton>
-              <a href="#download" className={buttonVariants({ variant: "secondary" })}>
-                <Download data-icon="inline-start" />
-                {tr("Download the app")}
-              </a>
-              <p className="w-full text-sm font-medium text-muted-foreground">{tr("No account needed · works offline")}</p>
+            <p className="landing-in max-w-[46ch] text-lg leading-relaxed text-muted-foreground [--i:1]">{tr("Time your solves, learn your first one step by step, play every algorithm in 3D, drill what you learned and race your friends. Free, without ads or premium tier.")}</p>
+            <div className="landing-in flex flex-wrap items-center gap-3 [--i:2]">
+              <DownloadButton main href={DOWNLOADS.android} icon={Smartphone}>{tr("Download for Android")}</DownloadButton>
+              <DownloadButton href={DOWNLOADS.linux} icon={Monitor}>{tr("Download for Linux")}</DownloadButton>
             </div>
+            <p className="landing-in text-sm font-medium text-muted-foreground [--i:3]">{tr("No account needed · works offline")}</p>
           </div>
-          <HeroCube />
+          <div className="landing-in relative [--i:2] max-lg:mx-auto max-lg:w-full max-lg:max-w-2xl">
+            <Shot name="desk-case" alt="Qbix on a computer: the OLL cases, one played on the 3D cube" className="w-full" />
+            <Shot name="phone-timer" alt="Qbix on a phone: the timer" phone className="absolute -bottom-10 -left-4 w-[28%] md:-left-10" />
+          </div>
         </section>
 
-        <div id="tour" className="mx-auto flex w-full max-w-7xl scroll-mt-16 flex-col gap-24 px-5 py-16 md:gap-36 md:px-8 md:py-24">
+        <div id="tour" className="mx-auto flex w-full max-w-7xl scroll-mt-24 flex-col gap-24 px-5 py-16 md:gap-32 md:px-8 md:py-24">
           {TOUR.map((stop, i) => (
             <Stop key={stop.id} {...stop} flip={i % 2 === 1} />
           ))}
         </div>
 
-        <Section id="download" className="flex flex-col gap-10">
-          <div className="flex flex-col gap-4">
-            <h2 className={TITLE}>{tr("Take Qbix with you")}</h2>
-            <p className="max-w-[56ch] text-lg leading-relaxed text-muted-foreground">{tr("The app, drawn by your graphics card: the timer, the algorithms and the training, even without a connection.")}</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <Extra id="android" icon={Smartphone} title={tr("Android")}>
-              <p>{tr("Open the file on your phone and allow installing from your browser when Android asks.")}</p>
-              <DownloadButton href={DOWNLOADS.android}>{tr("Download for Android")}</DownloadButton>
-            </Extra>
-            <Extra id="linux" icon={Monitor} title={tr("Linux")}>
-              <p>{tr("Unpack the archive and run its install script: Qbix joins your applications.")}</p>
-              <code className="rounded-xl bg-muted px-3 py-2 font-mono text-xs break-all text-foreground">tar xf qbix-linux-x86_64.tar.gz && qbix/install.sh</code>
-              <DownloadButton href={DOWNLOADS.linux}>{tr("Download for Linux")}</DownloadButton>
-            </Extra>
-            <Extra id="browser" icon={Globe} title={tr("Windows, macOS, iPhone")}>
-              <p>{tr("Qbix runs in your browser, and can be added to your home screen or your dock like an app.")}</p>
-              <LinkButton href="/timer?puzzle=333" variant="secondary" className="self-start">
-                {tr("Open Qbix in your browser")}
-                <ArrowRight data-icon="inline-end" />
-              </LinkButton>
-            </Extra>
-          </div>
-        </Section>
-
-        <Section id="more" className="flex flex-col gap-10">
+        <section id="more" className="mx-auto flex w-full max-w-7xl scroll-mt-24 flex-col gap-10 px-5 py-16 md:px-8 md:py-24">
           <h2 className={TITLE}>{tr("And everything around it")}</h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <Extra id="free" icon={Heart} title={tr("Free. Really.")}>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {others.map((f) => (
+              <Card key={f.id} id={f.id} icon={f.id === "challenges" ? Trophy : Box} title={f.hook}>
+                <p>{said(f.summary)}</p>
+              </Card>
+            ))}
+            <Card id="free" icon={Heart} title={tr("Free. Really.")}>
               <p>{tr("No ads, ever. No premium tier: every feature for everyone, from the first solve to competition. No subscription, no trial.")}</p>
-            </Extra>
-            <Extra id="puzzles" icon={Box} title={tr("Every WCA event")}>
+            </Card>
+            <Card id="puzzles" icon={Box} title={tr("Every WCA event")}>
               <ul aria-label={tr("Puzzles")} className="flex flex-wrap gap-2">
                 {EVENTS.map((e) => (
-                  <li key={e.id} title={said(e.label)} aria-label={said(e.label)} className="flex size-10 items-center justify-center rounded-xl bg-muted">
+                  <li key={e.id} title={said(e.label)} aria-label={said(e.label)} className="flex size-10 items-center justify-center rounded-2xl bg-muted">
                     <Logo size={22} puzzle={e.id} />
                   </li>
                 ))}
               </ul>
-            </Extra>
-            <Extra id="challenges" icon={Trophy} title={feature("challenges").title}>
-              <p>{said(feature("challenges").summary)}</p>
-            </Extra>
-            <Extra id="everywhere" icon={MonitorSmartphone} title={feature("everywhere").title}>
-              <p>{tr("Every solve is saved on your device first, then synced to your other devices. The timer, the algorithms and the training work without a connection.")}</p>
-            </Extra>
-            <Extra id="import" icon={Upload} title={tr("Switch from your timer in a minute")}>
+            </Card>
+            <Card id="import" icon={Upload} title={tr("Switch from your timer in a minute")}>
               <p>{tr("Export your times from your current timer and drop the file in Qbix, with their dates, penalties, scrambles and sessions.")}</p>
-              <Names label={tr("Timers you can import from")} names={IMPORTS} />
-            </Extra>
-            <Extra id="source" icon={Code} title={tr("Open source")}>
+              <ul aria-label={tr("Timers you can import from")} className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-foreground">
+                {IMPORTS.map((name) => <li key={name}>{said(name)}</li>)}
+              </ul>
+            </Card>
+            <Card id="source" icon={Code} title={tr("Open source")}>
               <p>
                 {said(NAME)} {" "}{tr("is an independent project, and its code is public.")}{" "}
                 <a href={SOURCE} className="inline-flex items-center gap-1 rounded-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-primary">
                   {tr("Read it on GitHub")}<ArrowUpRight className="size-4" />
                 </a>
               </p>
-            </Extra>
+            </Card>
           </div>
-        </Section>
+        </section>
 
-        <Section id="faq" className="flex flex-col gap-10">
+        <section id="download" className="mx-auto flex w-full max-w-7xl scroll-mt-24 flex-col gap-10 px-5 py-16 md:px-8 md:py-24">
+          <div className="flex flex-col gap-4">
+            <h2 className={TITLE}>{tr("Take Qbix with you")}</h2>
+            <p className="max-w-[56ch] text-lg leading-relaxed text-muted-foreground">{tr("The app, drawn by your graphics card: the timer, the algorithms and the training, even without a connection.")}</p>
+          </div>
+          <Downloads />
+          <p className="text-sm font-medium text-muted-foreground">{tr("Windows, macOS and iPhone are on their way.")}</p>
+        </section>
+
+        <section id="faq" className="mx-auto flex w-full max-w-7xl scroll-mt-24 flex-col gap-10 px-5 py-16 md:px-8 md:py-24">
           <h2 className={TITLE}>{tr("Questions")}</h2>
-          <dl className="grid gap-x-12 gap-y-9 md:grid-cols-2">
+          <dl className="glass grid gap-x-12 gap-y-9 rounded-[1.75rem] p-7 md:grid-cols-2 md:p-10">
             {FAQ.map((item) => (
               <div key={item.question} className="flex flex-col gap-2">
                 <dt className="text-lg font-bold tracking-tight">{said(item.question)}</dt>
@@ -241,24 +235,28 @@ export function Landing() {
               </div>
             ))}
           </dl>
-        </Section>
+        </section>
 
-        <Section className="grid items-center gap-x-16 gap-y-9 pb-24 md:pb-32 lg:grid-cols-[minmax(0,1fr)_auto]">
-          {/* Where the page began scrambled, it ends solved. */}
-          <CubeStill solved className="size-72 max-lg:hidden lg:order-2 xl:size-80" />
+        <section className="mx-auto grid w-full max-w-7xl items-center gap-x-16 gap-y-10 px-5 pt-16 pb-24 md:px-8 md:pb-32 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="flex flex-col items-start gap-8">
             <h2 className={cn(TITLE, "max-w-[12ch]")}>{tr("Ready for your next PB?")}</h2>
-            <LinkButton href="/timer?puzzle=333">
-              {tr("Open Qbix in your browser")}
-              <ArrowRight data-icon="inline-end" />
-            </LinkButton>
+            <div className="flex flex-wrap gap-3">
+              <DownloadButton main href={DOWNLOADS.android} icon={Smartphone}>{tr("Download for Android")}</DownloadButton>
+              <DownloadButton href={DOWNLOADS.linux} icon={Monitor}>{tr("Download for Linux")}</DownloadButton>
+            </div>
           </div>
-        </Section>
+          <div className="glass rounded-[1.75rem] p-6 md:p-8">
+            <HeroCube />
+          </div>
+        </section>
       </main>
 
-      <footer className="bg-card">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-8 text-sm text-muted-foreground md:px-8">
-          <Brand size={22} className="text-lg text-foreground" />
+      <footer className="mx-auto w-full max-w-7xl px-3 pb-4 md:px-6">
+        <div className="glass flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[1.75rem] px-6 py-6 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2 text-foreground">
+            <Mark size={20} />
+            <span className="text-lg font-extrabold tracking-[-0.04em]">{NAME}</span>
+          </span>
           <span>{tr("The free speedcubing app")}</span>
           <span className="flex-1" />
           <a href={COFFEE} target="_blank" rel="noreferrer" className={cn(link, "inline-flex items-center gap-1.5 font-semibold text-primary hover:text-primary/80")}>
@@ -276,7 +274,7 @@ export function Landing() {
             {tr("Terms of use")}</a>
           <a href="/privacy#cookies" className={link}>
             {tr("Cookies")}</a>
-          <LanguagePicker className="w-auto sm:hidden" />
+          <LanguagePicker className="glass-soft w-auto rounded-full border-0 sm:hidden" />
           <span className="w-full text-xs">{tr("Not affiliated with Rubik's Brand Ltd or the World Cube Association.")}</span>
         </div>
       </footer>

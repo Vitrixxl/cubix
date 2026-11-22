@@ -4215,5 +4215,19 @@
  "The app, drawn by your graphics card: the timer, the algorithms and the training, even without a connection.": "L'app, dessinée par ta carte graphique : le chrono, les algorithmes et l'entraînement, même sans connexion.",
  "Unpack the archive and run its install script: Qbix joins your applications.": "Décompresse l'archive et lance son script d'installation : Qbix rejoint tes applications.",
  "Windows, macOS, iPhone": "Windows, macOS, iPhone",
- "Yes: Qbix for Android and for Linux, free, to download from this page. On Windows, macOS and iPhone, Qbix runs in the browser and can be added to your home screen.": "Oui : Qbix pour Android et pour Linux, gratuit, à télécharger sur cette page. Sur Windows, macOS et iPhone, Qbix marche dans le navigateur et peut être ajouté à ton écran d'accueil."
+ "Yes: Qbix for Android and for Linux, free, to download from this page. On Windows, macOS and iPhone, Qbix runs in the browser and can be added to your home screen.": "Oui : Qbix pour Android et pour Linux, gratuit, à télécharger sur cette page. Sur Windows, macOS et iPhone, Qbix marche dans le navigateur et peut être ajouté à ton écran d'accueil.",
+ "A duel, ready to face off": "Un duel, prêt à commencer",
+ "Install Qbix on your Android phone or your Linux computer: everything works offline, saved on your device.": "Installe Qbix sur ton téléphone Android ou ton ordinateur Linux : tout marche hors ligne, enregistré sur ton appareil.",
+ "No. Everything works without one, your times kept on your device.": "Non. Tout marche sans, tes temps gardés sur ton appareil.",
+ "On Android and on Linux, free, from this page. Windows, macOS and iPhone are on their way.": "Sur Android et sur Linux, gratuitement, depuis cette page. Windows, macOS et iPhone arrivent.",
+ "On your phone and your computer, even offline": "Sur ton téléphone et ton ordinateur, même hors ligne",
+ "Progress": "Progrès",
+ "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, the methods taught step by step, case training, smart cubes, live duels, a daily scramble, the WCA's rankings and stats. On Android and Linux. No ads, no premium tier.": "Qbix est une app de speedcubing gratuite et complète : un chrono WCA avec des mélanges random-state et des moyennes, 6 500 algorithmes (F2L, OLL, PLL, ZBLL) avec un lecteur 3D, les méthodes expliquées étape par étape, l'entraînement par cas, les cubes connectés, des duels en direct, un mélange du jour, les classements de la WCA et des statistiques. Sur Android et Linux. Sans pub, sans offre premium.",
+ "Qbix on a computer: the timer": "Qbix sur un ordinateur : le chrono",
+ "Qbix on a phone: the timer": "Qbix sur un téléphone : le chrono",
+ "The statistics: every solve and its average": "Les statistiques : chaque résolution et sa moyenne",
+ "The timer, its time and averages": "Le chrono, son temps et ses moyennes",
+ "Where can I install Qbix?": "Où installer Qbix ?",
+ "Windows, macOS and iPhone are on their way.": "Windows, macOS et iPhone arrivent.",
+ "Qbix on a computer: the OLL cases, one played on the 3D cube": "Qbix sur un ordinateur : les cas d'OLL, l'un joué sur le cube 3D"
 }

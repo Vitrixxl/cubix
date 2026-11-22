@@ -14,14 +14,15 @@ describe("the landing page", () => {
     expect(html).toContain("<h1");
     const text = html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'");
     expect(text).toContain("The free speedcubing app");
-    // Each feature: shown live with its words, or in a card of its own.
+    // Each feature: beside its screenshot, or in a card of its own.
     for (const id of ["timer", "learn", "algorithms", "training", "duel"]) expect(text).toContain(FEATURES.find((f) => f.id === id)!.hook);
-    for (const id of ["challenges", "everywhere"]) expect(html).toContain(`id="${id}"`);
+    for (const id of ["challenges", "download", "android", "linux"]) expect(html).toContain(`id="${id}"`);
     // No figures on the page: it shows what the app does.
     expect(text).not.toMatch(/6,500|1,737/);
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
     expect(html).toContain("buymeacoffee.com");
-    expect(html).toContain('href="/timer?puzzle=333"');
+    // The native app's page: it offers the app, never the web version.
+    expect(html).not.toContain('href="/timer');
     expect(html).not.toContain("/api/mobile/apk");
     // The native apps, downloaded from the site itself (native/package.sh at each deployment).
     for (const file of ["/download/qbix.apk", "/download/qbix-linux-x86_64.tar.gz"]) expect(html).toContain(`href="${file}"`);
@@ -82,6 +83,7 @@ describe("the landing page", () => {
     const html = renderToString(createElement(Landing));
     expect(html).toContain("data-still");
     expect(html.match(/<polygon/g)!.length).toBeGreaterThan(27);
-    for (const demo of ["timer", "learn", "algorithms", "training", "duel"]) expect(html).toContain(`data-demo="${demo}"`);
+    // The app is shown by its own screenshots, each in its pane of glass.
+    for (const shot of ["desk-timer", "desk-case", "phone-algs", "desk-profile", "desk-challenges"]) expect(html).toContain(`/assets/landing/${shot}.webp`);
   });
 });

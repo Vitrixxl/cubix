@@ -27,7 +27,7 @@ export function structuredData(language: Language = "en") {
       description: t(DESCRIPTION),
       applicationCategory: "GameApplication",
       applicationSubCategory: "Speedcubing timer and algorithm trainer",
-      operatingSystem: "Web, Android, Linux",
+      operatingSystem: "Android, Linux",
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       featureList: FEATURES.flatMap((feature) => feature.points.map((point) => t(point))),
       image: SITE + "/og.png",
@@ -47,8 +47,8 @@ export function structuredData(language: Language = "en") {
 }
 
 /**
- * The whole page in `language`, the current one (see desktop/web.ts): `body` is the rendered landing page, `theme` the
- * default theme's CSS variables, set on `html.landing` so they stand over the stylesheet's own (`.dark`). Each language's
+ * The whole page in `language`, the current one (see desktop/web.ts): `body` is the rendered landing page, `theme` its
+ * CSS variables (`FEUILLE`), set on `html.landing` so they stand over the stylesheet's own. Each language's
  * page names the others for search engines (hreflang), the English one at the root by default.
  */
 export function landingDocument({ language = "en", body, theme, styles, scripts, app = [] }: { language?: Language; body: string; theme: Record<string, string>; styles: string[]; scripts: string[]; /** The app's first files, fetched ahead when a link to it is pointed at (landing/main.tsx). */ app?: string[] }) {
@@ -58,7 +58,7 @@ export function landingDocument({ language = "en", body, theme, styles, scripts,
     .map(([key, value]) => `--${key}:${value}`)
     .join(";");
   return `<!doctype html>
-<html lang="${language}" class="dark landing" style="color-scheme:dark">
+<html lang="${language}" class="landing" style="color-scheme:light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -72,7 +72,7 @@ export function landingDocument({ language = "en", body, theme, styles, scripts,
     <link rel="canonical" href="${url}" />
     ${LANGUAGES.map((l) => `<link rel="alternate" hreflang="${l.id}" href="${SITE}${landingPath(l.id)}" />`).join("\n    ")}
     <link rel="alternate" hreflang="x-default" href="${SITE}/" />
-    <meta name="theme-color" content="${escape(theme.background ?? "#0b0b0e")}" />
+    <meta name="theme-color" content="${escape(theme.background ?? "#eceef9")}" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="${ogLocale(language)}" />
     ${LANGUAGES.filter((l) => l.id !== language).map((l) => `<meta property="og:locale:alternate" content="${ogLocale(l.id)}" />`).join("\n    ")}
@@ -133,6 +133,35 @@ export const sitemap = (pages: string[] = []) => `<?xml version="1.0" encoding="
 ${LANGUAGES.map(({ id }) => `  <url><loc>${SITE}${landingPath(id)}</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n`).join("")}${LEGAL_DOCUMENTS.map(({ path }) => `  <url><loc>${SITE}${path}</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>\n`).join("")}${appPages(pages)}</urlset>
 `;
 
+/** The native app's colours (design C, Feuille; native/app/src/theme.rs) as the page's theme variables. */
+export const FEUILLE: Record<string, string> = {
+  background: "#eceef9",
+  foreground: "#1e2046",
+  card: "rgba(252, 252, 255, 0.62)",
+  "card-foreground": "#1e2046",
+  popover: "#fcfcff",
+  "popover-foreground": "#1e2046",
+  primary: "#4a48c6",
+  "primary-foreground": "#ffffff",
+  secondary: "rgba(74, 72, 198, 0.1)",
+  "secondary-foreground": "#3836a6",
+  muted: "#e8e9f7",
+  "muted-foreground": "#4c5084",
+  faint: "#62669a",
+  accent: "#e3e4f7",
+  "accent-foreground": "#1e2046",
+  border: "rgba(30, 32, 70, 0.1)",
+  input: "#e8e9f7",
+  ring: "#4a48c6",
+  destructive: "#bf3f3a",
+  success: "#1a7f53",
+  warning: "#8f5c08",
+  lilac: "#4a48c6",
+  "timer-ink": "#1e2046",
+  edge: "transparent",
+  rim: "rgba(30, 32, 70, 0.5)",
+};
+
 /** https://llmstxt.org: what the site is, in a few lines, and where to read more. */
 export const llms = () => `# ${NAME}
 
@@ -142,10 +171,7 @@ ${NAME} is free on every platform, without ads, premium tier or subscription. It
 
 ## Use it
 
-- [Open ${NAME} in the browser](${SITE}/timer): the web app, usable offline
-- [Download the app](${SITE}/#download): ${NAME} for Android (an APK) and Linux
-- [Algorithms](${SITE}/algorithms?puzzle=333): every case of every puzzle (F2L, OLL, PLL, ZBLL and more), with its algorithms
-- [Learn](${SITE}/learn?puzzle=333): each puzzle's methods, explained step by step
+- [Download ${NAME}](${SITE}/#download): the app for Android (an APK) and Linux, free
 
 ## Features
 

@@ -215,8 +215,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
   const { createElement } = await import("react");
   const { renderToString } = await import("react-dom/server");
   const { Landing } = await import("./renderer/landing/Landing");
-  const { landingDocument, llms, llmsFull, robots, sitemap } = await import("./renderer/landing/document");
-  const { DEFAULT_THEME, themeTokens } = await import("../src/client/lib/theme");
+  const { FEUILLE, landingDocument, llms, llmsFull, robots, sitemap } = await import("./renderer/landing/document");
   const { LANGUAGES, setLanguage } = await import("../src/client/i18n");
   // Split: the dictionaries load only in their language.
   const { files: outputs, entry, meta } = await bundle("desktop/renderer/landing/main.tsx", {}, true);
@@ -244,7 +243,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
     await writeFile(file, landingDocument({
       language: id,
       body,
-      theme: themeTokens(DEFAULT_THEME, "dark"),
+      theme: FEUILLE,
       styles: [...outputs.filter((path) => path.endsWith(".css")), CURSORS],
       scripts: [entry],
       app,

@@ -310,6 +310,45 @@ html.landing #root {
 html.landing {
     scroll-behavior: smooth;
 }
+/* The landing page wears the native app's look (design C, Feuille; native/app/src/theme.rs): a periwinkle haze behind,
+   panes of liquid glass over it, the accent's glass for what to press. */
+html.landing body {
+    background:
+        radial-gradient(60rem 40rem at 12% -10%, rgb(206 208 246 / 0.9), transparent 70%),
+        radial-gradient(50rem 36rem at 95% 20%, rgb(222 214 248 / 0.8), transparent 70%),
+        radial-gradient(60rem 50rem at 40% 110%, rgb(212 222 248 / 0.9), transparent 70%),
+        #eceef9;
+    background-attachment: fixed;
+}
+html.landing .glass {
+    background: rgb(252 252 255 / 0.62);
+    border: 1px solid rgb(255 255 255 / 0.75);
+    box-shadow: 0 24px 60px -28px rgb(30 32 70 / 0.28), 0 2px 6px rgb(30 32 70 / 0.04), inset 0 1px 0 rgb(255 255 255 / 0.9);
+    backdrop-filter: blur(22px) saturate(1.5);
+}
+html.landing .glass-soft {
+    background: rgb(252 252 255 / 0.55);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow: 0 10px 24px -14px rgb(30 32 70 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.95);
+    backdrop-filter: blur(16px) saturate(1.4);
+    color: var(--secondary-foreground);
+    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2), background-color 0.2s;
+}
+html.landing .glass-accent {
+    background: linear-gradient(180deg, #8c8af4 0%, #6462dc 48%, #4a48c6 100%);
+    border: 1px solid rgb(255 255 255 / 0.28);
+    box-shadow: 0 14px 30px -12px rgb(74 72 198 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -2px 6px rgb(30 32 120 / 0.25);
+    color: #fff;
+    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.2s;
+}
+html.landing .glass-soft:hover,
+html.landing .glass-accent:hover {
+    transform: translateY(-1px) scale(1.015);
+}
+html.landing .glass-soft:active,
+html.landing .glass-accent:active {
+    transform: scale(0.97);
+}
 /* What the browser draws takes the theme's accent too, in the app as on the landing page: selected text. */
 ::selection {
     background: color-mix(in oklch, var(--primary) 55%, transparent);
