@@ -144,7 +144,7 @@ ${NAME} is free on every platform, without ads, premium tier or subscription. It
 
 - [Open ${NAME} in the browser](${SITE}/timer): the web app, usable offline
 - [Algorithms](${SITE}/algorithms?puzzle=333): every case of every puzzle (F2L, OLL, PLL, ZBLL and more), with its algorithms
-- [Learn](${SITE}/learn?puzzle=333): step-by-step courses for each puzzle's methods
+- [Learn](${SITE}/learn?puzzle=333): each puzzle's methods, explained step by step
 
 ## Features
 

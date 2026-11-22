@@ -16,7 +16,7 @@ describe("the landing page", () => {
     expect(text).toContain("The free speedcubing app");
     // Each feature: shown live with its words, or in a card of its own.
     for (const id of ["timer", "learn", "algorithms", "training", "duel"]) expect(text).toContain(FEATURES.find((f) => f.id === id)!.hook);
-    for (const id of ["coaching", "everywhere"]) expect(html).toContain(`id="${id}"`);
+    for (const id of ["challenges", "everywhere"]) expect(html).toContain(`id="${id}"`);
     // No figures on the page: it shows what the app does.
     expect(text).not.toMatch(/6,500|1,737/);
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));

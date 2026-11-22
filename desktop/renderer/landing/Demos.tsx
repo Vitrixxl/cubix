@@ -138,7 +138,7 @@ export function TimerDemo() {
 }
 
 // ---------------------------------------------------------------------------
-// The first solve: the beginner course's steps, each shown on the 3D player.
+// The first solve: the beginner method's steps, each shown on the 3D player.
 // ---------------------------------------------------------------------------
 /** The 3×3 beginner method's steps (src/shared/methods.ts), each with a move or an algorithm it teaches. */
 const LESSON: { title: string; alg: string; mask: CubeMask }[] = [

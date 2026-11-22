@@ -9,7 +9,7 @@ export const NAME = "Qbix";
 export const SOURCE = "https://github.com/Vitrixxl/cubix";
 export const TITLE = "Qbix: the free speedcubing timer and algorithm trainer";
 export const DESCRIPTION =
-  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. In the browser, on computer and phone. No ads, no premium tier.";
+  "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, the methods taught step by step, case training, smart cubes, live duels, a daily scramble, the WCA's rankings and stats. In the browser, on computer and phone. No ads, no premium tier.";
 export const TAGLINE = "One app to time, learn and get faster on every WCA puzzle, from your first solve to competition. Free, without ads or premium tier.";
 
 export const PUZZLES = ["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "3×3 One-Handed", "3×3 Blindfolded", "4×4 and 5×5 Blindfolded", "Square-1", "Pyraminx", "Skewb", "Megaminx"];
@@ -61,18 +61,20 @@ export const FEATURES: Feature[] = [
       "Whole sets or single cases you learned, with random AUF and the solution hidden until you ask",
       "Every attempt compared with your mean on its case",
       "Cross, XCross and XXCross: scrambles of an exact number of moves, with their optimal solutions",
+      "Smart cubes (GAN, MoYu, QiYi, GoCube, Giiker): the timer starts on your first turn, each solve cut into its steps",
     ],
   },
   {
     id: "learn",
     hook: "Never solved a cube? Start here.",
-    title: "Courses from your first solve to CFOP, Roux and ZZ",
-    summary: "Step-by-step lessons from your first solve to CFOP, Roux and ZZ, on every puzzle, with a cube that shows each move.",
+    title: "Every method explained, from your first solve to CFOP, Roux and ZZ",
+    summary: "Each method explained step by step, its tips and the algorithms it needs, with a cube that shows each move.",
     points: [
       "3×3: beginner method, CFOP, Roux and ZZ",
       "2×2: beginner, Ortega, CLL and EG; 4×4 to 7×7: reduction and Yau",
       "Square-1, Pyraminx, Skewb and Megaminx, from the first solve on",
-      "A puzzle you cannot solve yet opens on its course; everything else unlocks once it is solved",
+      "Blindfolded: Old Pochmann and M2, with your memo traced on each scramble",
+      "Learn with a smart cube: the app sees each step done and says the next",
     ],
   },
   {
@@ -94,11 +96,15 @@ export const FEATURES: Feature[] = [
     ],
   },
   {
-    id: "coaching",
-    hook: "Book a coach.",
-    title: "Coaching",
-    summary: "Book a session with a coach, talk, share your screen and get feedback on your solves.",
-    points: ["Coaches by event, language, rating and price", "A calendar in your time zone, chat with pictures and videos", "Video calls with screen sharing, and reviews"],
+    id: "challenges",
+    hook: "Today's scramble, for everyone.",
+    title: "A daily scramble, tournaments and the WCA's rankings",
+    summary: "The same scramble for every cuber each day, tournaments between friends, and the WCA's rankings, records and competitions.",
+    points: [
+      "A daily scramble on every puzzle, ranked among everyone who solved it",
+      "Tournaments in your groups, their rounds played live",
+      "The WCA's rankings, records, competitions and cubers, and your WCA ID linked to your profile",
+    ],
   },
   {
     id: "everywhere",
@@ -118,9 +124,9 @@ export interface Question {
   answer: string;
 }
 export const FAQ: Question[] = [
-  { question: "Is Qbix free?", answer: "Yes, entirely: every feature, on every platform. There are no ads, no premium tier and no subscription. Only a coaching session has a price, set by its coach." },
-  { question: "I cannot solve a cube yet. Is Qbix for me?", answer: "Yes. A puzzle you cannot solve yet opens on its course: step-by-step lessons from the first solve, with a cube that shows each algorithm. The timer and the training are there once it is solved." },
-  { question: "Do I need an account?", answer: "A free account saves your times and syncs them between your devices. You sign in with your Google account, nothing else to fill in." },
+  { question: "Is Qbix free?", answer: "Yes, entirely: every feature, on every platform. There are no ads, no premium tier and no subscription." },
+  { question: "I cannot solve a cube yet. Is Qbix for me?", answer: "Yes. The beginner method is explained step by step, with a cube that shows each algorithm, and a smart cube can guide you through your first solve. The timer and the training are there once it is solved." },
+  { question: "Do I need an account?", answer: "A free account saves your times and syncs them between your devices. You sign in with your Google or WCA account, nothing else to fill in." },
   { question: "Which puzzles does Qbix support?", answer: `Every WCA event: ${PUZZLES.join(", ")}.` },
   { question: "Can I import my times from csTimer or Twisty Timer?", answer: `Yes. Qbix reads the exports of ${IMPORTS.join(", ")}, with your dates, penalties and sessions, right on your device.` },
   { question: "Does it work offline?", answer: "Yes. The timer, the algorithms and the training work without a connection; your solves are synced as soon as you are back online." },

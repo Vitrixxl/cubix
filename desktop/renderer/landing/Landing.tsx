@@ -4,7 +4,7 @@
  * that solves itself at the top (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
  */
 import { useEffect } from "react";
-import { ArrowRight, ArrowUpRight, Coffee, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Coffee, MonitorSmartphone, Upload, Trophy, Heart, Code, Box } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Brand, Logo } from "../logo";
@@ -46,7 +46,7 @@ const TITLE = "text-[clamp(2.25rem,5.5vw,4rem)] leading-[0.95] font-extrabold tr
  */
 const TOUR: { id: string; label: string; dot: string; demo: () => React.ReactNode; open?: [string, string] }[] = [
   { id: "timer", label: "Timer", dot: "bg-primary", demo: TimerDemo, open: ["/timer?puzzle=333", "Open the timer"] },
-  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn?puzzle=333", "Start the course"] },
+  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn?puzzle=333", "Learn the beginner method"] },
   { id: "algorithms", label: "Algorithms", dot: "bg-lilac", demo: AlgDemo, open: ["/algorithms?puzzle=333", "Browse the algorithms"] },
   { id: "training", label: "Training", dot: "bg-warning", demo: TrainDemo },
   { id: "duel", label: "Duels", dot: "bg-destructive", demo: DuelDemo, open: ["/duel", "Find an opponent"] },
@@ -168,9 +168,8 @@ export function Landing() {
                 ))}
               </ul>
             </Extra>
-            <Extra id="coaching" icon={Video} title={feature("coaching").title}>
-              <p>{said(feature("coaching").summary)}</p>
-              <p>{tr("Only a coaching session has a price, and its coach sets it.")}</p>
+            <Extra id="challenges" icon={Trophy} title={feature("challenges").title}>
+              <p>{said(feature("challenges").summary)}</p>
             </Extra>
             <Extra id="everywhere" icon={MonitorSmartphone} title={feature("everywhere").title}>
               <p>{tr("Every solve is saved on your device first, then synced to your other devices. The timer, the algorithms and the training work without a connection.")}</p>
